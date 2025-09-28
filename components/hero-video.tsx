@@ -1,7 +1,9 @@
+import { cx } from "class-variance-authority";
 import { headers } from "next/headers";
 import React from "react";
 
 export default async function HeroVideo({
+  className,
   ...props
 }: React.VideoHTMLAttributes<HTMLVideoElement>) {
   const sources = {
@@ -24,7 +26,7 @@ export default async function HeroVideo({
   console.log("Is iOS:", isIOS);
 
   return (
-    <video {...props}>
+    <video className={cx("relative", className)} {...props}>
       <source
         src={isIOS ? sources.mp4.source : sources.webm.source}
         type={isIOS ? sources.mp4.type : sources.webm.type}
