@@ -22,9 +22,6 @@ export default async function HeroVideo({
   const ua = (await headers()).get("user-agent") || "";
   const isIOS = /iPhone|iPad|iPod/i.test(ua);
 
-  console.log("User-Agent:", ua);
-  console.log("Is iOS:", isIOS);
-
   return (
     <video className={cx("relative", className)} {...props}>
       <source

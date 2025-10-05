@@ -42,7 +42,7 @@ export default function Header() {
             <NavigationMenuItem>
               <NavigationMenuLink
                 className="text-white hover:bg-white/20 hover:text-white font-medium lg:px-4 rounded-full cursor-pointer"
-                href="/tornei"
+                href="/eventi"
               >
                 Tornei ed Eventi
               </NavigationMenuLink>

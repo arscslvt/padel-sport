@@ -1,3 +1,4 @@
+import Footer from "@/components/footer";
 import Header from "@/components/header";
 import React from "react";
 
@@ -8,8 +9,11 @@ export default function ({
 }>) {
   return (
     <div>
-      <Header />
-      {children}
+      <main className="relative">
+        <Header />
+        {children}
+      </main>
+      <Footer />
     </div>
   );
 }
