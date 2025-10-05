@@ -36,7 +36,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="absolute inset-0 flex justify-center w-dvw h-dvh lg:h-full lg:w-auto z-0">
+          <div className="absolute inset-0 md:pt-16 flex justify-center w-dvw h-dvh lg:h-full lg:w-auto z-0">
             <div className="relative w-auto h-full pointer-events-none select-none">
               <Image
                 src={stickerPadelBall}
@@ -53,7 +53,7 @@ export default function Home() {
                 loop
                 muted
                 playsInline
-                className="relative z-0 h-full w-auto rounded-none lg:rounded-t-3xl object-cover"
+                className="relative z-0 h-full w-dvw md:w-auto rounded-none md:rounded-t-3xl object-cover"
                 preload="auto"
                 controls={false}
               />

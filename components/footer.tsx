@@ -9,13 +9,17 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="px-6 lg:px-32 py-8 text-white">
-      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-        <div className="flex flex-1 gap-8">
+    <footer className="px-6 lg:px-32 py-8 text-white max-w-dvw">
+      <div className="flex flex-col items-center md:items-end md:flex-row gap-8 lg:gap-12">
+        <div className="flex flex-col md:flex-row items-center flex-1 gap-8">
           <div>
-            <Image src={padelsportLogo} alt="Padel Sport Logo" />
+            <Image
+              src={padelsportLogo}
+              alt="Padel Sport Logo"
+              className="object-contain w-20 md:w-28"
+            />
           </div>
-          <div className="text-sm">
+          <div className="text-sm text-center md:text-left flex-1">
             <h4 className="font-medium">{getInfo("name")}</h4>
             <p className="text-white/80">{getInfo("address")}</p>
             <p className="text-white/80">{getInfo("email")}</p>

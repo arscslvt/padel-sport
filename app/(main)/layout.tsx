@@ -9,7 +9,7 @@ export default function ({
 }>) {
   return (
     <div>
-      <main className="relative">
+      <main className="relative max-w-dvw overflow-x-hidden">
         <Header />
         {children}
       </main>
