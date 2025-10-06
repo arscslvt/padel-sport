@@ -3,9 +3,12 @@ const info: { [key: string]: string } = {
   address: "Via Pertini, 96010 Melilli (SR) — Italia",
   email: "segreteria@asdpadelsport.com",
   cf: "93119030893",
+  cell: "+39 320 175 5897",
+  whatsapp: "+39 320 175 5897",
 
   instagramUrl: "https://www.instagram.com/padelsportmelilli/",
   facebookUrl: "https://www.facebook.com/padelsportmelilli/",
+  bookingUrl: "https://links.asdpadelsport.com/prenota",
 };
 
 type InfoKey = keyof typeof info;

@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 
 import stickerLightning from "@/assets/stickers/lightning.png";
 import stickerPadelBall from "@/assets/stickers/padel-ball.png";
-import Link from "next/link";
+
+import { PhoneCall } from "lucide-react";
+import { getInfo } from "@/lib/info";
 
 export default function Home() {
   return (
@@ -24,15 +26,35 @@ export default function Home() {
               </h4>
             </div>
 
-            <div>
-              <Link href={"https://links.asdpadelsport.com/prenota"}>
+            <div className="flex flex-col sm:flex-row gap-4 w-full md:w-max">
+              <a
+                href={getInfo("bookingUrl")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full"
+              >
                 <Button
                   size={"lg"}
-                  className="h-14 px-8 rounded-full bg-emerald-400 hover:bg-emerald-500 text-emerald-950 font-heading"
+                  className="w-full md:w-max h-14 px-8 rounded-full bg-emerald-400 hover:bg-emerald-500 text-emerald-950 font-heading"
                 >
                   Prenota il tuo campo
                 </Button>
-              </Link>
+              </a>
+              <a
+                href={`tel:${getInfo("cell")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Chiama PadelSport Melilli"
+                className="flex w-full"
+              >
+                <Button
+                  size={"lg"}
+                  className="w-full md:w-max h-14 !px-6 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-heading"
+                >
+                  <PhoneCall />
+                  Chiamaci
+                </Button>
+              </a>
             </div>
           </div>
 
@@ -41,12 +63,12 @@ export default function Home() {
               <Image
                 src={stickerPadelBall}
                 alt="Sticker Ball Sticker"
-                className="absolute top-32 -left-10 lg:-left-14 size-32 lg:size-28 z-10 -rotate-12 scale-x-[-1]"
+                className="hidden md:block absolute top-28 -left-10 lg:-left-14 size-32 lg:size-28 z-10 -rotate-12 scale-x-[-1]"
               />
               <Image
                 src={stickerLightning}
-                alt="Sticker Ball Sticker"
-                className="absolute bottom-72 lg:bottom-48 -right-12 lg:-right-14 size-32 lg:size-28 z-10 rotate-[6deg]"
+                alt="Sticker Lightning Sticker"
+                className="hidden md:block absolute bottom-64 lg:bottom-58 -right-12 lg:-right-14 size-32 lg:size-28 z-10 rotate-[6deg]"
               />
               <HeroVideo
                 autoPlay
