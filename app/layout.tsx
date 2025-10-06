@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
+import Script from "next/script";
 import { Geist, Geist_Mono, Unbounded } from "next/font/google";
 import "./globals.css";
-import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -92,6 +93,7 @@ export default function RootLayout({
       >
         {children}
 
+        <Analytics />
         <Script
           id="structured-data"
           type="application/ld+json"

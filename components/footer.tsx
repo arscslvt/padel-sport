@@ -3,9 +3,11 @@ import React from "react";
 import padelsportLogo from "@/assets/branding/logo.svg";
 import Image from "next/image";
 import { getInfo } from "@/lib/info";
-import { Facebook, Instagram } from "lucide-react";
+import { ArrowUpRight, Facebook, Instagram } from "lucide-react";
 import { Button } from "./ui/button";
 import Link from "next/link";
+
+import eatRainbowsLogo from "@/assets/sponsors/eatrainbows/eatrainbows-logo.png";
 
 export default function Footer() {
   return (
@@ -50,6 +52,27 @@ export default function Footer() {
               </Button>
             </Link>
           </div>
+        </div>
+      </div>
+
+      <div className="flex justify-center text-xs pt-8">
+        <div className="flex items-center px-4 h-6 bg-white/90 border border-white text-foreground rounded-full">
+          <p>
+            Sito web realizzato da{" "}
+            <Link
+              className="font-medium"
+              href="https://eatrainbows.co"
+              target="_blank"
+            >
+              <Image
+                src={eatRainbowsLogo}
+                alt="EatRainbows Logo"
+                className="inline-block size-6 -translate-y-[2px]"
+              />
+              EatRainbows
+              <ArrowUpRight className="inline-block size-4 ml-1 -translate-y-[1px]" />
+            </Link>
+          </p>
         </div>
       </div>
     </footer>
