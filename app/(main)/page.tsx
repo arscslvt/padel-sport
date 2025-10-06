@@ -15,7 +15,7 @@ export default function Home() {
     <div>
       <div className="bg-gradient-to-t from-emerald-900 to-background">
         <div className="flex items-end justify-center overflow-hidden h-dvh lg:h-[calc(100vh-6rem)] lg:mt-[6rem] gap-22">
-          <div className="relative items-center z-10 flex-1 text-white flex flex-col gap-8 px-4 pb-8 bg-gradient-to-t from-emerald-900 from-50% to-transparent lg:pb-6">
+          <div className="relative items-center z-10 flex-1 text-white flex flex-col gap-8 px-4 pb-6 bg-gradient-to-t from-emerald-900 from-50% to-transparent lg:pb-6">
             <div className="flex flex-col items-center gap-2">
               <h1 className="text-[28px] lg:text-4xl leading-10 font-heading font-semibold max-w-[580px] text-center">
                 Mettersi in gioco non è mai stato così bello
@@ -49,7 +49,7 @@ export default function Home() {
               >
                 <Button
                   size={"lg"}
-                  className="w-full md:w-max h-14 !px-6 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-heading"
+                  className="w-full md:w-max h-12 sm:h-14 !px-6 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-heading"
                 >
                   <PhoneCall />
                   Chiamaci
@@ -75,7 +75,7 @@ export default function Home() {
                 loop
                 muted
                 playsInline
-                className="relative z-0 h-full w-dvw md:w-auto rounded-none md:rounded-t-3xl object-cover"
+                className="relative z-0 h-full w-dvw md:w-auto rounded-none md:rounded-t-3xl object-cover -translate-y-4 sm:translate-y-0"
                 preload="auto"
                 controls={false}
               />
