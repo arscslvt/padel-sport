@@ -1,6 +1,5 @@
 import Footer from "@/components/footer";
 import Header from "@/components/header";
-import React from "react";
 
 export default function ({
   children,
@@ -8,11 +7,9 @@ export default function ({
   children: React.ReactNode;
 }>) {
   return (
-    <div>
-      <main className="relative max-w-dvw overflow-x-hidden">
-        <Header />
-        {children}
-      </main>
+    <div className="relative">
+      <Header />
+      <main className="max-w-dvw overflow-x-hidden">{children}</main>
       <Footer />
     </div>
   );

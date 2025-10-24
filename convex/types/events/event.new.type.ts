@@ -1,16 +1,16 @@
-import { defineTable } from "convex/server";
-import { v } from "convex/values";
+import { type Infer, v } from "convex/values";
 
-const events = defineTable({
+const newEventSchema = v.object({
   title: v.string(),
   description: v.string(),
-  date: v.float64(),
+  date: v.number(),
   socials: v.optional(
     v.object({
       instagramPost: v.optional(v.string()),
       facebookPost: v.optional(v.string()),
     })
   ),
-}).index("by_date", ["date"]);
+});
 
-export default events;
+export type NewEventT = Infer<typeof newEventSchema>;
+export { newEventSchema };

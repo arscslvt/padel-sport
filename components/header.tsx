@@ -14,9 +14,9 @@ const routes: ReadonlyArray<{
   href: string;
   disabled?: boolean;
 }> = [
-  { name: "Dove trovarci", href: "/dove" },
+  { name: "Dove trovarci", href: "/where" },
   { name: "Il Club", href: "/club", disabled: true },
-  { name: "Tornei ed Eventi", href: "/eventi" },
+  { name: "Tornei ed Eventi", href: "/events" },
 ];
 
 export default function Header() {
@@ -34,7 +34,7 @@ export default function Header() {
   }, [pathname]);
 
   return (
-    <div className="fixed w-dvw top-0 z-50 flex flex-col lg:flex-row justify-center items-center h-32 min-h-22 lg:px-32 pt-6 lg:pt-0">
+    <div className="sticky w-dvw top-0 z-50 flex flex-col lg:flex-row justify-center items-center pb-8 sm:h-32 min-h-22 lg:px-32 pt-6 lg:pt-0">
       <div>
         <Link href={"/"}>
           <Image

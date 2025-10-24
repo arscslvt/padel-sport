@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
 import { Geist, Geist_Mono, Unbounded } from "next/font/google";
 import "./globals.css";
+import Providers from "@/providers/provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -91,12 +92,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${unbounded.variable} antialiased`}
       >
-        {children}
-
+        <Providers>{children}</Providers>
         <Analytics />
         <Script
           id="structured-data"
           type="application/ld+json"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: It's necessary for JSON-LD
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",

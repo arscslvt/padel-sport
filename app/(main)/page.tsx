@@ -14,7 +14,7 @@ export default function Home() {
   return (
     <div>
       <div className="bg-gradient-to-t from-emerald-900 to-background">
-        <div className="flex items-end justify-center overflow-hidden h-dvh lg:h-[calc(100vh-6rem)] lg:mt-[6rem] gap-22">
+        <div className="flex items-end justify-center h-[calc(100dvh-148px)] lg:h-[calc(100dvh-128px)] gap-22">
           <div className="relative items-center z-10 flex-1 text-white flex flex-col gap-8 px-4 pb-6 bg-gradient-to-t from-emerald-900 from-50% to-transparent lg:pb-6">
             <div className="flex flex-col items-center gap-2">
               <h1 className="text-[28px] lg:text-4xl leading-10 font-heading font-semibold max-w-[580px] text-center">
@@ -58,7 +58,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="absolute inset-0 md:pt-16 flex justify-center w-dvw h-dvh lg:h-full lg:w-auto z-0">
+          <div className="absolute inset-0 flex justify-center w-dvw max-h-dvh md:pt-[108px]! overflow-clip lg:w-auto z-0">
             <div className="relative w-auto h-full pointer-events-none select-none">
               <Image
                 src={stickerPadelBall}
