@@ -32,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function EventsPage() {
   const [numItems] = useState(5);
+  const [now] = useState(Date.now());
 
   const {
     results, // array of events
@@ -39,7 +40,7 @@ export default function EventsPage() {
     loadMore, // function to fetch next page
   } = usePaginatedQuery(
     api.events.list.default,
-    {},
+    { now },
     { initialNumItems: numItems }
   );
 
@@ -98,9 +99,13 @@ export default function EventsPage() {
             <EmptyEventsPage />
           </div>
         )}
-        {status !== "CanLoadMore" && (
+        {status === "CanLoadMore" && (
           <div className="flex justify-center py-3">
-            <Button variant={"ghost"} className="text-white">
+            <Button
+              variant={"ghost"}
+              className="text-white"
+              onClick={() => loadMore(numItems)}
+            >
               Carica altri eventi
             </Button>
           </div>
