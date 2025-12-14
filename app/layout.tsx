@@ -4,6 +4,7 @@ import Script from "next/script";
 import { Geist, Geist_Mono, Unbounded } from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers/provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,12 +14,6 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
-const unbounded = Unbounded({
-  variable: "--font-unbounded",
-  subsets: ["latin"],
-  weight: ["400", "700", "900"],
 });
 
 export const metadata: Metadata = {
@@ -90,7 +85,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${unbounded.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>{children}</Providers>
         <Analytics />
@@ -152,6 +147,7 @@ export default function RootLayout({
             }),
           }}
         />
+        <Toaster />
       </body>
     </html>
   );

@@ -1,25 +1,40 @@
 "use client";
 
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+
+import { useMediaQuery } from "usehooks-ts";
 
 import logo from "@/assets/branding/logo.svg";
-import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
+
+import { AnimatePresence, motion } from "motion/react";
+
+import { cn } from "@/lib/utils";
+import {
+  BOOKING_LINK,
+  CLUB_LINK,
+  EVENTS_LINK,
+  WHERE_WE_ARE_LINK,
+} from "@/lib/links";
+import { getInfo } from "@/lib/info";
 
 const routes: ReadonlyArray<{
   name: string;
   href: string;
   disabled?: boolean;
 }> = [
-  { name: "Dove trovarci", href: "/where" },
-  { name: "Il Club", href: "/club", disabled: true },
-  { name: "Tornei ed Eventi", href: "/events" },
+  { name: "Dove trovarci", href: WHERE_WE_ARE_LINK },
+  { name: "Il Club", href: CLUB_LINK, disabled: true },
+  { name: "Tornei ed Eventi", href: EVENTS_LINK },
 ];
 
 export default function Header() {
+  const isMobile = useMediaQuery("(max-width: 768px)", {
+    initializeWithValue: false,
+  });
   const pathname = usePathname();
   const [currentPath, setCurrentPath] = React.useState<string | null>(null);
 
@@ -44,9 +59,9 @@ export default function Header() {
           />
         </Link>
       </div>
-      <div className="flex justify-end flex-1">
-        <nav aria-label="Navigazione principale" className="pt-4 lg:pt-0">
-          <ul className="flex gap-3">
+      <div className="justify-end flex-1 flex">
+        <nav aria-label="Link utili" className="pt-4 lg:pt-0">
+          <motion.ul className="flex gap-3" layout>
             {routes.map((route) => {
               const isActive = currentPath === route.href;
 
@@ -70,7 +85,34 @@ export default function Header() {
                 </li>
               );
             })}
-          </ul>
+            <AnimatePresence>
+              {currentPath !== "/" && !isMobile && (
+                <motion.li
+                  initial={{ opacity: 0, x: 10, filter: "blur(4px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, x: 10, width: 0, filter: "blur(4px)" }}
+                  transition={{ duration: 0.2 }}
+                  key="booking-button"
+                >
+                  <Link
+                    href={getInfo("bookingUrl") || ""}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button
+                      variant={"secondary"}
+                      className={cn(
+                        "font-medium font-heading lg:px-4 rounded-full cursor-pointer transition-colors",
+                        currentPath === BOOKING_LINK && "bg-white/30"
+                      )}
+                    >
+                      PRENOTA ORA
+                    </Button>
+                  </Link>
+                </motion.li>
+              )}
+            </AnimatePresence>
+          </motion.ul>
         </nav>
       </div>
     </div>
