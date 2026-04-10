@@ -1,5 +1,39 @@
+import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "1° Trofeo Padel San Sebastiano",
+  description:
+    "Regolamento, formula e dettagli ufficiali del 1° Trofeo Padel San Sebastiano organizzato da ASD PadelSport Melilli.",
+  alternates: {
+    canonical: "/trofeo-san-sebastiano",
+  },
+  openGraph: {
+    type: "article",
+    locale: "it_IT",
+    url: "https://www.asdpadelsport.com/trofeo-san-sebastiano",
+    title: "1° Trofeo Padel San Sebastiano",
+    description:
+      "Scopri regolamento, calendario e formato del 1° Trofeo Padel San Sebastiano.",
+    siteName: "ASD PadelSport Melilli",
+    images: [
+      {
+        url: "https://www.asdpadelsport.com/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "1° Trofeo Padel San Sebastiano - ASD PadelSport Melilli",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "1° Trofeo Padel San Sebastiano",
+    description:
+      "Regolamento e dettagli del torneo: gironi, fase finale e criteri di classifica.",
+    images: ["https://www.asdpadelsport.com/og-image.jpg"],
+  },
+};
 
 const rules = [
   {

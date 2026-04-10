@@ -16,6 +16,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const heading = Unbounded({
+  variable: "--font-heading-google",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: {
     default: "ASD PadelSport Melilli | Campi, Tornei e Lezioni",
@@ -85,7 +90,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${heading.variable} antialiased`}
       >
         <Providers>{children}</Providers>
         <Analytics />
