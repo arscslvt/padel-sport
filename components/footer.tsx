@@ -56,22 +56,17 @@ export default function Footer() {
       </div>
 
       <div className="flex justify-center text-xs pt-8">
-        <div className="flex items-center px-4 h-6 bg-white/90 border border-white text-foreground rounded-full">
-          <p>
+        <div className="flex items-center px-2 h-6 bg-white/90 border border-white text-foreground rounded-full">
+          <p className="mt-0.5">
             Sito web realizzato da{" "}
-            <Link
-              className="font-medium"
-              href="https://eatrainbows.co"
-              target="_blank"
-            >
+            <span className="font-medium">
               <Image
                 src={eatRainbowsLogo}
                 alt="EatRainbows Logo"
                 className="inline-block size-6 -translate-y-[2px]"
               />
               EatRainbows
-              <ArrowUpRight className="inline-block size-4 ml-1 -translate-y-[1px]" />
-            </Link>
+            </span>
           </p>
         </div>
       </div>
