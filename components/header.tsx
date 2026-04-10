@@ -60,7 +60,7 @@ export default function Header() {
       )}
     >
       {!isHome && (
-        <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-background via-background/95 to-background/80" />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-background via-background/95 to-background/0" />
       )}
       <div className="relative z-10">
         <Link href={"/"}>
