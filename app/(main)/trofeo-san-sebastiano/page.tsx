@@ -3,9 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "1° Trofeo Padel San Sebastiano",
+  title: "1° Torneo di Padel 'Trofeo San Sebastiano'",
   description:
-    "Regolamento, formula e dettagli ufficiali del 1° Trofeo Padel San Sebastiano organizzato da ASD PadelSport Melilli.",
+    "Regolamento, formula e dettagli ufficiali del 1° Torneo di Padel 'Trofeo San Sebastiano' organizzato da ASD PadelSport Melilli.",
   alternates: {
     canonical: "/trofeo-san-sebastiano",
   },
@@ -13,22 +13,22 @@ export const metadata: Metadata = {
     type: "article",
     locale: "it_IT",
     url: "https://www.asdpadelsport.com/trofeo-san-sebastiano",
-    title: "1° Trofeo Padel San Sebastiano",
+    title: "1° Torneo di Padel 'Trofeo San Sebastiano'",
     description:
-      "Scopri regolamento, calendario e formato del 1° Trofeo Padel San Sebastiano.",
+      "Scopri regolamento, calendario e formato del 1° Torneo di Padel 'Trofeo San Sebastiano'.",
     siteName: "ASD PadelSport Melilli",
     images: [
       {
         url: "https://www.asdpadelsport.com/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "1° Trofeo Padel San Sebastiano - ASD PadelSport Melilli",
+        alt: "1° Torneo di Padel 'Trofeo San Sebastiano' - ASD PadelSport Melilli",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "1° Trofeo Padel San Sebastiano",
+    title: "1° Torneo di Padel 'Trofeo San Sebastiano'",
     description:
       "Regolamento e dettagli del torneo: gironi, fase finale e criteri di classifica.",
     images: ["https://www.asdpadelsport.com/og-image.jpg"],
@@ -115,7 +115,7 @@ export default function TrofeoSanSebastianoPage() {
             A.S.D. Padel Sport Melilli
           </p>
           <h1 className="mt-2 font-heading text-3xl font-bold leading-tight lg:text-4xl">
-            1° Trofeo Padel San Sebastiano
+            1° Torneo di Padel 'Trofeo San Sebastiano'
           </h1>
           <p className="mt-4 max-w-3xl text-white/80">
             Il torneo inaugura una nuova fase della stagione: un mese di sfide,
