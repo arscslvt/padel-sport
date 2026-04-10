@@ -5,15 +5,37 @@ import { v } from "convex/values";
 export default query({
   args: {
     paginationOpts: paginationOptsValidator,
-    now: v.number(),
+    now: v.optional(v.number()),
+    referenceTime: v.optional(
+      v.object({
+        from: v.float64(),
+        to: v.float64(),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
-    const events = await ctx.db
+    const baseQuery = ctx.db
       .query("events")
-      .withIndex("by_date", (q) => q.gt("date", args.now))
-      .order("desc")
-      .paginate(args.paginationOpts);
+      .withIndex("by_date", (q) => q.gt("date", 0))
+      .order("desc");
 
-    return events;
+    try {
+      return await baseQuery.paginate(args.paginationOpts);
+    } catch (error) {
+      // During convex dev, previously issued cursors can become invalid after query changes.
+      if (
+        error instanceof Error &&
+        error.message.includes("InvalidCursor") &&
+        args.paginationOpts.cursor !== null
+      ) {
+        return await baseQuery.paginate({
+          ...args.paginationOpts,
+          cursor: null,
+          endCursor: null,
+        });
+      } else {
+        throw error;
+      }
+    }
   },
 });

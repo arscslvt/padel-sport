@@ -48,9 +48,21 @@ export default function Header() {
     setCurrentPath(cleanPath);
   }, [pathname]);
 
+  const isHome = currentPath === "/";
+
   return (
-    <div className="sticky w-dvw top-0 z-50 flex flex-col lg:flex-row justify-center items-center pb-8 sm:h-32 min-h-22 lg:px-32 pt-6 lg:pt-0">
-      <div>
+    <div
+      className={cn(
+        "relative w-dvw top-0 z-50 flex flex-col lg:flex-row justify-center items-center sm:h-32 min-h-22 lg:px-32 pt-6 lg:pt-0",
+        isHome ? "pb-2" : "pb-5 sm:pb-2",
+        isHome ? "fixed" : "sticky",
+        "bg-transparent",
+      )}
+    >
+      {!isHome && (
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-background via-background/95 to-background/80" />
+      )}
+      <div className="relative z-10">
         <Link href={"/"}>
           <Image
             src={logo}
@@ -59,7 +71,7 @@ export default function Header() {
           />
         </Link>
       </div>
-      <div className="justify-end flex-1 flex">
+      <div className="relative z-10 justify-end flex-1 flex">
         <nav aria-label="Link utili" className="pt-4 lg:pt-0">
           <motion.ul className="flex gap-3" layout>
             {routes.map((route) => {
@@ -75,7 +87,7 @@ export default function Header() {
                       variant={"ghost"}
                       className={cn(
                         "text-white hover:bg-white/20 hover:text-white font-medium lg:px-4 rounded-full cursor-pointer transition-colors",
-                        isActive && "bg-white/30"
+                        isActive && "bg-white/30",
                       )}
                       disabled={route.disabled}
                     >
@@ -103,7 +115,7 @@ export default function Header() {
                       variant={"secondary"}
                       className={cn(
                         "font-medium font-heading lg:px-4 rounded-full cursor-pointer transition-colors",
-                        currentPath === BOOKING_LINK && "bg-white/30"
+                        currentPath === BOOKING_LINK && "bg-white/30",
                       )}
                     >
                       PRENOTA ORA
