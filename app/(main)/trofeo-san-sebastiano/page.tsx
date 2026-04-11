@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
+import { MessageCircle, PhoneCall } from "lucide-react";
+import { getInfo } from "@/lib/info";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import TournamentFloatingCta from "./tournament-floating-cta";
 
 export const metadata: Metadata = {
   title: "1° Torneo di Padel 'Trofeo San Sebastiano'",
@@ -104,9 +108,20 @@ const rules = [
 ] as const;
 
 export default function TrofeoSanSebastianoPage() {
+  const phone = getInfo("cell") ?? "";
+  const whatsappRaw = getInfo("whatsapp") ?? "";
+  const whatsappNumber = whatsappRaw.replace(/\D/g, "");
+  const whatsappMessage = encodeURIComponent(
+    "Ciao! Sono interessato a partecipare al 1° Torneo di Padel 'Trofeo San Sebastiano'. Potete darmi maggiori informazioni su iscrizione e disponibilita?",
+  );
+  const phoneHref = `tel:${phone.replace(/\s+/g, "")}`;
+  const whatsappHref = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
+    : "https://wa.me/";
+
   return (
     <section className="px-6 lg:px-32 pb-14 text-white">
-      <div className="mx-auto max-w-5xl space-y-8">
+      <div id="tournament-page-shell" className="mx-auto max-w-5xl space-y-6">
         <header className="rounded-3xl border border-white/20 bg-white/10 p-6 lg:p-8 backdrop-blur-sm">
           <Badge className="mb-4 bg-emerald-300 text-emerald-950 hover:bg-emerald-300">
             TORNEO
@@ -122,6 +137,30 @@ export default function TrofeoSanSebastianoPage() {
             gironi e finali per vivere il padel con intensita, rispetto e
             sportivita.
           </p>
+          <div
+            id="tournament-cta-source"
+            className="mt-6 rounded-2xl border border-white/20 bg-black/15 p-4"
+          >
+            <p className="text-sm font-semibold uppercase tracking-wide text-white/75">
+              Come partecipare
+            </p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Button asChild className="sm:flex-1">
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle /> Scrivici su WhatsApp
+                </a>
+              </Button>
+              <Button asChild variant="secondary" className="sm:flex-1">
+                <a href={phoneHref}>
+                  <PhoneCall /> Chiamaci al cellulare
+                </a>
+              </Button>
+            </div>
+          </div>
         </header>
 
         <div className="grid w-full gap-4 md:grid-cols-2">
@@ -150,6 +189,13 @@ export default function TrofeoSanSebastianoPage() {
             </Card>
           ))}
         </div>
+
+        <TournamentFloatingCta
+          whatsappHref={whatsappHref}
+          phoneHref={phoneHref}
+          sourceId="tournament-cta-source"
+          containerId="tournament-page-shell"
+        />
       </div>
     </section>
   );
