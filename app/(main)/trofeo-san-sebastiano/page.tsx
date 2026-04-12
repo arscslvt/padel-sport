@@ -112,7 +112,7 @@ export default function TrofeoSanSebastianoPage() {
   const whatsappRaw = getInfo("whatsapp") ?? "";
   const whatsappNumber = whatsappRaw.replace(/\D/g, "");
   const whatsappMessage = encodeURIComponent(
-    "Ciao! Sono interessato a partecipare al 1° Torneo di Padel 'Trofeo San Sebastiano'. Potete darmi maggiori informazioni su iscrizione e disponibilita?",
+    "Ciao! Sono interessatə a partecipare al 1° Torneo di Padel 'Trofeo San Sebastiano'. Potete darmi maggiori informazioni su iscrizione e disponibilita?",
   );
   const phoneHref = `tel:${phone.replace(/\s+/g, "")}`;
   const whatsappHref = whatsappNumber
