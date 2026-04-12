@@ -5,20 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { useMediaQuery } from "usehooks-ts";
-
 import logo from "@/assets/branding/logo.svg";
 import { Button } from "./ui/button";
 
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 
 import { cn } from "@/lib/utils";
-import {
-  BOOKING_LINK,
-  CLUB_LINK,
-  EVENTS_LINK,
-  WHERE_WE_ARE_LINK,
-} from "@/lib/links";
+import { BOOKING_LINK, EVENTS_LINK, WHERE_WE_ARE_LINK } from "@/lib/links";
 import { getInfo } from "@/lib/info";
 
 const routes: ReadonlyArray<{
@@ -32,9 +25,6 @@ const routes: ReadonlyArray<{
 ];
 
 export default function Header() {
-  const isMobile = useMediaQuery("(max-width: 768px)", {
-    initializeWithValue: false,
-  });
   const pathname = usePathname();
   const [currentPath, setCurrentPath] = React.useState<string | null>(null);
 
@@ -72,15 +62,21 @@ export default function Header() {
         </Link>
 
         <div className="flex md:hidden">
-          <Button
-            variant={"secondary"}
-            className={cn(
-              "font-medium font-heading lg:px-4 rounded-full cursor-pointer transition-colors",
-              currentPath === BOOKING_LINK && "bg-white/30",
-            )}
+          <Link
+            href={getInfo("bookingUrl") ?? "#"}
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            PRENOTA ORA
-          </Button>
+            <Button
+              variant={"secondary"}
+              className={cn(
+                "font-medium font-heading lg:px-4 rounded-full cursor-pointer transition-colors",
+                currentPath === BOOKING_LINK && "bg-white/30",
+              )}
+            >
+              PRENOTA ORA
+            </Button>
+          </Link>
         </div>
       </div>
       <div className="relative z-10 md:justify-end flex-1 flex px-6 md:px-0">
