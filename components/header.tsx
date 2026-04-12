@@ -27,7 +27,7 @@ const routes: ReadonlyArray<{
   disabled?: boolean;
 }> = [
   { name: "Dove trovarci", href: WHERE_WE_ARE_LINK },
-  { name: "Il Club", href: CLUB_LINK, disabled: true },
+  // { name: "Il Club", href: CLUB_LINK, disabled: true },
   { name: "Tornei ed Eventi", href: EVENTS_LINK },
 ];
 
@@ -53,7 +53,7 @@ export default function Header() {
   return (
     <div
       className={cn(
-        "relative w-dvw top-0 z-50 flex flex-col lg:flex-row justify-center items-center sm:h-32 min-h-22 lg:px-32 pt-6 lg:pt-0",
+        "relative w-dvw top-0 z-50 flex flex-col lg:flex-row justify-center md:items-center sm:h-32 min-h-22 lg:px-24 pt-6 lg:pt-0",
         isHome ? "pb-2" : "pb-5 sm:pb-2",
         isHome ? "fixed" : "sticky",
         "bg-transparent",
@@ -62,7 +62,7 @@ export default function Header() {
       {!isHome && (
         <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-background via-background/95 to-background/0" />
       )}
-      <div className="relative z-10">
+      <div className="relative flex justify-between z-10 px-6 pb-3 md:pb-0 md:px-0">
         <Link href={"/"}>
           <Image
             src={logo}
@@ -70,23 +70,39 @@ export default function Header() {
             className="h-10 lg:h-12 w-auto"
           />
         </Link>
+
+        <div className="flex md:hidden">
+          <Button
+            variant={"secondary"}
+            className={cn(
+              "font-medium font-heading lg:px-4 rounded-full cursor-pointer transition-colors",
+              currentPath === BOOKING_LINK && "bg-white/30",
+            )}
+          >
+            PRENOTA ORA
+          </Button>
+        </div>
       </div>
-      <div className="relative z-10 justify-end flex-1 flex">
-        <nav aria-label="Link utili" className="pt-4 lg:pt-0">
-          <motion.ul className="flex gap-3" layout>
+      <div className="relative z-10 md:justify-end flex-1 flex px-6 md:px-0">
+        <nav
+          aria-label="Link utili"
+          className="flex flex-1 md:flex-none border border-border/30 bg-background/10 md:bg-foreground/30 backdrop-blur-sm md:bg-none rounded-full"
+        >
+          <motion.ul className="flex flex-1 md:flex-none" layout>
             {routes.map((route) => {
               const isActive = currentPath === route.href;
 
               return (
-                <li key={route.href}>
+                <li key={route.href} className="flex-1">
                   <Link
                     href={route.disabled ? "#" : route.href}
                     aria-current={isActive ? "page" : undefined}
+                    className="flex-1 flex"
                   >
                     <Button
                       variant={"ghost"}
                       className={cn(
-                        "text-white hover:bg-white/20 hover:text-white font-medium lg:px-4 rounded-full cursor-pointer transition-colors",
+                        "flex-1 text-white hover:bg-white/20 hover:text-white font-medium lg:px-4 rounded-full cursor-pointer transition-colors",
                         isActive && "bg-white/30",
                       )}
                       disabled={route.disabled}
@@ -97,33 +113,6 @@ export default function Header() {
                 </li>
               );
             })}
-            <AnimatePresence>
-              {currentPath !== "/" && !isMobile && (
-                <motion.li
-                  initial={{ opacity: 0, x: 10, filter: "blur(4px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, x: 10, width: 0, filter: "blur(4px)" }}
-                  transition={{ duration: 0.2 }}
-                  key="booking-button"
-                >
-                  <Link
-                    href={getInfo("bookingUrl") || ""}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button
-                      variant={"secondary"}
-                      className={cn(
-                        "font-medium font-heading lg:px-4 rounded-full cursor-pointer transition-colors",
-                        currentPath === BOOKING_LINK && "bg-white/30",
-                      )}
-                    >
-                      PRENOTA ORA
-                    </Button>
-                  </Link>
-                </motion.li>
-              )}
-            </AnimatePresence>
           </motion.ul>
         </nav>
       </div>

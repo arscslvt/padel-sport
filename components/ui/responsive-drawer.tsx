@@ -119,9 +119,7 @@ export function ResponsiveDrawerContent({
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
-          className={cn("sm:max-w-[425px] text-primary", className)}
-        >
+        <DialogContent className={cn("sm:max-w-106.25", className)}>
           {children}
         </DialogContent>
       </Dialog>
