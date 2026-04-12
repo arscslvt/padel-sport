@@ -122,24 +122,27 @@ export default function TrofeoSanSebastianoPage() {
   return (
     <section className="px-6 lg:px-32 pb-14 text-white">
       <div id="tournament-page-shell" className="mx-auto max-w-5xl space-y-6">
-        <header className="rounded-3xl border border-white/20 bg-white/10 p-6 lg:p-8 backdrop-blur-sm">
-          <Badge className="mb-4 bg-emerald-300 text-emerald-950 hover:bg-emerald-300">
-            TORNEO
-          </Badge>
-          <p className="text-sm uppercase tracking-wide text-white/70">
-            A.S.D. Padel Sport Melilli
-          </p>
-          <h1 className="mt-2 font-heading text-3xl font-bold leading-tight lg:text-4xl">
-            1° Torneo di Padel 'Trofeo San Sebastiano'
-          </h1>
-          <p className="mt-4 max-w-3xl text-white/80">
-            Il torneo inaugura una nuova fase della stagione: un mese di sfide,
-            gironi e finali per vivere il padel con intensita, rispetto e
-            sportivita.
-          </p>
+        <div>
+          <header className="rounded-t-3xl border border-white/20 bg-white/10 p-6 lg:p-8 backdrop-blur-sm">
+            <Badge className="mb-4 bg-emerald-300 text-emerald-950 hover:bg-emerald-300">
+              TORNEO
+            </Badge>
+            <p className="text-sm uppercase tracking-wide text-white/70">
+              A.S.D. Padel Sport Melilli
+            </p>
+            <h1 className="mt-2 font-heading text-3xl font-bold leading-tight lg:text-4xl">
+              1° Torneo di Padel 'Trofeo San Sebastiano'
+            </h1>
+            <p className="mt-4 max-w-3xl text-white/80">
+              Il torneo inaugura una nuova fase della stagione: un mese di
+              sfide, gironi e finali per vivere il padel con intensita, rispetto
+              e sportivita.
+            </p>
+          </header>
+
           <div
             id="tournament-cta-source"
-            className="mt-6 rounded-2xl border border-white/20 bg-black/15 p-4"
+            className="rounded-b-2xl border-x border-b border-white/20 bg-black/15 p-4"
           >
             <p className="text-sm font-semibold uppercase tracking-wide text-white/75">
               Come partecipare
@@ -161,8 +164,7 @@ export default function TrofeoSanSebastianoPage() {
               </Button>
             </div>
           </div>
-        </header>
-
+        </div>
         <div className="grid w-full gap-4 md:grid-cols-2">
           {rules.map((rule, index) => (
             <Card
