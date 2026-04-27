@@ -56,19 +56,19 @@ export default function Footer() {
       </div>
 
       <div className="flex justify-center text-xs pt-8">
-        <div className="flex items-center px-2 h-6 bg-white/90 border border-white text-foreground rounded-full">
-          <p className="mt-0.5">
-            Sito web realizzato da{" "}
-            <span className="font-medium">
-              <Image
-                src={eatRainbowsLogo}
-                alt="EatRainbows Logo"
-                className="inline-block size-6 -translate-y-[2px]"
-              />
-              EatRainbows
-            </span>
-          </p>
-        </div>
+        <Link
+          href="https://salvatorearesco.com"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <div className="flex items-center px-2 h-6 bg-white/90 border border-white text-foreground rounded-full">
+            <p>
+              Sito web realizzato da{" "}
+              <span className="font-medium">Salvatore Aresco</span>
+            </p>
+            <ArrowUpRight className="ml-1 h-4 w-4" strokeWidth={1.5} />
+          </div>
+        </Link>
       </div>
     </footer>
   );
