@@ -23,18 +23,18 @@ const heading = Unbounded({
 
 export const metadata: Metadata = {
   title: {
-    default: "ASD PadelSport Melilli | Campi, Tornei e Lezioni",
-    template: "%s | PadelSport Melilli",
+    default: "ASD Padel Sport Melilli | Campi, Tornei e Lezioni",
+    template: "%s | Padel Sport Melilli",
   },
   description:
-    "Prenota un campo, partecipa ai tornei o segui lezioni al PadelSport Melilli. Il punto di riferimento per gli amanti del padel in provincia di Siracusa.",
+    "Prenota un campo, partecipa ai tornei o segui lezioni al Padel Sport Melilli. Il punto di riferimento per gli amanti del padel in provincia di Siracusa.",
   keywords: [
     "padel Melilli",
     "campi padel",
     "tornei padel",
     "lezioni padel",
     "prenotazioni padel",
-    "PadelSport Melilli",
+    "Padel Sport Melilli",
     "club padel Siracusa",
   ],
   icons: {
@@ -46,9 +46,9 @@ export const metadata: Metadata = {
       { url: "/favicon/white-icon.png", media: "(prefers-color-scheme: dark)" },
     ],
   },
-  authors: [{ name: "ASD PadelSport Melilli" }],
-  creator: "ASD PadelSport Melilli",
-  publisher: "ASD PadelSport Melilli",
+  authors: [{ name: "ASD Padel Sport Melilli" }],
+  creator: "Salvatore Aresco",
+  publisher: "ASD Padel Sport Melilli",
   robots: { index: true, follow: true },
   alternates: {
     canonical: "https://www.asdpadelsport.com/",
@@ -57,24 +57,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "it_IT",
     url: "https://www.asdpadelsport.com/",
-    siteName: "ASD PadelSport Melilli",
-    title: "ASD PadelSport Melilli | Campi, Tornei e Lezioni",
+    siteName: "ASD Padel Sport Melilli",
+    title: "ASD Padel Sport Melilli | Campi, Tornei e Lezioni",
     description:
-      "Scopri ASD PadelSport Melilli: prenota campi outdoor, partecipa ai tornei e vivi la passione per il padel in Sicilia.",
+      "Scopri ASD Padel Sport Melilli: prenota campi outdoor, partecipa ai tornei e vivi la passione per il padel in Sicilia.",
     images: [
       {
         url: "https://www.asdpadelsport.com/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Campi da padel di ASD PadelSport Melilli",
+        alt: "Campi da padel di ASD Padel Sport Melilli",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ASD PadelSport Melilli | Campi, Tornei e Lezioni",
+    title: "ASD Padel Sport Melilli | Campi, Tornei e Lezioni",
     description:
-      "Prenota il tuo campo e divertiti con ASD PadelSport Melilli, il club di riferimento per il padel in provincia di Siracusa.",
+      "Prenota il tuo campo e divertiti con ASD Padel Sport Melilli, il club di riferimento per il padel in provincia di Siracusa.",
     images: ["https://www.asdpadelsport.com/og-image.jpg"],
     creator: "@padelsportmelilli",
   },
@@ -102,7 +102,7 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "SportsClub",
-              name: "ASD PadelSport Melilli",
+              name: "ASD Padel Sport Melilli",
               image: "https://www.asdpadelsport.com/og-image.jpg",
               url: "https://www.asdpadelsport.com/",
               telephone: "+39 3201755897",
@@ -148,7 +148,7 @@ export default function RootLayout({
                 "https://www.facebook.com/padelsportmelilli/",
               ],
               description:
-                "ASD PadelSport Melilli è un club moderno con campi outdoor, lezioni di padel, tornei e corsi per ogni livello di gioco.",
+                "ASD Padel Sport Melilli è un club moderno con campi outdoor, lezioni di padel, tornei e corsi per ogni livello di gioco.",
             }),
           }}
         />

@@ -43,7 +43,7 @@ export default function Header() {
   return (
     <div
       className={cn(
-        "relative w-dvw top-0 z-50 flex flex-col lg:flex-row justify-center md:items-center sm:h-32 min-h-22 lg:px-24 pt-6 lg:pt-0",
+        "relative w-dvw top-0 z-50 flex flex-col md:flex-row justify-center md:items-center sm:h-32 min-h-22 gap-3 md:px-8 lg:px-24 pt-6 lg:pt-0",
         isHome ? "pb-2" : "pb-5 sm:pb-2",
         isHome ? "fixed" : "sticky",
         "bg-transparent",
@@ -52,8 +52,8 @@ export default function Header() {
       {!isHome && (
         <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-background via-background/95 to-background/0" />
       )}
-      <div className="relative flex justify-between z-10 px-6 pb-3 md:pb-0 md:px-0">
-        <Link href={"/"}>
+      <div className="relative flex justify-between z-10 px-4 pb-3 md:pb-0 md:px-0">
+        <Link href={"/"} className="pl-2 md:pl-0">
           <Image
             src={logo}
             alt="PadelSport Logo"
@@ -79,7 +79,7 @@ export default function Header() {
           </Link>
         </div>
       </div>
-      <div className="relative z-10 md:justify-end flex-1 flex px-6 md:px-0">
+      <div className="relative z-10 md:justify-end md:flex-1 flex px-4 md:px-0">
         <nav
           aria-label="Link utili"
           className="flex flex-1 md:flex-none border border-border/30 bg-background/10 md:bg-foreground/30 backdrop-blur-sm md:bg-none rounded-full"

@@ -8,8 +8,11 @@
  * @module
  */
 
+import type * as bookings_create from "../bookings/create.js";
+import type * as bookings_listRange from "../bookings/listRange.js";
 import type * as events_list from "../events/list.js";
 import type * as events_new from "../events/new.js";
+import type * as tables_bookings from "../tables/bookings.js";
 import type * as tables_events from "../tables/events.js";
 import type * as tables_links from "../tables/links.js";
 
@@ -20,8 +23,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "bookings/create": typeof bookings_create;
+  "bookings/listRange": typeof bookings_listRange;
   "events/list": typeof events_list;
   "events/new": typeof events_new;
+  "tables/bookings": typeof tables_bookings;
   "tables/events": typeof tables_events;
   "tables/links": typeof tables_links;
 }>;
