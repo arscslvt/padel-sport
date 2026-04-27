@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { ClerkProvider } from "@clerk/nextjs";
 import Script from "next/script";
 import { Geist, Geist_Mono, Unbounded } from "next/font/google";
 import "./globals.css";
@@ -88,72 +89,74 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${heading.variable} antialiased`}
-      >
-        <Providers>{children}</Providers>
-        <Analytics />
-        <Script
-          id="structured-data"
-          type="application/ld+json"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: It's necessary for JSON-LD
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SportsClub",
-              name: "ASD Padel Sport Melilli",
-              image: "https://www.asdpadelsport.com/og-image.jpg",
-              url: "https://www.asdpadelsport.com/",
-              telephone: "+39 3201755897",
-              address: {
-                "@type": "PostalAddress",
-                streetAddress: "Via Pertini",
-                addressLocality: "Melilli",
-                postalCode: "96010",
-                addressCountry: "IT",
-              },
-              openingHoursSpecification: [
-                {
-                  "@type": "OpeningHoursSpecification",
-                  dayOfWeek: [
-                    "Monday",
-                    "Tuesday",
-                    "Wednesday",
-                    "Thursday",
-                    "Friday",
-                    "Saturday",
-                    "Sunday",
-                  ],
-                  opens: "09:00",
-                  closes: "12:30",
+    <ClerkProvider>
+      <html lang="en">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} ${heading.variable} antialiased`}
+        >
+          <Providers>{children}</Providers>
+          <Analytics />
+          <Script
+            id="structured-data"
+            type="application/ld+json"
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: It's necessary for JSON-LD
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "SportsClub",
+                name: "ASD Padel Sport Melilli",
+                image: "https://www.asdpadelsport.com/og-image.jpg",
+                url: "https://www.asdpadelsport.com/",
+                telephone: "+39 3201755897",
+                address: {
+                  "@type": "PostalAddress",
+                  streetAddress: "Via Pertini",
+                  addressLocality: "Melilli",
+                  postalCode: "96010",
+                  addressCountry: "IT",
                 },
-                {
-                  "@type": "OpeningHoursSpecification",
-                  dayOfWeek: [
-                    "Monday",
-                    "Tuesday",
-                    "Wednesday",
-                    "Thursday",
-                    "Friday",
-                    "Saturday",
-                    "Sunday",
-                  ],
-                  opens: "14:30",
-                  closes: "21:30",
-                },
-              ],
-              sameAs: [
-                "https://www.instagram.com/padelsportmelilli/",
-                "https://www.facebook.com/padelsportmelilli/",
-              ],
-              description:
-                "ASD Padel Sport Melilli è un club moderno con campi outdoor, lezioni di padel, tornei e corsi per ogni livello di gioco.",
-            }),
-          }}
-        />
-        <Toaster />
-      </body>
-    </html>
+                openingHoursSpecification: [
+                  {
+                    "@type": "OpeningHoursSpecification",
+                    dayOfWeek: [
+                      "Monday",
+                      "Tuesday",
+                      "Wednesday",
+                      "Thursday",
+                      "Friday",
+                      "Saturday",
+                      "Sunday",
+                    ],
+                    opens: "09:00",
+                    closes: "12:30",
+                  },
+                  {
+                    "@type": "OpeningHoursSpecification",
+                    dayOfWeek: [
+                      "Monday",
+                      "Tuesday",
+                      "Wednesday",
+                      "Thursday",
+                      "Friday",
+                      "Saturday",
+                      "Sunday",
+                    ],
+                    opens: "14:30",
+                    closes: "21:30",
+                  },
+                ],
+                sameAs: [
+                  "https://www.instagram.com/padelsportmelilli/",
+                  "https://www.facebook.com/padelsportmelilli/",
+                ],
+                description:
+                  "ASD Padel Sport Melilli è un club moderno con campi outdoor, lezioni di padel, tornei e corsi per ogni livello di gioco.",
+              }),
+            }}
+          />
+          <Toaster />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

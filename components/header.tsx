@@ -62,11 +62,7 @@ export default function Header() {
         </Link>
 
         <div className="flex md:hidden">
-          <Link
-            href={getInfo("bookingUrl") ?? "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <Link href={getInfo("bookingUrl") ?? "#"}>
             <Button
               variant={"secondary"}
               className={cn(

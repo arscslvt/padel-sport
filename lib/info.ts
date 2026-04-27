@@ -8,7 +8,7 @@ const info: { [key: string]: string } = {
 
   instagramUrl: "https://www.instagram.com/padelsportmelilli/",
   facebookUrl: "https://www.facebook.com/padelsportmelilli/",
-  bookingUrl: "https://links.asdpadelsport.com/prenota",
+  bookingUrl: "/book",
 };
 
 type InfoKey = keyof typeof info;

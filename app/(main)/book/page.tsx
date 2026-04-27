@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { endOfMonth, format, startOfDay, startOfMonth } from "date-fns";
 import {
   CalendarDays,
@@ -149,7 +149,7 @@ function getDailySlotTimes() {
 const DAILY_SLOTS = getDailySlotTimes();
 
 export default function BookPage() {
-  const createBooking = useMutation(api.bookings.create.default);
+  const createBooking = useAction(api.bookings.create.default);
   const [bookingCompleted, setBookingCompleted] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState(new Date());
 

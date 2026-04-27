@@ -1,13 +1,11 @@
-import React from "react";
-
 import padelsportLogo from "@/assets/branding/logo.svg";
 import Image from "next/image";
 import { getInfo } from "@/lib/info";
-import { ArrowUpRight, Facebook, Instagram } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { Button } from "./ui/button";
 import Link from "next/link";
 
-import eatRainbowsLogo from "@/assets/sponsors/eatrainbows/eatrainbows-logo.png";
+import { FaFacebookF, FaInstagram } from "react-icons/fa";
 
 export default function Footer() {
   return (
@@ -39,7 +37,7 @@ export default function Footer() {
               rel="noopener noreferrer"
             >
               <Button size={"icon"} variant={"ghost"} className="rounded-full">
-                <Instagram className="h-8 w-8" strokeWidth={1.3} />
+                <FaInstagram className="h-8 w-8" strokeWidth={1.3} />
               </Button>
             </Link>
             <Link
@@ -48,7 +46,7 @@ export default function Footer() {
               rel="noopener noreferrer"
             >
               <Button size={"icon"} variant={"ghost"} className="rounded-full">
-                <Facebook className="h-8 w-8" strokeWidth={1.3} />
+                <FaFacebookF className="h-8 w-8" strokeWidth={1.3} />
               </Button>
             </Link>
           </div>

@@ -1,4 +1,6 @@
-import { mutation } from "../_generated/server";
+import { format } from "date-fns";
+import { internal } from "../_generated/api";
+import { action, internalMutation } from "../_generated/server";
 import { bookingNewSchema } from "../types/bookings/booking.new.type";
 
 const SLOT_INTERVAL_MINUTES = 30;
@@ -7,7 +9,41 @@ const MATCH_DURATION_MINUTES = 90;
 const SLOT_INTERVAL_MS = SLOT_INTERVAL_MINUTES * 60 * 1000;
 const MATCH_DURATION_MS = MATCH_DURATION_MINUTES * 60 * 1000;
 
-export default mutation({
+export default action({
+  args: {
+    booking: bookingNewSchema,
+  },
+  handler: async (ctx, { booking }) => {
+    const response = await ctx.runMutation(
+      internal.bookings.create.newBooking,
+      { booking },
+    );
+
+    console.log("Booking details:", booking);
+
+    if (response) {
+      const date = format(
+        new Date(booking.bookingDate),
+        "dd/MM/yyyy 'alle' HH:mm",
+      );
+      const notificationUrl = process.env.NTFY_TOPIC_URL;
+      if (!notificationUrl) {
+        console.warn(
+          "NTFY_TOPIC_URL non configurato. Impossibile inviare la notifica.",
+        );
+        return;
+      }
+
+      await fetch(notificationUrl, {
+        method: "POST",
+        body: `Nuova prenotazione per il ${date} da ${booking.bookedBy}`,
+        headers: { Title: "Nuova Prenotazione", Tags: "booking" },
+      });
+    }
+  },
+});
+
+export const newBooking = internalMutation({
   args: {
     booking: bookingNewSchema,
   },
@@ -77,7 +113,7 @@ export default mutation({
       );
     }
 
-    return await ctx.db.insert("bookings", {
+    const insertedBooking = await ctx.db.insert("bookings", {
       bookedBy,
       phone: normalizedPhone,
       players,
@@ -89,5 +125,7 @@ export default mutation({
       status: "pending_on_site_payment",
       createdAt: Date.now(),
     });
+
+    return insertedBooking;
   },
 });
