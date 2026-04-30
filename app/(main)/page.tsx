@@ -26,12 +26,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full md:w-max">
-              <a
-                href={getInfo("bookingUrl")}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full"
-              >
+              <a href={getInfo("bookingUrl")} className="flex w-full">
                 <Button
                   size={"lg"}
                   className="w-full md:w-max h-14 px-8 rounded-t-4xl rounded-b-sm sm:rounded-l-4xl sm:rounded-r-md bg-emerald-400 hover:bg-emerald-500 text-emerald-950 font-heading"

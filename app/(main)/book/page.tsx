@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { endOfMonth, format, startOfDay, startOfMonth } from "date-fns";
 import {
   CalendarDays,
@@ -9,17 +9,18 @@ import {
   CircleCheckBig,
   Clock3,
   Euro,
+  Plus,
   UsersRound,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -30,7 +31,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -58,54 +58,36 @@ const PLAY_WINDOWS = [
 
 const MATCH_DURATION_MS = MATCH_DURATION_MINUTES * 60 * 1000;
 
-const bookingFormSchema = z
-  .object({
-    player1: z.string().min(3, "Inserisci nome e cognome del giocatore."),
-    phone: z
-      .string()
-      .transform((value) => value.trim())
-      .refine(
-        (value) => /^\+?[0-9\s]{8,20}$/.test(value),
-        "Inserisci un numero di telefono valido.",
-      ),
-    player2: z.string().optional(),
-    player3: z.string().optional(),
-    player4: z.string().optional(),
-    bookingDate: z.date({ error: "Seleziona la data della prenotazione." }),
-    bookingTime: z
-      .string()
-      .transform((value) => value.trim())
-      .refine(
-        (value) => /^([01]\d|2[0-3]):(00|30)$/.test(value),
-        "Seleziona un orario valido.",
-      ),
-    level: z.enum(LEVELS, {
-      error: "Seleziona il livello di gioco.",
-    }),
-    bookForAll: z.boolean(),
-  })
-  .superRefine((values, ctx) => {
-    if (!values.bookForAll) {
-      return;
-    }
-
-    const players = [
-      values.player1,
-      values.player2,
-      values.player3,
-      values.player4,
-    ];
-
-    for (const [index, player] of players.entries()) {
-      if (!player || player.trim().length < 3) {
-        ctx.addIssue({
-          code: "custom",
-          path: [`player${index + 1}`],
-          message: "Se prenoti per tutti, inserisci tutti e 4 i nomi completi.",
-        });
-      }
-    }
-  });
+const bookingFormSchema = z.object({
+  players: z
+    .array(
+      z.object({
+        name: z
+          .string()
+          .trim()
+          .min(3, "Inserisci nome e cognome completo del giocatore."),
+      }),
+    )
+    .min(1, "Aggiungi almeno un giocatore."),
+  phone: z
+    .string()
+    .transform((value) => value.trim())
+    .refine(
+      (value) => /^\+?[0-9\s]{8,20}$/.test(value),
+      "Inserisci un numero di telefono valido.",
+    ),
+  bookingDate: z.date({ error: "Seleziona la data della prenotazione." }),
+  bookingTime: z
+    .string()
+    .transform((value) => value.trim())
+    .refine(
+      (value) => /^([01]\d|2[0-3]):(00|30)$/.test(value),
+      "Seleziona un orario valido.",
+    ),
+  level: z.enum(LEVELS, {
+    error: "Seleziona il livello di gioco.",
+  }),
+});
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
 
@@ -170,47 +152,51 @@ export default function BookPage() {
     to: rangeTo,
   });
 
+  const activeSlots = useQuery(api.slots.listActive.default);
+
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
-      player1: "",
+      players: [],
       phone: "",
-      player2: "",
-      player3: "",
-      player4: "",
       bookingDate: undefined,
       bookingTime: "",
       level: "intermedio",
-      bookForAll: false,
     },
   });
 
-  const bookForAll = form.watch("bookForAll");
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "players",
+  });
+
   const selectedDate = form.watch("bookingDate");
   const selectedTime = form.watch("bookingTime");
 
+  // Garantisce che ci sia sempre almeno un campo giocatore
   useEffect(() => {
-    if (bookForAll) {
-      return;
+    if (fields.length === 0) {
+      append({ name: "" });
     }
-
-    form.setValue("player2", "", { shouldDirty: true, shouldValidate: true });
-    form.setValue("player3", "", { shouldDirty: true, shouldValidate: true });
-    form.setValue("player4", "", { shouldDirty: true, shouldValidate: true });
-  }, [bookForAll, form]);
+  }, [fields.length, append]);
 
   const bookingsByDay = useMemo(() => {
-    const map = new Map<string, number[]>();
+    const map = new Map<
+      string,
+      Array<{ bookingDate: number; slot?: string }>
+    >();
 
     for (const booking of bookingsInRange ?? []) {
-      const start = booking.bookingDate;
-      const key = getDayKey(new Date(start));
+      const key = getDayKey(new Date(booking.bookingDate));
 
       if (!map.has(key)) {
         map.set(key, []);
       }
 
-      map.get(key)?.push(start);
+      map.get(key)?.push({
+        bookingDate: booking.bookingDate,
+        slot: booking.slot,
+      });
     }
 
     return map;
@@ -223,6 +209,11 @@ export default function BookPage() {
       }
 
       const dayBookings = bookingsByDay.get(getDayKey(date)) ?? [];
+      const activeSlotCount = activeSlots?.length ?? 0;
+
+      if (activeSlotCount === 0) {
+        return [];
+      }
 
       return DAILY_SLOTS.filter((slot) => {
         const candidateStart = combineDateAndTime(date, slot);
@@ -232,13 +223,24 @@ export default function BookPage() {
           return false;
         }
 
-        return !dayBookings.some((bookingStart) => {
-          const bookingEnd = bookingStart + MATCH_DURATION_MS;
-          return bookingStart < candidateEnd && bookingEnd > candidateStart;
+        const overlappingBookings = dayBookings.filter((booking) => {
+          const bookingEnd = booking.bookingDate + MATCH_DURATION_MS;
+
+          return (
+            booking.bookingDate < candidateEnd && bookingEnd > candidateStart
+          );
         });
+
+        if (overlappingBookings.some((booking) => !booking.slot)) {
+          return false;
+        }
+
+        const occupiedSlots = overlappingBookings.length;
+
+        return occupiedSlots < activeSlotCount;
       });
     },
-    [bookingsByDay],
+    [activeSlots, bookingsByDay],
   );
 
   const availableSlots = useMemo(
@@ -256,31 +258,24 @@ export default function BookPage() {
     }
   }, [availableSlots, form, selectedTime]);
 
+  const playersArray = form.watch("players");
+
   const totalPlayers = useMemo(() => {
-    if (bookForAll) {
-      return 4;
-    }
+    return playersArray.filter((player) => player.name?.trim().length > 0)
+      .length;
+  }, [playersArray]);
 
-    const optionalPlayers = [
-      form.watch("player2"),
-      form.watch("player3"),
-      form.watch("player4"),
-    ]
-      .map((name) => name?.trim() ?? "")
-      .filter(Boolean).length;
-
-    return 1 + optionalPlayers;
-  }, [bookForAll, form]);
+  const bookForAll = useMemo(() => {
+    const validPlayers = playersArray.filter(
+      (player) => player.name?.trim().length > 0,
+    );
+    return validPlayers.length === 4;
+  }, [playersArray]);
 
   const onSubmit = form.handleSubmit(async (values) => {
-    const players = [
-      values.player1,
-      values.player2,
-      values.player3,
-      values.player4,
-    ]
-      .map((name) => name?.trim() ?? "")
-      .filter(Boolean);
+    const players = values.players.filter(
+      (player) => player.name?.trim().length > 0,
+    );
 
     const bookingDate = combineDateAndTime(
       values.bookingDate,
@@ -298,26 +293,22 @@ export default function BookPage() {
     try {
       await createBooking({
         booking: {
-          bookedBy: values.player1.trim(),
+          bookedBy: players[0].name,
           phone: values.phone,
-          players,
+          players: players.map((p) => p.name),
           bookingDate,
           level: values.level,
-          bookForAll: values.bookForAll,
+          bookForAll,
         },
       });
 
       setBookingCompleted(true);
       form.reset({
-        player1: "",
+        players: [{ name: "" }],
         phone: "",
-        player2: "",
-        player3: "",
-        player4: "",
         bookingDate: undefined,
         bookingTime: "",
         level: "intermedio",
-        bookForAll: false,
       });
 
       toast.success("Richiesta prenotazione inviata", {
@@ -339,36 +330,82 @@ export default function BookPage() {
     <section className="isolate min-h-[75vh] px-4 pt-4 py-b-14 text-white md:px-8">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_5%_20%,rgba(16,185,129,0.24),transparent_28%),radial-gradient(circle_at_95%_0%,rgba(16,185,129,0.16),transparent_24%),linear-gradient(180deg,rgba(6,78,59,0.16),rgba(2,6,23,0.92))]" />
 
-      <div className="mx-auto grid w-full max-w-5xl gap-6 lg:grid-cols-[1.1fr_1fr]">
+      <div className="mx-auto grid w-full max-w-6xl gap-6 md:gap-12 lg:grid-cols-[1.1fr_1fr]">
         <Form {...form}>
           <form className="space-y-5" onSubmit={onSubmit}>
             <h2 className="font-heading text-2xl text-white md:text-3xl">
               Prenota il tuo campo
             </h2>
             <p className="text-emerald-50/80">
-              Inserisci i dati del giocatore. Se prenoti per la squadra
-              completa, compila tutti e 4 i nomi.
+              Inserisci i nomi dei giocatori. Puoi aggiungere più giocatori
+              usando il pulsante "Aggiungi giocatore".
             </p>
-            <FormField
-              control={form.control}
-              name="player1"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome e cognome giocatore</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Es. Mario Rossi"
-                      autoComplete="name"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Questo campo e sempre obbligatorio.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
+            <div className="space-y-3">
+              {fields.map((field, index) => (
+                <FormField
+                  key={field.id}
+                  control={form.control}
+                  name={`players.${index}`}
+                  render={({ field: fieldProps }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {index === 0
+                          ? "Nome e cognome giocatore"
+                          : `Giocatore ${index + 1}`}
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            placeholder="Es. Mario Rossi"
+                            autoComplete="off"
+                            value={fieldProps.value?.name ?? ""}
+                            onChange={(e) =>
+                              fieldProps.onChange({
+                                ...(fieldProps.value ?? {}),
+                                name: e.target.value,
+                              })
+                            }
+                            onBlur={fieldProps.onBlur}
+                            name={fieldProps.name}
+                            ref={fieldProps.ref}
+                          />
+                          {index > 0 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute size-6 rounded-full right-1.5 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100"
+                              onClick={() => remove(index)}
+                            >
+                              <X className="size-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </FormControl>
+                      {index === 0 && (
+                        <FormDescription>
+                          Inserisci il tuo nome completo (colui che prenota).
+                        </FormDescription>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
+
+            {form.watch("players").length < 4 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => append({ name: "" })}
+                className="border-emerald-200/20 hover:bg-emerald-900/20"
+              >
+                <Plus />
+                Aggiungi giocatore
+              </Button>
+            )}
 
             <FormField
               control={form.control}
@@ -392,72 +429,6 @@ export default function BookPage() {
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="bookForAll"
-              render={({ field }) => (
-                <FormItem className="rounded-lg border border-emerald-200/20 bg-emerald-900/15 p-3">
-                  <div className="flex items-center gap-3">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={(checked) =>
-                          field.onChange(Boolean(checked))
-                        }
-                        className="border-emerald-200/50 data-[state=checked]:bg-emerald-400 data-[state=checked]:text-emerald-950"
-                      />
-                    </FormControl>
-                    <Label>Prenoto per tutti e 4 i giocatori</Label>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {bookForAll ? (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <FormField
-                  control={form.control}
-                  name="player2"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Giocatore 2</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome e cognome" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="player3"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Giocatore 3</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome e cognome" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="player4"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Giocatore 4</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome e cognome" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            ) : null}
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               <FormField
@@ -580,9 +551,7 @@ export default function BookPage() {
                       </Select>
                     </FormControl>
                     <FormDescription>
-                      {form.watch("bookForAll")
-                        ? "Indica il livello medio del gruppo."
-                        : "Indica il tuo livello di gioco. Verrà usato per abbinarti a giocatori di livello simile."}
+                      Indica il livello di gioco dei tuoi giocatori.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

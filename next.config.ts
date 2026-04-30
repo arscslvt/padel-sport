@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  allowedDevOrigins: ["fluent-guinea-choice.ngrok-free.app"],
 };
 
 export default nextConfig;

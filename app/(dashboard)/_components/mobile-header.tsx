@@ -8,7 +8,7 @@ export default function MobileHeader() {
   const { toggleSidebar } = useSidebar();
 
   return (
-    <div className="md:hidden flex items-center px-4 py-2">
+    <div className="sticky top-0 bg-white/85 backdrop-blur-md md:hidden flex items-center px-4 py-2">
       <div>
         <Button
           size={"icon"}
