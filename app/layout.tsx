@@ -5,7 +5,6 @@ import Script from "next/script";
 import { Geist, Geist_Mono, Unbounded } from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers/provider";
-import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,6 +49,11 @@ export const metadata: Metadata = {
   authors: [{ name: "ASD Padel Sport Melilli" }],
   creator: "Salvatore Aresco",
   publisher: "ASD Padel Sport Melilli",
+  formatDetection: {
+    telephone: false,
+    address: false,
+    email: false,
+  },
   robots: { index: true, follow: true },
   alternates: {
     canonical: "https://www.asdpadelsport.com/",
@@ -90,7 +94,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <body
           className={`${geistSans.variable} ${geistMono.variable} ${heading.variable} antialiased`}
         >
@@ -154,7 +158,6 @@ export default function RootLayout({
               }),
             }}
           />
-          <Toaster />
         </body>
       </html>
     </ClerkProvider>

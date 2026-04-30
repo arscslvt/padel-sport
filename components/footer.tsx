@@ -22,7 +22,9 @@ export default function Footer() {
           <div className="text-sm text-center md:text-left flex-1">
             <h4 className="font-medium">{getInfo("name")}</h4>
             <p className="text-white/80">{getInfo("address")}</p>
-            <p className="text-white/80">{getInfo("email")}</p>
+            <p className="text-white/80">
+              <a href={`mailto:${getInfo("email")}`}>{getInfo("email")}</a>
+            </p>
             <p className="text-white/80">CF/P.IVA {getInfo("cf")}</p>
           </div>
         </div>

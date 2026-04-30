@@ -135,7 +135,7 @@ function BookingCard({
   onAccept: (bookingId: Id<"bookings">) => Promise<void>;
 }) {
   const totalAmount = booking.pricePerPlayer * booking.players.length;
-  const deleteBooking = useAction(api.bookings.delete.default);
+  const deleteBooking = useMutation(api.bookings.delete.default);
 
   const handleBooking = async () => {
     toast.dismiss();
@@ -187,12 +187,14 @@ function BookingCard({
   };
 
   const handleDeleteBooking = async () => {
-    toast("Cancella prenotazione", {
+    toast("Stai cancellando una prenotazione", {
       description: (
         <>
           Sei sicuro di voler cancellare la prenotazione di{" "}
-          <span className="font-medium">{booking.bookedBy}</span>? Questa azione
-          non è reversibile.
+          <span className="font-semibold text-foreground whitespace-nowrap">
+            {booking.bookedBy}
+          </span>
+          ?<div className="mt-2">Questa azione non è reversibile.</div>
           <div className="mt-3 flex gap-2">
             <Button
               variant="outline"
@@ -202,7 +204,21 @@ function BookingCard({
               Annulla
             </Button>
             <Button
-              onClick={() => deleteBooking({ bookingId: booking._id })}
+              onClick={() =>
+                deleteBooking({ bookingId: booking._id }).then(() => {
+                  toast.dismiss();
+                  toast.success("Prenotazione cancellata", {
+                    description: (
+                      <>
+                        <span className="font-semibold">
+                          {booking.bookedBy}
+                        </span>{" "}
+                        è stato avvisato della cancellazione della prenotazione.
+                      </>
+                    ),
+                  });
+                })
+              }
               variant="destructive"
               className="flex-1"
             >
@@ -332,7 +348,7 @@ function BookingCard({
               <Button
                 variant={"outline"}
                 className="bg-red-50 border-destructive/20 text-destructive"
-                onClick={() => deleteBooking({ bookingId: booking._id })}
+                onClick={handleDeleteBooking}
               >
                 <X />
                 Cancella
@@ -344,6 +360,17 @@ function BookingCard({
               >
                 <ShieldCheck className="size-4" />
                 Conferma prenotazione
+              </Button>
+            </div>
+          ) : booking.status === "cancelled" ? (
+            <div className="flex gap-2">
+              <Button
+                disabled
+                variant="outline"
+                className="flex-1 bg-muted text-muted-foreground opacity-100!"
+              >
+                <X className="size-4" />
+                Prenotazione cancellata
               </Button>
             </div>
           ) : (

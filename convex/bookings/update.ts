@@ -1,9 +1,9 @@
 import { v } from "convex/values";
-import { mutation } from "../_generated/server";
+import { internalMutation, mutation } from "../_generated/server";
 import { notificationStatus as notification } from "../tables/bookings";
 import { api, internal } from "../_generated/api";
 
-export const notificationStatus = mutation({
+export const notificationStatus = internalMutation({
   args: {
     bookingId: v.id("bookings"),
     newStatus: notification,
@@ -42,16 +42,15 @@ export const accept = mutation({
       status: "accepted_on_site_payment",
     });
 
-    await ctx.scheduler.runAfter(
-      2000, // After 2 seconds
-      internal.modules.notifications.confirmation.sendConfirmationWithWhatsapp,
-      {
-        userFirstName: booking.bookedBy,
-        userPhoneNumber: booking.phone || "",
-        date: new Date(booking.bookingDate).toISOString(),
-        bookingCode: booking.code || "",
-      },
-    );
+    if (booking.notificationStatus !== "sent_with_whatsapp")
+      await ctx.scheduler.runAfter(
+        2000, // After 2 seconds
+        internal.modules.notifications.confirmation
+          .sendConfirmationWithWhatsapp,
+        {
+          bookingId,
+        },
+      );
 
     return true;
   },

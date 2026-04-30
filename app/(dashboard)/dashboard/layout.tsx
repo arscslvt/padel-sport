@@ -3,6 +3,7 @@ import Link from "next/link";
 import type React from "react";
 import type { Viewport } from "next";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Toaster } from "@/components/ui/sonner";
 import {
   Sidebar,
   SidebarContent,
@@ -79,6 +80,7 @@ export default function DashboardLayout({
             {children}
           </SidebarInset>
         </SidebarProvider>
+        <Toaster />
       </InternalThemeProvider>
     </HapticsProvider>
   );

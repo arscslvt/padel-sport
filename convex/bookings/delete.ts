@@ -1,8 +1,7 @@
 import { v } from "convex/values";
-import { action, internalMutation } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { mutation } from "../_generated/server";
 
-export default action({
+export default mutation({
   args: {
     bookingId: v.id("bookings"),
   },
@@ -12,17 +11,8 @@ export default action({
       throw new Error("Unauthorized");
     }
 
-    await ctx.runMutation(internal.bookings.delete.deleteBooking, {
-      bookingId: bookingId,
+    await ctx.db.patch(bookingId, {
+      status: "cancelled",
     });
-  },
-});
-
-export const deleteBooking = internalMutation({
-  args: {
-    bookingId: v.id("bookings"),
-  },
-  handler: async (ctx, { bookingId }) => {
-    await ctx.db.delete("bookings", bookingId);
   },
 });

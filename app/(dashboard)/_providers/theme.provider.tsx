@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeProvider } from "next-themes";
 import { useEffect } from "react";
 
 export default function InternalThemeProvider({
@@ -36,5 +37,14 @@ export default function InternalThemeProvider({
     }
   }, []);
 
-  return <>{children}</>;
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      forcedTheme="light"
+      enableSystem={false}
+    >
+      {children}
+    </ThemeProvider>
+  );
 }
