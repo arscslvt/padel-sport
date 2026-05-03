@@ -1,35 +1,21 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Colors } from "@/constants/theme";
+import { NativeTabs } from "expo-router/build/native-tabs/NativeTabs";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
-  );
+export default function TabsLayout() {
+	return (
+		<NativeTabs tintColor={Colors.light.tint}>
+			<NativeTabs.Trigger name="index">
+				<NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+				<NativeTabs.Trigger.Icon sf={"house.fill"} />
+			</NativeTabs.Trigger>
+			<NativeTabs.Trigger name="bookings">
+				<NativeTabs.Trigger.Label>Prenotazioni</NativeTabs.Trigger.Label>
+				<NativeTabs.Trigger.Icon sf={"calendar"} />
+			</NativeTabs.Trigger>
+			<NativeTabs.Trigger name="rankings">
+				<NativeTabs.Trigger.Label>Classifiche</NativeTabs.Trigger.Label>
+				<NativeTabs.Trigger.Icon sf={"trophy"} />
+			</NativeTabs.Trigger>
+		</NativeTabs>
+	);
 }
