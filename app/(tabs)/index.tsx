@@ -1,4 +1,3 @@
-import Header from "@/components/header";
 import SmoothView from "@/components/smooth-view";
 import { Colors } from "@/constants/theme";
 import { ScrollView, Text, View } from "react-native";
@@ -14,9 +13,6 @@ export default function TabsIndex() {
 					flex: 1,
 				}}
 			>
-				<View>
-					<Header withSafeAreaInsets={false} />
-				</View>
 				<View
 					style={{
 						flexDirection: "row",
