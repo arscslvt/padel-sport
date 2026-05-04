@@ -1,3 +1,4 @@
+import { useTheme } from "@/hooks/use-theme";
 import {
 	Canvas,
 	Group,
@@ -15,6 +16,13 @@ import {
 	View,
 	type ViewStyle,
 } from "react-native";
+import Animated, {
+	useAnimatedStyle,
+	useSharedValue,
+	withSpring,
+} from "react-native-reanimated";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Props = {
 	children?: React.ReactNode;
@@ -47,7 +55,30 @@ export default function SmoothView({
 	disabled,
 	shadow = true,
 }: Props) {
+	const theme = useTheme();
 	const [layout, setLayout] = React.useState({ w: 0, h: 0 });
+
+	const scale = useSharedValue(1);
+
+	const animatedStyle = useAnimatedStyle(() => ({
+		transform: [{ scale: scale.value }],
+	}));
+
+	const handlePressIn = () => {
+		if (!disabled) {
+			scale.value = withSpring(0.96, {
+				damping: 20,
+				stiffness: 600,
+				mass: 0.5,
+			});
+		}
+	};
+
+	const handlePressOut = () => {
+		if (!disabled) {
+			scale.value = withSpring(1, { damping: 18, stiffness: 500, mass: 0.5 });
+		}
+	};
 
 	const onLayout = (e: LayoutChangeEvent) => {
 		const { width, height } = e.nativeEvent.layout;
@@ -104,25 +135,22 @@ export default function SmoothView({
 
 	const baseStyle = [
 		styles.container,
-		shadow ? styles.shadow : undefined,
+		shadow ? { ...styles.shadow, shadowColor: theme.shadow } : undefined,
 		style,
 	];
 
 	if (onPress) {
 		return (
-			<Pressable
+			<AnimatedPressable
+				onPressIn={handlePressIn}
+				onPressOut={handlePressOut}
 				onPress={onPress}
 				disabled={disabled}
 				onLayout={onLayout}
-				style={({ pressed }) => [
-					styles.container,
-					shadow ? styles.shadow : undefined,
-					style,
-					pressed && !disabled && styles.pressed,
-				]}
+				style={[baseStyle, animatedStyle]}
 			>
 				{inner}
-			</Pressable>
+			</AnimatedPressable>
 		);
 	}
 
@@ -138,14 +166,8 @@ const styles = StyleSheet.create({
 		overflow: "visible", // Evitiamo clip dell'ombra nativa su iOS
 	},
 
-	pressed: {
-		opacity: 0.7,
-		transform: [{ scale: 0.98 }],
-	},
-
 	shadow: Platform.select({
 		ios: {
-			shadowColor: "#F5F5F5",
 			shadowOpacity: 1,
 			shadowRadius: 10,
 			shadowOffset: { width: 0, height: 4 },

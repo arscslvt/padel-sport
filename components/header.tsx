@@ -1,7 +1,13 @@
-import { Colors } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+	Pressable,
+	StyleSheet,
+	Text,
+	useColorScheme,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type HeaderProps = {
@@ -13,32 +19,38 @@ export default function Header({
 	...props
 }: HeaderProps) {
 	const { top } = useSafeAreaInsets();
+	const theme = useTheme();
+	const colorScheme = useColorScheme();
 
 	return (
 		<BlurView
 			intensity={80}
-			tint="light"
+			tint="regular"
 			style={[
 				styles.header,
 				{
 					paddingTop: withSafeAreaInsets ? top : 0,
-					backgroundColor: "rgba(255, 255, 255, 0.4)",
+					backgroundColor: `${theme.background}60`, // Aggiungiamo trasparenza al colore di sfondo
 				},
 			]}
 			{...props}
 		>
-			<View style={styles.leading}>
+			<View style={{ ...styles.leading, paddingLeft: 14 }}>
 				<Image
-					source={require("@/assets/branding/logotype.svg")}
+					source={
+						colorScheme === "dark"
+							? require("@/assets/branding/logotype-dark.svg")
+							: require("@/assets/branding/logotype.svg")
+					}
 					style={{ width: 68, height: 38, objectFit: "contain" }}
 				/>
 			</View>
 
 			<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
 				<View style={{ flexDirection: "column", alignItems: "flex-end" }}>
-					<Text style={{ fontWeight: "600" }}>Ciao Valentina,</Text>
-					<Text style={{ fontWeight: "600", color: Colors.light.textMuted }}>
-						pronta a giocare?
+					<Text style={{ fontWeight: "600", color: theme.text }}>Giulio</Text>
+					<Text style={{ fontWeight: "600", color: theme.textMuted }}>
+						1.2k punti
 					</Text>
 				</View>
 

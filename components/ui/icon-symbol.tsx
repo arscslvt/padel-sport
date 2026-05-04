@@ -22,6 +22,7 @@ const MAPPING = {
 	"chevron.right": "chevron-right",
 	calendar: "event",
 	trophy: "emoji-events",
+	"arrow.forward.circle.fill": "arrow-circle-right",
 } as IconMapping;
 
 /**

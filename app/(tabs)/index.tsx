@@ -1,10 +1,12 @@
-import SmoothView from "@/components/smooth-view";
-import { Colors } from "@/constants/theme";
-import { ScrollView, Text, View } from "react-native";
+import KpiCard from "@/components/kpi-card";
+import { ThemedText } from "@/components/themed-text";
+import { useTheme } from "@/hooks/use-theme";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabsIndex() {
 	const { top } = useSafeAreaInsets();
+	const theme = useTheme();
 
 	return (
 		<View style={{ flex: 1 }}>
@@ -22,43 +24,45 @@ export default function TabsIndex() {
 				<View
 					style={{
 						flexDirection: "row",
-						gap: 16,
+						gap: 12,
 						paddingHorizontal: 16,
 						marginTop: 16,
+						overflow: "visible",
 					}}
 				>
-					<SmoothView
-						radius={22}
-						smoothing={1.6}
-						shadow={false}
-						style={{
-							height: 124,
-							flex: 1,
-						}}
-						borderWidth={1}
-						borderColor={Colors.light.border}
-					>
-						<View style={{ padding: 16, flex: 1, justifyContent: "center" }}>
-							<Text style={{ fontSize: 18, fontWeight: "600" }}>Ciao</Text>
-						</View>
-					</SmoothView>
+					<KpiCard
+						title="Partite giocate"
+						content={
+							<ThemedText
+								style={{
+									fontSize: 32,
+									fontWeight: "700",
+									lineHeight: 32,
+								}}
+							>
+								12
+							</ThemedText>
+						}
+						iconName="arrow.forward.circle.fill"
+						// onPress={() => navigate("/profile/matches")}
+					/>
 
-					<SmoothView
-						radius={22}
-						smoothing={1.6}
-						shadow={false}
-						onPress={() => {}}
-						style={{
-							height: 124,
-							flex: 1,
-						}}
-						borderWidth={1}
-						borderColor={Colors.light.border}
-					>
-						<View style={{ padding: 16, flex: 1, justifyContent: "center" }}>
-							<Text style={{ fontSize: 18, fontWeight: "600" }}></Text>
-						</View>
-					</SmoothView>
+					<KpiCard
+						title="Score totale"
+						content={
+							<ThemedText
+								style={{
+									fontSize: 32,
+									fontWeight: "700",
+									lineHeight: 32,
+								}}
+							>
+								2.3
+							</ThemedText>
+						}
+						iconName="arrow.forward.circle.fill"
+						// onPress={() => navigate("/profile/score")}
+					/>
 				</View>
 			</ScrollView>
 		</View>

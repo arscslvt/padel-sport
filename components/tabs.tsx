@@ -55,11 +55,12 @@ export function BottomTab({
 				style={{
 					flexDirection: "row",
 					justifyContent: "space-around",
-					height: 76,
+					height: 72,
 					position: "relative",
 				}}
 				borderWidth={1}
 				borderColor={theme.tabBarBorder}
+				backgroundColor={theme.tabBarBackground}
 			>
 				<Animated.View
 					style={[

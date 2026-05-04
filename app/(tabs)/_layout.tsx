@@ -1,19 +1,18 @@
 import Header from "@/components/header";
 import { BottomTab } from "@/components/tabs";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
 import { Tabs } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabsLayout() {
-	const { bottom } = useSafeAreaInsets();
+	const theme = useTheme();
 
 	return (
 		<Tabs
 			safeAreaInsets={{ bottom: 0 }}
 			tabBar={(props) => <BottomTab {...props} />}
 			screenOptions={{
-				sceneStyle: { backgroundColor: Colors.light.background },
+				sceneStyle: { backgroundColor: theme.background },
 				headerTransparent: true,
 				header: () => <Header withSafeAreaInsets />,
 			}}
