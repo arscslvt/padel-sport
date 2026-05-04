@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/theme";
+import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,12 +15,14 @@ export default function Header({
 	const { top } = useSafeAreaInsets();
 
 	return (
-		<View
+		<BlurView
+			intensity={80}
+			tint="light"
 			style={[
 				styles.header,
 				{
 					paddingTop: withSafeAreaInsets ? top : 0,
-					backgroundColor: "transparent",
+					backgroundColor: "rgba(255, 255, 255, 0.4)",
 				},
 			]}
 			{...props}
@@ -54,7 +57,7 @@ export default function Header({
 					</View>
 				</Pressable>
 			</View>
-		</View>
+		</BlurView>
 	);
 }
 

@@ -1,14 +1,20 @@
 import SmoothView from "@/components/smooth-view";
 import { Colors } from "@/constants/theme";
 import { ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabsIndex() {
+	const { top } = useSafeAreaInsets();
+
 	return (
 		<View style={{ flex: 1 }}>
 			<ScrollView
-				stickyHeaderIndices={[0]}
-				style={{
+				contentContainerStyle={{
 					paddingBottom: 16,
+					paddingTop: top + 60, // Per spingere il primo contenuto visibile sotto la header
+					flexGrow: 1,
+				}}
+				style={{
 					width: "100%",
 					flex: 1,
 				}}
@@ -18,6 +24,7 @@ export default function TabsIndex() {
 						flexDirection: "row",
 						gap: 16,
 						paddingHorizontal: 16,
+						marginTop: 16,
 					}}
 				>
 					<SmoothView

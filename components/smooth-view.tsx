@@ -135,7 +135,7 @@ export default function SmoothView({
 
 const styles = StyleSheet.create({
 	container: {
-		overflow: "hidden", // fallback sicurezza
+		overflow: "visible", // Evitiamo clip dell'ombra nativa su iOS
 	},
 
 	pressed: {
@@ -145,8 +145,8 @@ const styles = StyleSheet.create({
 
 	shadow: Platform.select({
 		ios: {
-			shadowColor: "#000",
-			shadowOpacity: 0.12,
+			shadowColor: "#F5F5F5",
+			shadowOpacity: 1,
 			shadowRadius: 10,
 			shadowOffset: { width: 0, height: 4 },
 		},
