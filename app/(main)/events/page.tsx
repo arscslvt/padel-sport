@@ -67,7 +67,7 @@ export default function EventsPage() {
 
   return (
     <div className="min-h-[calc(100dvh-8rem)] flex flex-col flex-1 px-6 lg:px-32">
-      <div className="flex flex-col ">
+      <div className="flex flex-col">
         <h1 className="font-heading text-white text-3xl font-bold">
           Prossimi eventi
         </h1>

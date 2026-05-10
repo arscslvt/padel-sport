@@ -24,7 +24,11 @@ const routes: ReadonlyArray<{
   { name: "Tornei ed Eventi", href: EVENTS_LINK },
 ];
 
-export default function Header() {
+interface HeaderProps {
+  hideNav?: boolean;
+}
+
+export default function Header({ hideNav }: HeaderProps) {
   const pathname = usePathname();
   const [currentPath, setCurrentPath] = React.useState<string | null>(null);
 
@@ -75,39 +79,41 @@ export default function Header() {
           </Link>
         </div>
       </div>
-      <div className="relative z-10 md:justify-end md:flex-1 flex px-4 md:px-0">
-        <nav
-          aria-label="Link utili"
-          className="flex flex-1 md:flex-none border border-border/30 bg-background/10 md:bg-foreground/30 backdrop-blur-sm md:bg-none rounded-full"
-        >
-          <motion.ul className="flex flex-1 md:flex-none" layout>
-            {routes.map((route) => {
-              const isActive = currentPath === route.href;
+      {!hideNav && (
+        <div className="relative z-10 md:justify-end md:flex-1 flex px-4 md:px-0">
+          <nav
+            aria-label="Link utili"
+            className="flex flex-1 md:flex-none border border-accent/20 bg-background/10 md:bg-foreground/30 backdrop-blur-sm md:bg-none rounded-full"
+          >
+            <motion.ul className="flex flex-1 md:flex-none" layout>
+              {routes.map((route) => {
+                const isActive = currentPath === route.href;
 
-              return (
-                <li key={route.href} className="flex-1">
-                  <Link
-                    href={route.disabled ? "#" : route.href}
-                    aria-current={isActive ? "page" : undefined}
-                    className="flex-1 flex"
-                  >
-                    <Button
-                      variant={"ghost"}
-                      className={cn(
-                        "flex-1 text-white hover:bg-white/20 hover:text-white font-medium lg:px-4 rounded-full cursor-pointer transition-colors",
-                        isActive && "bg-white/30",
-                      )}
-                      disabled={route.disabled}
+                return (
+                  <li key={route.href} className="flex-1">
+                    <Link
+                      href={route.disabled ? "#" : route.href}
+                      aria-current={isActive ? "page" : undefined}
+                      className="flex-1 flex"
                     >
-                      {route.name}
-                    </Button>
-                  </Link>
-                </li>
-              );
-            })}
-          </motion.ul>
-        </nav>
-      </div>
+                      <Button
+                        variant={"ghost"}
+                        className={cn(
+                          "flex-1 text-white hover:bg-white/20 hover:text-white font-medium lg:px-4 rounded-full cursor-pointer transition-colors",
+                          isActive && "bg-white/30",
+                        )}
+                        disabled={route.disabled}
+                      >
+                        {route.name}
+                      </Button>
+                    </Link>
+                  </li>
+                );
+              })}
+            </motion.ul>
+          </nav>
+        </div>
+      )}
     </div>
   );
 }

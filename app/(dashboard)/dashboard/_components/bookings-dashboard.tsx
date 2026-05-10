@@ -7,9 +7,11 @@ import {
   AlertCircle,
   CalendarDays,
   CheckCircle2,
+  ChevronUp,
   Clock3,
   EllipsisIcon,
   Phone,
+  Search,
   ShieldCheck,
   Trash,
   Users,
@@ -55,9 +57,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FaWhatsapp } from "react-icons/fa";
-import { minimal, organic } from "@/.web-kits";
-import { no } from "zod/v4/locales";
-import { usePatch } from "@web-kits/audio/react";
+import { Input } from "../../_components/input";
+import { AnimatePresence, motion } from "motion/react";
+import { Checkbox } from "@/components/ui/checkbox";
+// import { minimal, organic } from "@/.web-kits";
+// import { usePatch } from "@web-kits/audio/react";
 
 type Booking = Doc<"bookings">;
 
@@ -132,14 +136,19 @@ function BookingCard({
 }: {
   booking: Booking;
   isUpdating: boolean;
-  onAccept: (bookingId: Id<"bookings">) => Promise<void>;
+  onAccept: (
+    bookingId: Id<"bookings">,
+    withNotification: boolean,
+  ) => Promise<void>;
 }) {
   const totalAmount = booking.pricePerPlayer * booking.players.length;
   const deleteBooking = useMutation(api.bookings.delete.default);
 
+  const [withNotification, setWithNotification] = useState(true);
+
   const handleBooking = async () => {
     toast.dismiss();
-    toast.promise(onAccept(booking._id), {
+    toast.promise(onAccept(booking._id, withNotification), {
       loading: "Accettando prenotazione...",
       description(data) {
         if (data instanceof Error) {
@@ -156,16 +165,28 @@ function BookingCard({
 
   const handleConfirmBooking = async () => {
     // minimal.click();
-    toast("Conferma prenotazione", {
+    toast("Conferma della prenotazione", {
       description: (
         <>
           Vuoi accettare la prenotazione di{" "}
           <span className="font-medium">{booking.bookedBy}</span> e confermare
           che pagherà in struttura?
+          <div className="py-2">
+            <div className="flex items-center gap-1.5">
+              <Checkbox
+                id="with-notification"
+                checked={withNotification}
+                onCheckedChange={(checked) => setWithNotification(!!checked)}
+              />
+              <Label htmlFor="with-notification">
+                Invia conferma via WhatsApp al cliente
+              </Label>
+            </div>
+          </div>
           <div className="mt-3 flex gap-2">
             <Button
               variant="outline"
-              className="bg-transparent"
+              className="flex-1 bg-transparent"
               onClick={() => toast.dismiss()}
             >
               Annulla
@@ -181,7 +202,6 @@ function BookingCard({
           </div>
         </>
       ),
-      icon: <ShieldCheck className="size-4" />,
       duration: Infinity,
     });
   };
@@ -194,11 +214,14 @@ function BookingCard({
           <span className="font-semibold text-foreground whitespace-nowrap">
             {booking.bookedBy}
           </span>
-          ?<div className="mt-2">Questa azione non è reversibile.</div>
+          ?
+          <div className="mt-2 text-amber-600">
+            Questa azione non è reversibile.
+          </div>
           <div className="mt-3 flex gap-2">
             <Button
               variant="outline"
-              className="bg-transparent"
+              className="flex-1 bg-transparent"
               onClick={() => toast.dismiss()}
             >
               Annulla
@@ -405,6 +428,9 @@ export default function BookingsDashboard() {
   const acceptBooking = useMutation(api.bookings.update.accept);
   const [updatingId, setUpdatingId] = useState<Id<"bookings"> | null>(null);
 
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
   const pendingBookings = useMemo(
     () =>
       (bookings ?? []).filter(
@@ -423,10 +449,13 @@ export default function BookingsDashboard() {
 
   const nextBooking = acceptedBookings?.[0] ?? null;
 
-  const handleAccept = async (bookingId: Id<"bookings">) => {
+  const handleAccept = async (
+    bookingId: Id<"bookings">,
+    withNotification: boolean,
+  ) => {
     try {
       setUpdatingId(bookingId);
-      await acceptBooking({ bookingId });
+      await acceptBooking({ bookingId, withNotification });
     } catch (error) {
       toast.error("Operazione non completata", {
         description:
@@ -444,15 +473,7 @@ export default function BookingsDashboard() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <section className="space-y-2">
-        <h1 className="text-2xl font-semibold">Gestione prenotazioni</h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Visualizza le richieste in arrivo e conferma gli slot da incassare in
-          struttura.
-        </p>
-      </section>
-
+    <>
       <section className="grid gap-4 grid-cols-[1fr_1fr] lg:grid-cols-[1.3fr_1fr_1fr]">
         <Card className="col-span-2 lg:col-span-1">
           <CardHeader>
@@ -537,13 +558,53 @@ export default function BookingsDashboard() {
       </section>
 
       <Tabs defaultValue="pending" className="space-y-3">
-        <TabsList className="w-full md:w-max">
-          <TabsTrigger value="pending">
-            In attesa ({pendingBookings.length})
-          </TabsTrigger>
-          <TabsTrigger value="all">Tutte ({bookings.length})</TabsTrigger>
-        </TabsList>
-
+        <div>
+          <TabsList className="w-full md:w-max">
+            <TabsTrigger value="pending">
+              In attesa ({pendingBookings.length})
+            </TabsTrigger>
+            <TabsTrigger value="all">Tutte ({bookings.length})</TabsTrigger>
+            <Button
+              variant={"ghost"}
+              onClick={() => setShowSearch(!showSearch)}
+            >
+              {showSearch ? <ChevronUp /> : <Search />}
+            </Button>
+          </TabsList>
+          <AnimatePresence>
+            {showSearch && (
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  height: 0,
+                  marginTop: 0,
+                  filter: "blur(4px)",
+                }}
+                animate={{
+                  opacity: 1,
+                  height: "auto",
+                  marginTop: 8,
+                  filter: "blur(0px)",
+                }}
+                exit={{
+                  opacity: 0,
+                  height: 0,
+                  marginTop: 0,
+                  filter: "blur(4px)",
+                }}
+                className="overflow-visible"
+                transition={{ duration: 0.3 }}
+              >
+                <Input
+                  placeholder="Cerca prenotazioni..."
+                  className="h-9 bg-white"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
         <TabsContent value="pending">
           <div className="mb-4">
             <h4 className="text-lg font-medium">In attesa di conferma</h4>
@@ -577,7 +638,6 @@ export default function BookingsDashboard() {
             </div>
           )}
         </TabsContent>
-
         <TabsContent value="all">
           <div className="mb-4">
             <h4 className="text-lg font-medium">
@@ -614,6 +674,6 @@ export default function BookingsDashboard() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </>
   );
 }

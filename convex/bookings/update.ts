@@ -24,8 +24,9 @@ export const notificationStatus = internalMutation({
 export const accept = mutation({
   args: {
     bookingId: v.id("bookings"),
+    withNotification: v.optional(v.boolean()),
   },
-  handler: async (ctx, { bookingId }) => {
+  handler: async (ctx, { bookingId, withNotification = true }) => {
     const booking = await ctx.runQuery(api.bookings.get.getById, {
       bookingId,
     });
@@ -42,15 +43,17 @@ export const accept = mutation({
       status: "accepted_on_site_payment",
     });
 
-    if (booking.notificationStatus !== "sent_with_whatsapp")
-      await ctx.scheduler.runAfter(
-        2000, // After 2 seconds
-        internal.modules.notifications.confirmation
-          .sendConfirmationWithWhatsapp,
-        {
-          bookingId,
-        },
-      );
+    if (withNotification) {
+      if (booking.notificationStatus !== "sent_with_whatsapp")
+        await ctx.scheduler.runAfter(
+          2000, // After 2 seconds
+          internal.modules.notifications.confirmation
+            .sendConfirmationWithWhatsapp,
+          {
+            bookingId,
+          },
+        );
+    }
 
     return true;
   },
