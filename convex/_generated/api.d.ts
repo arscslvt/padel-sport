@@ -85,5 +85,186 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  tournaments: import("../components/tournaments/_generated/component.js").ComponentApi<"tournaments">;
+  tournaments: {
+    modules: {
+      categories: {
+        get: {
+          byTournamentId: FunctionReference<
+            "query",
+            "internal",
+            { tournamentId: string },
+            Array<{
+              _creationTime: number;
+              _id: string;
+              currentStage:
+                | "group"
+                | "quarter"
+                | "semi"
+                | "final"
+                | "completed";
+              icon?: string;
+              name: string;
+              slug: string;
+              tournamentId: string;
+            }>
+          >;
+        };
+        new: {
+          default: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              currentStage?:
+                | "group"
+                | "quarter"
+                | "semi"
+                | "final"
+                | "completed";
+              name: string;
+              tournamentId: string;
+            },
+            any
+          >;
+        };
+      };
+      groups: {
+        assign: {
+          assignTeamToGroup: FunctionReference<
+            "mutation",
+            "internal",
+            { groupId: string; teamId: string },
+            any
+          >;
+        };
+        create: {
+          createGroup: FunctionReference<
+            "mutation",
+            "internal",
+            { name: string; tournamentCategoryId: string },
+            any
+          >;
+        };
+        get: {
+          getGroupsByTournamentCategoryId: FunctionReference<
+            "query",
+            "internal",
+            { tournamentCategoryId: string },
+            Array<{
+              _creationTime: number;
+              _id: string;
+              name: string;
+              tournamentCategoryId: string;
+            }>
+          >;
+        };
+      };
+      matches: {
+        delete: {
+          deleteMatchesByGroupId: FunctionReference<
+            "mutation",
+            "internal",
+            { groupId: string },
+            any
+          >;
+        };
+        generate: {
+          generateMatches: FunctionReference<
+            "mutation",
+            "internal",
+            { groupId: string },
+            any
+          >;
+        };
+        get: {
+          getMatchesByGroupId: FunctionReference<
+            "query",
+            "internal",
+            { groupId: string },
+            Array<{
+              _id: string;
+              points: { teamA: number; teamB: number };
+              scheduledAt?: string;
+              status: "scheduled" | "in_progress" | "finished";
+              teams: Array<{ name: string; players: Array<{ name: string }> }>;
+            }>
+          >;
+        };
+      };
+      players: {
+        add: {
+          default: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              email?: string;
+              firstName: string;
+              image?: string;
+              lastName: string;
+            },
+            any
+          >;
+        };
+        get: {
+          byFullName: FunctionReference<
+            "query",
+            "internal",
+            { firstName: string; lastName: string },
+            any
+          >;
+          search: FunctionReference<
+            "query",
+            "internal",
+            { query: string },
+            any
+          >;
+        };
+      };
+      teams: {
+        create: {
+          default: FunctionReference<
+            "mutation",
+            "internal",
+            { image?: string; name: string; playersIds: Array<string> },
+            any
+          >;
+        };
+      };
+      tournaments: {
+        create: {
+          default: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              endDate?: string;
+              name: string;
+              slug?: string;
+              startDate: string;
+            },
+            any
+          >;
+        };
+        get: {
+          bySlug: FunctionReference<"query", "internal", { slug: string }, any>;
+        };
+        teams: {
+          add: {
+            default: FunctionReference<
+              "mutation",
+              "internal",
+              { teamId: string; tournamentCategoryId: string },
+              any
+            >;
+          };
+          update: {
+            sync: FunctionReference<
+              "mutation",
+              "internal",
+              { tournamentId: string },
+              any
+            >;
+          };
+        };
+      };
+    };
+  };
 };
