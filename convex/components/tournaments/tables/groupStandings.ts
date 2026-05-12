@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 const groupStandings = defineTable({
   groupId: v.id("groups"),
-  teamId: v.id("teams"),
+  teamId: v.id("tournamentTeams"),
 
   points: v.number(),
   gamesWon: v.number(),

@@ -11,6 +11,10 @@ const bySlug = query({
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .first();
 
+    if (!tournaments) {
+      throw new Error("Tournament not found");
+    }
+
     return tournaments;
   },
 });

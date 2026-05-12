@@ -18,7 +18,9 @@ import type * as events_list from "../events/list.js";
 import type * as events_new from "../events/new.js";
 import type * as modules_notifications_alert from "../modules/notifications/alert.js";
 import type * as modules_notifications_confirmation from "../modules/notifications/confirmation.js";
+import type * as modules_tournaments_categories_get from "../modules/tournaments/categories/get.js";
 import type * as modules_tournaments_get from "../modules/tournaments/get.js";
+import type * as modules_tournaments_groups_get from "../modules/tournaments/groups/get.js";
 import type * as modules_tournaments_players_add from "../modules/tournaments/players/add.js";
 import type * as slots_listActive from "../slots/listActive.js";
 import type * as tables_bookings from "../tables/bookings.js";
@@ -44,7 +46,9 @@ declare const fullApi: ApiFromModules<{
   "events/new": typeof events_new;
   "modules/notifications/alert": typeof modules_notifications_alert;
   "modules/notifications/confirmation": typeof modules_notifications_confirmation;
+  "modules/tournaments/categories/get": typeof modules_tournaments_categories_get;
   "modules/tournaments/get": typeof modules_tournaments_get;
+  "modules/tournaments/groups/get": typeof modules_tournaments_groups_get;
   "modules/tournaments/players/add": typeof modules_tournaments_players_add;
   "slots/listActive": typeof slots_listActive;
   "tables/bookings": typeof tables_bookings;
@@ -81,85 +85,5 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  tournaments: {
-    modules: {
-      players: {
-        add: {
-          default: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              email?: string;
-              firstName: string;
-              image?: string;
-              lastName: string;
-            },
-            any
-          >;
-        };
-        get: {
-          byFullName: FunctionReference<
-            "query",
-            "internal",
-            { firstName: string; lastName: string },
-            any
-          >;
-          search: FunctionReference<
-            "query",
-            "internal",
-            { query: string },
-            any
-          >;
-        };
-      };
-      teams: {
-        create: {
-          default: FunctionReference<
-            "mutation",
-            "internal",
-            { image?: string; name: string; playersIds: Array<string> },
-            any
-          >;
-        };
-      };
-      tournaments: {
-        categories: {
-          new: {
-            default: FunctionReference<
-              "mutation",
-              "internal",
-              { name: string; tournamentId: string },
-              any
-            >;
-          };
-        };
-        create: {
-          default: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              endDate?: string;
-              name: string;
-              slug?: string;
-              startDate: string;
-            },
-            any
-          >;
-        };
-        get: {
-          bySlug: FunctionReference<"query", "internal", { slug: string }, any>;
-        };
-        teams: {
-          add: {
-            default: FunctionReference<
-              "mutation",
-              "internal",
-              { teamId: string; tournamentCategoryId: string },
-              any
-            >;
-          };
-        };
-      };
-    };
-  };
+  tournaments: import("../components/tournaments/_generated/component.js").ComponentApi<"tournaments">;
 };

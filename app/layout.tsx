@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { ClerkProvider } from "@clerk/nextjs";
 import Script from "next/script";
-import { Geist, Geist_Mono, Unbounded } from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  Unbounded,
+  Bricolage_Grotesque,
+} from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers/provider";
 
@@ -17,7 +22,12 @@ const geistMono = Geist_Mono({
 });
 
 const heading = Unbounded({
-  variable: "--font-heading-google",
+  variable: "--font-unbounded",
+  subsets: ["latin"],
+});
+
+const bricolageSans = Bricolage_Grotesque({
+  variable: "--font-bricolage-grotesque",
   subsets: ["latin"],
 });
 
@@ -94,10 +104,12 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} ${heading.variable} antialiased`}
-        >
+      <html
+        lang="en"
+        suppressHydrationWarning
+        className={`${geistSans.variable} ${geistMono.variable} ${heading.variable} ${bricolageSans.variable}`}
+      >
+        <body className="font-sans antialiased">
           <Providers>{children}</Providers>
           <Analytics />
           <Script

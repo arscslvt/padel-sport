@@ -9,7 +9,7 @@ export default function Providers({
       <ThemeProvider
         attribute="data-theme"
         defaultTheme="light"
-        themes={["dark", "neutral"]}
+        themes={["light", "dark", "neutral"]}
         enableSystem
         disableTransitionOnChange
       >

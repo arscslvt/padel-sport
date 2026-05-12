@@ -8,6 +8,7 @@ import groupStandings from "./tables/groupStandings";
 import tournamentCategories from "./tables/tournamentCategories";
 import tournamentTeams from "./tables/tournamentTeams";
 import matches from "./tables/matches";
+import groupTeams from "./tables/groupTeams";
 
 export default defineSchema({
   players,
@@ -19,6 +20,7 @@ export default defineSchema({
 
   groups,
   groupStandings,
+  groupTeams,
 
   matches,
 });

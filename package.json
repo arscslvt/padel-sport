@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --webpack",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "biome check",
@@ -32,6 +32,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.31.0",
+    "convex-helpers": "^0.1.116",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "eslint-config-next": "^16.0.10",
@@ -52,7 +53,8 @@
     "twilio": "^6.0.0",
     "usehooks-ts": "^3.1.1",
     "vaul": "^1.1.2",
-    "zod": "^4.1.13"
+    "zod": "^4.1.13",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",

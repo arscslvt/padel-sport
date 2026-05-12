@@ -24,6 +24,117 @@ import type { FunctionReference } from "convex/server";
 export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     modules: {
+      categories: {
+        get: {
+          byTournamentId: FunctionReference<
+            "query",
+            "internal",
+            { tournamentId: string },
+            Array<{
+              _creationTime: number;
+              _id: string;
+              currentStage:
+                | "group"
+                | "quarter"
+                | "semi"
+                | "final"
+                | "completed";
+              icon?: string;
+              name: string;
+              slug: string;
+              tournamentId: string;
+            }>,
+            Name
+          >;
+        };
+        new: {
+          default: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              currentStage?:
+                | "group"
+                | "quarter"
+                | "semi"
+                | "final"
+                | "completed";
+              name: string;
+              tournamentId: string;
+            },
+            any,
+            Name
+          >;
+        };
+      };
+      groups: {
+        assign: {
+          assignTeamToGroup: FunctionReference<
+            "mutation",
+            "internal",
+            { groupId: string; teamId: string },
+            any,
+            Name
+          >;
+        };
+        create: {
+          createGroup: FunctionReference<
+            "mutation",
+            "internal",
+            { name: string; tournamentCategoryId: string },
+            any,
+            Name
+          >;
+        };
+        get: {
+          getGroupsByTournamentCategoryId: FunctionReference<
+            "query",
+            "internal",
+            { tournamentCategoryId: string },
+            Array<{
+              _creationTime: number;
+              _id: string;
+              name: string;
+              tournamentCategoryId: string;
+            }>,
+            Name
+          >;
+        };
+      };
+      matches: {
+        delete: {
+          deleteMatchesByGroupId: FunctionReference<
+            "mutation",
+            "internal",
+            { groupId: string },
+            any,
+            Name
+          >;
+        };
+        generate: {
+          generateMatches: FunctionReference<
+            "mutation",
+            "internal",
+            { groupId: string },
+            any,
+            Name
+          >;
+        };
+        get: {
+          getMatchesByGroupId: FunctionReference<
+            "query",
+            "internal",
+            { groupId: string },
+            Array<{
+              _id: string;
+              points: { teamA: number; teamB: number };
+              scheduledAt?: string;
+              status: "scheduled" | "in_progress" | "finished";
+              teams: Array<{ name: string; players: Array<{ name: string }> }>;
+            }>,
+            Name
+          >;
+        };
+      };
       players: {
         add: {
           default: FunctionReference<
@@ -68,17 +179,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         };
       };
       tournaments: {
-        categories: {
-          new: {
-            default: FunctionReference<
-              "mutation",
-              "internal",
-              { name: string; tournamentId: string },
-              any,
-              Name
-            >;
-          };
-        };
         create: {
           default: FunctionReference<
             "mutation",
@@ -108,6 +208,15 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               "mutation",
               "internal",
               { teamId: string; tournamentCategoryId: string },
+              any,
+              Name
+            >;
+          };
+          update: {
+            sync: FunctionReference<
+              "mutation",
+              "internal",
+              { tournamentId: string },
               any,
               Name
             >;

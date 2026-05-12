@@ -8,14 +8,19 @@ const bySlug = query({
     slug: v.string(),
   },
   handler: async (ctx, { slug }) => {
-    const tournamentData = (await ctx.runQuery(
-      components.tournaments.modules.tournaments.get.bySlug,
-      {
-        slug,
-      },
-    )) as Doc<"tournaments"> | null;
+    try {
+      const tournamentData = (await ctx.runQuery(
+        components.tournaments.modules.tournaments.get.bySlug,
+        {
+          slug,
+        },
+      )) as Doc<"tournaments"> | null;
 
-    return tournamentData;
+      return tournamentData;
+    } catch (error) {
+      console.error("Error fetching tournament by slug:", error);
+      return null; // or handle the error as needed
+    }
   },
 });
 

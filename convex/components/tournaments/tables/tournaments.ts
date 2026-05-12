@@ -12,6 +12,9 @@ const tournaments = defineTable({
     v.literal("live"),
     v.literal("completed"),
   ),
+
+  categoriesCount: v.optional(v.number()),
+  teamsCount: v.optional(v.number()),
 })
   .index("by_slug", ["slug"])
   .searchIndex("search_by_name", { searchField: "name" });

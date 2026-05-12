@@ -1,13 +1,22 @@
 import { v } from "convex/values";
-import { mutation } from "../../../_generated/server";
+import { mutation } from "../../_generated/server";
 
 export default mutation({
   args: {
     name: v.string(),
     tournamentId: v.id("tournaments"),
+    currentStage: v.optional(
+      v.union(
+        v.literal("group"),
+        v.literal("quarter"),
+        v.literal("semi"),
+        v.literal("final"),
+        v.literal("completed"),
+      ),
+    ),
   },
   async handler(ctx, args_0) {
-    const { name, tournamentId } = args_0;
+    const { name, tournamentId, currentStage } = args_0;
 
     const slug = name.toLowerCase().replace(/\s+/g, "-");
 
@@ -28,6 +37,7 @@ export default mutation({
       name,
       slug,
       tournamentId,
+      currentStage: currentStage || "group",
     });
 
     return categoryId;

@@ -15,6 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -69,8 +75,17 @@ export function DataTable<TData, TValue>({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
+              <TableCell colSpan={columns.length} className="h-24 text-left">
+                <Empty className="items-start p-3">
+                  <EmptyHeader className="items-start gap-0">
+                    <EmptyTitle className="text-base">
+                      Nessun match per questa categoria
+                    </EmptyTitle>
+                    <EmptyDescription>
+                      Una volta che i match saranno generati, li vedrai qui.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
               </TableCell>
             </TableRow>
           )}
