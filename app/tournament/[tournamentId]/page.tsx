@@ -23,6 +23,17 @@ import { Button } from "@/components/ui/button";
 import GroupTabs from "../components/groups/groups.tabs";
 import { useTournamentStore } from "../stores/tournament.store";
 import { useEffect } from "react";
+import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
+
+const CATEGORY_STATUS_DISPLAY: {
+  [key in Doc<"tournamentCategories">["currentStage"]]: string;
+} = {
+  group: "Fase a gironi",
+  quarter: "Quarti di finale",
+  semi: "Semifinali",
+  final: "Finale",
+  completed: "Completata",
+};
 
 export default function TournamentPage() {
   const { tournamentId } = useParams<{ tournamentId: string }>();
@@ -118,12 +129,26 @@ export default function TournamentPage() {
           </Tabs>
           <div className="flex divide-x">
             <div className="flex-1 flex items-center justify-center font-medium gap-3 min-h-12 overflow-clip text-sm">
-              <div className="relative flex items-center justify-center">
-                <div className="relative z-10 inline-block bg-green-500 size-2.5 rounded-full" />
-                <div className="absolute z-0 inline-block bg-green-300 size-2.5 rounded-full animate-ping" />
-                <div className="absolute z-0 inline-block bg-green-300 blur-lg size-4 rounded-full" />
-              </div>
-              <span className="text-sm font-semibold">Fase a Gironi</span>
+              {tournament.status === "live" && (
+                <div className="relative flex items-center justify-center">
+                  <div className="relative z-10 inline-block bg-green-500 size-2.5 rounded-full" />
+                  <div className="absolute z-0 inline-block bg-green-300 size-2.5 rounded-full animate-ping" />
+                  <div className="absolute z-0 inline-block bg-green-300 blur-lg size-4 rounded-full" />
+                </div>
+              )}
+              <span className="text-sm font-semibold">
+                {tournament.status === "live"
+                  ? selectedCategoryId
+                    ? CATEGORY_STATUS_DISPLAY[
+                        categories?.find((c) => c._id === selectedCategoryId)
+                          ?.currentStage ?? "group"
+                      ]
+                    : "Seleziona una categoria"
+                  : ""}
+                {tournament.status === "completed" && "Torneo completato"}
+                {tournament.status === "upcoming" &&
+                  `Inizierà il ${new Date(tournament.startDate).toLocaleDateString("it-IT", {})}`}
+              </span>
             </div>
 
             <div className="flex items-center px-1.5">

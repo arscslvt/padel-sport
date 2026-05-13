@@ -141,7 +141,7 @@ const MatchCardPoints = ({ teamAPoints, teamBPoints }: MatchCardPointProps) => {
 
 const MatchCardScheduled = ({ date }: { date?: string }) => {
   return (
-    <div className="flex h-6 min-w-9 gap-2 px-1 w-max rounded-full ring-1 text-accent-foreground bg-accent ring-offset-2 ring-offset-card ring-accent/20 justify-center items-center">
+    <div className="flex h-6 min-w-9 gap-2 px-1 w-max rounded-full ring-1 text-accent-foreground bg-accent ring-offset-2 ring-offset-muted ring-accent/20 justify-center items-center">
       <span className="font-medium text-xs">
         {date ? date : "Da programmare"}
       </span>
