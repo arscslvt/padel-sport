@@ -99,7 +99,7 @@ export default function TournamentPage() {
   }
 
   return (
-    <main className="px-4 lg:px-32">
+    <main className="px-3 lg:px-32">
       <div className="flex flex-col mb-2">
         <h1 className="font-heading text-white text-xl font-bold">
           {tournament.name}

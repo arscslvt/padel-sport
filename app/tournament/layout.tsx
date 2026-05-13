@@ -18,12 +18,13 @@ export default function TournamentsLayout({
     <>
       <div className="absolute top-0 left-0 w-dvw z-0">
         <AnimatedBackground
-          colorStops={["#7cff67", "#10b981", "#2dd4bf"]}
+          colorStops={["#46EC99", "#3066be", "#119da4"]}
           blend={0.9}
           amplitude={2.0}
           speed={0.3}
         />
       </div>
+      <div className="fixed bottom-0 inset-x-0 bg-linear-to-t from-accent-foreground to-transparent h-2/3 w-dvw" />
       <Header hideNav hideBackground />
       <main className="relative z-10">{children}</main>
     </>
