@@ -179,7 +179,7 @@ export declare const components: {
           getMatchesByGroupId: FunctionReference<
             "query",
             "internal",
-            { groupId: string },
+            { groupId: string; teamName?: string },
             Array<{
               _id: string;
               points: { teamA: number; teamB: number };

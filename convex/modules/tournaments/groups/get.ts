@@ -20,13 +20,14 @@ export const getGroupsByTournamentCategory = query({
 export const getGroupMatches = query({
   args: {
     groupId: v.string(),
+    teamName: v.optional(v.string()),
   },
-
   async handler(ctx, args) {
     return await ctx.runQuery(
       components.tournaments.modules.matches.get.getMatchesByGroupId,
       {
         groupId: args.groupId,
+        teamName: args.teamName,
       },
     );
   },

@@ -4,6 +4,11 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { ChevronUp, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { create } from "zustand";
+import { DynamicIcon } from "lucide-react/dynamic";
 
 interface GroupTabsProps {
   tournamentCategoryId: string;
@@ -26,8 +31,45 @@ function toSurnameInitial(fullName: string) {
   return initial ? `${surname} ${initial}.` : surname;
 }
 
+interface GroupTabsState {
+  selectedGroupId: string | null;
+  searchTeam: string | false;
+
+  setSelectedGroupId: (groupId: string | null) => void;
+  setSearchTeam: (search: string | false) => void;
+}
+
+const useGroupTabs = create<GroupTabsState>((set) => ({
+  selectedGroupId: null,
+  searchTeam: false,
+
+  setSelectedGroupId: (groupId: string | null) =>
+    set({ selectedGroupId: groupId }),
+  setSearchTeam: (search: string | false) => set({ searchTeam: search }),
+}));
+
 export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const selectedGroupId = useGroupTabs((state) => state.selectedGroupId);
+  const searchTeam = useGroupTabs((state) => state.searchTeam);
+
+  const setSelectedGroupId = useGroupTabs((state) => state.setSelectedGroupId);
+  const setSearchTeam = useGroupTabs((state) => state.setSearchTeam);
+
+  const [inputValue, setInputValue] = useState<string>(
+    searchTeam !== false ? searchTeam : "",
+  );
+
+  // Debounce search team
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTeam !== false) {
+        setSearchTeam(inputValue);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [inputValue, searchTeam, setSearchTeam]);
+
   const groups = useQuery(
     api.modules.tournaments.groups.get.getGroupsByTournamentCategory,
     {
@@ -37,14 +79,22 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
 
   const matches = useQuery(
     api.modules.tournaments.groups.get.getGroupMatches,
-    selectedGroupId ? { groupId: selectedGroupId } : "skip",
+    selectedGroupId
+      ? {
+          groupId: selectedGroupId,
+          teamName:
+            searchTeam !== false && searchTeam.length > 0
+              ? searchTeam
+              : undefined,
+        }
+      : "skip",
   );
 
   useEffect(() => {
     if (groups && groups.length > 0) {
       setSelectedGroupId(groups[0]._id);
     }
-  }, [groups]);
+  }, [groups, setSelectedGroupId]);
 
   if (groups === undefined || selectedGroupId === null) {
     return (
@@ -56,8 +106,11 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
 
   return (
     <div className="mb-4 space-y-3">
-      <Tabs value={selectedGroupId} className="w-full">
-        <TabsList className="w-full px-1 border h-11 rounded-xl">
+      <Tabs
+        value={selectedGroupId}
+        className="w-full bg-muted border rounded-xl overflow-clip gap-0"
+      >
+        <TabsList className="w-full border-none px-1 h-11">
           {groups?.map((group) => (
             <TabsTrigger
               key={group._id}
@@ -68,7 +121,28 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
               {group.name}
             </TabsTrigger>
           ))}
+          <Button
+            size="icon"
+            variant={"ghost"}
+            className="rounded-lg"
+            onClick={() => setSearchTeam(searchTeam !== false ? false : "")}
+          >
+            <DynamicIcon
+              name={searchTeam === false ? "search" : "chevron-up"}
+              className="size-4"
+            />
+          </Button>
         </TabsList>
+        {searchTeam !== false && (
+          <div className="flex p-1">
+            <Input
+              placeholder="Cerca team..."
+              className="w-full border-none rounded-none placeholder:text-muted-foreground focus-visible:ring-0"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+            />
+          </div>
+        )}
       </Tabs>
 
       {matches && (
@@ -97,6 +171,16 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
               }
             />
           ))}
+        </div>
+      )}
+
+      {!matches?.length && searchTeam !== false && (
+        <div className="flex flex-col items-center justify-center py-10 gap-2">
+          <DynamicIcon
+            name="search-slash"
+            className="size-6 text-muted-foreground"
+          />
+          <p className="text-sm text-muted-foreground">Nessun team trovato</p>
         </div>
       )}
     </div>

@@ -28,6 +28,7 @@ const hydratedMatchValidator = v.object({
 export const getMatchesByGroupId = query({
   args: {
     groupId: v.id("groups"),
+    teamName: v.optional(v.string()),
   },
   returns: v.array(hydratedMatchValidator),
   async handler(ctx, args) {
@@ -85,7 +86,7 @@ export const getMatchesByGroupId = query({
       };
     };
 
-    return await Promise.all(
+    const hydratedMatches = await Promise.all(
       matches.map(async (match) => {
         const [teamA, teamB] = await Promise.all([
           hydrateTeam(match.tournamentTeamAId),
@@ -112,6 +113,22 @@ export const getMatchesByGroupId = query({
           teams: [teamA, teamB],
         };
       }),
+    );
+
+    // Filter by team name or player name if provided
+    if (!args.teamName) {
+      return hydratedMatches;
+    }
+
+    const searchTerm = args.teamName.toLowerCase();
+    return hydratedMatches.filter((match) =>
+      match.teams.some(
+        (team) =>
+          team.name.toLowerCase().includes(searchTerm) ||
+          team.players.some((player) =>
+            player.name.toLowerCase().includes(searchTerm),
+          ),
+      ),
     );
   },
 });

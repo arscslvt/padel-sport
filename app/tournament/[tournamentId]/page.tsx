@@ -96,7 +96,7 @@ export default function TournamentPage() {
       </div>
 
       <div className="space-y-3 my-4">
-        <div className="sticky top-20 z-30 border bg-muted rounded-xl overflow-clip divide-y">
+        <div className="sticky top-20 z-30 border rounded-xl overflow-clip divide-y">
           <Tabs defaultValue="intermedio" className="w-full">
             <div className="bg-muted relative overflow-x-auto">
               <TabsList className="bg-transparent w-max px-1 h-11 [&_data-[state=active]]:sticky [&_data-[state=active]]:left-0">
