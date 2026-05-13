@@ -1,4 +1,4 @@
-import { Calendar, ClockFading, Play } from "lucide-react";
+import { Calendar, ClockFading, Play, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MatchCardSet {
@@ -78,16 +78,36 @@ export default function MatchCard({
             <MatchCardScheduled date={date} />
           ) : (
             <div className="flex items-center">
-              {sets.map((set) => (
+              {status === "in_progress" &&
+                sets.map((set) => (
+                  <MatchCardPoints
+                    key={`${set.teamAGames}-${set.teamBGames}`}
+                    teamAPoints={set.teamAGames}
+                    teamBPoints={set.teamBGames}
+                    status={status === "in_progress" ? "live" : "finished"}
+                  />
+                ))}
+              {status === "finished" && (
                 <MatchCardPoints
-                  key={`${set.teamAGames}-${set.teamBGames}`}
-                  teamAPoints={set.teamAGames}
-                  teamBPoints={set.teamBGames}
+                  teamAPoints={points.teamAPoints}
+                  teamBPoints={points.teamBPoints}
+                  status="finished"
                 />
-              ))}
-              <div>
-                <Play className="rotate-180" />
-              </div>
+              )}
+              {status === "in_progress" && (
+                <div
+                  className={cn(
+                    "h-full flex flex-col",
+                    points.teamAPoints > points.teamBPoints
+                      ? "justify-start"
+                      : "justify-end",
+                  )}
+                >
+                  <div className="grid place-content-center size-6">
+                    <Play className="rotate-180 size-4" />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -136,27 +156,52 @@ export default function MatchCard({
 interface MatchCardPointProps {
   teamAPoints: number;
   teamBPoints: number;
+  status?: "live" | "finished";
 }
 
-const MatchCardPoints = ({ teamAPoints, teamBPoints }: MatchCardPointProps) => {
+const MatchCardPoints = ({
+  teamAPoints,
+  teamBPoints,
+  status = "live",
+}: MatchCardPointProps) => {
   return (
     <div className="flex flex-col w-6 font-semibold text-muted-foreground">
       <span
         className={cn(
-          "min-w-6 w-full text-center",
-          teamAPoints > teamBPoints && "text-foreground",
+          "relative min-w-6 w-full text-center",
+          status === "live" && teamAPoints > teamBPoints && "text-foreground",
+          status === "finished" &&
+            teamAPoints >= teamBPoints &&
+            "text-accent font-bold",
         )}
       >
         {teamAPoints}
+        {status === "finished" && teamAPoints > teamBPoints && (
+          <MatchCardTrophy />
+        )}
       </span>
       <span
         className={cn(
-          "min-w-6 w-full text-center",
-          teamBPoints > teamAPoints && "text-foreground",
+          "relative min-w-6 w-full text-center",
+          status === "live" && teamBPoints > teamAPoints && "text-foreground",
+          status === "finished" &&
+            teamBPoints >= teamAPoints &&
+            "text-accent font-bold",
         )}
       >
         {teamBPoints}
+        {status === "finished" && teamBPoints > teamAPoints && (
+          <MatchCardTrophy />
+        )}
       </span>
+    </div>
+  );
+};
+
+const MatchCardTrophy = () => {
+  return (
+    <div className="absolute -right-3 inset-y-0 -translate-y-1 rotate-4 grid place-content-center size-6">
+      <Trophy className="size-3 text-amber-400" />
     </div>
   );
 };

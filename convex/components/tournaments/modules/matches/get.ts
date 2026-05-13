@@ -99,10 +99,7 @@ export const getMatchesByGroupId = query({
           hydrateTeam(match.tournamentTeamBId),
         ]);
 
-        const completedSets =
-          match.status === "completed" ? match.sets : match.sets.slice(0, -1);
-
-        const points = completedSets.reduce(
+        const points = match.sets.reduce(
           (acc, set) => {
             if (set.teamAPoints > set.teamBPoints) {
               acc.teamA += 1;
@@ -125,7 +122,36 @@ export const getMatchesByGroupId = query({
       }),
     );
 
-    // Filter by team name or player name if provided
+    const getStatusPriority = (
+      status: "scheduled" | "in_progress" | "finished",
+    ) => {
+      if (status === "in_progress") {
+        return 0;
+      }
+
+      if (status === "finished") {
+        return 2;
+      }
+
+      return 1;
+    };
+
+    const getDateSortValue = (scheduledAt: string | undefined) =>
+      scheduledAt ? new Date(scheduledAt).getTime() : Number.POSITIVE_INFINITY;
+
+    hydratedMatches.sort((left, right) => {
+      const statusDifference =
+        getStatusPriority(left.status) - getStatusPriority(right.status);
+
+      if (statusDifference !== 0) {
+        return statusDifference;
+      }
+
+      return (
+        getDateSortValue(left.scheduledAt) - getDateSortValue(right.scheduledAt)
+      );
+    });
+
     if (!args.teamName) {
       return hydratedMatches;
     }
