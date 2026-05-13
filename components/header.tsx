@@ -26,9 +26,10 @@ const routes: ReadonlyArray<{
 
 interface HeaderProps {
   hideNav?: boolean;
+  hideBackground?: boolean;
 }
 
-export default function Header({ hideNav }: HeaderProps) {
+export default function Header({ hideNav, hideBackground }: HeaderProps) {
   const pathname = usePathname();
   const [currentPath, setCurrentPath] = React.useState<string | null>(null);
 
@@ -53,7 +54,7 @@ export default function Header({ hideNav }: HeaderProps) {
         "bg-transparent",
       )}
     >
-      {!isHome && (
+      {!isHome && !hideBackground && (
         <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-background via-background/95 to-background/0" />
       )}
       <div className="relative flex justify-between z-10 px-4 pb-3 md:pb-0 md:px-0">

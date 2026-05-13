@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarClock, ClockFading } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Calendar, CalendarClock, ClockFading } from "lucide-react";
 
-interface MatchCardProps {
+interface MatchCardProps extends React.HTMLAttributes<HTMLDivElement> {
   teams: {
     name: string;
     players: string[];
@@ -25,53 +26,60 @@ export default function MatchCard({
   status,
   points,
   date,
+  className,
+  ...props
 }: MatchCardProps) {
   return (
-    <Card className="py-0">
-      <CardContent className="px-0 py-0">
-        <div className="border-b flex items-center px-3 py-3">
-          <div className="flex-1 flex gap-1.5">
-            <Badge className="bg-green-100 text-green-950">
-              {status === "scheduled" && !date ? (
-                <>
-                  <CalendarClock /> Da programmare
-                </>
-              ) : (
-                STATUS_DISPLAY[status]
-              )}
-            </Badge>
-            {date && (
-              <div className="flex gap-1.5">
-                <Badge variant={"outline"}>{date}</Badge>
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="flex gap-3 items-center py-3 px-4">
-          <div className="flex flex-1 font-medium">
-            <div className="flex flex-1 flex-col font-semibold items-center gap-0.5 text-sm">
-              <p className="whitespace-nowrap">{teams[0].players[0]}</p>
-              <p className="whitespace-nowrap">{teams[0].players[1]}</p>
-            </div>
-          </div>
-          <div className="flex-1 flex justify-center">
-            {status === "scheduled" ? (
-              <MatchCardScheduled />
+    <div className={cn("px-0 py-0 bg-muted", className)} {...props}>
+      {/* <div className="border-b flex items-center px-3 py-3">
+        <div className="flex-1 flex gap-1.5">
+          <Badge className="bg-green-100 text-green-950">
+            {status === "scheduled" && !date ? (
+              <>
+                <CalendarClock /> Da programmare
+              </>
             ) : (
-              <MatchCardPoints
-                teamAPoints={points.teamAPoints}
-                teamBPoints={points.teamBPoints}
-              />
+              STATUS_DISPLAY[status]
             )}
-          </div>
-          <div className="flex flex-1 font-medium">
-            <div className="flex flex-1 flex-col font-semibold items-center gap-0.5 text-sm">
-              <p className="whitespace-nowrap">{teams[1].players[0]}</p>
-              <p className="whitespace-nowrap">{teams[1].players[1]}</p>
+          </Badge>
+          {date && (
+            <div className="flex gap-1.5">
+              <Badge variant={"outline"}>{date}</Badge>
+            </div>
+          )}
+        </div>
+      </div> */}
+      <div className="flex gap-3 items-center py-3 px-4">
+        <div className="flex flex-1 font-medium">
+          <div className="flex flex-1 flex-col font-semibold gap-0.5 text-sm">
+            <div>
+              <p className="whitespace-nowrap">
+                <span>{teams[0].players[0]}</span>
+                <span className="text-muted-foreground"> / </span>
+                <span>{teams[0].players[1]}</span>
+              </p>
+            </div>
+            <div>
+              <p className="whitespace-nowrap">
+                <span>{teams[1].players[0]}</span>
+                <span className="text-muted-foreground"> / </span>
+                <span>{teams[1].players[1]}</span>
+              </p>
             </div>
           </div>
         </div>
-        {/* <div className="border-t flex items-center px-3 py-3">
+        <div className="flex justify-center">
+          {status === "scheduled" ? (
+            <MatchCardScheduled date={date} />
+          ) : (
+            <MatchCardPoints
+              teamAPoints={points.teamAPoints}
+              teamBPoints={points.teamBPoints}
+            />
+          )}
+        </div>
+      </div>
+      {/* <div className="border-t flex items-center px-3 py-3">
           <div className="flex gap-2 flex-1">
             <Badge
               variant={"outline"}
@@ -108,8 +116,7 @@ export default function MatchCard({
             </Badge>
           </div>
         </div> */}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -132,10 +139,17 @@ const MatchCardPoints = ({ teamAPoints, teamBPoints }: MatchCardPointProps) => {
   );
 };
 
-const MatchCardScheduled = () => {
+const MatchCardScheduled = ({ date }: { date?: string }) => {
   return (
-    <span className="flex h-9 min-w-9 w-max rounded-full px-1 ring-1 text-lg font-heading font-bold text-accent-foreground bg-accent ring-offset-2 ring-offset-card ring-accent/20 justify-center items-center">
-      <ClockFading />
-    </span>
+    <div className="flex h-9 min-w-9 gap-2 px-2 w-max rounded-full ring-1 text-accent-foreground bg-accent ring-offset-2 ring-offset-card ring-accent/20 justify-center items-center">
+      <span className="font-medium text-xs">
+        {date ? date : "Da programmare"}
+      </span>
+      {date ? (
+        <Calendar className="size-6" />
+      ) : (
+        <ClockFading className="size-6" />
+      )}
+    </div>
   );
 };

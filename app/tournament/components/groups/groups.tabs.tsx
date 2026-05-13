@@ -72,7 +72,7 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
       </Tabs>
 
       {matches && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col rounded-lg border border-border divide-y overflow-clip">
           {matches.map((match) => (
             <MatchCard
               key={match._id}
