@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, Search } from "lucide-react";
+import { ChevronUp, Delete, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { create } from "zustand";
 import { DynamicIcon } from "lucide-react/dynamic";
@@ -141,12 +141,29 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
             />
+            <Button
+              variant={"ghost"}
+              size={"icon"}
+              onClick={() => setInputValue("")}
+            >
+              <Delete />
+            </Button>
           </div>
         )}
       </Tabs>
 
       {matches && (
         <div className="flex flex-col rounded-lg border border-border divide-y overflow-clip">
+          {searchTeam !== false &&
+            !!searchTeam.length &&
+            matches.length > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2">
+                <Search className="size-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {matches.length} risultati per "{searchTeam}"
+                </span>
+              </div>
+            )}
           {matches.map((match) => (
             <MatchCard
               key={match._id}
