@@ -1,7 +1,10 @@
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Calendar, ClockFading, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Calendar, CalendarClock, ClockFading } from "lucide-react";
+
+interface MatchCardSet {
+  teamAGames: number;
+  teamBGames: number;
+}
 
 interface MatchCardProps extends React.HTMLAttributes<HTMLDivElement> {
   teams: {
@@ -10,6 +13,7 @@ interface MatchCardProps extends React.HTMLAttributes<HTMLDivElement> {
   }[];
 
   points: MatchCardPointProps;
+  sets: MatchCardSet[];
 
   status: "scheduled" | "in_progress" | "finished";
   date?: string;
@@ -25,6 +29,7 @@ export default function MatchCard({
   teams,
   status,
   points,
+  sets,
   date,
   className,
   ...props
@@ -72,10 +77,18 @@ export default function MatchCard({
           {status === "scheduled" ? (
             <MatchCardScheduled date={date} />
           ) : (
-            <MatchCardPoints
-              teamAPoints={points.teamAPoints}
-              teamBPoints={points.teamBPoints}
-            />
+            <div className="flex items-center">
+              {sets.map((set) => (
+                <MatchCardPoints
+                  key={`${set.teamAGames}-${set.teamBGames}`}
+                  teamAPoints={set.teamAGames}
+                  teamBPoints={set.teamBGames}
+                />
+              ))}
+              <div>
+                <Play className="rotate-180" />
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -127,15 +140,24 @@ interface MatchCardPointProps {
 
 const MatchCardPoints = ({ teamAPoints, teamBPoints }: MatchCardPointProps) => {
   return (
-    <span className="flex h-9 w-max rounded-full px-1 ring-1 text-lg font-heading font-bold text-accent-foreground bg-accent ring-offset-2 ring-offset-card ring-accent/20">
-      <span className="flex-1 flex items-center justify-center min-w-10">
+    <div className="flex flex-col w-6 font-semibold text-muted-foreground">
+      <span
+        className={cn(
+          "min-w-6 w-full text-center",
+          teamAPoints > teamBPoints && "text-foreground",
+        )}
+      >
         {teamAPoints}
       </span>
-      <span className="h-12 -rotate-8 w-px bg-accent-foreground" />
-      <span className="flex-1 flex items-center justify-center min-w-10">
+      <span
+        className={cn(
+          "min-w-6 w-full text-center",
+          teamBPoints > teamAPoints && "text-foreground",
+        )}
+      >
         {teamBPoints}
       </span>
-    </span>
+    </div>
   );
 };
 

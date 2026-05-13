@@ -177,6 +177,10 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
                 teamAPoints: match.points.teamA,
                 teamBPoints: match.points.teamB,
               }}
+              sets={match.sets.map((set) => ({
+                teamAGames: set.teamAPoints,
+                teamBGames: set.teamBPoints,
+              }))}
               status={match.status}
               date={
                 match.scheduledAt

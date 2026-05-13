@@ -128,6 +128,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               _id: string;
               points: { teamA: number; teamB: number };
               scheduledAt?: string;
+              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
               status: "scheduled" | "in_progress" | "finished";
               teams: Array<{ name: string; players: Array<{ name: string }> }>;
             }>,

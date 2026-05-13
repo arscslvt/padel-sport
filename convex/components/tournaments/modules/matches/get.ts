@@ -13,6 +13,12 @@ const hydratedMatchValidator = v.object({
     teamA: v.number(),
     teamB: v.number(),
   }),
+  sets: v.array(
+    v.object({
+      teamAPoints: v.number(),
+      teamBPoints: v.number(),
+    }),
+  ),
   teams: v.array(
     v.object({
       name: v.string(),
@@ -93,7 +99,10 @@ export const getMatchesByGroupId = query({
           hydrateTeam(match.tournamentTeamBId),
         ]);
 
-        const points = match.sets.reduce(
+        const completedSets =
+          match.status === "completed" ? match.sets : match.sets.slice(0, -1);
+
+        const points = completedSets.reduce(
           (acc, set) => {
             if (set.teamAPoints > set.teamBPoints) {
               acc.teamA += 1;
@@ -110,6 +119,7 @@ export const getMatchesByGroupId = query({
           status: mapStatus(match.status),
           scheduledAt: match.dateStart,
           points,
+          sets: match.sets,
           teams: [teamA, teamB],
         };
       }),
