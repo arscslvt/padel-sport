@@ -51,24 +51,24 @@ export default function MatchCard({
       </div> */}
       <div className="flex gap-3 items-center py-3 px-4">
         <div className="flex flex-1 font-medium">
-          <div className="flex flex-1 flex-col font-semibold gap-0.5 text-sm">
+          <div className="flex flex-1 flex-col font-semibold gap-0.5 text-xs">
             <div>
               <p className="whitespace-nowrap">
                 <span>{teams[0].players[0]}</span>
-                <span className="text-muted-foreground"> / </span>
+                <span className="text-muted-foreground font-medium"> / </span>
                 <span>{teams[0].players[1]}</span>
               </p>
             </div>
             <div>
               <p className="whitespace-nowrap">
                 <span>{teams[1].players[0]}</span>
-                <span className="text-muted-foreground"> / </span>
+                <span className="text-muted-foreground font-medium"> / </span>
                 <span>{teams[1].players[1]}</span>
               </p>
             </div>
           </div>
         </div>
-        <div className="flex justify-center">
+        <div className="flex justify-end">
           {status === "scheduled" ? (
             <MatchCardScheduled date={date} />
           ) : (
@@ -141,14 +141,14 @@ const MatchCardPoints = ({ teamAPoints, teamBPoints }: MatchCardPointProps) => {
 
 const MatchCardScheduled = ({ date }: { date?: string }) => {
   return (
-    <div className="flex h-9 min-w-9 gap-2 px-2 w-max rounded-full ring-1 text-accent-foreground bg-accent ring-offset-2 ring-offset-card ring-accent/20 justify-center items-center">
+    <div className="flex h-6 min-w-9 gap-2 px-1 w-max rounded-full ring-1 text-accent-foreground bg-accent ring-offset-2 ring-offset-card ring-accent/20 justify-center items-center">
       <span className="font-medium text-xs">
         {date ? date : "Da programmare"}
       </span>
       {date ? (
-        <Calendar className="size-6" />
+        <Calendar className="size-4" />
       ) : (
-        <ClockFading className="size-6" />
+        <ClockFading className="size-4" />
       )}
     </div>
   );
