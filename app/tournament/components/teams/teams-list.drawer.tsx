@@ -25,7 +25,7 @@ export default function TeamsListDrawer({
 
   return (
     <ResponsiveDrawer {...props}>
-      <ResponsiveDrawerContent>
+      <ResponsiveDrawerContent className="max-h-3/4 md:overflow-y-scroll">
         <ResponsiveDrawerHeader
           title={"Squadre iscritte"}
           description={`Categoria: ${categoryName || "N/A"}`}
