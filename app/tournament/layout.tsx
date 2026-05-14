@@ -18,7 +18,7 @@ export default function TournamentsLayout({
     <>
       <div className="absolute top-0 left-0 w-dvw z-0">
         <AnimatedBackground
-          colorStops={["#46EC99", "#3066be", "#119da4"]}
+          colorStops={["#12cc9b", "#282828", "#171717"]} /* Colori più scuri per intonarsi al tema Neutral */
           blend={0.9}
           amplitude={2.0}
           speed={0.3}

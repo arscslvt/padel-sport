@@ -1,5 +1,7 @@
 import { Calendar, ClockFading, Play, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import LiveDot from "../live-dot";
+import { Badge } from "@/components/ui/badge";
 
 interface MatchCardSet {
   teamAGames: number;
@@ -36,41 +38,35 @@ export default function MatchCard({
 }: MatchCardProps) {
   return (
     <div className={cn("px-0 py-0 bg-muted", className)} {...props}>
-      {/* <div className="border-b flex items-center px-3 py-3">
-        <div className="flex-1 flex gap-1.5">
-          <Badge className="bg-green-100 text-green-950">
-            {status === "scheduled" && !date ? (
-              <>
-                <CalendarClock /> Da programmare
-              </>
-            ) : (
-              STATUS_DISPLAY[status]
-            )}
+      {status === "in_progress" && (
+        <div className="flex items-center px-4 pt-4">
+          <Badge variant={"outline"}>
+            <LiveDot className="mr-1 size-2" />
+            <span className="text-sm font-medium text-foreground">
+              {STATUS_DISPLAY[status]}
+            </span>
           </Badge>
-          {date && (
-            <div className="flex gap-1.5">
-              <Badge variant={"outline"}>{date}</Badge>
-            </div>
-          )}
         </div>
-      </div> */}
+      )}
       <div className="flex gap-3 items-center py-3 px-4">
-        <div className="flex flex-1 font-medium">
-          <div className="flex flex-1 flex-col font-semibold gap-0.5 text-xs">
-            <div>
-              <p className="whitespace-nowrap">
-                <span>{teams[0].players[0]}</span>
-                <span className="text-muted-foreground font-medium"> / </span>
-                <span>{teams[0].players[1]}</span>
-              </p>
-            </div>
-            <div>
-              <p className="whitespace-nowrap">
-                <span>{teams[1].players[0]}</span>
-                <span className="text-muted-foreground font-medium"> / </span>
-                <span>{teams[1].players[1]}</span>
-              </p>
-            </div>
+        <div className="flex flex-1 flex-col font-semibold gap-0.5 text-[13px]">
+          <div>
+            <p className="flex items-center gap-1.5 whitespace-nowrap h-6">
+              <span>{teams[0].players[0]}</span>
+              <span className="text-muted-foreground font-medium text-sm">
+                /
+              </span>
+              <span>{teams[0].players[1]}</span>
+            </p>
+          </div>
+          <div>
+            <p className="flex items-center gap-1.5 whitespace-nowrap h-6">
+              <span>{teams[1].players[0]}</span>
+              <span className="text-muted-foreground font-medium text-sm">
+                /
+              </span>
+              <span>{teams[1].players[1]}</span>
+            </p>
           </div>
         </div>
         <div className="flex justify-end">

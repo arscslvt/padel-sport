@@ -24,6 +24,7 @@ import GroupTabs from "../components/groups/groups.tabs";
 import { useTournamentStore } from "../stores/tournament.store";
 import { useEffect } from "react";
 import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
+import LiveDot from "../components/live-dot";
 
 const CATEGORY_STATUS_DISPLAY: {
   [key in Doc<"tournamentCategories">["currentStage"]]: string;
@@ -129,13 +130,7 @@ export default function TournamentPage() {
           </Tabs>
           <div className="flex divide-x">
             <div className="flex-1 flex items-center justify-center font-medium gap-3 min-h-12 overflow-clip text-sm">
-              {tournament.status === "live" && (
-                <div className="relative flex items-center justify-center">
-                  <div className="relative z-10 inline-block bg-green-500 size-2.5 rounded-full" />
-                  <div className="absolute z-0 inline-block bg-green-300 size-2.5 rounded-full animate-ping" />
-                  <div className="absolute z-0 inline-block bg-green-300 blur-lg size-4 rounded-full" />
-                </div>
-              )}
+              {tournament.status === "live" && <LiveDot />}
               <span className="text-sm font-semibold">
                 {tournament.status === "live"
                   ? selectedCategoryId
