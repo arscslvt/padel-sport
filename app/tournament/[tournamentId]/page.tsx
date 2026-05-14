@@ -170,7 +170,7 @@ export default function TournamentPage() {
                 onClick={() => setTeamsDrawerOpen(true)}
               >
                 {categories?.find((c) => c._id === selectedCategoryId)?.teams
-                  .length || 0}{" "}
+                  ?.length || 0}{" "}
                 Squadre <ChevronRight />
               </Button>
             </div>
