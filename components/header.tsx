@@ -48,7 +48,7 @@ export default function Header({ hideNav, hideBackground }: HeaderProps) {
   return (
     <div
       className={cn(
-        "relative w-dvw top-0 z-50 flex flex-col md:flex-row justify-center md:items-center sm:h-32 min-h-22 gap-3 md:px-8 lg:px-24 pt-6 lg:pt-0",
+        "relative w-dvw top-0 z-50 flex flex-col md:flex-row justify-center md:items-center sm:h-32 min-h-22 gap-3 md:px-16 lg:px-24 pt-6 lg:pt-0",
         isHome ? "pb-2" : "pb-5 sm:pb-2",
         isHome ? "fixed" : "sticky",
         "bg-transparent",

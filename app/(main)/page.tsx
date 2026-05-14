@@ -16,12 +16,12 @@ export default function Home() {
         <div className="relative overflow-hidden flex items-end justify-center h-dvh gap-22">
           <div className="relative items-center z-10 flex-1 text-white flex flex-col gap-8 px-4 pb-6 bg-linear-to-t from-emerald-900 from-50% to-transparent lg:pb-6">
             <div className="flex flex-col items-center gap-2">
-              <h1 className="text-[28px] lg:text-4xl leading-10 font-heading font-bold max-w-145 text-center">
+              <h1 className="text-[22px] md:text-4xl lg:text-4xl leading-10 font-heading font-bold max-w-145 text-center">
                 Mettersi in gioco non è mai stato così bello
               </h1>
-              <h4 className="lg:text-lg text-white/80 text-center">
-                Dal principiante al pro: da noi trovi avversari, tornei e tanto
-                divertimento.
+              <h4 className="md:text-[18px] lg:text-lg text-white/80 text-center">
+                Dal principiante al pro: da noi trovi avversari, community e
+                tanto divertimento.
               </h4>
             </div>
 
@@ -69,7 +69,7 @@ export default function Home() {
                 loop
                 muted
                 playsInline
-                className="relative z-0 h-full w-full md:max-h-[84dvh] lg:max-h-[78dvh] rounded-none md:rounded-t-3xl object-cover -translate-y-4 md:translate-y-0 lg:-translate-y-2"
+                className="relative z-0 h-full w-full rounded-none md:rounded-t-3xl object-cover -translate-y-4 md:translate-y-0"
                 preload="auto"
                 controls={false}
               />
