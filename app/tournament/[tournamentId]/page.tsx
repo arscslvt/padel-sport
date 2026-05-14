@@ -26,6 +26,13 @@ import { useEffect } from "react";
 import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
 import LiveDot from "../components/live-dot";
 import TeamsListDrawer from "../components/teams/teams-list.drawer";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemHeader,
+  ItemTitle,
+} from "@/components/ui/item";
 
 const CATEGORY_STATUS_DISPLAY: {
   [key in Doc<"tournamentCategories">["currentStage"]]: string;
@@ -107,78 +114,87 @@ export default function TournamentPage() {
 
   return (
     <main className="px-3 lg:px-32">
-      <div className="flex flex-col mb-2">
+      <div className="flex flex-col mb-4">
         <h1 className="font-heading text-white text-xl font-bold">
           {tournament.name}
         </h1>
+
+        {tournament.comment && (
+          <Item className="bg-muted/30 mt-2 border-2 border-muted/50">
+            <ItemHeader>
+              <ItemTitle>{tournament.comment.title}</ItemTitle>
+            </ItemHeader>
+            <ItemContent className="whitespace-pre-wrap">
+              {tournament.comment.content}
+            </ItemContent>
+          </Item>
+        )}
       </div>
 
-      <div className="space-y-3 my-4">
-        <div className="sticky top-20 z-30 border rounded-xl overflow-clip divide-y">
-          <Tabs defaultValue="intermedio" className="w-full">
-            <div className="bg-muted relative overflow-x-auto">
-              <TabsList className="bg-transparent w-max px-1 h-11 [&_data-[state=active]]:sticky [&_data-[state=active]]:left-0">
-                {categories?.map((category) => (
-                  <TabsTrigger
-                    key={category.slug}
-                    value={category.slug}
-                    className="rounded-t-lg first:rounded-bl-sm last:rounded-br-sm"
-                    onClick={() => setSelectedCategoryId(category._id)}
-                  >
-                    {category?.icon && (
-                      <DynamicIcon name={category.icon as IconName} />
-                    )}
-                    {category.name}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-          </Tabs>
-          <div className="flex divide-x">
-            <div className="flex-1 flex items-center justify-center font-medium gap-3 min-h-12 overflow-clip text-sm">
-              {tournament.status === "live" && <LiveDot />}
-              <span className="text-sm font-semibold">
-                {tournament.status === "live"
-                  ? selectedCategoryId
-                    ? CATEGORY_STATUS_DISPLAY[
-                        categories?.find((c) => c._id === selectedCategoryId)
-                          ?.currentStage ?? "group"
-                      ]
-                    : "Seleziona una categoria"
-                  : ""}
-                {tournament.status === "completed" && "Torneo completato"}
-                {tournament.status === "upcoming" &&
-                  `Inizierà il ${new Date(tournament.startDate).toLocaleDateString("it-IT", {})}`}
-              </span>
-            </div>
+      <div className="sticky top-20 md:top-22 z-30 border bg-background rounded-xl overflow-clip shadow-xl shadow-background divide-y">
+        <Tabs defaultValue="intermedio" className="w-full">
+          <div className="bg-muted relative overflow-x-auto">
+            <TabsList className="bg-transparent w-max px-1 h-11 [&_data-[state=active]]:sticky [&_data-[state=active]]:left-0">
+              {categories?.map((category) => (
+                <TabsTrigger
+                  key={category.slug}
+                  value={category.slug}
+                  className="rounded-t-lg first:rounded-bl-sm last:rounded-br-sm"
+                  onClick={() => setSelectedCategoryId(category._id)}
+                >
+                  {category?.icon && (
+                    <DynamicIcon name={category.icon as IconName} />
+                  )}
+                  {category.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+        </Tabs>
+        <div className="flex divide-x bg-background">
+          <div className="flex-1 flex items-center justify-center font-medium gap-3 min-h-12 overflow-clip text-sm">
+            {tournament.status === "live" && <LiveDot />}
+            <span className="text-sm font-semibold">
+              {tournament.status === "live"
+                ? selectedCategoryId
+                  ? CATEGORY_STATUS_DISPLAY[
+                      categories?.find((c) => c._id === selectedCategoryId)
+                        ?.currentStage ?? "group"
+                    ]
+                  : "Seleziona una categoria"
+                : ""}
+              {tournament.status === "completed" && "Torneo completato"}
+              {tournament.status === "upcoming" &&
+                `Inizierà il ${new Date(tournament.startDate).toLocaleDateString("it-IT", {})}`}
+            </span>
+          </div>
 
-            <div className="min-w-34 w-34 flex items-center justify-center px-1.5">
-              {selectedCategoryId && (
-                <TeamsListDrawer
-                  open={teamsDrawerOpen}
-                  setOpen={(open) => setTeamsDrawerOpen(open)}
-                  categoryId={selectedCategoryId}
-                  categoryName={
-                    categories?.find((c) => c._id === selectedCategoryId)?.name
-                  }
-                />
-              )}
-              <Button
-                className="rounded-xs rounded-br-sm"
-                variant={"ghost"}
-                size={"sm"}
-                onClick={() => setTeamsDrawerOpen(true)}
-              >
-                {categories?.find((c) => c._id === selectedCategoryId)?.teams
-                  ?.length || 0}{" "}
-                Squadre <ChevronRight />
-              </Button>
-            </div>
+          <div className="min-w-34 w-34 flex items-center justify-center px-1.5">
+            {selectedCategoryId && (
+              <TeamsListDrawer
+                open={teamsDrawerOpen}
+                setOpen={(open) => setTeamsDrawerOpen(open)}
+                categoryId={selectedCategoryId}
+                categoryName={
+                  categories?.find((c) => c._id === selectedCategoryId)?.name
+                }
+              />
+            )}
+            <Button
+              className="rounded-xs rounded-br-sm"
+              variant={"ghost"}
+              size={"sm"}
+              onClick={() => setTeamsDrawerOpen(true)}
+            >
+              {categories?.find((c) => c._id === selectedCategoryId)?.teams
+                ?.length || 0}{" "}
+              Squadre <ChevronRight />
+            </Button>
           </div>
         </div>
       </div>
 
-      <div>
+      <div className="mt-8">
         <DataTable columns={columns} data={[]} />
       </div>
 
