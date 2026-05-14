@@ -1,17 +1,15 @@
-import React from "react";
-
 import padelsportLogo from "@/assets/branding/logo.svg";
 import Image from "next/image";
 import { getInfo } from "@/lib/info";
-import { ArrowUpRight, Facebook, Instagram } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { Button } from "./ui/button";
 import Link from "next/link";
 
-import eatRainbowsLogo from "@/assets/sponsors/eatrainbows/eatrainbows-logo.png";
+import { FaFacebookF, FaInstagram } from "react-icons/fa";
 
 export default function Footer() {
   return (
-    <footer className="px-6 lg:px-32 py-8 text-white max-w-dvw">
+    <footer className="relative mt-8 z-50 px-6 lg:px-32 py-8 text-white max-w-dvw">
       <div className="flex flex-col items-center md:items-end md:flex-row gap-8 lg:gap-12">
         <div className="flex flex-col md:flex-row items-center flex-1 gap-8">
           <div>
@@ -24,7 +22,9 @@ export default function Footer() {
           <div className="text-sm text-center md:text-left flex-1">
             <h4 className="font-medium">{getInfo("name")}</h4>
             <p className="text-white/80">{getInfo("address")}</p>
-            <p className="text-white/80">{getInfo("email")}</p>
+            <p className="text-white/80">
+              <a href={`mailto:${getInfo("email")}`}>{getInfo("email")}</a>
+            </p>
             <p className="text-white/80">CF/P.IVA {getInfo("cf")}</p>
           </div>
         </div>
@@ -39,7 +39,7 @@ export default function Footer() {
               rel="noopener noreferrer"
             >
               <Button size={"icon"} variant={"ghost"} className="rounded-full">
-                <Instagram className="h-8 w-8" strokeWidth={1.3} />
+                <FaInstagram className="h-8 w-8" strokeWidth={1.3} />
               </Button>
             </Link>
             <Link
@@ -48,7 +48,7 @@ export default function Footer() {
               rel="noopener noreferrer"
             >
               <Button size={"icon"} variant={"ghost"} className="rounded-full">
-                <Facebook className="h-8 w-8" strokeWidth={1.3} />
+                <FaFacebookF className="h-8 w-8" strokeWidth={1.3} />
               </Button>
             </Link>
           </div>

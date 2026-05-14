@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { ClerkProvider } from "@clerk/nextjs";
 import Script from "next/script";
-import { Geist, Geist_Mono, Unbounded } from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  Unbounded,
+  Bricolage_Grotesque,
+} from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers/provider";
-import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,24 +22,29 @@ const geistMono = Geist_Mono({
 });
 
 const heading = Unbounded({
-  variable: "--font-heading-google",
+  variable: "--font-unbounded",
+  subsets: ["latin"],
+});
+
+const bricolageSans = Bricolage_Grotesque({
+  variable: "--font-bricolage-grotesque",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "ASD PadelSport Melilli | Campi, Tornei e Lezioni",
-    template: "%s | PadelSport Melilli",
+    default: "ASD Padel Sport Melilli | Campi, Tornei e Lezioni",
+    template: "%s | Padel Sport Melilli",
   },
   description:
-    "Prenota un campo, partecipa ai tornei o segui lezioni al PadelSport Melilli. Il punto di riferimento per gli amanti del padel in provincia di Siracusa.",
+    "Prenota un campo, partecipa ai tornei o segui lezioni al Padel Sport Melilli. Il punto di riferimento per gli amanti del padel in provincia di Siracusa.",
   keywords: [
     "padel Melilli",
     "campi padel",
     "tornei padel",
     "lezioni padel",
     "prenotazioni padel",
-    "PadelSport Melilli",
+    "Padel Sport Melilli",
     "club padel Siracusa",
   ],
   icons: {
@@ -46,9 +56,14 @@ export const metadata: Metadata = {
       { url: "/favicon/white-icon.png", media: "(prefers-color-scheme: dark)" },
     ],
   },
-  authors: [{ name: "ASD PadelSport Melilli" }],
-  creator: "ASD PadelSport Melilli",
-  publisher: "ASD PadelSport Melilli",
+  authors: [{ name: "ASD Padel Sport Melilli" }],
+  creator: "Salvatore Aresco",
+  publisher: "ASD Padel Sport Melilli",
+  formatDetection: {
+    telephone: false,
+    address: false,
+    email: false,
+  },
   robots: { index: true, follow: true },
   alternates: {
     canonical: "https://www.asdpadelsport.com/",
@@ -57,24 +72,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "it_IT",
     url: "https://www.asdpadelsport.com/",
-    siteName: "ASD PadelSport Melilli",
-    title: "ASD PadelSport Melilli | Campi, Tornei e Lezioni",
+    siteName: "ASD Padel Sport Melilli",
+    title: "ASD Padel Sport Melilli | Campi, Tornei e Lezioni",
     description:
-      "Scopri ASD PadelSport Melilli: prenota campi outdoor, partecipa ai tornei e vivi la passione per il padel in Sicilia.",
+      "Scopri ASD Padel Sport Melilli: prenota campi outdoor, partecipa ai tornei e vivi la passione per il padel in Sicilia.",
     images: [
       {
         url: "https://www.asdpadelsport.com/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Campi da padel di ASD PadelSport Melilli",
+        alt: "Campi da padel di ASD Padel Sport Melilli",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ASD PadelSport Melilli | Campi, Tornei e Lezioni",
+    title: "ASD Padel Sport Melilli | Campi, Tornei e Lezioni",
     description:
-      "Prenota il tuo campo e divertiti con ASD PadelSport Melilli, il club di riferimento per il padel in provincia di Siracusa.",
+      "Prenota il tuo campo e divertiti con ASD Padel Sport Melilli, il club di riferimento per il padel in provincia di Siracusa.",
     images: ["https://www.asdpadelsport.com/og-image.jpg"],
     creator: "@padelsportmelilli",
   },
@@ -88,72 +103,75 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${heading.variable} antialiased`}
+    <ClerkProvider>
+      <html
+        lang="en"
+        suppressHydrationWarning
+        className={`${geistSans.variable} ${geistMono.variable} ${heading.variable} ${bricolageSans.variable}`}
       >
-        <Providers>{children}</Providers>
-        <Analytics />
-        <Script
-          id="structured-data"
-          type="application/ld+json"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: It's necessary for JSON-LD
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SportsClub",
-              name: "ASD PadelSport Melilli",
-              image: "https://www.asdpadelsport.com/og-image.jpg",
-              url: "https://www.asdpadelsport.com/",
-              telephone: "+39 3201755897",
-              address: {
-                "@type": "PostalAddress",
-                streetAddress: "Via Pertini",
-                addressLocality: "Melilli",
-                postalCode: "96010",
-                addressCountry: "IT",
-              },
-              openingHoursSpecification: [
-                {
-                  "@type": "OpeningHoursSpecification",
-                  dayOfWeek: [
-                    "Monday",
-                    "Tuesday",
-                    "Wednesday",
-                    "Thursday",
-                    "Friday",
-                    "Saturday",
-                    "Sunday",
-                  ],
-                  opens: "09:00",
-                  closes: "12:30",
+        <body className="font-sans antialiased">
+          <Providers>{children}</Providers>
+          <Analytics />
+          <Script
+            id="structured-data"
+            type="application/ld+json"
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: It's necessary for JSON-LD
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "SportsClub",
+                name: "ASD Padel Sport Melilli",
+                image: "https://www.asdpadelsport.com/og-image.jpg",
+                url: "https://www.asdpadelsport.com/",
+                telephone: "+39 3201755897",
+                address: {
+                  "@type": "PostalAddress",
+                  streetAddress: "Via Pertini",
+                  addressLocality: "Melilli",
+                  postalCode: "96010",
+                  addressCountry: "IT",
                 },
-                {
-                  "@type": "OpeningHoursSpecification",
-                  dayOfWeek: [
-                    "Monday",
-                    "Tuesday",
-                    "Wednesday",
-                    "Thursday",
-                    "Friday",
-                    "Saturday",
-                    "Sunday",
-                  ],
-                  opens: "14:30",
-                  closes: "21:30",
-                },
-              ],
-              sameAs: [
-                "https://www.instagram.com/padelsportmelilli/",
-                "https://www.facebook.com/padelsportmelilli/",
-              ],
-              description:
-                "ASD PadelSport Melilli è un club moderno con campi outdoor, lezioni di padel, tornei e corsi per ogni livello di gioco.",
-            }),
-          }}
-        />
-        <Toaster />
-      </body>
-    </html>
+                openingHoursSpecification: [
+                  {
+                    "@type": "OpeningHoursSpecification",
+                    dayOfWeek: [
+                      "Monday",
+                      "Tuesday",
+                      "Wednesday",
+                      "Thursday",
+                      "Friday",
+                      "Saturday",
+                      "Sunday",
+                    ],
+                    opens: "09:00",
+                    closes: "12:30",
+                  },
+                  {
+                    "@type": "OpeningHoursSpecification",
+                    dayOfWeek: [
+                      "Monday",
+                      "Tuesday",
+                      "Wednesday",
+                      "Thursday",
+                      "Friday",
+                      "Saturday",
+                      "Sunday",
+                    ],
+                    opens: "14:30",
+                    closes: "21:30",
+                  },
+                ],
+                sameAs: [
+                  "https://www.instagram.com/padelsportmelilli/",
+                  "https://www.facebook.com/padelsportmelilli/",
+                ],
+                description:
+                  "ASD Padel Sport Melilli è un club moderno con campi outdoor, lezioni di padel, tornei e corsi per ogni livello di gioco.",
+              }),
+            }}
+          />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

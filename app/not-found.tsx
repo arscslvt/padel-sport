@@ -75,8 +75,6 @@ export default function NotFound() {
             <span className="hidden sm:inline">•</span>
             <a
               href={getInfo("bookingUrl")}
-              target="_blank"
-              rel="noopener noreferrer"
               className="font-medium text-emerald-200 underline decoration-emerald-300/40 underline-offset-4 hover:text-white"
             >
               Prenota un campo
