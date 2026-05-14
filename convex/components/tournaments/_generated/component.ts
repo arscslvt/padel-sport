@@ -42,6 +42,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               icon?: string;
               name: string;
               slug: string;
+              teams: Array<{
+                _creationTime: number;
+                _id: string;
+                teamId: string;
+                tournamentCategoryId: string;
+              }>;
               tournamentId: string;
             }>,
             Name
@@ -175,6 +181,29 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             "internal",
             { image?: string; name: string; playersIds: Array<string> },
             any,
+            Name
+          >;
+        };
+        get: {
+          getTeamsByCategoryId: FunctionReference<
+            "query",
+            "internal",
+            { categoryId: string },
+            Array<{
+              _creationTime: number;
+              _id: string;
+              image?: string;
+              name?: string;
+              players: Array<{
+                _creationTime: number;
+                _id: string;
+                email?: string;
+                firstName?: string;
+                image?: string;
+                lastName: string;
+              }>;
+              playersIds: Array<string>;
+            }>,
             Name
           >;
         };

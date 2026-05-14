@@ -22,6 +22,7 @@ import type * as modules_tournaments_categories_get from "../modules/tournaments
 import type * as modules_tournaments_get from "../modules/tournaments/get.js";
 import type * as modules_tournaments_groups_get from "../modules/tournaments/groups/get.js";
 import type * as modules_tournaments_players_add from "../modules/tournaments/players/add.js";
+import type * as modules_tournaments_teams_get from "../modules/tournaments/teams/get.js";
 import type * as slots_listActive from "../slots/listActive.js";
 import type * as tables_bookings from "../tables/bookings.js";
 import type * as tables_events from "../tables/events.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   "modules/tournaments/get": typeof modules_tournaments_get;
   "modules/tournaments/groups/get": typeof modules_tournaments_groups_get;
   "modules/tournaments/players/add": typeof modules_tournaments_players_add;
+  "modules/tournaments/teams/get": typeof modules_tournaments_teams_get;
   "slots/listActive": typeof slots_listActive;
   "tables/bookings": typeof tables_bookings;
   "tables/events": typeof tables_events;
@@ -105,6 +107,12 @@ export declare const components: {
               icon?: string;
               name: string;
               slug: string;
+              teams: Array<{
+                _creationTime: number;
+                _id: string;
+                teamId: string;
+                tournamentCategoryId: string;
+              }>;
               tournamentId: string;
             }>
           >;
@@ -227,6 +235,28 @@ export declare const components: {
             "internal",
             { image?: string; name: string; playersIds: Array<string> },
             any
+          >;
+        };
+        get: {
+          getTeamsByCategoryId: FunctionReference<
+            "query",
+            "internal",
+            { categoryId: string },
+            Array<{
+              _creationTime: number;
+              _id: string;
+              image?: string;
+              name?: string;
+              players: Array<{
+                _creationTime: number;
+                _id: string;
+                email?: string;
+                firstName?: string;
+                image?: string;
+                lastName: string;
+              }>;
+              playersIds: Array<string>;
+            }>
           >;
         };
       };

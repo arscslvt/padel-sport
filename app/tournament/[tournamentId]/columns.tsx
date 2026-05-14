@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { HashIcon, Users2 } from "lucide-react";
+import { Diff, HashIcon, Users2 } from "lucide-react";
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
@@ -14,8 +14,7 @@ export type Round = {
   pts: number;
   victories: number;
   defeats: number;
-  wins: number;
-  losses: number;
+  dg: number;
 };
 
 export const columns: ColumnDef<Round>[] = [
@@ -91,11 +90,9 @@ export const columns: ColumnDef<Round>[] = [
     header: "Sconfitte",
   },
   {
-    accessorKey: "wins",
-    header: "Set vinti",
-  },
-  {
-    accessorKey: "losses",
-    header: "Set persi",
+    accessorKey: "dg",
+    header: () => {
+      return <Diff className="size-4" />;
+    },
   },
 ];

@@ -25,6 +25,7 @@ import { useTournamentStore } from "../stores/tournament.store";
 import { useEffect } from "react";
 import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
 import LiveDot from "../components/live-dot";
+import TeamsListDrawer from "../components/teams/teams-list.drawer";
 
 const CATEGORY_STATUS_DISPLAY: {
   [key in Doc<"tournamentCategories">["currentStage"]]: string;
@@ -43,10 +44,15 @@ export default function TournamentPage() {
   const setSelectedCategoryId = useTournamentStore(
     (state) => state.setSelectedCategoryId,
   );
+  const setTeamsDrawerOpen = useTournamentStore(
+    (state) => state.setTeamsDrawerOpen,
+  );
 
   const selectedCategoryId = useTournamentStore(
     (state) => state.selectedCategoryId,
   );
+
+  const teamsDrawerOpen = useTournamentStore((state) => state.teamsDrawerOpen);
 
   const tournament = useQuery(api.modules.tournaments.get.bySlug, {
     slug: tournamentId,
@@ -146,9 +152,26 @@ export default function TournamentPage() {
               </span>
             </div>
 
-            <div className="flex items-center px-1.5">
-              <Button className="rounded-xs rounded-br-sm" variant={"ghost"}>
-                {tournament.teamsCount} Squadre <ChevronRight />
+            <div className="min-w-34 w-34 flex items-center justify-center px-1.5">
+              {selectedCategoryId && (
+                <TeamsListDrawer
+                  open={teamsDrawerOpen}
+                  setOpen={(open) => setTeamsDrawerOpen(open)}
+                  categoryId={selectedCategoryId}
+                  categoryName={
+                    categories?.find((c) => c._id === selectedCategoryId)?.name
+                  }
+                />
+              )}
+              <Button
+                className="rounded-xs rounded-br-sm"
+                variant={"ghost"}
+                size={"sm"}
+                onClick={() => setTeamsDrawerOpen(true)}
+              >
+                {categories?.find((c) => c._id === selectedCategoryId)?.teams
+                  .length || 0}{" "}
+                Squadre <ChevronRight />
               </Button>
             </div>
           </div>
