@@ -1,3 +1,5 @@
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
 import { Calendar, ClockFading, Play, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import LiveDot from "../live-dot";
@@ -38,16 +40,6 @@ export default function MatchCard({
 }: MatchCardProps) {
   return (
     <div className={cn("px-0 py-0 bg-muted", className)} {...props}>
-      {status === "in_progress" && (
-        <div className="flex items-center px-4 pt-4">
-          <Badge variant={"outline"}>
-            <LiveDot className="mr-1 size-2" />
-            <span className="text-sm font-medium text-foreground">
-              {STATUS_DISPLAY[status]}
-            </span>
-          </Badge>
-        </div>
-      )}
       <div className="flex gap-3 items-center py-3 px-4">
         <div className="flex flex-1 flex-col font-semibold gap-0.5 text-[13px]">
           <div>
@@ -203,16 +195,22 @@ const MatchCardTrophy = () => {
 };
 
 const MatchCardScheduled = ({ date }: { date?: string }) => {
+  const _date = date ? format(new Date(date), "d MMMM", { locale: it }) : null;
+  const _time = date ? format(new Date(date), "HH:mm", { locale: it }) : null;
+
+  if (_date) {
+    return (
+      <div className="text-sm flex flex-col items-end gap-0.5">
+        <span className="font-medium">{_date}</span>
+        <span className="text-muted-foreground">{_time}</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-6 min-w-9 gap-2 px-1 w-max rounded-full ring-1 text-accent-foreground bg-accent ring-offset-2 ring-offset-muted ring-accent/20 justify-center items-center">
-      <span className="font-medium text-xs">
-        {date ? date : "Da programmare"}
-      </span>
-      {date ? (
-        <Calendar className="size-4" />
-      ) : (
-        <ClockFading className="size-4" />
-      )}
+    <div className="flex h-6 min-w-9 gap-1 px-1.5 w-max rounded-full ring-1 text-accent-foreground bg-accent ring-offset-2 ring-offset-muted ring-accent/20 justify-center items-center">
+      <ClockFading className="size-4" />
+      <span className="font-medium text-xs">Da programmare</span>
     </div>
   );
 };

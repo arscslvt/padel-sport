@@ -10,9 +10,9 @@ export default function LiveDot({
         className,
       )}
     >
-      <div className="relative z-10 inline-block bg-green-500 size-full rounded-full" />
-      <div className="absolute z-0 inline-block bg-green-300 size-full rounded-full animate-ping" />
-      <div className="absolute z-0 inline-block bg-green-300 blur-lg size-full scale-105 rounded-full" />
+      <div className="relative z-10 inline-block bg-red-500 size-full rounded-full" />
+      <div className="absolute z-0 inline-block bg-red-300 size-full rounded-full animate-ping" />
+      <div className="absolute z-0 inline-block bg-red-300 blur-lg size-full scale-105 rounded-full" />
     </div>
   );
 }
