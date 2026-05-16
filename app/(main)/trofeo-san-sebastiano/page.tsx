@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import TournamentFloatingCta from "./tournament-floating-cta";
+import LiveDot from "@/app/tournament/components/live-dot";
 
 export const metadata: Metadata = {
   title: "1° Torneo di Padel 'Trofeo San Sebastiano'",
@@ -120,7 +121,7 @@ export default function TrofeoSanSebastianoPage() {
     : "https://wa.me/";
 
   return (
-    <section className="px-6 lg:px-32 pb-14 text-white">
+    <section className="px-4 md:px-6 lg:px-32 pb-14 text-white">
       <div id="tournament-page-shell" className="mx-auto max-w-5xl space-y-6">
         <div>
           <header className="rounded-t-3xl border border-white/20 bg-white/10 p-6 lg:p-8 backdrop-blur-sm">
@@ -144,22 +145,14 @@ export default function TrofeoSanSebastianoPage() {
             id="tournament-cta-source"
             className="rounded-b-2xl border-x border-b border-white/20 bg-black/15 p-4"
           >
-            <p className="text-sm font-semibold uppercase tracking-wide text-white/75">
-              Come partecipare
-            </p>
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-              <Button asChild className="sm:flex-1">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button variant={"secondary"} asChild className="sm:flex-1">
                 <a
-                  href={whatsappHref}
+                  href={"/tournament/trofeo-san-sebastiano"}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <MessageCircle /> Scrivici su WhatsApp
-                </a>
-              </Button>
-              <Button asChild variant="secondary" className="sm:flex-1">
-                <a href={phoneHref}>
-                  <PhoneCall /> Chiamaci al cellulare
+                  <LiveDot /> Vedi risultati in diretta
                 </a>
               </Button>
             </div>

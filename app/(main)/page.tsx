@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import stickerLightning from "@/assets/stickers/lightning.png";
 import stickerPadelBall from "@/assets/stickers/padel-ball.png";
 
-import { PhoneCall } from "lucide-react";
+import { ArrowRight, PhoneCall } from "lucide-react";
 import { getInfo } from "@/lib/info";
 
 export default function Home() {

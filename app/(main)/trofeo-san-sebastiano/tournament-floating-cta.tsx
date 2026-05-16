@@ -4,6 +4,7 @@ import { MessageCircle, PhoneCall } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import LiveDot from "@/app/tournament/components/live-dot";
 
 type TournamentFloatingCtaProps = {
   whatsappHref: string;
@@ -72,17 +73,16 @@ export default function TournamentFloatingCta({
       >
         <div className="pointer-events-auto rounded-2xl border border-white/20 bg-background/95 p-4 shadow-xl">
           <p className="text-sm font-semibold uppercase tracking-wide text-white/75">
-            Come partecipare
+            Segui il torneo
           </p>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <Button asChild className="sm:flex-1">
-              <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
-                <MessageCircle /> Scrivici su WhatsApp
-              </a>
-            </Button>
-            <Button asChild variant="secondary" className="sm:flex-1">
-              <a href={phoneHref}>
-                <PhoneCall /> Chiamaci al cellulare
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <Button variant={"secondary"} asChild className="sm:flex-1">
+              <a
+                href={"/tournament/trofeo-san-sebastiano"}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <LiveDot /> Vedi risultati in diretta
               </a>
             </Button>
           </div>
