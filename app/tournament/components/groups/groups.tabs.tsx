@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, Delete, Search, X } from "lucide-react";
+import { Delete, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { create } from "zustand";
 import { DynamicIcon } from "lucide-react/dynamic";
@@ -105,7 +105,7 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
     );
   }
 
-  const now = new Date().getTime();
+  const now = Date.now();
   const threeDaysFromNow = now + 3 * 24 * 60 * 60 * 1000;
 
   const liveMatches =
@@ -118,7 +118,7 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
 
   let upcomingMatches = allScheduledMatchesWithDate.filter((match) => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-    const matchTime = new Date(match.scheduledAt!).getTime();
+    const matchTime = new Date(match.scheduledAt as string).getTime();
     return matchTime >= now && matchTime <= threeDaysFromNow;
   });
 

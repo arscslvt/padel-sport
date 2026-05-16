@@ -1,12 +1,10 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { columns, type Round } from "./columns";
+import { columns } from "./columns";
 import { DataTable } from "./data-table";
-import { Card, CardContent } from "@/components/ui/card";
 import { CalendarOff, ChevronRight } from "lucide-react";
-import { DynamicIcon, IconName } from "lucide-react/dynamic";
+import { DynamicIcon, type IconName } from "lucide-react/dynamic";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useParams } from "next/navigation";
@@ -22,17 +20,12 @@ import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import GroupTabs from "../components/groups/groups.tabs";
 import { useTournamentStore } from "../stores/tournament.store";
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
 import LiveDot from "../components/live-dot";
 import TeamsListDrawer from "../components/teams/teams-list.drawer";
-import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemHeader,
-  ItemTitle,
-} from "@/components/ui/item";
+import PlayerSearchDrawer from "../components/matches/player-search.drawer";
+import { Item, ItemContent, ItemHeader, ItemTitle } from "@/components/ui/item";
 
 const CATEGORY_STATUS_DISPLAY: {
   [key in Doc<"tournamentCategories">["currentStage"]]: string;
@@ -46,6 +39,13 @@ const CATEGORY_STATUS_DISPLAY: {
 
 export default function TournamentPage() {
   const { tournamentId } = useParams<{ tournamentId: string }>();
+  const [showScrollShadow, setShowScrollShadow] = useState(false);
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollLeft, scrollWidth, clientWidth } = e.currentTarget;
+    setShowScrollShadow(scrollLeft + clientWidth < scrollWidth - 2);
+  };
 
   const setTournamentId = useTournamentStore((state) => state.setTournamentId);
   const setSelectedCategoryId = useTournamentStore(
@@ -60,6 +60,8 @@ export default function TournamentPage() {
   );
 
   const teamsDrawerOpen = useTournamentStore((state) => state.teamsDrawerOpen);
+  const searchPlayer = useTournamentStore((state) => state.searchPlayer);
+  const setSearchPlayer = useTournamentStore((state) => state.setSearchPlayer);
 
   const tournament = useQuery(api.modules.tournaments.get.bySlug, {
     slug: tournamentId,
@@ -81,6 +83,16 @@ export default function TournamentPage() {
       setSelectedCategoryId(categories[0]._id);
     }
   }, [categories, setSelectedCategoryId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (categories && tabsScrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = tabsScrollRef.current;
+        setShowScrollShadow(scrollLeft + clientWidth < scrollWidth - 2);
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [categories]);
 
   if (tournament === undefined) {
     return (
@@ -133,8 +145,12 @@ export default function TournamentPage() {
 
       <div className="sticky top-20 md:top-22 z-30 border bg-background rounded-xl overflow-clip shadow-xl shadow-background divide-y">
         <Tabs defaultValue="intermedio" className="w-full">
-          <div className="bg-muted relative overflow-x-auto">
-            <TabsList className="bg-transparent w-max px-1 h-11 [&_data-[state=active]]:sticky [&_data-[state=active]]:left-0">
+          <div
+            className="bg-muted relative overflow-x-auto hide-scrollbar"
+            ref={tabsScrollRef}
+            onScroll={handleScroll}
+          >
+            <TabsList className="bg-transparent w-full justify-start px-1 h-11 [&_data-[state=active]]:sticky [&_data-[state=active]]:left-0">
               {categories?.map((category) => (
                 <TabsTrigger
                   key={category.slug}
@@ -148,6 +164,22 @@ export default function TournamentPage() {
                   {category.name}
                 </TabsTrigger>
               ))}
+              <div className="flex-1"></div>
+              <div className="sticky right-0 bg-muted z-10 flex items-center pr-1 pl-2">
+                <div
+                  className={`absolute left-0 top-0 bottom-0 w-8 -translate-x-full bg-linear-to-r from-transparent to-muted pointer-events-none transition-opacity duration-300 ${showScrollShadow ? "opacity-100" : "opacity-0"}`}
+                />
+                <Button
+                  size="icon"
+                  variant={"ghost"}
+                  className="rounded-lg"
+                  onClick={() =>
+                    setSearchPlayer(searchPlayer !== false ? false : "")
+                  }
+                >
+                  <DynamicIcon name="search" className="size-4" />
+                </Button>
+              </div>
             </TabsList>
           </div>
         </Tabs>
@@ -213,6 +245,8 @@ export default function TournamentPage() {
           </div>
         )}
       </div>
+
+      <PlayerSearchDrawer />
     </main>
   );
 }

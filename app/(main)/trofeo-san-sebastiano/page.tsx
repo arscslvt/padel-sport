@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { MessageCircle, PhoneCall } from "lucide-react";
 import { getInfo } from "@/lib/info";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

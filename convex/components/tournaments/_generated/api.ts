@@ -14,6 +14,7 @@ import type * as modules_groups_assign from "../modules/groups/assign.js";
 import type * as modules_groups_create from "../modules/groups/create.js";
 import type * as modules_groups_get from "../modules/groups/get.js";
 import type * as modules_matches_delete from "../modules/matches/delete.js";
+import type * as modules_matches_edit from "../modules/matches/edit.js";
 import type * as modules_matches_generate from "../modules/matches/generate.js";
 import type * as modules_matches_get from "../modules/matches/get.js";
 import type * as modules_players_add from "../modules/players/add.js";
@@ -48,6 +49,7 @@ const fullApi: ApiFromModules<{
   "modules/groups/create": typeof modules_groups_create;
   "modules/groups/get": typeof modules_groups_get;
   "modules/matches/delete": typeof modules_matches_delete;
+  "modules/matches/edit": typeof modules_matches_edit;
   "modules/matches/generate": typeof modules_matches_generate;
   "modules/matches/get": typeof modules_matches_get;
   "modules/players/add": typeof modules_players_add;

@@ -116,6 +116,20 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             Name
           >;
         };
+        edit: {
+          editByTeamIds: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              data: any;
+              team1Id: string;
+              team2Id: string;
+              tournamentId: string;
+            },
+            any,
+            Name
+          >;
+        };
         generate: {
           generateMatches: FunctionReference<
             "mutation",
@@ -126,6 +140,20 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           >;
         };
         get: {
+          getMatchByPlayerName: FunctionReference<
+            "query",
+            "internal",
+            { playerName: string },
+            Array<{
+              _id: string;
+              points: { teamA: number; teamB: number };
+              scheduledAt?: string;
+              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
+              status: "scheduled" | "in_progress" | "finished";
+              teams: Array<{ name: string; players: Array<{ name: string }> }>;
+            }>,
+            Name
+          >;
           getMatchesByGroupId: FunctionReference<
             "query",
             "internal",
@@ -189,21 +217,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             "query",
             "internal",
             { categoryId: string },
-            Array<{
-              _creationTime: number;
-              _id: string;
-              image?: string;
-              name?: string;
-              players: Array<{
-                _creationTime: number;
-                _id: string;
-                email?: string;
-                firstName?: string;
-                image?: string;
-                lastName: string;
-              }>;
-              playersIds: Array<string>;
-            }>,
+            any,
             Name
           >;
         };

@@ -1,9 +1,7 @@
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Calendar, ClockFading, Play, Trophy } from "lucide-react";
+import { ClockFading, Play, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import LiveDot from "../live-dot";
-import { Badge } from "@/components/ui/badge";
 
 interface MatchCardSet {
   teamAGames: number;
@@ -23,11 +21,6 @@ interface MatchCardProps extends React.HTMLAttributes<HTMLDivElement> {
   date?: string;
 }
 
-const STATUS_DISPLAY = {
-  scheduled: "Programmata",
-  in_progress: "LIVE",
-  finished: "Terminata",
-};
 
 export default function MatchCard({
   teams,

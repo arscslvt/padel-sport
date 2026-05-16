@@ -1,7 +1,9 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
+import type { QueryCtx } from "../../_generated/server";
+import type { Doc, Id } from "../../_generated/dataModel";
 
-const hydratedMatchValidator = v.object({
+export const hydratedMatchValidator = v.object({
   _id: v.id("matches"),
   status: v.union(
     v.literal("scheduled"),
@@ -31,7 +33,90 @@ const hydratedMatchValidator = v.object({
   ),
 });
 
-export const getMatchesByGroupId = query({
+const mapStatus = (
+  status: "scheduled" | "live" | "completed",
+): "scheduled" | "in_progress" | "finished" => {
+  if (status === "live") return "in_progress";
+  if (status === "completed") return "finished";
+  return "scheduled";
+};
+
+const getStatusPriority = (
+  status: "scheduled" | "in_progress" | "finished",
+) => {
+  if (status === "in_progress") return 0;
+  if (status === "finished") return 2;
+  return 1;
+};
+
+const getDateSortValue = (scheduledAt: string | undefined) =>
+  scheduledAt ? new Date(scheduledAt).getTime() : Number.POSITIVE_INFINITY;
+
+async function hydrateMatches(ctx: QueryCtx, matches: Doc<"matches">[]) {
+  const hydrateTeam = async (tournamentTeamId: Id<"tournamentTeams">) => {
+    const tournamentTeam = await ctx.db.get(tournamentTeamId);
+    if (!tournamentTeam) return { name: "Squadra sconosciuta", players: [] };
+
+    const team = await ctx.db.get(tournamentTeam.teamId);
+    if (!team) return { name: "Squadra sconosciuta", players: [] };
+
+    const players = (
+      await Promise.all(
+        team.playersIds.map((playerId: Id<"players">) => ctx.db.get(playerId)),
+      )
+    ).filter((player: Doc<"players"> | null) => player !== null);
+
+    return {
+      name: team.name ?? "Squadra senza nome",
+      players: players.map((player) => ({
+        name: [player?.firstName, player?.lastName].filter(Boolean).join(" "),
+      })),
+    };
+  };
+
+  const hydratedMatches = await Promise.all(
+    matches.map(async (match) => {
+      const [teamA, teamB] = await Promise.all([
+        hydrateTeam(match.tournamentTeamAId),
+        hydrateTeam(match.tournamentTeamBId),
+      ]);
+
+      const points = match.sets.reduce(
+        (
+          acc: { teamA: number; teamB: number },
+          set: { teamAPoints: number; teamBPoints: number },
+        ) => {
+          if (set.teamAPoints > set.teamBPoints) acc.teamA += 1;
+          else if (set.teamBPoints > set.teamAPoints) acc.teamB += 1;
+          return acc;
+        },
+        { teamA: 0, teamB: 0 },
+      );
+
+      return {
+        _id: match._id,
+        status: mapStatus(match.status),
+        scheduledAt: match.dateStart,
+        points,
+        sets: match.sets,
+        teams: [teamA, teamB],
+      };
+    }),
+  );
+
+  hydratedMatches.sort((left, right) => {
+    const statusDifference =
+      getStatusPriority(left.status) - getStatusPriority(right.status);
+    if (statusDifference !== 0) return statusDifference;
+    return (
+      getDateSortValue(left.scheduledAt) - getDateSortValue(right.scheduledAt)
+    );
+  });
+
+  return hydratedMatches;
+}
+
+const getMatchesByGroupId = query({
   args: {
     groupId: v.id("groups"),
     teamName: v.optional(v.string()),
@@ -40,117 +125,12 @@ export const getMatchesByGroupId = query({
   async handler(ctx, args) {
     const { groupId } = args;
 
-    const mapStatus = (
-      status: "scheduled" | "live" | "completed",
-    ): "scheduled" | "in_progress" | "finished" => {
-      if (status === "live") {
-        return "in_progress";
-      }
-
-      if (status === "completed") {
-        return "finished";
-      }
-
-      return "scheduled";
-    };
-
     const matches = await ctx.db
       .query("matches")
       .withIndex("by_group", (q) => q.eq("groupId", groupId))
       .collect();
 
-    const hydrateTeam = async (
-      tournamentTeamId: (typeof matches)[number]["tournamentTeamAId"],
-    ) => {
-      const tournamentTeam = await ctx.db.get(tournamentTeamId);
-      if (!tournamentTeam) {
-        return {
-          name: "Squadra sconosciuta",
-          players: [],
-        };
-      }
-
-      const team = await ctx.db.get(tournamentTeam.teamId);
-      if (!team) {
-        return {
-          name: "Squadra sconosciuta",
-          players: [],
-        };
-      }
-
-      const players = (
-        await Promise.all(
-          team.playersIds.map((playerId) => ctx.db.get(playerId)),
-        )
-      ).filter((player) => player !== null);
-
-      return {
-        name: team.name ?? "Squadra senza nome",
-        players: players.map((player) => ({
-          name: [player.firstName, player.lastName].filter(Boolean).join(" "),
-        })),
-      };
-    };
-
-    const hydratedMatches = await Promise.all(
-      matches.map(async (match) => {
-        const [teamA, teamB] = await Promise.all([
-          hydrateTeam(match.tournamentTeamAId),
-          hydrateTeam(match.tournamentTeamBId),
-        ]);
-
-        const points = match.sets.reduce(
-          (acc, set) => {
-            if (set.teamAPoints > set.teamBPoints) {
-              acc.teamA += 1;
-            } else if (set.teamBPoints > set.teamAPoints) {
-              acc.teamB += 1;
-            }
-            return acc;
-          },
-          { teamA: 0, teamB: 0 },
-        );
-
-        return {
-          _id: match._id,
-          status: mapStatus(match.status),
-          scheduledAt: match.dateStart,
-          points,
-          sets: match.sets,
-          teams: [teamA, teamB],
-        };
-      }),
-    );
-
-    const getStatusPriority = (
-      status: "scheduled" | "in_progress" | "finished",
-    ) => {
-      if (status === "in_progress") {
-        return 0;
-      }
-
-      if (status === "finished") {
-        return 2;
-      }
-
-      return 1;
-    };
-
-    const getDateSortValue = (scheduledAt: string | undefined) =>
-      scheduledAt ? new Date(scheduledAt).getTime() : Number.POSITIVE_INFINITY;
-
-    hydratedMatches.sort((left, right) => {
-      const statusDifference =
-        getStatusPriority(left.status) - getStatusPriority(right.status);
-
-      if (statusDifference !== 0) {
-        return statusDifference;
-      }
-
-      return (
-        getDateSortValue(left.scheduledAt) - getDateSortValue(right.scheduledAt)
-      );
-    });
+    const hydratedMatches = await hydrateMatches(ctx, matches);
 
     if (!args.teamName) {
       return hydratedMatches;
@@ -168,3 +148,60 @@ export const getMatchesByGroupId = query({
     );
   },
 });
+
+const getMatchByPlayerName = query({
+  args: {
+    playerName: v.string(),
+  },
+  returns: v.array(hydratedMatchValidator),
+  async handler(ctx, args) {
+    if (!args.playerName || args.playerName.trim() === "") {
+      return [];
+    }
+    const searchTerm = args.playerName.toLowerCase();
+
+    const matches = await ctx.db.query("matches").collect();
+
+    const filteredMatches = [];
+
+    for (const match of matches) {
+      const tournamentTeamA = await ctx.db.get(match.tournamentTeamAId);
+      const tournamentTeamB = await ctx.db.get(match.tournamentTeamBId);
+      if (!tournamentTeamA || !tournamentTeamB) {
+        continue;
+      }
+
+      const teamA = await ctx.db.get(tournamentTeamA.teamId);
+      const teamB = await ctx.db.get(tournamentTeamB.teamId);
+      if (!teamA || !teamB) {
+        continue;
+      }
+
+      const playersA = await Promise.all(
+        teamA.playersIds.map((playerId) => ctx.db.get(playerId)),
+      );
+      const playersB = await Promise.all(
+        teamB.playersIds.map((playerId) => ctx.db.get(playerId)),
+      );
+
+      const allPlayers = [...playersA, ...playersB].filter(
+        (player): player is NonNullable<typeof player> => player !== null,
+      );
+
+      if (
+        allPlayers.some((player) => {
+          const fullName = [player.firstName, player.lastName]
+            .filter(Boolean)
+            .join(" ");
+          return fullName.toLowerCase().includes(searchTerm);
+        })
+      ) {
+        filteredMatches.push(match);
+      }
+    }
+
+    return await hydrateMatches(ctx, filteredMatches);
+  },
+});
+
+export { getMatchesByGroupId, getMatchByPlayerName };

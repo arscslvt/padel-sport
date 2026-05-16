@@ -21,6 +21,7 @@ import type * as modules_notifications_confirmation from "../modules/notificatio
 import type * as modules_tournaments_categories_get from "../modules/tournaments/categories/get.js";
 import type * as modules_tournaments_get from "../modules/tournaments/get.js";
 import type * as modules_tournaments_groups_get from "../modules/tournaments/groups/get.js";
+import type * as modules_tournaments_matches_get from "../modules/tournaments/matches/get.js";
 import type * as modules_tournaments_players_add from "../modules/tournaments/players/add.js";
 import type * as modules_tournaments_teams_get from "../modules/tournaments/teams/get.js";
 import type * as slots_listActive from "../slots/listActive.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   "modules/tournaments/categories/get": typeof modules_tournaments_categories_get;
   "modules/tournaments/get": typeof modules_tournaments_get;
   "modules/tournaments/groups/get": typeof modules_tournaments_groups_get;
+  "modules/tournaments/matches/get": typeof modules_tournaments_matches_get;
   "modules/tournaments/players/add": typeof modules_tournaments_players_add;
   "modules/tournaments/teams/get": typeof modules_tournaments_teams_get;
   "slots/listActive": typeof slots_listActive;
@@ -175,6 +177,19 @@ export declare const components: {
             any
           >;
         };
+        edit: {
+          editByTeamIds: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              data: any;
+              team1Id: string;
+              team2Id: string;
+              tournamentId: string;
+            },
+            any
+          >;
+        };
         generate: {
           generateMatches: FunctionReference<
             "mutation",
@@ -184,6 +199,19 @@ export declare const components: {
           >;
         };
         get: {
+          getMatchByPlayerName: FunctionReference<
+            "query",
+            "internal",
+            { playerName: string },
+            Array<{
+              _id: string;
+              points: { teamA: number; teamB: number };
+              scheduledAt?: string;
+              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
+              status: "scheduled" | "in_progress" | "finished";
+              teams: Array<{ name: string; players: Array<{ name: string }> }>;
+            }>
+          >;
           getMatchesByGroupId: FunctionReference<
             "query",
             "internal",
@@ -242,21 +270,7 @@ export declare const components: {
             "query",
             "internal",
             { categoryId: string },
-            Array<{
-              _creationTime: number;
-              _id: string;
-              image?: string;
-              name?: string;
-              players: Array<{
-                _creationTime: number;
-                _id: string;
-                email?: string;
-                firstName?: string;
-                image?: string;
-                lastName: string;
-              }>;
-              playersIds: Array<string>;
-            }>
+            any
           >;
         };
       };

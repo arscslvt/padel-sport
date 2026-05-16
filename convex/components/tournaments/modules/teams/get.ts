@@ -1,18 +1,10 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
-import { doc } from "convex-helpers/validators";
-import schema from "../../schema";
-
-const teamsWithPlayersValidator = v.object({
-  ...doc(schema, "teams").fields,
-  players: v.array(doc(schema, "players")),
-});
 
 const getTeamsByCategoryId = query({
   args: {
     categoryId: v.id("tournamentCategories"),
   },
-  returns: v.array(teamsWithPlayersValidator),
   async handler(ctx, args_0) {
     const tournamentTeams = await ctx.db
       .query("tournamentTeams")
@@ -23,7 +15,7 @@ const getTeamsByCategoryId = query({
 
     const teams = await Promise.all(
       tournamentTeams.map((tournamentTeam) =>
-        ctx.db.get("teams", tournamentTeam.teamId),
+        ctx.db.get(tournamentTeam.teamId),
       ),
     );
 
@@ -32,7 +24,7 @@ const getTeamsByCategoryId = query({
         if (!team) return null;
 
         const players = await Promise.all(
-          team.playersIds.map((playerId) => ctx.db.get("players", playerId)),
+          team.playersIds.map((playerId) => ctx.db.get(playerId)),
         );
 
         return {
