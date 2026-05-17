@@ -217,7 +217,21 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             "query",
             "internal",
             { categoryId: string },
-            any,
+            Array<{
+              _creationTime: number;
+              _id: string;
+              image?: string;
+              name?: string;
+              players: Array<{
+                _creationTime: number;
+                _id: string;
+                email?: string;
+                firstName?: string;
+                image?: string;
+                lastName: string;
+              }>;
+              playersIds: Array<string>;
+            }>,
             Name
           >;
         };

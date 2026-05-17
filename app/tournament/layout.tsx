@@ -1,5 +1,6 @@
 import AnimatedBackground from "@/components/animated-background";
 import Header from "@/components/header";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata = {
   title: "Tornei",
@@ -27,6 +28,7 @@ export default function TournamentsLayout({
       <div className="fixed bottom-0 inset-x-0 bg-linear-to-t from-accent-foreground to-transparent h-2/3 w-dvw" />
       <Header hideNav hideBackground />
       <main className="relative z-10">{children}</main>
+      <Toaster />
     </>
   );
 }
