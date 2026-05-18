@@ -106,6 +106,11 @@ export default function TournamentPage() {
     tournament?._id ? { tournamentId: tournament._id } : "skip",
   );
 
+  const completedTodayMatchesData = useQuery(
+    api.modules.tournaments.matches.get.getTodayCompletedMatchesByTournamentId,
+    tournament?._id ? { tournamentId: tournament._id } : "skip",
+  );
+
   useEffect(() => {
     if (tournament?._id) {
       setTournamentId(tournament._id);
@@ -163,6 +168,15 @@ export default function TournamentPage() {
     );
   }
 
+  const currentLiveMatches =
+    (liveMatches as unknown as LiveMatch[])?.filter(
+      (m) => m.status === "in_progress",
+    ) || [];
+  const completedTodayMatches =
+    (completedTodayMatchesData as unknown as LiveMatch[])?.filter(
+      (m) => m.status === "finished",
+    ) || [];
+
   return (
     <main className="px-3 lg:px-32">
       <div className="flex flex-col mb-4">
@@ -179,6 +193,118 @@ export default function TournamentPage() {
               {tournament.comment.content}
             </ItemContent>
           </Item>
+        )}
+      </div>
+
+      <div className="mb-8 mt-6">
+        {currentLiveMatches.length > 0 && (
+          <div className="mb-8">
+            <div className="mb-4">
+              <h3 className="font-medium font-heading flex flex-row items-center gap-2 text-destructive">
+                <LiveDot />{" "}
+                <span className="uppercase font-bold tracking-wide">
+                  Partite in corso
+                </span>
+              </h3>
+              <p className="text-sm mt-1 text-muted-foreground">
+                Le sfide attualmente in fase di svolgimento in tutte le
+                categorie.
+              </p>
+            </div>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {currentLiveMatches.map((match) => (
+                <div key={match._id} className="flex flex-col gap-2">
+                  <div className="text-xs text-muted-foreground flex gap-1.5 items-center px-1">
+                    <span className="font-semibold text-foreground uppercase tracking-wider">
+                      {match.categoryName}
+                    </span>
+                    {match.groupName && (
+                      <>
+                        <span className="text-muted/50">•</span>
+                        <span className="font-medium text-muted-foreground">
+                          {match.groupName}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex flex-col rounded-lg border-2 border-destructive/70 shadow-sm shadow-destructive/10 overflow-clip">
+                    <MatchCard
+                      teams={match.teams.map((team) => ({
+                        name: team.name,
+                        players: team.players.map((player) =>
+                          formatPlayerName(player.firstName, player.lastName),
+                        ),
+                      }))}
+                      points={{
+                        teamAPoints: match.points.teamA,
+                        teamBPoints: match.points.teamB,
+                      }}
+                      sets={match.sets.map((set) => ({
+                        teamAGames: set.teamAPoints,
+                        teamBGames: set.teamBPoints,
+                      }))}
+                      status={match.status}
+                      date={match.scheduledAt ?? undefined}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {completedTodayMatches.length > 0 && (
+          <div className="mb-8">
+            <div className="mb-4">
+              <h3 className="font-medium font-heading flex flex-row items-center gap-2">
+                <span className="uppercase font-bold tracking-wide">
+                  Risultati di oggi
+                </span>
+              </h3>
+              <p className="text-sm mt-1 text-muted-foreground">
+                Le sfide terminate nella giornata odierna.
+              </p>
+            </div>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {completedTodayMatches.map((match) => (
+                <div key={match._id} className="flex flex-col gap-2">
+                  <div className="text-xs text-muted-foreground flex gap-1.5 items-center px-1">
+                    <span className="font-semibold text-foreground uppercase tracking-wider">
+                      {match.categoryName}
+                    </span>
+                    {match.groupName && (
+                      <>
+                        <span className="text-muted/50">•</span>
+                        <span className="font-medium text-muted-foreground">
+                          {match.groupName}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex flex-col rounded-lg border border-border shadow-sm overflow-clip">
+                    <MatchCard
+                      teams={match.teams.map((team) => ({
+                        name: team.name,
+                        players: team.players.map((player) =>
+                          formatPlayerName(player.firstName, player.lastName),
+                        ),
+                      }))}
+                      points={{
+                        teamAPoints: match.points.teamA,
+                        teamBPoints: match.points.teamB,
+                      }}
+                      sets={match.sets.map((set) => ({
+                        teamAGames: set.teamAPoints,
+                        teamBGames: set.teamBPoints,
+                      }))}
+                      status={match.status}
+                      date={match.scheduledAt ?? undefined}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
@@ -279,62 +405,6 @@ export default function TournamentPage() {
       </div>
 
       <div className="mt-8">
-        {liveMatches && liveMatches.length > 0 && (
-          <div className="mb-8">
-            <div className="mb-4">
-              <h3 className="font-medium font-heading flex flex-row items-center gap-2 text-destructive">
-                <LiveDot />{" "}
-                <span className="uppercase font-bold tracking-wide">
-                  Partite in corso
-                </span>
-              </h3>
-              <p className="text-sm mt-1 text-muted-foreground">
-                Le sfide attualmente in fase di svolgimento in tutte le
-                categorie.
-              </p>
-            </div>
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(liveMatches as unknown as LiveMatch[]).map((match) => (
-                <div key={match._id} className="flex flex-col gap-2">
-                  <div className="text-xs text-muted-foreground flex gap-1.5 items-center px-1">
-                    <span className="font-semibold text-foreground uppercase tracking-wider">
-                      {match.categoryName}
-                    </span>
-                    {match.groupName && (
-                      <>
-                        <span className="text-muted/50">•</span>
-                        <span className="font-medium text-muted-foreground">
-                          {match.groupName}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex flex-col rounded-lg border-2 border-destructive/70 shadow-sm shadow-destructive/10 overflow-clip">
-                    <MatchCard
-                      teams={match.teams.map((team) => ({
-                        name: team.name,
-                        players: team.players.map((player) =>
-                          formatPlayerName(player.firstName, player.lastName),
-                        ),
-                      }))}
-                      points={{
-                        teamAPoints: match.points.teamA,
-                        teamBPoints: match.points.teamB,
-                      }}
-                      sets={match.sets.map((set) => ({
-                        teamAGames: set.teamAPoints,
-                        teamBGames: set.teamBPoints,
-                      }))}
-                      status={match.status}
-                      date={match.scheduledAt ?? undefined}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="mb-4">
           <h3 className="font-medium font-heading">Match della categoria</h3>
           <p className="text-sm mt-1 text-muted-foreground">

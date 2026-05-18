@@ -238,9 +238,6 @@ export const getLiveMatchesByTournamentId = query({
     let liveMatches: Doc<"matches">[] = [];
 
     for (const categoryId of categoryIds) {
-      // Fetch live matches for each category
-      // matches table doesn't have an index by category + status, so we query by category and filter in JS,
-      // or we can use the "by_tournamentCategory_and_stage" index
       const matches = await ctx.db
         .query("matches")
         .withIndex("by_tournamentCategory_and_stage", (q) =>
@@ -253,6 +250,54 @@ export const getLiveMatchesByTournamentId = query({
     }
 
     return await hydrateMatches(ctx, liveMatches);
+  },
+});
+
+export const getTodayCompletedMatchesByTournamentId = query({
+  args: {
+    tournamentId: v.id("tournaments"),
+  },
+  returns: v.array(hydratedMatchValidator),
+  async handler(ctx, args) {
+    const categories = await ctx.db
+      .query("tournamentCategories")
+      .withIndex("by_tournament", (q) =>
+        q.eq("tournamentId", args.tournamentId),
+      )
+      .collect();
+
+    const categoryIds = categories.map((c) => c._id);
+    let completedMatches: Doc<"matches">[] = [];
+
+    for (const categoryId of categoryIds) {
+      const matches = await ctx.db
+        .query("matches")
+        .withIndex("by_tournamentCategory_and_stage", (q) =>
+          q.eq("tournamentCategoryId", categoryId),
+        )
+        .filter((q) => q.eq(q.field("status"), "completed"))
+        .collect();
+
+      const now = new Date();
+      const matchesToKeep = matches.filter((match) => {
+        try {
+          const matchDate = match.dateStart
+            ? new Date(match.dateStart)
+            : new Date(match._creationTime);
+          return (
+            matchDate.getDate() === now.getDate() &&
+            matchDate.getMonth() === now.getMonth() &&
+            matchDate.getFullYear() === now.getFullYear()
+          );
+        } catch (e) {
+          return false;
+        }
+      });
+
+      completedMatches = completedMatches.concat(matchesToKeep);
+    }
+
+    return await hydrateMatches(ctx, completedMatches);
   },
 });
 

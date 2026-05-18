@@ -29,3 +29,18 @@ export const getLiveMatchesByTournamentId = query({
     );
   },
 });
+
+export const getTodayCompletedMatchesByTournamentId = query({
+  args: {
+    tournamentId: v.string(),
+  },
+  async handler(ctx, args) {
+    return await ctx.runQuery(
+      components.tournaments.modules.matches.get
+        .getTodayCompletedMatchesByTournamentId,
+      {
+        tournamentId: args.tournamentId as any,
+      },
+    );
+  },
+});

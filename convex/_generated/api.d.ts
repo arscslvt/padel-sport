@@ -274,6 +274,31 @@ export declare const components: {
               }>;
             }>
           >;
+          getTodayCompletedMatchesByTournamentId: FunctionReference<
+            "query",
+            "internal",
+            { tournamentId: string },
+            Array<{
+              _id: string;
+              categoryId?: string;
+              categoryName?: string;
+              groupId?: string;
+              groupName?: string;
+              points: { teamA: number; teamB: number };
+              scheduledAt?: string;
+              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
+              stage?: string;
+              status: "scheduled" | "in_progress" | "finished";
+              teams: Array<{
+                name: string;
+                players: Array<{
+                  firstName?: string;
+                  lastName: string;
+                  name: string;
+                }>;
+              }>;
+            }>
+          >;
         };
       };
       players: {
