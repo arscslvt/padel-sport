@@ -80,9 +80,14 @@ export default function TournamentPage() {
 
   useEffect(() => {
     if (categories && categories.length > 0) {
-      setSelectedCategoryId(categories[0]._id);
+      if (
+        !selectedCategoryId ||
+        !categories.find((c) => c._id === selectedCategoryId)
+      ) {
+        setSelectedCategoryId(categories[0]._id);
+      }
     }
-  }, [categories, setSelectedCategoryId]);
+  }, [categories, selectedCategoryId, setSelectedCategoryId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -144,7 +149,17 @@ export default function TournamentPage() {
       </div>
 
       <div className="sticky top-20 md:top-22 z-30 border bg-background rounded-xl overflow-clip shadow-xl shadow-background divide-y">
-        <Tabs defaultValue="intermedio" className="w-full">
+        <Tabs
+          value={
+            categories?.find((c) => c._id === selectedCategoryId)?.slug ||
+            "intermedio"
+          }
+          onValueChange={(val) => {
+            const cat = categories?.find((c) => c.slug === val);
+            if (cat) setSelectedCategoryId(cat._id);
+          }}
+          className="w-full"
+        >
           <div
             className="bg-muted relative overflow-x-auto hide-scrollbar"
             ref={tabsScrollRef}
@@ -156,7 +171,6 @@ export default function TournamentPage() {
                   key={category.slug}
                   value={category.slug}
                   className="rounded-t-lg first:rounded-bl-sm last:rounded-br-sm"
-                  onClick={() => setSelectedCategoryId(category._id)}
                 >
                   {category?.icon && (
                     <DynamicIcon name={category.icon as IconName} />
