@@ -338,8 +338,8 @@ export default function TournamentPage() {
         <div className="mb-4">
           <h3 className="font-medium font-heading">Match della categoria</h3>
           <p className="text-sm mt-1 text-muted-foreground">
-            Qui puoi vedere i match della categoria selezionata. Clicca su una
-            partita per vedere i dettagli e inserire i risultati.
+            Qui puoi vedere i match della categoria selezionata, con i risultati
+            aggiornati in tempo reale.
           </p>
         </div>
 
