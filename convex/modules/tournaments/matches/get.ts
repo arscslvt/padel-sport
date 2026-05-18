@@ -15,3 +15,17 @@ export const getMatchByPlayerName = query({
     );
   },
 });
+
+export const getLiveMatchesByTournamentId = query({
+  args: {
+    tournamentId: v.string(),
+  },
+  async handler(ctx, args) {
+    return await ctx.runQuery(
+      components.tournaments.modules.matches.get.getLiveMatchesByTournamentId,
+      {
+        tournamentId: args.tournamentId as any,
+      },
+    );
+  },
+});

@@ -27,6 +27,14 @@ import TeamsListDrawer from "../components/teams/teams-list.drawer";
 import PlayerSearchDrawer from "../components/matches/player-search.drawer";
 import { Item, ItemContent, ItemHeader, ItemTitle } from "@/components/ui/item";
 
+import MatchCard from "../components/groups/match.card";
+
+function formatPlayerName(firstName: string | undefined, lastName: string) {
+  if (!firstName) return lastName;
+  const initial = firstName.charAt(0).toUpperCase();
+  return `${lastName} ${initial}.`;
+}
+
 const CATEGORY_STATUS_DISPLAY: {
   [key in Doc<"tournamentCategories">["currentStage"]]: string;
 } = {
@@ -36,6 +44,27 @@ const CATEGORY_STATUS_DISPLAY: {
   final: "Finale",
   completed: "Completata",
 };
+
+interface LiveMatchTeam {
+  name: string;
+  players: { firstName?: string; lastName: string }[];
+}
+
+interface LiveMatchSet {
+  teamAPoints: number;
+  teamBPoints: number;
+}
+
+interface LiveMatch {
+  _id: string;
+  status: "scheduled" | "in_progress" | "finished";
+  categoryName?: string;
+  groupName?: string;
+  teams: LiveMatchTeam[];
+  points: { teamA: number; teamB: number };
+  sets: LiveMatchSet[];
+  scheduledAt?: string | null;
+}
 
 export default function TournamentPage() {
   const { tournamentId } = useParams<{ tournamentId: string }>();
@@ -69,6 +98,11 @@ export default function TournamentPage() {
 
   const categories = useQuery(
     api.modules.tournaments.categories.get.byTournamentId,
+    tournament?._id ? { tournamentId: tournament._id } : "skip",
+  );
+
+  const liveMatches = useQuery(
+    api.modules.tournaments.matches.get.getLiveMatchesByTournamentId,
     tournament?._id ? { tournamentId: tournament._id } : "skip",
   );
 
@@ -245,6 +279,62 @@ export default function TournamentPage() {
       </div>
 
       <div className="mt-8">
+        {liveMatches && liveMatches.length > 0 && (
+          <div className="mb-8">
+            <div className="mb-4">
+              <h3 className="font-medium font-heading flex flex-row items-center gap-2 text-destructive">
+                <LiveDot />{" "}
+                <span className="uppercase font-bold tracking-wide">
+                  Partite in corso
+                </span>
+              </h3>
+              <p className="text-sm mt-1 text-muted-foreground">
+                Le sfide attualmente in fase di svolgimento in tutte le
+                categorie.
+              </p>
+            </div>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(liveMatches as unknown as LiveMatch[]).map((match) => (
+                <div key={match._id} className="flex flex-col gap-2">
+                  <div className="text-xs text-muted-foreground flex gap-1.5 items-center px-1">
+                    <span className="font-semibold text-foreground uppercase tracking-wider">
+                      {match.categoryName}
+                    </span>
+                    {match.groupName && (
+                      <>
+                        <span className="text-muted/50">•</span>
+                        <span className="font-medium text-muted-foreground">
+                          {match.groupName}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex flex-col rounded-lg border-2 border-destructive/70 shadow-sm shadow-destructive/10 overflow-clip">
+                    <MatchCard
+                      teams={match.teams.map((team) => ({
+                        name: team.name,
+                        players: team.players.map((player) =>
+                          formatPlayerName(player.firstName, player.lastName),
+                        ),
+                      }))}
+                      points={{
+                        teamAPoints: match.points.teamA,
+                        teamBPoints: match.points.teamB,
+                      }}
+                      sets={match.sets.map((set) => ({
+                        teamAGames: set.teamAPoints,
+                        teamBGames: set.teamBPoints,
+                      }))}
+                      status={match.status}
+                      date={match.scheduledAt ?? undefined}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mb-4">
           <h3 className="font-medium font-heading">Match della categoria</h3>
           <p className="text-sm mt-1 text-muted-foreground">

@@ -10,6 +10,11 @@ export const hydratedMatchValidator = v.object({
     v.literal("in_progress"),
     v.literal("finished"),
   ),
+  categoryId: v.optional(v.id("tournamentCategories")),
+  categoryName: v.optional(v.string()),
+  groupId: v.optional(v.id("groups")),
+  groupName: v.optional(v.string()),
+  stage: v.optional(v.string()),
   scheduledAt: v.optional(v.string()),
   points: v.object({
     teamA: v.number(),
@@ -97,9 +102,17 @@ async function hydrateMatches(ctx: QueryCtx, matches: Doc<"matches">[]) {
         { teamA: 0, teamB: 0 },
       );
 
+      const category = await ctx.db.get(match.tournamentCategoryId);
+      const group = match.groupId ? await ctx.db.get(match.groupId) : null;
+
       return {
         _id: match._id,
         status: mapStatus(match.status),
+        categoryId: match.tournamentCategoryId,
+        categoryName: category?.name,
+        groupId: match.groupId,
+        groupName: group?.name,
+        stage: match.stage,
         scheduledAt: match.dateStart,
         points,
         sets: match.sets,
@@ -205,6 +218,41 @@ const getMatchByPlayerName = query({
     }
 
     return await hydrateMatches(ctx, filteredMatches);
+  },
+});
+
+export const getLiveMatchesByTournamentId = query({
+  args: {
+    tournamentId: v.id("tournaments"),
+  },
+  returns: v.array(hydratedMatchValidator),
+  async handler(ctx, args) {
+    const categories = await ctx.db
+      .query("tournamentCategories")
+      .withIndex("by_tournament", (q) =>
+        q.eq("tournamentId", args.tournamentId),
+      )
+      .collect();
+
+    const categoryIds = categories.map((c) => c._id);
+    let liveMatches: Doc<"matches">[] = [];
+
+    for (const categoryId of categoryIds) {
+      // Fetch live matches for each category
+      // matches table doesn't have an index by category + status, so we query by category and filter in JS,
+      // or we can use the "by_tournamentCategory_and_stage" index
+      const matches = await ctx.db
+        .query("matches")
+        .withIndex("by_tournamentCategory_and_stage", (q) =>
+          q.eq("tournamentCategoryId", categoryId),
+        )
+        .filter((q) => q.eq(q.field("status"), "live"))
+        .collect();
+
+      liveMatches = liveMatches.concat(matches);
+    }
+
+    return await hydrateMatches(ctx, liveMatches);
   },
 });
 
