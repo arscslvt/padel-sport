@@ -18,13 +18,10 @@ import { differenceInDays, format, formatDistanceToNow } from "date-fns";
 import { it } from "date-fns/locale";
 import { toast } from "sonner";
 
-function toSurnameInitial(fullName: string) {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "";
-  if (parts.length === 1) return parts[0];
-  const surname = parts[parts.length - 1];
-  const initial = parts[0]?.charAt(0).toUpperCase();
-  return initial ? `${surname} ${initial}.` : surname;
+function formatPlayerName(firstName: string | undefined, lastName: string) {
+  if (!firstName) return lastName;
+  const initial = firstName.charAt(0).toUpperCase();
+  return `${lastName} ${initial}.`;
 }
 
 export default function PlayerSearchDrawer() {
@@ -116,7 +113,7 @@ export default function PlayerSearchDrawer() {
                 {matches.map((match) => (
                   <MatchCard
                     key={match._id}
-                    teamName={`${toSurnameInitial(match.teams[0].players[0].name)} / ${toSurnameInitial(match.teams[0].players[1].name)}`}
+                    teamName={`${formatPlayerName(match.teams[0].players[0].firstName, match.teams[0].players[0].lastName)} / ${formatPlayerName(match.teams[0].players[1].firstName, match.teams[0].players[1].lastName)}`}
                     teamId={match._id}
                     startAt={match.scheduledAt}
                   />

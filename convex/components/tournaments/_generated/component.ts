@@ -150,7 +150,14 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               scheduledAt?: string;
               sets: Array<{ teamAPoints: number; teamBPoints: number }>;
               status: "scheduled" | "in_progress" | "finished";
-              teams: Array<{ name: string; players: Array<{ name: string }> }>;
+              teams: Array<{
+                name: string;
+                players: Array<{
+                  firstName?: string;
+                  lastName: string;
+                  name: string;
+                }>;
+              }>;
             }>,
             Name
           >;
@@ -164,7 +171,14 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               scheduledAt?: string;
               sets: Array<{ teamAPoints: number; teamBPoints: number }>;
               status: "scheduled" | "in_progress" | "finished";
-              teams: Array<{ name: string; players: Array<{ name: string }> }>;
+              teams: Array<{
+                name: string;
+                players: Array<{
+                  firstName?: string;
+                  lastName: string;
+                  name: string;
+                }>;
+              }>;
             }>,
             Name
           >;

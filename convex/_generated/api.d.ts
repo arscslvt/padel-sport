@@ -209,7 +209,14 @@ export declare const components: {
               scheduledAt?: string;
               sets: Array<{ teamAPoints: number; teamBPoints: number }>;
               status: "scheduled" | "in_progress" | "finished";
-              teams: Array<{ name: string; players: Array<{ name: string }> }>;
+              teams: Array<{
+                name: string;
+                players: Array<{
+                  firstName?: string;
+                  lastName: string;
+                  name: string;
+                }>;
+              }>;
             }>
           >;
           getMatchesByGroupId: FunctionReference<
@@ -222,7 +229,14 @@ export declare const components: {
               scheduledAt?: string;
               sets: Array<{ teamAPoints: number; teamBPoints: number }>;
               status: "scheduled" | "in_progress" | "finished";
-              teams: Array<{ name: string; players: Array<{ name: string }> }>;
+              teams: Array<{
+                name: string;
+                players: Array<{
+                  firstName?: string;
+                  lastName: string;
+                  name: string;
+                }>;
+              }>;
             }>
           >;
         };

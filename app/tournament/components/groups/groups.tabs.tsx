@@ -15,21 +15,10 @@ interface GroupTabsProps {
   tournamentCategoryId: string;
 }
 
-function toSurnameInitial(fullName: string) {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-
-  if (parts.length === 0) {
-    return "";
-  }
-
-  if (parts.length === 1) {
-    return parts[0];
-  }
-
-  const surname = parts[parts.length - 1];
-  const initial = parts[0]?.charAt(0).toUpperCase();
-
-  return initial ? `${surname} ${initial}.` : surname;
+function formatPlayerName(firstName: string | undefined, lastName: string) {
+  if (!firstName) return lastName;
+  const initial = firstName.charAt(0).toUpperCase();
+  return `${lastName} ${initial}.`;
 }
 
 interface GroupTabsState {
@@ -215,7 +204,7 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
                     teams={match.teams.map((team) => ({
                       name: team.name,
                       players: team.players.map((player) =>
-                        toSurnameInitial(player.name),
+                        formatPlayerName(player.firstName, player.lastName),
                       ),
                     }))}
                     points={{
@@ -246,7 +235,7 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
                     teams={match.teams.map((team) => ({
                       name: team.name,
                       players: team.players.map((player) =>
-                        toSurnameInitial(player.name),
+                        formatPlayerName(player.firstName, player.lastName),
                       ),
                     }))}
                     points={{
@@ -283,7 +272,7 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
                     teams={match.teams.map((team) => ({
                       name: team.name,
                       players: team.players.map((player) =>
-                        toSurnameInitial(player.name),
+                        formatPlayerName(player.firstName, player.lastName),
                       ),
                     }))}
                     points={{

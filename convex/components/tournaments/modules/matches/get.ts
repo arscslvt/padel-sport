@@ -27,6 +27,8 @@ export const hydratedMatchValidator = v.object({
       players: v.array(
         v.object({
           name: v.string(),
+          firstName: v.optional(v.string()),
+          lastName: v.string(),
         }),
       ),
     }),
@@ -70,6 +72,8 @@ async function hydrateMatches(ctx: QueryCtx, matches: Doc<"matches">[]) {
       name: team.name ?? "Squadra senza nome",
       players: players.map((player) => ({
         name: [player?.firstName, player?.lastName].filter(Boolean).join(" "),
+        firstName: player?.firstName,
+        lastName: player?.lastName ?? "",
       })),
     };
   };
