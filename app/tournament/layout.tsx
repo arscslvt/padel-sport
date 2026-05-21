@@ -1,6 +1,11 @@
 import AnimatedBackground from "@/components/animated-background";
 import Header from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
+import Image from "next/image";
+
+import logo from "@/assets/branding/logo.svg";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export const metadata = {
   title: "Tornei",
@@ -26,8 +31,25 @@ export default function TournamentsLayout({
         />
       </div>
       <div className="fixed bottom-0 inset-x-0 bg-linear-to-t from-accent-foreground to-transparent h-2/3 w-dvw" />
-      <Header hideNav hideBackground />
-      <main className="relative z-10">{children}</main>
+      <main className="relative z-10">
+        <div className="sticky z-40 top-0 flex justify-center pt-4 pb-6">
+          <header className="flex flex-1 items-center gap-4 w-full px-3 md:px-0 md:max-w-5xl">
+            <div className="flex-1 flex items-center">
+              <Image
+                src={logo}
+                alt="ASD Padel Sport Logo"
+                className="h-10 md:h-12 w-auto"
+              />
+            </div>
+            <div>
+              <Link href={"/"}>
+                <Button size={"sm"}>Torna alla home</Button>
+              </Link>
+            </div>
+          </header>
+        </div>
+        {children}
+      </main>
       <Toaster />
     </>
   );

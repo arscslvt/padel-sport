@@ -178,7 +178,7 @@ export default function TournamentPage() {
     ) || [];
 
   return (
-    <main className="px-3 lg:px-32">
+    <main className="w-full px-3 md:px-0">
       <div className="flex flex-col mb-4">
         <h1 className="font-heading text-white text-xl font-bold">
           {tournament.name}
@@ -308,7 +308,7 @@ export default function TournamentPage() {
         )}
       </div>
 
-      <div className="sticky top-20 md:top-22 z-30 border bg-background rounded-xl overflow-clip shadow-xl shadow-background divide-y">
+      <div className="sticky top-16 md:top-22 z-30 border bg-background rounded-xl overflow-clip shadow-xl shadow-background divide-y">
         <Tabs
           value={
             categories?.find((c) => c._id === selectedCategoryId)?.slug ||
