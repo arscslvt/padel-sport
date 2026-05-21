@@ -25,6 +25,7 @@ import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
 import LiveDot from "../components/live-dot";
 import TeamsListDrawer from "../components/teams/teams-list.drawer";
 import PlayerSearchDrawer from "../components/matches/player-search.drawer";
+import MatchDetailsDrawer from "../components/matches/match-details.drawer";
 import { Item, ItemContent, ItemHeader, ItemTitle } from "@/components/ui/item";
 
 import MatchCard from "../components/groups/match.card";
@@ -82,6 +83,12 @@ export default function TournamentPage() {
   );
   const setTeamsDrawerOpen = useTournamentStore(
     (state) => state.setTeamsDrawerOpen,
+  );
+  const setSelectedMatchDetails = useTournamentStore(
+    (state) => state.setSelectedMatchDetails,
+  );
+  const setMatchDetailsDrawerOpen = useTournamentStore(
+    (state) => state.setMatchDetailsDrawerOpen,
   );
 
   const selectedCategoryId = useTournamentStore(
@@ -229,6 +236,10 @@ export default function TournamentPage() {
                   </div>
                   <div className="flex flex-col rounded-lg border-2 border-destructive/70 shadow-sm shadow-destructive/10 overflow-clip">
                     <MatchCard
+                      onClick={() => {
+                        setSelectedMatchDetails(match);
+                        setMatchDetailsDrawerOpen(true);
+                      }}
                       teams={match.teams.map((team) => ({
                         name: team.name,
                         players: team.players.map((player) =>
@@ -283,6 +294,10 @@ export default function TournamentPage() {
                   </div>
                   <div className="flex flex-col rounded-lg border border-border shadow-sm overflow-clip">
                     <MatchCard
+                      onClick={() => {
+                        setSelectedMatchDetails(match);
+                        setMatchDetailsDrawerOpen(true);
+                      }}
                       teams={match.teams.map((team) => ({
                         name: team.name,
                         players: team.players.map((player) =>
@@ -421,6 +436,7 @@ export default function TournamentPage() {
       </div>
 
       <PlayerSearchDrawer />
+      <MatchDetailsDrawer />
     </main>
   );
 }

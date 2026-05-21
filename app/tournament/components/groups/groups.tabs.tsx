@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { create } from "zustand";
 import { DynamicIcon } from "lucide-react/dynamic";
 import LiveDot from "../live-dot";
+import { useTournamentStore } from "../../stores/tournament.store";
 
 interface GroupTabsProps {
   tournamentCategoryId: string;
@@ -44,6 +45,13 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
 
   const setSelectedGroupId = useGroupTabs((state) => state.setSelectedGroupId);
   const setSearchTeam = useGroupTabs((state) => state.setSearchTeam);
+
+  const setSelectedMatchDetails = useTournamentStore(
+    (state) => state.setSelectedMatchDetails,
+  );
+  const setMatchDetailsDrawerOpen = useTournamentStore(
+    (state) => state.setMatchDetailsDrawerOpen,
+  );
 
   const [inputValue, setInputValue] = useState<string>(
     searchTeam !== false ? searchTeam : "",
@@ -200,6 +208,10 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
               <div className="flex flex-col rounded-lg border-2 border-destructive/70 shadow-sm shadow-destructive/10 divide-y overflow-clip">
                 {liveMatches.map((match) => (
                   <MatchCard
+                    onClick={() => {
+                      setSelectedMatchDetails(match);
+                      setMatchDetailsDrawerOpen(true);
+                    }}
                     key={match._id}
                     teams={match.teams.map((team) => ({
                       name: team.name,
@@ -231,6 +243,10 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
               <div className="flex flex-col rounded-lg border border-border divide-y overflow-clip">
                 {upcomingMatches.map((match) => (
                   <MatchCard
+                    onClick={() => {
+                      setSelectedMatchDetails(match);
+                      setMatchDetailsDrawerOpen(true);
+                    }}
                     key={match._id}
                     teams={match.teams.map((team) => ({
                       name: team.name,
@@ -268,6 +284,10 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
               <div className="flex flex-col rounded-lg border border-border divide-y overflow-clip">
                 {otherMatches.map((match) => (
                   <MatchCard
+                    onClick={() => {
+                      setSelectedMatchDetails(match);
+                      setMatchDetailsDrawerOpen(true);
+                    }}
                     key={match._id}
                     teams={match.teams.map((team) => ({
                       name: team.name,

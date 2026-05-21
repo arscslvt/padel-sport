@@ -1,22 +1,31 @@
+import { useQuery } from "convex/react";
+import { differenceInDays, format, formatDistanceToNow } from "date-fns";
+import { it } from "date-fns/locale";
+import {
+  ChevronRight,
+  ClockFading,
+  Delete,
+  Play,
+  Search,
+  Trophy,
+} from "lucide-react";
+import { DynamicIcon } from "lucide-react/dynamic";
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   ResponsiveDrawer,
   ResponsiveDrawerContent,
   ResponsiveDrawerHeader,
 } from "@/components/ui/responsive-drawer";
-import { useTournamentStore } from "../../stores/tournament.store";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Spinner } from "@/components/ui/spinner";
-import { DynamicIcon } from "lucide-react/dynamic";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ChevronRight, Delete, Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { differenceInDays, format, formatDistanceToNow } from "date-fns";
-import { it } from "date-fns/locale";
-import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
+import { api } from "@/convex/_generated/api";
+import {
+  type SelectedMatchDetails,
+  useTournamentStore,
+} from "../../stores/tournament.store";
 
 function formatPlayerName(firstName: string | undefined, lastName: string) {
   if (!firstName) return lastName;
@@ -27,6 +36,12 @@ function formatPlayerName(firstName: string | undefined, lastName: string) {
 export default function PlayerSearchDrawer() {
   const searchPlayer = useTournamentStore((state) => state.searchPlayer);
   const setSearchPlayer = useTournamentStore((state) => state.setSearchPlayer);
+  const setSelectedMatchDetails = useTournamentStore(
+    (state) => state.setSelectedMatchDetails,
+  );
+  const setMatchDetailsDrawerOpen = useTournamentStore(
+    (state) => state.setMatchDetailsDrawerOpen,
+  );
 
   const [inputValue, setInputValue] = useState<string>("");
 
@@ -113,9 +128,12 @@ export default function PlayerSearchDrawer() {
                 {matches.map((match) => (
                   <MatchCard
                     key={match._id}
-                    teamName={`${formatPlayerName(match.teams[0].players[0].firstName, match.teams[0].players[0].lastName)} / ${formatPlayerName(match.teams[0].players[1].firstName, match.teams[0].players[1].lastName)}`}
-                    teamId={match._id}
-                    startAt={match.scheduledAt}
+                    match={match as SelectedMatchDetails}
+                    onClick={() => {
+                      setSelectedMatchDetails(match as SelectedMatchDetails);
+                      setMatchDetailsDrawerOpen(true);
+                      // opzionale: setSearchPlayer(false);
+                    }}
                   />
                 ))}
               </div>
@@ -128,48 +146,118 @@ export default function PlayerSearchDrawer() {
 }
 
 interface MatchCardProps {
-  teamId: string;
-  teamName: string;
-  startAt?: string;
+  match: SelectedMatchDetails;
+  onClick: () => void;
 }
 
-const MatchCard = ({ teamId, teamName, startAt }: MatchCardProps) => {
-  const _date = startAt
-    ? differenceInDays(new Date(startAt), new Date()) === 0
-      ? formatDistanceToNow(new Date(startAt), { addSuffix: true, locale: it })
-      : format(new Date(startAt), "d MMMM, HH:mm", { locale: it })
+const MatchCard = ({ match, onClick }: MatchCardProps) => {
+  const _date = match.scheduledAt
+    ? differenceInDays(new Date(match.scheduledAt), new Date()) === 0
+      ? formatDistanceToNow(new Date(match.scheduledAt), {
+          addSuffix: true,
+          locale: it,
+        })
+      : format(new Date(match.scheduledAt), "d MMMM, HH:mm", { locale: it })
     : null;
 
-  const handleClick = () => {
-    toast.info(
-      "Questa feature non è stata inserita in questa preview. Dal 18 maggio l'app sarà completamente attiva.",
-    );
-  };
+  const teamA = match.teams[0];
+  const teamB = match.teams[1];
+
+  const teamAName = `${formatPlayerName(teamA.players[0]?.firstName, teamA.players[0]?.lastName)} / ${formatPlayerName(teamA.players[1]?.firstName, teamA.players[1]?.lastName)}`;
+  const teamBName = `${formatPlayerName(teamB.players[0]?.firstName, teamB.players[0]?.lastName)} / ${formatPlayerName(teamB.players[1]?.firstName, teamB.players[1]?.lastName)}`;
+
+  const isLive = match.status === "in_progress";
+  const isFinished = match.status === "finished";
 
   return (
     <button
-      className="flex gap-4 px-4 py-3 items-center text-left"
+      className="flex gap-4 px-4 py-4 items-center text-left hover:bg-muted/50 transition-colors"
       type="button"
-      onClick={handleClick}
+      onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
-          handleClick();
+          e.preventDefault();
+          onClick();
         }
       }}
     >
-      <div className="flex-1 flex flex-col gap-1">
-        <p className="font-medium">{teamName}</p>
+      <div className="flex-1 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            {match.categoryName && <span>{match.categoryName}</span>}
+            {match.categoryName && match.groupName && <span>•</span>}
+            {match.groupName && <span>{match.groupName}</span>}
+          </div>
+
+          <div className="shrink-0 ml-2">
+            {isLive && (
+              <Badge
+                variant="destructive"
+                className="py-0 px-1.5 min-h-5 text-[10px] animate-pulse shadow-sm shadow-destructive/20 gap-1"
+              >
+                <Play className="size-2.5 fill-current" /> Live
+              </Badge>
+            )}
+            {isFinished && (
+              <Badge
+                variant="outline"
+                className="py-0 px-1.5 min-h-5 text-[10px] bg-accent/10 border-accent text-accent font-semibold"
+              >
+                Terminata
+              </Badge>
+            )}
+            {match.status === "scheduled" && (
+              <Badge
+                variant="secondary"
+                className="py-0 px-1.5 min-h-5 text-[10px]"
+              >
+                In programma
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5 px-0.5">
+          <div className="flex justify-between items-center gap-2">
+            <span
+              className={`text-sm font-medium line-clamp-1 ${
+                isFinished && match.points?.teamB > match.points?.teamA
+                  ? "text-muted-foreground"
+                  : ""
+              }`}
+            >
+              {teamAName}
+            </span>
+            {isFinished && match.points?.teamA > match.points?.teamB && (
+              <Trophy className="size-3.5 text-amber-400 shrink-0" />
+            )}
+          </div>
+          <div className="flex justify-between items-center gap-2">
+            <span
+              className={`text-sm font-medium line-clamp-1 ${
+                isFinished && match.points?.teamA > match.points?.teamB
+                  ? "text-muted-foreground"
+                  : ""
+              }`}
+            >
+              {teamBName}
+            </span>
+            {isFinished && match.points?.teamB > match.points?.teamA && (
+              <Trophy className="size-3.5 text-amber-400 shrink-0" />
+            )}
+          </div>
+        </div>
+
         {_date && (
-          <div>
-            <Badge variant={"outline"}>{_date}</Badge>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <ClockFading className="size-3.5" /> {_date}
           </div>
         )}
       </div>
-      {teamId && (
-        <div>
-          <ChevronRight className="size-4 text-muted-foreground" />
-        </div>
-      )}
+
+      <div className="shrink-0">
+        <ChevronRight className="size-5 text-muted-foreground" />
+      </div>
     </button>
   );
 };

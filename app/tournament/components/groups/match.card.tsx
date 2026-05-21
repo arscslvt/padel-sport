@@ -21,7 +21,6 @@ interface MatchCardProps extends React.HTMLAttributes<HTMLDivElement> {
   date?: string;
 }
 
-
 export default function MatchCard({
   teams,
   status,
@@ -29,10 +28,35 @@ export default function MatchCard({
   sets,
   date,
   className,
+  onClick,
   ...props
 }: MatchCardProps) {
   return (
-    <div className={cn("px-0 py-0 bg-muted", className)} {...props}>
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    // biome-ignore lint/a11y/noStaticElementInteractions: it's a wrapper for our match card
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick(
+                  e as unknown as React.MouseEvent<HTMLDivElement, MouseEvent>,
+                );
+              }
+            }
+          : undefined
+      }
+      className={cn(
+        "px-0 py-0 bg-muted transition-colors",
+        onClick && "cursor-pointer hover:bg-muted/80",
+        className,
+      )}
+      onClick={onClick}
+      {...props}
+    >
       <div className="flex gap-3 items-center py-3 px-4">
         <div className="flex flex-1 flex-col font-semibold gap-0.5 text-[13px]">
           <div>
