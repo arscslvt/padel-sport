@@ -117,6 +117,20 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           >;
         };
         edit: {
+          editById: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              comment?: string;
+              dateStart?: string;
+              matchId: string;
+              sets?: Array<{ teamAPoints: number; teamBPoints: number }>;
+              stage?: "group" | "round16" | "quarter" | "semi" | "final";
+              status?: "scheduled" | "live" | "completed";
+            },
+            any,
+            Name
+          >;
           editByTeamIds: FunctionReference<
             "mutation",
             "internal",
@@ -140,6 +154,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           >;
         };
         get: {
+          getAllByTournamentId: FunctionReference<
+            "query",
+            "internal",
+            { tournamentId: string },
+            any,
+            Name
+          >;
           getLiveMatchesByTournamentId: FunctionReference<
             "query",
             "internal",
@@ -327,6 +348,18 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             Name
           >;
         };
+        edit: {
+          editComment: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              comment?: { content?: string; title: string };
+              tournamentId: string;
+            },
+            any,
+            Name
+          >;
+        };
         get: {
           bySlug: FunctionReference<
             "query",
@@ -335,6 +368,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             any,
             Name
           >;
+          list: FunctionReference<"query", "internal", {}, any, Name>;
         };
         teams: {
           add: {

@@ -19,8 +19,10 @@ import type * as events_new from "../events/new.js";
 import type * as modules_notifications_alert from "../modules/notifications/alert.js";
 import type * as modules_notifications_confirmation from "../modules/notifications/confirmation.js";
 import type * as modules_tournaments_categories_get from "../modules/tournaments/categories/get.js";
+import type * as modules_tournaments_edit from "../modules/tournaments/edit.js";
 import type * as modules_tournaments_get from "../modules/tournaments/get.js";
 import type * as modules_tournaments_groups_get from "../modules/tournaments/groups/get.js";
+import type * as modules_tournaments_matches_edit from "../modules/tournaments/matches/edit.js";
 import type * as modules_tournaments_matches_get from "../modules/tournaments/matches/get.js";
 import type * as modules_tournaments_players_add from "../modules/tournaments/players/add.js";
 import type * as modules_tournaments_teams_get from "../modules/tournaments/teams/get.js";
@@ -49,8 +51,10 @@ declare const fullApi: ApiFromModules<{
   "modules/notifications/alert": typeof modules_notifications_alert;
   "modules/notifications/confirmation": typeof modules_notifications_confirmation;
   "modules/tournaments/categories/get": typeof modules_tournaments_categories_get;
+  "modules/tournaments/edit": typeof modules_tournaments_edit;
   "modules/tournaments/get": typeof modules_tournaments_get;
   "modules/tournaments/groups/get": typeof modules_tournaments_groups_get;
+  "modules/tournaments/matches/edit": typeof modules_tournaments_matches_edit;
   "modules/tournaments/matches/get": typeof modules_tournaments_matches_get;
   "modules/tournaments/players/add": typeof modules_tournaments_players_add;
   "modules/tournaments/teams/get": typeof modules_tournaments_teams_get;
@@ -178,6 +182,19 @@ export declare const components: {
           >;
         };
         edit: {
+          editById: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              comment?: string;
+              dateStart?: string;
+              matchId: string;
+              sets?: Array<{ teamAPoints: number; teamBPoints: number }>;
+              stage?: "group" | "round16" | "quarter" | "semi" | "final";
+              status?: "scheduled" | "live" | "completed";
+            },
+            any
+          >;
           editByTeamIds: FunctionReference<
             "mutation",
             "internal",
@@ -199,6 +216,12 @@ export declare const components: {
           >;
         };
         get: {
+          getAllByTournamentId: FunctionReference<
+            "query",
+            "internal",
+            { tournamentId: string },
+            any
+          >;
           getLiveMatchesByTournamentId: FunctionReference<
             "query",
             "internal",
@@ -376,8 +399,20 @@ export declare const components: {
             any
           >;
         };
+        edit: {
+          editComment: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              comment?: { content?: string; title: string };
+              tournamentId: string;
+            },
+            any
+          >;
+        };
         get: {
           bySlug: FunctionReference<"query", "internal", { slug: string }, any>;
+          list: FunctionReference<"query", "internal", {}, any>;
         };
         teams: {
           add: {

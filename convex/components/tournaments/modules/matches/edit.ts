@@ -80,3 +80,35 @@ const editByTeamIds = mutation({
 });
 
 export { editByTeamIds };
+
+const editById = mutation({
+  args: {
+    matchId: v.id("matches"),
+    status: v.optional(v.union(
+      v.literal("scheduled"),
+      v.literal("live"),
+      v.literal("completed"),
+    )),
+    stage: v.optional(v.union(
+      v.literal("group"),
+      v.literal("round16"),
+      v.literal("quarter"),
+      v.literal("semi"),
+      v.literal("final"),
+    )),
+    sets: v.optional(v.array(
+      v.object({
+        teamAPoints: v.number(),
+        teamBPoints: v.number(),
+      })
+    )),
+    dateStart: v.optional(v.string()),
+    comment: v.optional(v.string()),
+  },
+  async handler(ctx, args) {
+    const { matchId, ...updateData } = args;
+    await ctx.db.patch(matchId, updateData);
+  }
+});
+
+export { editById };

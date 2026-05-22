@@ -22,6 +22,7 @@ import type * as modules_players_get from "../modules/players/get.js";
 import type * as modules_teams_create from "../modules/teams/create.js";
 import type * as modules_teams_get from "../modules/teams/get.js";
 import type * as modules_tournaments_create from "../modules/tournaments/create.js";
+import type * as modules_tournaments_edit from "../modules/tournaments/edit.js";
 import type * as modules_tournaments_get from "../modules/tournaments/get.js";
 import type * as modules_tournaments_teams_add from "../modules/tournaments/teams/add.js";
 import type * as modules_tournaments_teams_update from "../modules/tournaments/teams/update.js";
@@ -57,6 +58,7 @@ const fullApi: ApiFromModules<{
   "modules/teams/create": typeof modules_teams_create;
   "modules/teams/get": typeof modules_teams_get;
   "modules/tournaments/create": typeof modules_tournaments_create;
+  "modules/tournaments/edit": typeof modules_tournaments_edit;
   "modules/tournaments/get": typeof modules_tournaments_get;
   "modules/tournaments/teams/add": typeof modules_tournaments_teams_add;
   "modules/tournaments/teams/update": typeof modules_tournaments_teams_update;

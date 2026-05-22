@@ -20,3 +20,12 @@ const bySlug = query({
 });
 
 export { bySlug };
+
+const list = query({
+  args: {},
+  handler: async ({ db }) => {
+    return await db.query("tournaments").collect();
+  },
+});
+
+export { list };

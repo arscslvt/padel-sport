@@ -44,3 +44,15 @@ export const getTodayCompletedMatchesByTournamentId = query({
     );
   },
 });
+
+export const getAllByTournamentId = query({
+  args: {
+    tournamentId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.runQuery(
+      components.tournaments.modules.matches.get.getAllByTournamentId,
+      { tournamentId: args.tournamentId as any },
+    );
+  },
+});

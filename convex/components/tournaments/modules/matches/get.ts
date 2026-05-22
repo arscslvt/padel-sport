@@ -302,3 +302,29 @@ export const getTodayCompletedMatchesByTournamentId = query({
 });
 
 export { getMatchesByGroupId, getMatchByPlayerName };
+
+export const getAllByTournamentId = query({
+  args: {
+    tournamentId: v.id("tournaments"),
+  },
+  handler: async (ctx, args) => {
+    const categories = await ctx.db
+      .query("tournamentCategories")
+      .withIndex("by_tournament", (q) =>
+        q.eq("tournamentId", args.tournamentId),
+      )
+      .collect();
+    const categoryIds = categories.map((c) => c._id);
+    let allMatches: Doc<"matches">[] = [];
+    for (const catId of categoryIds) {
+      const matches = await ctx.db
+        .query("matches")
+        .withIndex("by_tournamentCategory_and_stage", (q) =>
+          q.eq("tournamentCategoryId", catId),
+        )
+        .collect();
+      allMatches = allMatches.concat(matches);
+    }
+    return await hydrateMatches(ctx, allMatches);
+  },
+});
