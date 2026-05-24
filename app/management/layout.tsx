@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
-import { ChevronRight } from "lucide-react";
+import ThemeSetter from "./_components/theme-setter";
 
 export default async function ManagementLayout({
   children,
@@ -18,6 +18,7 @@ export default async function ManagementLayout({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <ThemeSetter theme="neutral" />
       <header className="sticky top-0 border-b border-border bg-background px-3 md:px-6 py-4 flex items-center justify-between">
         <h1 className="text-xl font-bold">Gestione Tornei</h1>
       </header>
