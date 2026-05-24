@@ -5,30 +5,21 @@ import { api } from "@/convex/_generated/api";
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, Delete, Search, X } from "lucide-react";
+import { Delete, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { create } from "zustand";
 import { DynamicIcon } from "lucide-react/dynamic";
+import LiveDot from "../live-dot";
+import { useTournamentStore } from "../../stores/tournament.store";
 
 interface GroupTabsProps {
   tournamentCategoryId: string;
 }
 
-function toSurnameInitial(fullName: string) {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-
-  if (parts.length === 0) {
-    return "";
-  }
-
-  if (parts.length === 1) {
-    return parts[0];
-  }
-
-  const surname = parts[parts.length - 1];
-  const initial = parts[0]?.charAt(0).toUpperCase();
-
-  return initial ? `${surname} ${initial}.` : surname;
+function formatPlayerName(firstName: string | undefined, lastName: string) {
+  if (!firstName) return lastName;
+  const initial = firstName.charAt(0).toUpperCase();
+  return `${lastName} ${initial}.`;
 }
 
 interface GroupTabsState {
@@ -54,6 +45,13 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
 
   const setSelectedGroupId = useGroupTabs((state) => state.setSelectedGroupId);
   const setSearchTeam = useGroupTabs((state) => state.setSearchTeam);
+
+  const setSelectedMatchDetails = useTournamentStore(
+    (state) => state.setSelectedMatchDetails,
+  );
+  const setMatchDetailsDrawerOpen = useTournamentStore(
+    (state) => state.setMatchDetailsDrawerOpen,
+  );
 
   const [inputValue, setInputValue] = useState<string>(
     searchTeam !== false ? searchTeam : "",
@@ -104,6 +102,42 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
     );
   }
 
+  const now = Date.now();
+  const threeDaysFromNow = now + 3 * 24 * 60 * 60 * 1000;
+
+  const liveMatches =
+    matches?.filter((match) => match.status === "in_progress") ?? [];
+
+  const allScheduledMatchesWithDate =
+    matches?.filter(
+      (match) => match.status === "scheduled" && !!match.scheduledAt,
+    ) ?? [];
+
+  let upcomingMatches = allScheduledMatchesWithDate.filter((match) => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+    const matchTime = new Date(match.scheduledAt as string).getTime();
+    return matchTime >= now && matchTime <= threeDaysFromNow;
+  });
+
+  if (allScheduledMatchesWithDate.length === 1) {
+    upcomingMatches = allScheduledMatchesWithDate;
+  }
+
+  const upcomingMatchIds = new Set(upcomingMatches.map((m) => m._id));
+
+  const otherMatches =
+    matches?.filter(
+      (match) =>
+        match.status !== "in_progress" && !upcomingMatchIds.has(match._id),
+    ) ?? [];
+
+  const allMatchesScheduledWithoutDate =
+    matches !== undefined &&
+    matches.length > 0 &&
+    matches.every(
+      (match) => match.status === "scheduled" && !match.scheduledAt,
+    );
+
   return (
     <div className="mb-4 space-y-3">
       <Tabs
@@ -153,45 +187,129 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
       </Tabs>
 
       {matches && (
-        <div className="flex flex-col rounded-lg border border-border divide-y overflow-clip">
+        <div className="flex flex-col gap-6">
           {searchTeam !== false &&
             !!searchTeam.length &&
             matches.length > 0 && (
-              <div className="flex items-center gap-2 px-4 py-2">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card">
                 <Search className="size-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
                   {matches.length} risultati per "{searchTeam}"
                 </span>
               </div>
             )}
-          {matches.map((match) => (
-            <MatchCard
-              key={match._id}
-              teams={match.teams.map((team) => ({
-                name: team.name,
-                players: team.players.map((player) =>
-                  toSurnameInitial(player.name),
-                ),
-              }))}
-              points={{
-                teamAPoints: match.points.teamA,
-                teamBPoints: match.points.teamB,
-              }}
-              sets={match.sets.map((set) => ({
-                teamAGames: set.teamAPoints,
-                teamBGames: set.teamBPoints,
-              }))}
-              status={match.status}
-              date={
-                match.scheduledAt
-                  ? new Date(match.scheduledAt).toLocaleDateString("it-IT", {
-                      day: "numeric",
-                      month: "long",
-                    })
-                  : undefined
+
+          {liveMatches.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h3 className="px-1 text-sm font-bold text-destructive uppercase tracking-wide flex items-center gap-2">
+                <LiveDot />
+                Live Ora
+              </h3>
+              <div className="flex flex-col rounded-lg border-2 border-destructive/70 shadow-sm shadow-destructive/10 divide-y overflow-clip">
+                {liveMatches.map((match) => (
+                  <MatchCard
+                    onClick={() => {
+                      setSelectedMatchDetails(match);
+                      setMatchDetailsDrawerOpen(true);
+                    }}
+                    key={match._id}
+                    teams={match.teams.map((team) => ({
+                      name: team.name,
+                      players: team.players.map((player) =>
+                        formatPlayerName(player.firstName, player.lastName),
+                      ),
+                    }))}
+                    points={{
+                      teamAPoints: match.points.teamA,
+                      teamBPoints: match.points.teamB,
+                    }}
+                    sets={match.sets.map((set) => ({
+                      teamAGames: set.teamAPoints,
+                      teamBGames: set.teamBPoints,
+                    }))}
+                    status={match.status}
+                    date={match.scheduledAt ?? undefined}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {upcomingMatches.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h3 className="px-1 text-sm font-medium text-muted-foreground">
+                Prossimamente
+              </h3>
+              <div className="flex flex-col rounded-lg border border-border divide-y overflow-clip">
+                {upcomingMatches.map((match) => (
+                  <MatchCard
+                    onClick={() => {
+                      setSelectedMatchDetails(match);
+                      setMatchDetailsDrawerOpen(true);
+                    }}
+                    key={match._id}
+                    teams={match.teams.map((team) => ({
+                      name: team.name,
+                      players: team.players.map((player) =>
+                        formatPlayerName(player.firstName, player.lastName),
+                      ),
+                    }))}
+                    points={{
+                      teamAPoints: match.points.teamA,
+                      teamBPoints: match.points.teamB,
+                    }}
+                    sets={match.sets.map((set) => ({
+                      teamAGames: set.teamAPoints,
+                      teamBGames: set.teamBPoints,
+                    }))}
+                    status={match.status}
+                    date={match.scheduledAt ?? undefined}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {otherMatches.length > 0 && (
+            <div
+              className={
+                allMatchesScheduledWithoutDate ? "" : "flex flex-col gap-2"
               }
-            />
-          ))}
+            >
+              {!allMatchesScheduledWithoutDate && (
+                <h3 className="px-1 text-sm font-medium text-muted-foreground">
+                  Altri match
+                </h3>
+              )}
+              <div className="flex flex-col rounded-lg border border-border divide-y overflow-clip">
+                {otherMatches.map((match) => (
+                  <MatchCard
+                    onClick={() => {
+                      setSelectedMatchDetails(match);
+                      setMatchDetailsDrawerOpen(true);
+                    }}
+                    key={match._id}
+                    teams={match.teams.map((team) => ({
+                      name: team.name,
+                      players: team.players.map((player) =>
+                        formatPlayerName(player.firstName, player.lastName),
+                      ),
+                    }))}
+                    points={{
+                      teamAPoints: match.points.teamA,
+                      teamBPoints: match.points.teamB,
+                    }}
+                    sets={match.sets.map((set) => ({
+                      teamAGames: set.teamAPoints,
+                      teamBGames: set.teamBPoints,
+                    }))}
+                    status={match.status}
+                    date={match.scheduledAt ?? undefined}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

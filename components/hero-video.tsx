@@ -1,6 +1,5 @@
 import { cx } from "class-variance-authority";
 import { headers } from "next/headers";
-import React from "react";
 
 export default async function HeroVideo({
   className,

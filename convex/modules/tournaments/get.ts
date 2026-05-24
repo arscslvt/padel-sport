@@ -25,3 +25,12 @@ const bySlug = query({
 });
 
 export { bySlug };
+
+const list = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.runQuery(components.tournaments.modules.tournaments.get.list);
+  }
+});
+
+export { list };

@@ -11,7 +11,7 @@ export default mutation({
     let teamName = args_0.name;
     if (!teamName) {
       const players = await Promise.all(
-        args_0.playersIds.map((playerId) => ctx.db.get("players", playerId)),
+        args_0.playersIds.map((playerId) => ctx.db.get(playerId)),
       );
       teamName = players
         .filter((player) => player !== null)

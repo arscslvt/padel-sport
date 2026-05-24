@@ -61,10 +61,10 @@ export default function Footer() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          <div className="flex items-center px-2 h-6 bg-white/90 border border-white text-foreground rounded-full">
+          <div className="flex items-center px-2 h-6 bg-white/10 border border-white/20 text-foreground/80 rounded-full">
             <p>
               Sito web realizzato da{" "}
-              <span className="font-medium">Salvatore Aresco</span>
+              <span className="font-semibold">Salvatore Aresco</span>
             </p>
             <ArrowUpRight className="ml-1 h-4 w-4" strokeWidth={1.5} />
           </div>

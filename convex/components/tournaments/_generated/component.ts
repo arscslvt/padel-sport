@@ -116,6 +116,34 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             Name
           >;
         };
+        edit: {
+          editById: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              comment?: string;
+              dateStart?: string;
+              matchId: string;
+              sets?: Array<{ teamAPoints: number; teamBPoints: number }>;
+              stage?: "group" | "round16" | "quarter" | "semi" | "final";
+              status?: "scheduled" | "live" | "completed";
+            },
+            any,
+            Name
+          >;
+          editByTeamIds: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              data: any;
+              team1Id: string;
+              team2Id: string;
+              tournamentId: string;
+            },
+            any,
+            Name
+          >;
+        };
         generate: {
           generateMatches: FunctionReference<
             "mutation",
@@ -126,17 +154,114 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           >;
         };
         get: {
+          getAllByTournamentId: FunctionReference<
+            "query",
+            "internal",
+            { tournamentId: string },
+            any,
+            Name
+          >;
+          getLiveMatchesByTournamentId: FunctionReference<
+            "query",
+            "internal",
+            { tournamentId: string },
+            Array<{
+              _id: string;
+              categoryId?: string;
+              categoryName?: string;
+              groupId?: string;
+              groupName?: string;
+              points: { teamA: number; teamB: number };
+              scheduledAt?: string;
+              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
+              stage?: string;
+              status: "scheduled" | "in_progress" | "finished";
+              teams: Array<{
+                name: string;
+                players: Array<{
+                  firstName?: string;
+                  lastName: string;
+                  name: string;
+                }>;
+              }>;
+            }>,
+            Name
+          >;
+          getMatchByPlayerName: FunctionReference<
+            "query",
+            "internal",
+            { playerName: string },
+            Array<{
+              _id: string;
+              categoryId?: string;
+              categoryName?: string;
+              groupId?: string;
+              groupName?: string;
+              points: { teamA: number; teamB: number };
+              scheduledAt?: string;
+              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
+              stage?: string;
+              status: "scheduled" | "in_progress" | "finished";
+              teams: Array<{
+                name: string;
+                players: Array<{
+                  firstName?: string;
+                  lastName: string;
+                  name: string;
+                }>;
+              }>;
+            }>,
+            Name
+          >;
           getMatchesByGroupId: FunctionReference<
             "query",
             "internal",
             { groupId: string; teamName?: string },
             Array<{
               _id: string;
+              categoryId?: string;
+              categoryName?: string;
+              groupId?: string;
+              groupName?: string;
               points: { teamA: number; teamB: number };
               scheduledAt?: string;
               sets: Array<{ teamAPoints: number; teamBPoints: number }>;
+              stage?: string;
               status: "scheduled" | "in_progress" | "finished";
-              teams: Array<{ name: string; players: Array<{ name: string }> }>;
+              teams: Array<{
+                name: string;
+                players: Array<{
+                  firstName?: string;
+                  lastName: string;
+                  name: string;
+                }>;
+              }>;
+            }>,
+            Name
+          >;
+          getTodayCompletedMatchesByTournamentId: FunctionReference<
+            "query",
+            "internal",
+            { tournamentId: string },
+            Array<{
+              _id: string;
+              categoryId?: string;
+              categoryName?: string;
+              groupId?: string;
+              groupName?: string;
+              points: { teamA: number; teamB: number };
+              scheduledAt?: string;
+              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
+              stage?: string;
+              status: "scheduled" | "in_progress" | "finished";
+              teams: Array<{
+                name: string;
+                players: Array<{
+                  firstName?: string;
+                  lastName: string;
+                  name: string;
+                }>;
+              }>;
             }>,
             Name
           >;
@@ -223,6 +348,18 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             Name
           >;
         };
+        edit: {
+          editComment: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              comment?: { content?: string; title: string };
+              tournamentId: string;
+            },
+            any,
+            Name
+          >;
+        };
         get: {
           bySlug: FunctionReference<
             "query",
@@ -231,6 +368,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             any,
             Name
           >;
+          list: FunctionReference<"query", "internal", {}, any, Name>;
         };
         teams: {
           add: {
