@@ -68,13 +68,13 @@ export default function TournamentManagementPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6 mt-6">
         <Button variant="outline" size="icon" asChild>
           <Link href="/management">
             <ChevronLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <h2 className="text-2xl font-bold">Gestione: {tournament.name}</h2>
+        <h2 className="text-2xl font-bold">{tournament.name}</h2>
       </div>
 
       <Tabs defaultValue="matches" className="w-full">
@@ -251,10 +251,7 @@ function MatchesManagement({ tournamentId }: { tournamentId: string }) {
         Mostrati {filteredMatches.length} match su {matches.length}
       </div>
 
-      {filteredMatches.map((match: any) => (
-        <MatchEditor key={match._id} match={match} />
-      ))}
-      {filteredMatches.length === 0 && (
+      {filteredMatches.length === 0 ? (
         <div className="text-center text-muted-foreground p-8 border rounded-xl border-dashed">
           <p>Nessun match corrisponde ai criteri di ricerca attuali.</p>
           <Button
@@ -268,7 +265,98 @@ function MatchesManagement({ tournamentId }: { tournamentId: string }) {
             Resetta Filtri
           </Button>
         </div>
+      ) : (
+        <MatchesByStatus matches={filteredMatches} />
       )}
     </div>
+  );
+}
+
+type ManagedMatch = {
+  _id: string;
+  status: "scheduled" | "in_progress" | "finished";
+  [key: string]: unknown;
+};
+
+function MatchesByStatus({ matches }: { matches: ManagedMatch[] }) {
+  const live = matches.filter((m) => m.status === "in_progress");
+  const scheduled = matches.filter((m) => m.status === "scheduled");
+  const completed = matches.filter((m) => m.status === "finished");
+
+  return (
+    <div className="flex flex-col gap-6">
+      {live.length > 0 && (
+        <MatchesSection
+          title="Live"
+          count={live.length}
+          matches={live}
+          variant="live"
+        />
+      )}
+      {scheduled.length > 0 && (
+        <MatchesSection
+          title="Da giocare"
+          count={scheduled.length}
+          matches={scheduled}
+          variant="scheduled"
+        />
+      )}
+      {completed.length > 0 && (
+        <MatchesSection
+          title="Completati"
+          count={completed.length}
+          matches={completed}
+          variant="completed"
+        />
+      )}
+    </div>
+  );
+}
+
+function MatchesSection({
+  title,
+  count,
+  matches,
+  variant,
+}: {
+  title: string;
+  count: number;
+  matches: ManagedMatch[];
+  variant: "live" | "scheduled" | "completed";
+}) {
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 sticky top-0 z-10 bg-background/95 backdrop-blur py-2 -mx-2 px-2 rounded-md">
+        {variant === "live" && (
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500/70" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+          </span>
+        )}
+        {variant === "scheduled" && (
+          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+        )}
+        {variant === "completed" && (
+          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-muted-foreground/50" />
+        )}
+        <h3
+          className={`text-lg font-semibold uppercase tracking-wide ${
+            variant === "live"
+              ? "text-red-500"
+              : variant === "completed"
+                ? "text-muted-foreground"
+                : "text-foreground"
+          }`}
+        >
+          {title}
+        </h3>
+        <span className="text-sm text-muted-foreground">({count})</span>
+      </div>
+      <div className="flex flex-col gap-3">
+        {matches.map((match) => (
+          <MatchEditor key={match._id} match={match} />
+        ))}
+      </div>
+    </section>
   );
 }

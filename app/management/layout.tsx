@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
+import { ChevronRight } from "lucide-react";
 
 export default async function ManagementLayout({
   children,
@@ -17,16 +18,10 @@ export default async function ManagementLayout({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-background px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 border-b border-border bg-background px-3 md:px-6 py-4 flex items-center justify-between">
         <h1 className="text-xl font-bold">Gestione Tornei</h1>
-        <a
-          href="/"
-          className="text-sm text-foreground/70 hover:text-foreground hover:underline"
-        >
-          Torna al sito
-        </a>
       </header>
-      <main className="p-6 max-w-5xl mx-auto">{children}</main>
+      <main className="px-3 md:p-6 max-w-5xl mx-auto">{children}</main>
     </div>
   );
 }

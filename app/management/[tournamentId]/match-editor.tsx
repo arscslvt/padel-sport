@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Minus, Plus, Trash2 } from "lucide-react";
 
 export default function MatchEditor({ match }: { match: any }) {
   const editMatch = useMutation(api.modules.tournaments.matches.edit.editMatch);
@@ -28,10 +29,23 @@ export default function MatchEditor({ match }: { match: any }) {
         : match.status,
   );
   const [stage, setStage] = useState(match.stage);
-  const [dateStart, setDateStart] = useState(match.scheduledAt || "");
+  const [dateStart, setDateStart] = useState(
+    match.scheduledAt
+      ? format(new Date(match.scheduledAt), "yyyy-MM-dd'T'HH:mm")
+      : "",
+  );
   const [sets, setSets] = useState<
-    { teamAPoints: number; teamBPoints: number }[]
-  >(match.sets || []);
+    { teamAPoints: number; teamBPoints: number; _key: string }[]
+  >(() =>
+    (match.sets || []).map((s: { teamAPoints: number; teamBPoints: number }) => ({
+      teamAPoints: s.teamAPoints,
+      teamBPoints: s.teamBPoints,
+      _key:
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2),
+    })),
+  );
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -45,8 +59,11 @@ export default function MatchEditor({ match }: { match: any }) {
         matchId: match._id,
         status,
         stage: stage || undefined,
-        dateStart: dateStart || undefined,
-        sets,
+        dateStart: dateStart ? new Date(dateStart).toISOString() : undefined,
+        sets: sets.map(({ teamAPoints, teamBPoints }) => ({
+          teamAPoints,
+          teamBPoints,
+        })),
       });
       setIsEditing(false);
       toast.success("Match aggiornato");
@@ -57,16 +74,37 @@ export default function MatchEditor({ match }: { match: any }) {
 
   const handleSetChange = (index: number, team: "A" | "B", value: string) => {
     const newSets = [...sets];
+    const parsed = Math.max(0, parseInt(value, 10) || 0);
     if (team === "A") {
-      newSets[index].teamAPoints = parseInt(value) || 0;
+      newSets[index].teamAPoints = parsed;
     } else {
-      newSets[index].teamBPoints = parseInt(value) || 0;
+      newSets[index].teamBPoints = parsed;
+    }
+    setSets(newSets);
+  };
+
+  const adjustSet = (index: number, team: "A" | "B", delta: number) => {
+    const newSets = [...sets];
+    if (team === "A") {
+      newSets[index].teamAPoints = Math.max(
+        0,
+        newSets[index].teamAPoints + delta,
+      );
+    } else {
+      newSets[index].teamBPoints = Math.max(
+        0,
+        newSets[index].teamBPoints + delta,
+      );
     }
     setSets(newSets);
   };
 
   const addSet = () => {
-    setSets([...sets, { teamAPoints: 0, teamBPoints: 0 }]);
+    const key =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2);
+    setSets([...sets, { teamAPoints: 0, teamBPoints: 0, _key: key }]);
   };
 
   const removeSet = (index: number) => {
@@ -140,63 +178,84 @@ export default function MatchEditor({ match }: { match: any }) {
           </div>
 
           <div className="space-y-2">
-            <Label>Data e Ora (ISO)</Label>
+            <Label>Data e Ora</Label>
             <Input
-              type="text"
+              type="datetime-local"
               value={dateStart}
               onChange={(e) => setDateStart(e.target.value)}
-              placeholder="es: 2024-05-18T10:00:00Z"
             />
           </div>
         </div>
 
-        <div className="space-y-2 mt-4">
-          <div className="flex justify-between items-center">
-            <Label>Punteggi Set</Label>
-            <Button variant="ghost" size="sm" onClick={addSet}>
-              + Aggiungi Set
-            </Button>
-          </div>
-          {sets.map((set, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-4 bg-muted/30 p-2 rounded-md"
-            >
-              <span className="text-sm font-medium w-6">S{index + 1}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs truncate w-16">{getTeamName(0)}</span>
-                <Input
-                  type="number"
-                  className="w-16 h-8 text-center"
-                  value={set.teamAPoints}
-                  onChange={(e) => handleSetChange(index, "A", e.target.value)}
-                />
-              </div>
-              <span className="text-muted-foreground">-</span>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  className="w-16 h-8 text-center"
-                  value={set.teamBPoints}
-                  onChange={(e) => handleSetChange(index, "B", e.target.value)}
-                />
-                <span className="text-xs truncate w-16">{getTeamName(1)}</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive ml-auto"
-                onClick={() => removeSet(index)}
+        <div className="space-y-3 mt-4">
+          <Label className="text-base">Punteggi Set</Label>
+
+          {sets.map((set, index) => {
+            const aWins = set.teamAPoints > set.teamBPoints;
+            const bWins = set.teamBPoints > set.teamAPoints;
+            return (
+              <div
+                key={set._key}
+                className="bg-muted/30 border border-border/60 rounded-lg p-3 space-y-3"
               >
-                ✕
-              </Button>
-            </div>
-          ))}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Set {index + 1}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => removeSet(index)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    <span className="text-xs">Rimuovi</span>
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-stretch">
+                  <TeamScoreControl
+                    name={getTeamName(0)}
+                    score={set.teamAPoints}
+                    winning={aWins}
+                    onDecrement={() => adjustSet(index, "A", -1)}
+                    onIncrement={() => adjustSet(index, "A", 1)}
+                    onChange={(v) => handleSetChange(index, "A", v)}
+                  />
+
+                  <div className="flex items-center justify-center text-xs font-semibold text-muted-foreground pt-7">
+                    VS
+                  </div>
+
+                  <TeamScoreControl
+                    name={getTeamName(1)}
+                    score={set.teamBPoints}
+                    winning={bWins}
+                    onDecrement={() => adjustSet(index, "B", -1)}
+                    onIncrement={() => adjustSet(index, "B", 1)}
+                    onChange={(v) => handleSetChange(index, "B", v)}
+                  />
+                </div>
+              </div>
+            );
+          })}
+
           {sets.length === 0 && (
-            <p className="text-xs text-muted-foreground italic">
+            <p className="text-xs text-muted-foreground italic text-center py-4 bg-muted/20 rounded-md border border-dashed border-border/60">
               Nessun set registrato.
             </p>
           )}
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-dashed"
+            onClick={addSet}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Aggiungi Set
+          </Button>
         </div>
 
         <div className="flex justify-end gap-2 pt-4">
@@ -207,5 +266,68 @@ export default function MatchEditor({ match }: { match: any }) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function TeamScoreControl({
+  name,
+  score,
+  winning,
+  onDecrement,
+  onIncrement,
+  onChange,
+}: {
+  name: string;
+  score: number;
+  winning: boolean;
+  onDecrement: () => void;
+  onIncrement: () => void;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div
+      className={`flex flex-col items-center gap-2 rounded-md p-2 transition-colors ${
+        winning ? "bg-primary/10 ring-1 ring-primary/40" : "bg-background/40"
+      }`}
+    >
+      <span
+        className="text-xs font-medium text-center truncate w-full max-w-full"
+        title={name}
+      >
+        {name}
+      </span>
+      <div className="flex items-center gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 shrink-0"
+          onClick={onDecrement}
+          disabled={score <= 0}
+          aria-label={`Diminuisci punteggio ${name}`}
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <Input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          className="w-12 h-9 text-center font-bold text-base px-1"
+          value={score}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={`Punteggio ${name}`}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 shrink-0"
+          onClick={onIncrement}
+          aria-label={`Aumenta punteggio ${name}`}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
   );
 }
