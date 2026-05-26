@@ -422,24 +422,14 @@ export default function TournamentPage() {
         </div>
       </div>
 
+      {selectedCategoryId && (
+        <div className="mt-8 mb-4">
+          <GroupTabs tournamentCategoryId={selectedCategoryId} />
+        </div>
+      )}
+
       <div className="mt-8">
         <DataTable columns={columns} data={standings || []} />
-      </div>
-
-      <div className="mt-8">
-        <div className="mb-4">
-          <h3 className="font-medium font-heading">Match della categoria</h3>
-          <p className="text-sm mt-1 text-muted-foreground">
-            Qui puoi vedere i match della categoria selezionata, con i risultati
-            aggiornati in tempo reale.
-          </p>
-        </div>
-
-        {selectedCategoryId && (
-          <div className="mb-4">
-            <GroupTabs tournamentCategoryId={selectedCategoryId} />
-          </div>
-        )}
       </div>
 
       <PlayerSearchDrawer />

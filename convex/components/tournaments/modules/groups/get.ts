@@ -103,16 +103,14 @@ export const getGroupStandings = query({
       if (teamASetsWon > teamBSetsWon) {
         teamAStats.victories += 1;
         teamBStats.defeats += 1;
-        teamAStats.pts += 3; // 3 points per win
       } else if (teamBSetsWon > teamASetsWon) {
         teamBStats.victories += 1;
         teamAStats.defeats += 1;
-        teamBStats.pts += 3;
-      } else {
-        // Draw
-        teamAStats.pts += 1;
-        teamBStats.pts += 1;
       }
+
+      // Assign 1 point for each set won
+      teamAStats.pts += teamASetsWon;
+      teamBStats.pts += teamBSetsWon;
     }
 
     const sortedStats = Object.values(stats).sort((a, b) => {
