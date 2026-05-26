@@ -94,5 +94,15 @@ export const columns: ColumnDef<Round>[] = [
     header: () => {
       return <Diff className="size-4" />;
     },
+    cell: ({ row }) => {
+      const dg = row.original.dg;
+      return (
+        <span
+          className={`font-semibold ${dg > 0 ? "text-emerald-500" : dg < 0 ? "text-destructive" : ""}`}
+        >
+          {dg > 0 ? `+${dg}` : dg}
+        </span>
+      );
+    },
   },
 ];
