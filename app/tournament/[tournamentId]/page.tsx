@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-import GroupTabs, { useGroupTabs } from "../components/groups/groups.tabs";
+import GroupTabs, {
+  useGroupTabs,
+  GroupMatchesList,
+} from "../components/groups/groups.tabs";
 import { useTournamentStore } from "../stores/tournament.store";
 import { useEffect, useState, useRef } from "react";
 import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
@@ -430,6 +433,22 @@ export default function TournamentPage() {
 
       <div className="mt-8">
         <DataTable columns={columns} data={standings || []} />
+      </div>
+
+      <div className="mt-8">
+        <div className="mb-4">
+          <h3 className="font-medium font-heading">Match della categoria</h3>
+          <p className="text-sm mt-1 text-muted-foreground">
+            Qui puoi vedere i match della categoria selezionata, con i risultati
+            aggiornati in tempo reale.
+          </p>
+        </div>
+
+        {selectedCategoryId && (
+          <div className="mb-4">
+            <GroupMatchesList tournamentCategoryId={selectedCategoryId} />
+          </div>
+        )}
       </div>
 
       <PlayerSearchDrawer />

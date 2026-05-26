@@ -217,7 +217,119 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
           </div>
         )}
       </Tabs>
+    </div>
+  );
+}
 
+export function GroupMatchesList({ tournamentCategoryId }: GroupTabsProps) {
+  const selectedGroupId = useGroupTabs((state) => state.selectedGroupId);
+  const searchTeam = useGroupTabs((state) => state.searchTeam);
+
+  const setSelectedMatchDetails = useTournamentStore(
+    (state) => state.setSelectedMatchDetails,
+  );
+  const setMatchDetailsDrawerOpen = useTournamentStore(
+    (state) => state.setMatchDetailsDrawerOpen,
+  );
+
+  const groups = useQuery(
+    api.modules.tournaments.groups.get.getGroupsByTournamentCategory,
+    {
+      tournamentCategoryId,
+    },
+  );
+
+  const matches = useQuery(
+    api.modules.tournaments.groups.get.getGroupMatches,
+    selectedGroupId
+      ? {
+          groupId: selectedGroupId,
+          teamName:
+            searchTeam !== false && searchTeam.length > 0
+              ? searchTeam
+              : undefined,
+        }
+      : "skip",
+  );
+
+  if (groups === undefined || selectedGroupId === null) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Spinner />
+      </div>
+    );
+  }
+
+  const now = Date.now();
+  const threeDaysFromNow = now + 3 * 24 * 60 * 60 * 1000;
+
+  const liveMatches = [...(matches ?? [])].filter(
+    (match) => match.status === "in_progress",
+  );
+
+  const todayStr = new Date().toDateString();
+
+  const todayMatches = [...(matches ?? [])].filter(
+    (match) =>
+      match.status !== "in_progress" &&
+      match.scheduledAt &&
+      new Date(match.scheduledAt).toDateString() === todayStr,
+  );
+
+  const allScheduledMatchesWithDate =
+    matches?.filter(
+      (match) => match.status === "scheduled" && !!match.scheduledAt,
+    ) ?? [];
+
+  let upcomingMatches = allScheduledMatchesWithDate.filter((match) => {
+    const matchTime = new Date(match.scheduledAt as string).getTime();
+    return (
+      matchTime >= now &&
+      matchTime <= threeDaysFromNow &&
+      new Date(match.scheduledAt as string).toDateString() !== todayStr
+    );
+  });
+
+  if (
+    allScheduledMatchesWithDate.length === 1 &&
+    new Date(
+      allScheduledMatchesWithDate[0].scheduledAt as string,
+    ).toDateString() !== todayStr
+  ) {
+    upcomingMatches = allScheduledMatchesWithDate;
+  }
+
+  const upcomingMatchIds = new Set(upcomingMatches.map((m) => m._id));
+  const todayMatchIds = new Set(todayMatches.map((m) => m._id));
+
+  const otherMatches =
+    matches
+      ?.filter(
+        (match) =>
+          match.status !== "in_progress" &&
+          !upcomingMatchIds.has(match._id) &&
+          !todayMatchIds.has(match._id),
+      )
+      .sort((a, b) => {
+        // Sort by scheduledAt if available (newest first or oldest first)
+        if (a.scheduledAt && b.scheduledAt) {
+          return (
+            new Date(b.scheduledAt).getTime() -
+            new Date(a.scheduledAt).getTime()
+          );
+        }
+        return 0;
+      }) ?? [];
+
+  const allMatchesScheduledWithoutDate =
+    matches !== undefined &&
+    matches.length > 0 &&
+    matches.every(
+      (match) => match.status === "scheduled" && !match.scheduledAt,
+    );
+
+  return (
+    <div className="mb-4 space-y-3">
       {matches && (
         <div className="flex flex-col gap-6">
           {searchTeam !== false &&
