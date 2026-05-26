@@ -104,6 +104,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             }>,
             Name
           >;
+          getGroupStandings: FunctionReference<
+            "query",
+            "internal",
+            { groupId: string },
+            any,
+            Name
+          >;
         };
       };
       matches: {

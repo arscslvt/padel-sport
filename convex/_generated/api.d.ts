@@ -170,6 +170,12 @@ export declare const components: {
               tournamentCategoryId: string;
             }>
           >;
+          getGroupStandings: FunctionReference<
+            "query",
+            "internal",
+            { groupId: string },
+            any
+          >;
         };
       };
       matches: {

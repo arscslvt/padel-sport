@@ -30,7 +30,7 @@ interface GroupTabsState {
   setSearchTeam: (search: string | false) => void;
 }
 
-const useGroupTabs = create<GroupTabsState>((set) => ({
+export const useGroupTabs = create<GroupTabsState>((set) => ({
   selectedGroupId: null,
   searchTeam: false,
 
@@ -105,8 +105,18 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
   const now = Date.now();
   const threeDaysFromNow = now + 3 * 24 * 60 * 60 * 1000;
 
-  const liveMatches =
-    matches?.filter((match) => match.status === "in_progress") ?? [];
+  const liveMatches = [...(matches ?? [])].filter(
+    (match) => match.status === "in_progress",
+  );
+
+  const todayStr = new Date().toDateString();
+
+  const todayMatches = [...(matches ?? [])].filter(
+    (match) =>
+      match.status !== "in_progress" &&
+      match.scheduledAt &&
+      new Date(match.scheduledAt).toDateString() === todayStr,
+  );
 
   const allScheduledMatchesWithDate =
     matches?.filter(
@@ -114,22 +124,44 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
     ) ?? [];
 
   let upcomingMatches = allScheduledMatchesWithDate.filter((match) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
     const matchTime = new Date(match.scheduledAt as string).getTime();
-    return matchTime >= now && matchTime <= threeDaysFromNow;
+    return (
+      matchTime >= now &&
+      matchTime <= threeDaysFromNow &&
+      new Date(match.scheduledAt as string).toDateString() !== todayStr
+    );
   });
 
-  if (allScheduledMatchesWithDate.length === 1) {
+  if (
+    allScheduledMatchesWithDate.length === 1 &&
+    new Date(
+      allScheduledMatchesWithDate[0].scheduledAt as string,
+    ).toDateString() !== todayStr
+  ) {
     upcomingMatches = allScheduledMatchesWithDate;
   }
 
   const upcomingMatchIds = new Set(upcomingMatches.map((m) => m._id));
+  const todayMatchIds = new Set(todayMatches.map((m) => m._id));
 
   const otherMatches =
-    matches?.filter(
-      (match) =>
-        match.status !== "in_progress" && !upcomingMatchIds.has(match._id),
-    ) ?? [];
+    matches
+      ?.filter(
+        (match) =>
+          match.status !== "in_progress" &&
+          !upcomingMatchIds.has(match._id) &&
+          !todayMatchIds.has(match._id),
+      )
+      .sort((a, b) => {
+        // Sort by scheduledAt if available (newest first or oldest first)
+        if (a.scheduledAt && b.scheduledAt) {
+          return (
+            new Date(b.scheduledAt).getTime() -
+            new Date(a.scheduledAt).getTime()
+          );
+        }
+        return 0;
+      }) ?? [];
 
   const allMatchesScheduledWithoutDate =
     matches !== undefined &&
@@ -207,6 +239,41 @@ export default function GroupTabs({ tournamentCategoryId }: GroupTabsProps) {
               </h3>
               <div className="flex flex-col rounded-lg border-2 border-destructive/70 shadow-sm shadow-destructive/10 divide-y overflow-clip">
                 {liveMatches.map((match) => (
+                  <MatchCard
+                    onClick={() => {
+                      setSelectedMatchDetails(match);
+                      setMatchDetailsDrawerOpen(true);
+                    }}
+                    key={match._id}
+                    teams={match.teams.map((team) => ({
+                      name: team.name,
+                      players: team.players.map((player) =>
+                        formatPlayerName(player.firstName, player.lastName),
+                      ),
+                    }))}
+                    points={{
+                      teamAPoints: match.points.teamA,
+                      teamBPoints: match.points.teamB,
+                    }}
+                    sets={match.sets.map((set) => ({
+                      teamAGames: set.teamAPoints,
+                      teamBGames: set.teamBPoints,
+                    }))}
+                    status={match.status}
+                    date={match.scheduledAt ?? undefined}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {todayMatches.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h3 className="px-1 text-sm font-medium text-foreground uppercase tracking-wide">
+                Oggi
+              </h3>
+              <div className="flex flex-col rounded-lg border border-border divide-y overflow-clip">
+                {todayMatches.map((match) => (
                   <MatchCard
                     onClick={() => {
                       setSelectedMatchDetails(match);

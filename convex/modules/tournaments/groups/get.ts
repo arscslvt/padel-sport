@@ -32,3 +32,17 @@ export const getGroupMatches = query({
     );
   },
 });
+
+export const getGroupStandings = query({
+  args: {
+    groupId: v.string(),
+  },
+  async handler(ctx, args) {
+    return await ctx.runQuery(
+      components.tournaments.modules.groups.get.getGroupStandings,
+      {
+        groupId: args.groupId,
+      },
+    );
+  },
+});

@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-import GroupTabs from "../components/groups/groups.tabs";
+import GroupTabs, { useGroupTabs } from "../components/groups/groups.tabs";
 import { useTournamentStore } from "../stores/tournament.store";
 import { useEffect, useState, useRef } from "react";
 import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
@@ -116,6 +116,13 @@ export default function TournamentPage() {
   const completedTodayMatchesData = useQuery(
     api.modules.tournaments.matches.get.getTodayCompletedMatchesByTournamentId,
     tournament?._id ? { tournamentId: tournament._id } : "skip",
+  );
+
+  const selectedGroupId = useGroupTabs((state) => state.selectedGroupId);
+
+  const standings = useQuery(
+    api.modules.tournaments.groups.get.getGroupStandings,
+    selectedGroupId ? { groupId: selectedGroupId } : "skip",
   );
 
   useEffect(() => {
@@ -416,7 +423,7 @@ export default function TournamentPage() {
       </div>
 
       <div className="mt-8">
-        <DataTable columns={columns} data={[]} />
+        <DataTable columns={columns} data={standings || []} />
       </div>
 
       <div className="mt-8">
