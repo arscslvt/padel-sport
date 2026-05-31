@@ -80,7 +80,7 @@ const rules = [
     title: "Punteggio e classifica (fase a gironi)",
     content: [
       "La classifica dei gironi e determinata dal totale dei punti (set vinti).",
-      "Criteri in caso di parita: scontro diretto, differenza game, sorteggio.",
+      "Criteri in caso di parità: differenza game. In caso di pari punteggio e differenza game verrà effettuato lo scontro diretto.",
     ],
   },
   {
