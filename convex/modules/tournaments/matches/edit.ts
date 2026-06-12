@@ -29,7 +29,7 @@ export const editMatch = mutation({
         }),
       ),
     ),
-    dateStart: v.optional(v.string()),
+    dateStart: v.optional(v.union(v.string(), v.null())),
     comment: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -37,7 +37,7 @@ export const editMatch = mutation({
     await ctx.runMutation(
       components.tournaments.modules.matches.edit.editById,
       {
-        matchId: matchId as any,
+        matchId: matchId as never,
         ...rest,
       },
     );

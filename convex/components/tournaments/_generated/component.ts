@@ -129,7 +129,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             "internal",
             {
               comment?: string;
-              dateStart?: string;
+              dateStart?: string | null;
               matchId: string;
               sets?: Array<{ teamAPoints: number; teamBPoints: number }>;
               stage?: "group" | "round16" | "quarter" | "semi" | "final";

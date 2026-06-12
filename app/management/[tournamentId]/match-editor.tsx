@@ -32,7 +32,7 @@ export default function MatchEditor({ match }: { match: any }) {
   const [dateStart, setDateStart] = useState(
     match.scheduledAt
       ? format(new Date(match.scheduledAt), "yyyy-MM-dd'T'HH:mm")
-      : "",
+      : null,
   );
   const [sets, setSets] = useState<
     { teamAPoints: number; teamBPoints: number; _key: string }[]
@@ -61,7 +61,7 @@ export default function MatchEditor({ match }: { match: any }) {
         matchId: match._id,
         status,
         stage: stage || undefined,
-        dateStart: dateStart ? new Date(dateStart).toISOString() : undefined,
+        dateStart: dateStart ? new Date(dateStart).toISOString() : null,
         sets: sets.map(({ teamAPoints, teamBPoints }) => ({
           teamAPoints,
           teamBPoints,
@@ -184,7 +184,7 @@ export default function MatchEditor({ match }: { match: any }) {
             <div className="flex items-center gap-2">
               <Input
                 type="datetime-local"
-                value={dateStart}
+                value={dateStart || ""}
                 onChange={(e) => setDateStart(e.target.value)}
               />
               {dateStart && (

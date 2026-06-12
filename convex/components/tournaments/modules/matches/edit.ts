@@ -75,6 +75,10 @@ const editByTeamIds = mutation({
 
     const { _id, _creationTime, ...updateData } = args.data;
 
+    if (updateData.dateStart === null) {
+      updateData.dateStart = undefined;
+    }
+
     await ctx.db.patch(match._id, updateData);
   },
 });
@@ -84,31 +88,41 @@ export { editByTeamIds };
 const editById = mutation({
   args: {
     matchId: v.id("matches"),
-    status: v.optional(v.union(
-      v.literal("scheduled"),
-      v.literal("live"),
-      v.literal("completed"),
-    )),
-    stage: v.optional(v.union(
-      v.literal("group"),
-      v.literal("round16"),
-      v.literal("quarter"),
-      v.literal("semi"),
-      v.literal("final"),
-    )),
-    sets: v.optional(v.array(
-      v.object({
-        teamAPoints: v.number(),
-        teamBPoints: v.number(),
-      })
-    )),
-    dateStart: v.optional(v.string()),
+    status: v.optional(
+      v.union(
+        v.literal("scheduled"),
+        v.literal("live"),
+        v.literal("completed"),
+      ),
+    ),
+    stage: v.optional(
+      v.union(
+        v.literal("group"),
+        v.literal("round16"),
+        v.literal("quarter"),
+        v.literal("semi"),
+        v.literal("final"),
+      ),
+    ),
+    sets: v.optional(
+      v.array(
+        v.object({
+          teamAPoints: v.number(),
+          teamBPoints: v.number(),
+        }),
+      ),
+    ),
+    dateStart: v.optional(v.union(v.string(), v.null())),
     comment: v.optional(v.string()),
   },
   async handler(ctx, args) {
     const { matchId, ...updateData } = args;
-    await ctx.db.patch(matchId, updateData);
-  }
+    const patchData: any = { ...updateData };
+    if (patchData.dateStart === null) {
+      patchData.dateStart = undefined;
+    }
+    await ctx.db.patch(matchId, patchData);
+  },
 });
 
 export { editById };
