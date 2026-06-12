@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, MinusCircle, Plus, Trash2 } from "lucide-react";
 
 export default function MatchEditor({ match }: { match: any }) {
   const editMatch = useMutation(api.modules.tournaments.matches.edit.editMatch);
@@ -37,14 +37,16 @@ export default function MatchEditor({ match }: { match: any }) {
   const [sets, setSets] = useState<
     { teamAPoints: number; teamBPoints: number; _key: string }[]
   >(() =>
-    (match.sets || []).map((s: { teamAPoints: number; teamBPoints: number }) => ({
-      teamAPoints: s.teamAPoints,
-      teamBPoints: s.teamBPoints,
-      _key:
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : Math.random().toString(36).slice(2),
-    })),
+    (match.sets || []).map(
+      (s: { teamAPoints: number; teamBPoints: number }) => ({
+        teamAPoints: s.teamAPoints,
+        teamBPoints: s.teamBPoints,
+        _key:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : Math.random().toString(36).slice(2),
+      }),
+    ),
   );
 
   const [isEditing, setIsEditing] = useState(false);
@@ -179,11 +181,22 @@ export default function MatchEditor({ match }: { match: any }) {
 
           <div className="space-y-2">
             <Label>Data e Ora</Label>
-            <Input
-              type="datetime-local"
-              value={dateStart}
-              onChange={(e) => setDateStart(e.target.value)}
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                type="datetime-local"
+                value={dateStart}
+                onChange={(e) => setDateStart(e.target.value)}
+              />
+              {dateStart && (
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setDateStart("")}
+                >
+                  <MinusCircle className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
