@@ -24,35 +24,44 @@ export const generateMatches = mutation({
       throw new Error("At least 2 teams are required to generate matches");
     }
 
-    // Check if matches already exist for this group
+    // Fetch existing matches for this group
     const existingMatches = await ctx.db
       .query("matches")
       .withIndex("by_group", (q) => q.eq("groupId", groupId))
-      .first();
+      .collect();
 
-    if (existingMatches) {
-      throw new Error("Matches have already been generated for this group");
-    }
+    const existingMatchups = new Set(
+      existingMatches.map((m) => {
+        return [m.tournamentTeamAId, m.tournamentTeamBId].sort().join("-");
+      }),
+    );
 
     // Generate round-robin matches
     const matches = [];
     for (let i = 0; i < groupTeams.length; i++) {
       for (let j = i + 1; j < groupTeams.length; j++) {
-        const match = await ctx.db.insert("matches", {
-          tournamentCategoryId: group.tournamentCategoryId,
-          groupId: groupId,
+        const team1Id = groupTeams[i].teamId;
+        const team2Id = groupTeams[j].teamId;
 
-          stage: "group",
+        const matchupKey = [team1Id, team2Id].sort().join("-");
 
-          tournamentTeamAId: groupTeams[i].teamId,
-          tournamentTeamBId: groupTeams[j].teamId,
+        if (!existingMatchups.has(matchupKey)) {
+          const match = await ctx.db.insert("matches", {
+            tournamentCategoryId: group.tournamentCategoryId,
+            groupId: groupId,
 
-          status: "scheduled",
+            stage: "group",
 
-          sets: [],
-        });
+            tournamentTeamAId: team1Id,
+            tournamentTeamBId: team2Id,
 
-        matches.push(match);
+            status: "scheduled",
+
+            sets: [],
+          });
+
+          matches.push(match);
+        }
       }
     }
 
