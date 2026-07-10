@@ -1,14 +1,14 @@
 import { defineSchema } from "convex/server";
-
-import tournaments from "./tables/tournaments";
+import categoryStageSelections from "./tables/categoryStageSelections";
+import groupStandings from "./tables/groupStandings";
+import groups from "./tables/groups";
+import groupTeams from "./tables/groupTeams";
+import matches from "./tables/matches";
 import players from "./tables/players";
 import teams from "./tables/teams";
-import groups from "./tables/groups";
-import groupStandings from "./tables/groupStandings";
 import tournamentCategories from "./tables/tournamentCategories";
+import tournaments from "./tables/tournaments";
 import tournamentTeams from "./tables/tournamentTeams";
-import matches from "./tables/matches";
-import groupTeams from "./tables/groupTeams";
 
 export default defineSchema({
   players,
@@ -23,4 +23,5 @@ export default defineSchema({
   groupTeams,
 
   matches,
+  categoryStageSelections,
 });

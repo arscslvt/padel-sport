@@ -1,20 +1,22 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Spinner } from "@/components/ui/spinner";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Radio } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  Radio,
+  Sparkles,
+  Trophy,
+} from "lucide-react";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
+import { api } from "@/convex/_generated/api";
 
 type Tournament = {
   _id: string;
@@ -53,20 +55,37 @@ export default function ManagementPage() {
   const others = tournaments.filter((t) => !isActiveToday(t, today));
 
   return (
-    <div className="space-y-8 mt-6">
+    <div className="space-y-10 py-8">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            <Sparkles className="size-3.5" /> Centro operativo
+          </p>
+          <h1 className="font-heading text-2xl font-bold sm:text-3xl">
+            Quale torneo gestiamo?
+          </h1>
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            Accedi rapidamente a risultati, programmazione e fasi finali.
+          </p>
+        </div>
+        <Badge variant="outline" className="w-fit px-3 py-1.5">
+          {tournaments.length} {tournaments.length === 1 ? "torneo" : "tornei"}
+        </Badge>
+      </div>
+
       {active.length > 0 && (
         <section>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="mb-4 flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
             </span>
-            <h2 className="text-2xl font-semibold">In corso oggi</h2>
+            <h2 className="text-lg font-semibold">Da gestire oggi</h2>
             <span className="text-sm text-muted-foreground">
               ({active.length})
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {active.map((tournament) => (
               <TournamentCard
                 key={tournament._id}
@@ -79,17 +98,20 @@ export default function ManagementPage() {
       )}
 
       <section>
-        <h2 className="text-2xl font-semibold mb-4">
+        <h2 className="mb-4 text-lg font-semibold">
           {active.length > 0 ? "Altri tornei" : "Seleziona un torneo"}
         </h2>
         {others.length === 0 && active.length === 0 ? (
-          <p className="text-muted-foreground">Nessun torneo trovato.</p>
+          <div className="rounded-2xl border border-dashed p-10 text-center">
+            <Trophy className="mx-auto mb-3 size-8 text-muted-foreground" />
+            <p className="font-medium">Nessun torneo trovato</p>
+          </div>
         ) : others.length === 0 ? (
           <p className="text-muted-foreground text-sm">
             Nessun altro torneo disponibile.
           </p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {others.map((tournament) => (
               <TournamentCard key={tournament._id} tournament={tournament} />
             ))}
@@ -108,40 +130,55 @@ function TournamentCard({
   highlighted?: boolean;
 }) {
   const isLive = tournament.status === "live";
+  const statusLabel = {
+    upcoming: "In programma",
+    live: "In corso",
+    completed: "Concluso",
+  }[tournament.status];
+  const endDate = tournament.endDate
+    ? format(new Date(tournament.endDate), "dd MMM yyyy", { locale: it })
+    : null;
   return (
     <Card
-      className={
+      className={`group relative overflow-hidden py-0 transition-all hover:-translate-y-0.5 hover:shadow-lg ${
         highlighted
-          ? "bg-background text-foreground border-primary/60 ring-1 ring-primary/30 shadow-md"
-          : "bg-background text-foreground border-border"
-      }
+          ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
+          : "border-border bg-card"
+      }`}
     >
-      <CardHeader>
+      {highlighted && <div className="h-1 w-full bg-primary" />}
+      <CardHeader className="pb-3 pt-5">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle>{tournament.name}</CardTitle>
-          {isLive && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide bg-primary/15 text-primary px-2 py-0.5 rounded-full shrink-0">
-              <Radio className="h-3 w-3" />
-              Live
-            </span>
-          )}
+          <CardTitle className="font-heading text-lg leading-snug">
+            {tournament.name}
+          </CardTitle>
+          <Badge
+            variant={isLive ? "default" : "secondary"}
+            className="shrink-0"
+          >
+            {isLive && <Radio className="h-3 w-3" />}
+            {tournament.status === "completed" && (
+              <CheckCircle2 className="h-3 w-3" />
+            )}
+            {statusLabel}
+          </Badge>
         </div>
-        <CardDescription>
-          Stato:{" "}
-          <span className="font-semibold uppercase text-xs">
-            {tournament.status}
-          </span>
-        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <p className="text-sm mb-4">
-          Inizio:{" "}
-          {format(new Date(tournament.startDate), "dd MMMM yyyy", {
-            locale: it,
-          })}
-        </p>
-        <Button asChild className="w-full">
-          <Link href={`/management/${tournament.slug}`}>Gestisci</Link>
+      <CardContent className="pb-5">
+        <div className="mb-5 flex items-center gap-2 text-sm text-muted-foreground">
+          <CalendarDays className="size-4" />
+          <span>
+            {format(new Date(tournament.startDate), "dd MMM yyyy", {
+              locale: it,
+            })}
+            {endDate && ` — ${endDate}`}
+          </span>
+        </div>
+        <Button asChild className="w-full justify-between">
+          <Link href={`/management/${tournament.slug}`}>
+            Apri console
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+          </Link>
         </Button>
       </CardContent>
     </Card>

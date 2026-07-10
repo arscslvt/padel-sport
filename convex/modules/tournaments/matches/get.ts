@@ -24,7 +24,7 @@ export const getLiveMatchesByTournamentId = query({
     return await ctx.runQuery(
       components.tournaments.modules.matches.get.getLiveMatchesByTournamentId,
       {
-        tournamentId: args.tournamentId as any,
+        tournamentId: args.tournamentId,
       },
     );
   },
@@ -39,7 +39,23 @@ export const getTodayCompletedMatchesByTournamentId = query({
       components.tournaments.modules.matches.get
         .getTodayCompletedMatchesByTournamentId,
       {
-        tournamentId: args.tournamentId as any,
+        tournamentId: args.tournamentId,
+      },
+    );
+  },
+});
+
+export const getMatchesByCategoryAndStage = query({
+  args: {
+    tournamentCategoryId: v.string(),
+    stage: v.union(v.literal("quarter"), v.literal("semi"), v.literal("final")),
+  },
+  async handler(ctx, args) {
+    return await ctx.runQuery(
+      components.tournaments.modules.matches.get.getMatchesByCategoryAndStage,
+      {
+        tournamentCategoryId: args.tournamentCategoryId,
+        stage: args.stage,
       },
     );
   },
@@ -52,7 +68,7 @@ export const getAllByTournamentId = query({
   handler: async (ctx, args) => {
     return await ctx.runQuery(
       components.tournaments.modules.matches.get.getAllByTournamentId,
-      { tournamentId: args.tournamentId as any },
+      { tournamentId: args.tournamentId },
     );
   },
 });

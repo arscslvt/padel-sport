@@ -117,11 +117,38 @@ const editById = mutation({
   },
   async handler(ctx, args) {
     const { matchId, ...updateData } = args;
-    const patchData: any = { ...updateData };
-    if (patchData.dateStart === null) {
-      patchData.dateStart = undefined;
+    const currentMatch = await ctx.db.get(matchId);
+    if (!currentMatch) throw new Error("Match not found");
+
+    const resultingStage = args.stage ?? currentMatch.stage;
+    const resultingStatus = args.status ?? currentMatch.status;
+    const resultingSets = args.sets ?? currentMatch.sets;
+    if (resultingStage !== "group" && resultingStatus === "completed") {
+      let setsA = 0;
+      let setsB = 0;
+      for (const set of resultingSets) {
+        if (set.teamAPoints > set.teamBPoints) setsA += 1;
+        if (set.teamBPoints > set.teamAPoints) setsB += 1;
+      }
+      if (setsA === setsB) {
+        throw new Error(
+          "Un match a eliminazione diretta deve avere una squadra vincitrice.",
+        );
+      }
     }
+
+    const patchData = {
+      ...updateData,
+      dateStart:
+        updateData.dateStart === null ? undefined : updateData.dateStart,
+    };
     await ctx.db.patch(matchId, patchData);
+
+    if (resultingStage === "final" && resultingStatus === "completed") {
+      await ctx.db.patch(currentMatch.tournamentCategoryId, {
+        currentStage: "completed",
+      });
+    }
   },
 });
 

@@ -20,6 +20,12 @@ export default defineTable({
     v.literal("final"),
   ),
 
+  // Stable ordering and provenance are used to render the bracket and to
+  // advance winners without relying on database insertion order.
+  bracketPosition: v.optional(v.number()),
+  sourceMatchAId: v.optional(v.id("matches")),
+  sourceMatchBId: v.optional(v.id("matches")),
+
   tournamentTeamAId: v.id("tournamentTeams"),
   tournamentTeamBId: v.id("tournamentTeams"),
 

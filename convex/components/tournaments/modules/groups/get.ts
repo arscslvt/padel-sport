@@ -1,13 +1,18 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
-import schema from "../../schema";
-import { doc } from "convex-helpers/validators";
 
 export const getGroupsByTournamentCategoryId = query({
   args: {
     tournamentCategoryId: v.id("tournamentCategories"),
   },
-  returns: v.array(doc(schema, "groups")),
+  returns: v.array(
+    v.object({
+      _id: v.id("groups"),
+      _creationTime: v.number(),
+      name: v.string(),
+      tournamentCategoryId: v.id("tournamentCategories"),
+    }),
+  ),
   async handler(ctx, args) {
     const { tournamentCategoryId } = args;
 

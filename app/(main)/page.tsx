@@ -12,8 +12,8 @@ import { getInfo } from "@/lib/info";
 export default function Home() {
   return (
     <div>
-      <div className="bg-linear-to-t from-emerald-900 to-background">
-        <div className="relative flex flex-col lg:flex-row items-end md:items-center lg:justify-center h-dvh gap-22 md:gap-14 lg:w-4/5 lg:mx-auto">
+      <div className="relative bg-linear-to-t from-emerald-900 to-background overflow-hidden">
+        <div className="relative flex flex-col lg:flex-row items-end md:items-center lg:justify-center min-h-svh gap-22 md:gap-14 lg:w-4/5 lg:mx-auto">
           <div className="absolute bottom-0 inset-x-0 lg:relative items-center lg:items-start z-10 flex-1 text-white flex flex-col gap-8 px-4 pb-6 bg-linear-to-t md:bg-none from-emerald-900 from-50% to-transparent lg:pb-6">
             <div className="flex flex-col items-center lg:items-start gap-2">
               <h1 className="text-[22px] md:text-4xl lg:text-4xl leading-10 font-heading font-bold max-w-145 text-center lg:text-left">
@@ -52,7 +52,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex md:flex-1 justify-center md:pt-6 lg:pt-8 max-h-dvh z-0">
+          <div className="flex md:flex-1 justify-center md:pt-6 lg:pt-8 max-h-svh z-0">
             <div className="relative h-full w-dvw md:w-max pointer-events-none select-none">
               <Image
                 src={stickerPadelBall}

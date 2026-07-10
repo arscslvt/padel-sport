@@ -1,13 +1,11 @@
 "use client";
 
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { columns } from "./columns";
-import { DataTable } from "./data-table";
+import { useQuery } from "convex/react";
 import { CalendarOff, ChevronRight } from "lucide-react";
 import { DynamicIcon, type IconName } from "lucide-react/dynamic";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyContent,
@@ -16,22 +14,24 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Spinner } from "@/components/ui/spinner";
-import { Button } from "@/components/ui/button";
-import GroupTabs, {
-  useGroupTabs,
-  GroupMatchesList,
-} from "../components/groups/groups.tabs";
-import { useTournamentStore } from "../stores/tournament.store";
-import { useEffect, useState, useRef } from "react";
-import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
-import LiveDot from "../components/live-dot";
-import TeamsListDrawer from "../components/teams/teams-list.drawer";
-import PlayerSearchDrawer from "../components/matches/player-search.drawer";
-import MatchDetailsDrawer from "../components/matches/match-details.drawer";
 import { Item, ItemContent, ItemHeader, ItemTitle } from "@/components/ui/item";
-
+import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { api } from "@/convex/_generated/api";
+import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
+import GroupTabs, {
+  GroupMatchesList,
+  useGroupTabs,
+} from "../components/groups/groups.tabs";
 import MatchCard from "../components/groups/match.card";
+import KnockoutBracket from "../components/knockout-bracket";
+import LiveDot from "../components/live-dot";
+import MatchDetailsDrawer from "../components/matches/match-details.drawer";
+import PlayerSearchDrawer from "../components/matches/player-search.drawer";
+import TeamsListDrawer from "../components/teams/teams-list.drawer";
+import { useTournamentStore } from "../stores/tournament.store";
+import { columns } from "./columns";
+import { DataTable } from "./data-table";
 
 function formatPlayerName(firstName: string | undefined, lastName: string) {
   if (!firstName) return lastName;
@@ -62,8 +62,10 @@ interface LiveMatchSet {
 interface LiveMatch {
   _id: string;
   status: "scheduled" | "in_progress" | "finished";
+  categoryId?: string;
   categoryName?: string;
   groupName?: string;
+  stage?: string;
   teams: LiveMatchTeam[];
   points: { teamA: number; teamB: number };
   sets: LiveMatchSet[];
@@ -123,9 +125,14 @@ export default function TournamentPage() {
 
   const selectedGroupId = useGroupTabs((state) => state.selectedGroupId);
 
+  const activeCategory = categories?.find((c) => c._id === selectedCategoryId);
+  const activeStage = activeCategory?.currentStage ?? "group";
+
   const standings = useQuery(
     api.modules.tournaments.groups.get.getGroupStandings,
-    selectedGroupId ? { groupId: selectedGroupId } : "skip",
+    activeStage === "group" && selectedGroupId
+      ? { groupId: selectedGroupId }
+      : "skip",
   );
 
   useEffect(() => {
@@ -425,31 +432,46 @@ export default function TournamentPage() {
         </div>
       </div>
 
-      {selectedCategoryId && (
-        <div className="mt-8 mb-4">
-          <GroupTabs tournamentCategoryId={selectedCategoryId} />
-        </div>
+      {selectedCategoryId && activeStage === "group" && (
+        <>
+          <div className="mt-8 mb-4">
+            <GroupTabs tournamentCategoryId={selectedCategoryId} />
+          </div>
+
+          <div className="mt-8">
+            <DataTable columns={columns} data={standings || []} />
+          </div>
+
+          <div className="mt-8">
+            <div className="mb-4">
+              <h3 className="font-medium font-heading">
+                Match della categoria
+              </h3>
+              <p className="text-sm mt-1 text-muted-foreground">
+                Qui puoi vedere i match della categoria selezionata, con i
+                risultati aggiornati in tempo reale.
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <GroupMatchesList tournamentCategoryId={selectedCategoryId} />
+            </div>
+          </div>
+        </>
       )}
 
-      <div className="mt-8">
-        <DataTable columns={columns} data={standings || []} />
-      </div>
-
-      <div className="mt-8">
-        <div className="mb-4">
-          <h3 className="font-medium font-heading">Match della categoria</h3>
-          <p className="text-sm mt-1 text-muted-foreground">
-            Qui puoi vedere i match della categoria selezionata, con i risultati
-            aggiornati in tempo reale.
-          </p>
-        </div>
-
-        {selectedCategoryId && (
-          <div className="mb-4">
-            <GroupMatchesList tournamentCategoryId={selectedCategoryId} />
+      {selectedCategoryId && activeStage !== "group" && (
+        <div className="mt-8 space-y-6">
+          <div>
+            <h2 className="font-heading text-lg font-bold">Fasi finali</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Il tabellone si aggiorna in tempo reale con risultati e passaggi
+              del turno.
+            </p>
           </div>
-        )}
-      </div>
+          <KnockoutBracket tournamentCategoryId={selectedCategoryId} />
+        </div>
+      )}
 
       <PlayerSearchDrawer />
       <MatchDetailsDrawer />

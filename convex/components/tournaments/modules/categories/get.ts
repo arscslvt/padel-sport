@@ -1,11 +1,28 @@
 import { v } from "convex/values";
-import { doc } from "convex-helpers/validators";
 import { query } from "../../_generated/server";
-import schema from "../../schema";
 
 const categoryWithTeamsValidator = v.object({
-  ...doc(schema, "tournamentCategories").fields,
-  teams: v.array(doc(schema, "tournamentTeams")),
+  _id: v.id("tournamentCategories"),
+  _creationTime: v.number(),
+  name: v.string(),
+  slug: v.string(),
+  icon: v.optional(v.string()),
+  tournamentId: v.id("tournaments"),
+  currentStage: v.union(
+    v.literal("group"),
+    v.literal("quarter"),
+    v.literal("semi"),
+    v.literal("final"),
+    v.literal("completed"),
+  ),
+  teams: v.array(
+    v.object({
+      _id: v.id("tournamentTeams"),
+      _creationTime: v.number(),
+      tournamentCategoryId: v.id("tournamentCategories"),
+      teamId: v.id("teams"),
+    }),
+  ),
 });
 
 const byTournamentId = query({

@@ -18,6 +18,7 @@ import type * as events_list from "../events/list.js";
 import type * as events_new from "../events/new.js";
 import type * as modules_notifications_alert from "../modules/notifications/alert.js";
 import type * as modules_notifications_confirmation from "../modules/notifications/confirmation.js";
+import type * as modules_tournaments_advancements from "../modules/tournaments/advancements.js";
 import type * as modules_tournaments_categories_get from "../modules/tournaments/categories/get.js";
 import type * as modules_tournaments_edit from "../modules/tournaments/edit.js";
 import type * as modules_tournaments_get from "../modules/tournaments/get.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   "events/new": typeof events_new;
   "modules/notifications/alert": typeof modules_notifications_alert;
   "modules/notifications/confirmation": typeof modules_notifications_confirmation;
+  "modules/tournaments/advancements": typeof modules_tournaments_advancements;
   "modules/tournaments/categories/get": typeof modules_tournaments_categories_get;
   "modules/tournaments/edit": typeof modules_tournaments_edit;
   "modules/tournaments/get": typeof modules_tournaments_get;
@@ -95,6 +97,53 @@ export declare const internal: FilterApi<
 export declare const components: {
   tournaments: {
     modules: {
+      advancements: {
+        generateKnockoutMatches: FunctionReference<
+          "mutation",
+          "internal",
+          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
+          { generatedMatches: number; matchIds: Array<string> }
+        >;
+        getCategoryStandings: FunctionReference<
+          "query",
+          "internal",
+          { tournamentCategoryId: string },
+          Array<{
+            defeats: number;
+            dg: number;
+            games: number;
+            id: string;
+            position: number;
+            pts: number;
+            slot?: string;
+            team: string;
+            victories: number;
+          }>
+        >;
+        getSelectionByCategoryStage: FunctionReference<
+          "query",
+          "internal",
+          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
+          {
+            _creationTime: number;
+            _id: string;
+            qualifiedTeamIds: Array<string>;
+            stage: "quarter" | "semi" | "final";
+            tournamentCategoryId: string;
+            updatedAt: number;
+          } | null
+        >;
+        saveSelectionByCategoryStage: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            qualifiedTeamIds: Array<string>;
+            stage: "quarter" | "semi" | "final";
+            tournamentCategoryId: string;
+          },
+          string
+        >;
+      };
       categories: {
         get: {
           byTournamentId: FunctionReference<
@@ -234,6 +283,7 @@ export declare const components: {
             { tournamentId: string },
             Array<{
               _id: string;
+              bracketPosition?: number;
               categoryId?: string;
               categoryName?: string;
               groupId?: string;
@@ -259,6 +309,36 @@ export declare const components: {
             { playerName: string },
             Array<{
               _id: string;
+              bracketPosition?: number;
+              categoryId?: string;
+              categoryName?: string;
+              groupId?: string;
+              groupName?: string;
+              points: { teamA: number; teamB: number };
+              scheduledAt?: string;
+              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
+              stage?: string;
+              status: "scheduled" | "in_progress" | "finished";
+              teams: Array<{
+                name: string;
+                players: Array<{
+                  firstName?: string;
+                  lastName: string;
+                  name: string;
+                }>;
+              }>;
+            }>
+          >;
+          getMatchesByCategoryAndStage: FunctionReference<
+            "query",
+            "internal",
+            {
+              stage: "quarter" | "semi" | "final";
+              tournamentCategoryId: string;
+            },
+            Array<{
+              _id: string;
+              bracketPosition?: number;
               categoryId?: string;
               categoryName?: string;
               groupId?: string;
@@ -284,6 +364,7 @@ export declare const components: {
             { groupId: string; teamName?: string },
             Array<{
               _id: string;
+              bracketPosition?: number;
               categoryId?: string;
               categoryName?: string;
               groupId?: string;
@@ -309,6 +390,7 @@ export declare const components: {
             { tournamentId: string },
             Array<{
               _id: string;
+              bracketPosition?: number;
               categoryId?: string;
               categoryName?: string;
               groupId?: string;

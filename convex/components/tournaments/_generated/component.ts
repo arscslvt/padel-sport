@@ -24,6 +24,57 @@ import type { FunctionReference } from "convex/server";
 export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     modules: {
+      advancements: {
+        generateKnockoutMatches: FunctionReference<
+          "mutation",
+          "internal",
+          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
+          { generatedMatches: number; matchIds: Array<string> },
+          Name
+        >;
+        getCategoryStandings: FunctionReference<
+          "query",
+          "internal",
+          { tournamentCategoryId: string },
+          Array<{
+            defeats: number;
+            dg: number;
+            games: number;
+            id: string;
+            position: number;
+            pts: number;
+            slot?: string;
+            team: string;
+            victories: number;
+          }>,
+          Name
+        >;
+        getSelectionByCategoryStage: FunctionReference<
+          "query",
+          "internal",
+          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
+          {
+            _creationTime: number;
+            _id: string;
+            qualifiedTeamIds: Array<string>;
+            stage: "quarter" | "semi" | "final";
+            tournamentCategoryId: string;
+            updatedAt: number;
+          } | null,
+          Name
+        >;
+        saveSelectionByCategoryStage: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            qualifiedTeamIds: Array<string>;
+            stage: "quarter" | "semi" | "final";
+            tournamentCategoryId: string;
+          },
+          string,
+          Name
+        >;
+      };
       categories: {
         get: {
           byTournamentId: FunctionReference<
@@ -174,6 +225,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             { tournamentId: string },
             Array<{
               _id: string;
+              bracketPosition?: number;
               categoryId?: string;
               categoryName?: string;
               groupId?: string;
@@ -200,6 +252,37 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             { playerName: string },
             Array<{
               _id: string;
+              bracketPosition?: number;
+              categoryId?: string;
+              categoryName?: string;
+              groupId?: string;
+              groupName?: string;
+              points: { teamA: number; teamB: number };
+              scheduledAt?: string;
+              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
+              stage?: string;
+              status: "scheduled" | "in_progress" | "finished";
+              teams: Array<{
+                name: string;
+                players: Array<{
+                  firstName?: string;
+                  lastName: string;
+                  name: string;
+                }>;
+              }>;
+            }>,
+            Name
+          >;
+          getMatchesByCategoryAndStage: FunctionReference<
+            "query",
+            "internal",
+            {
+              stage: "quarter" | "semi" | "final";
+              tournamentCategoryId: string;
+            },
+            Array<{
+              _id: string;
+              bracketPosition?: number;
               categoryId?: string;
               categoryName?: string;
               groupId?: string;
@@ -226,6 +309,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             { groupId: string; teamName?: string },
             Array<{
               _id: string;
+              bracketPosition?: number;
               categoryId?: string;
               categoryName?: string;
               groupId?: string;
@@ -252,6 +336,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             { tournamentId: string },
             Array<{
               _id: string;
+              bracketPosition?: number;
               categoryId?: string;
               categoryName?: string;
               groupId?: string;

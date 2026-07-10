@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
-import type { QueryCtx } from "../../_generated/server";
 import type { Doc, Id } from "../../_generated/dataModel";
+import type { QueryCtx } from "../../_generated/server";
+import { query } from "../../_generated/server";
 
 export const hydratedMatchValidator = v.object({
   _id: v.id("matches"),
@@ -15,6 +15,7 @@ export const hydratedMatchValidator = v.object({
   groupId: v.optional(v.id("groups")),
   groupName: v.optional(v.string()),
   stage: v.optional(v.string()),
+  bracketPosition: v.optional(v.number()),
   scheduledAt: v.optional(v.string()),
   points: v.object({
     teamA: v.number(),
@@ -113,6 +114,7 @@ async function hydrateMatches(ctx: QueryCtx, matches: Doc<"matches">[]) {
         groupId: match.groupId,
         groupName: group?.name,
         stage: match.stage,
+        bracketPosition: match.bracketPosition,
         scheduledAt: match.dateStart,
         points,
         sets: match.sets,
@@ -221,6 +223,26 @@ const getMatchByPlayerName = query({
   },
 });
 
+const getMatchesByCategoryAndStage = query({
+  args: {
+    tournamentCategoryId: v.id("tournamentCategories"),
+    stage: v.union(v.literal("quarter"), v.literal("semi"), v.literal("final")),
+  },
+  returns: v.array(hydratedMatchValidator),
+  async handler(ctx, args) {
+    const matches = await ctx.db
+      .query("matches")
+      .withIndex("by_tournamentCategory_and_stage", (q) =>
+        q
+          .eq("tournamentCategoryId", args.tournamentCategoryId)
+          .eq("stage", args.stage),
+      )
+      .collect();
+
+    return await hydrateMatches(ctx, matches);
+  },
+});
+
 export const getLiveMatchesByTournamentId = query({
   args: {
     tournamentId: v.id("tournaments"),
@@ -289,7 +311,7 @@ export const getTodayCompletedMatchesByTournamentId = query({
             matchDate.getMonth() === now.getMonth() &&
             matchDate.getFullYear() === now.getFullYear()
           );
-        } catch (e) {
+        } catch {
           return false;
         }
       });
@@ -301,7 +323,11 @@ export const getTodayCompletedMatchesByTournamentId = query({
   },
 });
 
-export { getMatchesByGroupId, getMatchByPlayerName };
+export {
+  getMatchesByGroupId,
+  getMatchByPlayerName,
+  getMatchesByCategoryAndStage,
+};
 
 export const getAllByTournamentId = query({
   args: {

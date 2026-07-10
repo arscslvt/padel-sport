@@ -1,10 +1,23 @@
 "use client";
 
-import { useState } from "react";
 import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
+import {
+  CalendarClock,
+  CheckCircle2,
+  ChevronRight,
+  Minus,
+  MinusCircle,
+  Plus,
+  Radio,
+  Trash2,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,21 +27,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
-import { format } from "date-fns";
-import { Minus, MinusCircle, Plus, Trash2 } from "lucide-react";
+import { api } from "@/convex/_generated/api";
 
-export default function MatchEditor({ match }: { match: any }) {
+export type MatchEditorMatch = {
+  _id: string;
+  status: "scheduled" | "in_progress" | "finished";
+  stage?: "group" | "round16" | "quarter" | "semi" | "final";
+  scheduledAt?: string;
+  sets: Array<{ teamAPoints: number; teamBPoints: number }>;
+  teams: Array<{ name: string }>;
+  categoryName?: string;
+  groupName?: string;
+};
+
+export default function MatchEditor({ match }: { match: MatchEditorMatch }) {
   const editMatch = useMutation(api.modules.tournaments.matches.edit.editMatch);
 
-  const [status, setStatus] = useState(
+  const [status, setStatus] = useState<"scheduled" | "live" | "completed">(
     match.status === "in_progress"
       ? "live"
       : match.status === "finished"
         ? "completed"
         : match.status,
   );
-  const [stage, setStage] = useState(match.stage);
   const [dateStart, setDateStart] = useState(
     match.scheduledAt
       ? format(new Date(match.scheduledAt), "yyyy-MM-dd'T'HH:mm")
@@ -41,26 +62,24 @@ export default function MatchEditor({ match }: { match: any }) {
       (s: { teamAPoints: number; teamBPoints: number }) => ({
         teamAPoints: s.teamAPoints,
         teamBPoints: s.teamBPoints,
-        _key:
-          typeof crypto !== "undefined" && crypto.randomUUID
-            ? crypto.randomUUID()
-            : Math.random().toString(36).slice(2),
+        _key: createKey(),
       }),
     ),
   );
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const getTeamName = (teamIndex: number) => {
     return match.teams[teamIndex]?.name || `Team ${teamIndex + 1}`;
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       await editMatch({
         matchId: match._id,
         status,
-        stage: stage || undefined,
         dateStart: dateStart ? new Date(dateStart).toISOString() : null,
         sets: sets.map(({ teamAPoints, teamBPoints }) => ({
           teamAPoints,
@@ -69,9 +88,35 @@ export default function MatchEditor({ match }: { match: any }) {
       });
       setIsEditing(false);
       toast.success("Match aggiornato");
-    } catch (e) {
-      toast.error("Errore salvataggio match");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Errore salvataggio match",
+      );
+    } finally {
+      setIsSaving(false);
     }
+  };
+
+  const handleCancel = () => {
+    setStatus(
+      match.status === "in_progress"
+        ? "live"
+        : match.status === "finished"
+          ? "completed"
+          : "scheduled",
+    );
+    setDateStart(
+      match.scheduledAt
+        ? format(new Date(match.scheduledAt), "yyyy-MM-dd'T'HH:mm")
+        : null,
+    );
+    setSets(
+      match.sets.map((set) => ({
+        ...set,
+        _key: createKey(),
+      })),
+    );
+    setIsEditing(false);
   };
 
   const handleSetChange = (index: number, team: "A" | "B", value: string) => {
@@ -102,11 +147,7 @@ export default function MatchEditor({ match }: { match: any }) {
   };
 
   const addSet = () => {
-    const key =
-      typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : Math.random().toString(36).slice(2);
-    setSets([...sets, { teamAPoints: 0, teamBPoints: 0, _key: key }]);
+    setSets([...sets, { teamAPoints: 0, teamBPoints: 0, _key: createKey() }]);
   };
 
   const removeSet = (index: number) => {
@@ -114,44 +155,117 @@ export default function MatchEditor({ match }: { match: any }) {
   };
 
   if (!isEditing) {
+    const stageLabel = {
+      group: match.groupName ?? "Girone",
+      round16: "Ottavi",
+      quarter: "Quarti",
+      semi: "Semifinale",
+      final: "Finale",
+    }[match.stage ?? "group"];
+    const setsA = match.sets.filter(
+      (set) => set.teamAPoints > set.teamBPoints,
+    ).length;
+    const setsB = match.sets.filter(
+      (set) => set.teamBPoints > set.teamAPoints,
+    ).length;
+    const statusConfig = {
+      scheduled: {
+        label: "Da giocare",
+        icon: CalendarClock,
+        className: "text-blue-400 border-blue-500/30 bg-blue-500/10",
+      },
+      in_progress: {
+        label: "Live",
+        icon: Radio,
+        className: "text-red-500 border-red-500/30 bg-red-500/10",
+      },
+      finished: {
+        label: "Completata",
+        icon: CheckCircle2,
+        className: "text-emerald-500 border-emerald-500/30 bg-emerald-500/10",
+      },
+    }[match.status];
+    const StatusIcon = statusConfig.icon;
+
     return (
-      <Card className="bg-background text-foreground border-border">
-        <CardHeader className="py-3 px-4 flex flex-row items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold uppercase">
-              {match.categoryName} • {match.groupName || match.stage}
-            </span>
-            <CardTitle className="text-base mt-1">
-              {getTeamName(0)} vs {getTeamName(1)}
-            </CardTitle>
+      <Card
+        className={`overflow-hidden border-border/70 py-0 transition-colors hover:border-border ${
+          match.status === "in_progress" ? "ring-1 ring-red-500/30" : ""
+        }`}
+      >
+        <CardContent className="p-0">
+          <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center">
+            <div className="min-w-0 flex-1">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className={statusConfig.className}>
+                  <StatusIcon className="size-3" /> {statusConfig.label}
+                </Badge>
+                <Badge variant="secondary">{match.categoryName}</Badge>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {stageLabel}
+                </span>
+              </div>
+              <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2">
+                <p className="truncate font-semibold">{getTeamName(0)}</p>
+                <span className="grid size-8 place-content-center rounded-lg bg-muted text-lg font-bold">
+                  {setsA}
+                </span>
+                <p className="truncate font-semibold">{getTeamName(1)}</p>
+                <span className="grid size-8 place-content-center rounded-lg bg-muted text-lg font-bold">
+                  {setsB}
+                </span>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <CalendarClock className="size-3.5" />
+                  {match.scheduledAt
+                    ? format(new Date(match.scheduledAt), "dd MMM · HH:mm", {
+                        locale: it,
+                      })
+                    : "Orario da definire"}
+                </span>
+                {match.sets.length > 0 && (
+                  <span>{match.sets.length} set registrati</span>
+                )}
+              </div>
+            </div>
+            <Button
+              variant={match.status === "in_progress" ? "default" : "outline"}
+              className="w-full justify-between lg:w-auto"
+              onClick={() => setIsEditing(true)}
+            >
+              {match.status === "finished" ? "Correggi" : "Gestisci"}
+              <ChevronRight className="size-4" />
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsEditing(true)}
-          >
-            Modifica
-          </Button>
-        </CardHeader>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-background text-foreground border-primary/50 shadow-md">
-      <CardHeader className="py-3 px-4 border-b">
-        <span className="text-sm font-semibold uppercase text-muted-foreground">
-          {match.categoryName}
-        </span>
-        <CardTitle className="text-lg">
-          {getTeamName(0)} vs {getTeamName(1)}
-        </CardTitle>
+    <Card className="border-primary/40 bg-card shadow-lg ring-1 ring-primary/15">
+      <CardHeader className="border-b px-4 py-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge>{match.categoryName}</Badge>
+          <Badge variant="outline">{match.groupName ?? match.stage}</Badge>
+        </div>
+        <CardTitle className="mt-2 text-lg">Aggiorna risultato</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          {getTeamName(0)} <span className="mx-1 opacity-50">vs</span>{" "}
+          {getTeamName(1)}
+        </p>
       </CardHeader>
       <CardContent className="p-4 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label>Stato Match</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select
+              value={status}
+              onValueChange={(value) =>
+                setStatus(value as "scheduled" | "live" | "completed")
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -159,22 +273,6 @@ export default function MatchEditor({ match }: { match: any }) {
                 <SelectItem value="scheduled">Programmato</SelectItem>
                 <SelectItem value="live">In corso</SelectItem>
                 <SelectItem value="completed">Completato</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Stage</Label>
-            <Select value={stage} onValueChange={setStage}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleziona..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="group">Fase a gironi</SelectItem>
-                <SelectItem value="round16">Ottavi</SelectItem>
-                <SelectItem value="quarter">Quarti</SelectItem>
-                <SelectItem value="semi">Semifinale</SelectItem>
-                <SelectItem value="final">Finale</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -272,14 +370,22 @@ export default function MatchEditor({ match }: { match: any }) {
         </div>
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={() => setIsEditing(false)}>
+          <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
             Annulla
           </Button>
-          <Button onClick={handleSave}>Salva e chiudi</Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Salvataggio..." : "Salva risultato"}
+          </Button>
         </div>
       </CardContent>
     </Card>
   );
+}
+
+function createKey() {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
 }
 
 function TeamScoreControl({

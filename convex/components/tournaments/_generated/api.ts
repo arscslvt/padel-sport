@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as modules_advancements from "../modules/advancements.js";
 import type * as modules_categories_get from "../modules/categories/get.js";
 import type * as modules_categories_new from "../modules/categories/new.js";
 import type * as modules_groups_assign from "../modules/groups/assign.js";
@@ -26,6 +27,7 @@ import type * as modules_tournaments_edit from "../modules/tournaments/edit.js";
 import type * as modules_tournaments_get from "../modules/tournaments/get.js";
 import type * as modules_tournaments_teams_add from "../modules/tournaments/teams/add.js";
 import type * as modules_tournaments_teams_update from "../modules/tournaments/teams/update.js";
+import type * as tables_categoryStageSelections from "../tables/categoryStageSelections.js";
 import type * as tables_groupStandings from "../tables/groupStandings.js";
 import type * as tables_groupTeams from "../tables/groupTeams.js";
 import type * as tables_groups from "../tables/groups.js";
@@ -44,6 +46,7 @@ import type {
 import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
+  "modules/advancements": typeof modules_advancements;
   "modules/categories/get": typeof modules_categories_get;
   "modules/categories/new": typeof modules_categories_new;
   "modules/groups/assign": typeof modules_groups_assign;
@@ -62,6 +65,7 @@ const fullApi: ApiFromModules<{
   "modules/tournaments/get": typeof modules_tournaments_get;
   "modules/tournaments/teams/add": typeof modules_tournaments_teams_add;
   "modules/tournaments/teams/update": typeof modules_tournaments_teams_update;
+  "tables/categoryStageSelections": typeof tables_categoryStageSelections;
   "tables/groupStandings": typeof tables_groupStandings;
   "tables/groupTeams": typeof tables_groupTeams;
   "tables/groups": typeof tables_groups;
