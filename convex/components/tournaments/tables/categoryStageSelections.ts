@@ -4,7 +4,7 @@ import { v } from "convex/values";
 export default defineTable({
   tournamentCategoryId: v.id("tournamentCategories"),
   stage: v.union(v.literal("quarter"), v.literal("semi"), v.literal("final")),
-  mode: v.union(v.literal("smart"), v.literal("manual")),
+  mode: v.optional(v.union(v.literal("smart"), v.literal("manual"))),
   qualifiedTeamIds: v.array(v.id("tournamentTeams")),
   manualPairings: v.optional(
     v.array(
