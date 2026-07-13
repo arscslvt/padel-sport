@@ -120,6 +120,12 @@ export declare const components: {
             victories: number;
           }>
         >;
+        getKnockoutCandidatesByCategoryStage: FunctionReference<
+          "query",
+          "internal",
+          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
+          Array<{ id: string; position?: number; slot?: string; team: string }>
+        >;
         getSelectionByCategoryStage: FunctionReference<
           "query",
           "internal",
@@ -127,16 +133,30 @@ export declare const components: {
           {
             _creationTime: number;
             _id: string;
+            manualPairings?: Array<{ teamAId: string; teamBId: string }>;
+            mode?: "smart" | "manual";
             qualifiedTeamIds: Array<string>;
             stage: "quarter" | "semi" | "final";
             tournamentCategoryId: string;
             updatedAt: number;
           } | null
         >;
+        resetKnockoutMatches: FunctionReference<
+          "mutation",
+          "internal",
+          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
+          {
+            currentStage: "group" | "quarter" | "semi" | "final" | "completed";
+            deletedMatches: number;
+            deletedSelections: number;
+          }
+        >;
         saveSelectionByCategoryStage: FunctionReference<
           "mutation",
           "internal",
           {
+            manualPairings?: Array<{ teamAId: string; teamBId: string }>;
+            mode?: "smart" | "manual";
             qualifiedTeamIds: Array<string>;
             stage: "quarter" | "semi" | "final";
             tournamentCategoryId: string;
@@ -301,6 +321,8 @@ export declare const components: {
                   name: string;
                 }>;
               }>;
+              tournamentTeamAId: string;
+              tournamentTeamBId: string;
             }>
           >;
           getMatchByPlayerName: FunctionReference<
@@ -327,6 +349,8 @@ export declare const components: {
                   name: string;
                 }>;
               }>;
+              tournamentTeamAId: string;
+              tournamentTeamBId: string;
             }>
           >;
           getMatchesByCategoryAndStage: FunctionReference<
@@ -356,6 +380,8 @@ export declare const components: {
                   name: string;
                 }>;
               }>;
+              tournamentTeamAId: string;
+              tournamentTeamBId: string;
             }>
           >;
           getMatchesByGroupId: FunctionReference<
@@ -382,6 +408,8 @@ export declare const components: {
                   name: string;
                 }>;
               }>;
+              tournamentTeamAId: string;
+              tournamentTeamBId: string;
             }>
           >;
           getTodayCompletedMatchesByTournamentId: FunctionReference<
@@ -408,6 +436,8 @@ export declare const components: {
                   name: string;
                 }>;
               }>;
+              tournamentTeamAId: string;
+              tournamentTeamBId: string;
             }>
           >;
         };

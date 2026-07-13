@@ -5,6 +5,8 @@ import { query } from "../../_generated/server";
 
 export const hydratedMatchValidator = v.object({
   _id: v.id("matches"),
+  tournamentTeamAId: v.id("tournamentTeams"),
+  tournamentTeamBId: v.id("tournamentTeams"),
   status: v.union(
     v.literal("scheduled"),
     v.literal("in_progress"),
@@ -108,6 +110,8 @@ async function hydrateMatches(ctx: QueryCtx, matches: Doc<"matches">[]) {
 
       return {
         _id: match._id,
+        tournamentTeamAId: match.tournamentTeamAId,
+        tournamentTeamBId: match.tournamentTeamBId,
         status: mapStatus(match.status),
         categoryId: match.tournamentCategoryId,
         categoryName: category?.name,

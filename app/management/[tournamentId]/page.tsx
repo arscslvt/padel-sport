@@ -12,6 +12,7 @@ import {
   Info,
   ListFilter,
   Radio,
+  RotateCcw,
   Search,
   Settings2,
   Trophy,
@@ -587,6 +588,9 @@ function AdvancementManagement({ tournamentId }: { tournamentId: string }) {
   const generateKnockoutMatches = useMutation(
     api.modules.tournaments.advancements.generateKnockoutMatches,
   );
+  const resetKnockoutMatches = useMutation(
+    api.modules.tournaments.advancements.resetKnockoutMatches,
+  );
   const categories = useQuery(
     api.modules.tournaments.categories.get.byTournamentId,
     {
@@ -655,6 +659,24 @@ function AdvancementManagement({ tournamentId }: { tournamentId: string }) {
   const hasSemi = categoryMatches.some((match) => match.stage === "semi");
   const hasFinal = categoryMatches.some((match) => match.stage === "final");
   const hasKnockoutMatches = categoryMatches.length > 0;
+  const stageRank: Record<"quarter" | "semi" | "final", number> = {
+    quarter: 1,
+    semi: 2,
+    final: 3,
+  };
+  const latestKnockoutStage = categoryMatches.reduce<
+    "quarter" | "semi" | "final" | null
+  >((latest, match) => {
+    if (
+      match.stage !== "quarter" &&
+      match.stage !== "semi" &&
+      match.stage !== "final"
+    ) {
+      return latest;
+    }
+    if (!latest) return match.stage;
+    return stageRank[match.stage] > stageRank[latest] ? match.stage : latest;
+  }, null);
   const stageToGenerate: "quarter" | "semi" | "final" | null =
     !hasKnockoutMatches
       ? selectedStage
@@ -689,6 +711,32 @@ function AdvancementManagement({ tournamentId }: { tournamentId: string }) {
         error instanceof Error
           ? error.message
           : "Errore durante la generazione dei match",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleResetKnockoutMatches = async () => {
+    if (!latestKnockoutStage) return;
+
+    const confirmed = window.confirm(
+      `Vuoi annullare ${stageLabelMap[latestKnockoutStage].toLowerCase()} e tutti i turni successivi?`,
+    );
+    if (!confirmed) return;
+
+    setIsGenerating(true);
+    try {
+      const result = await resetKnockoutMatches({
+        tournamentCategoryId: selectedCategory._id,
+        stage: latestKnockoutStage,
+      });
+      toast.success(
+        `Bracket annullato. Ripartirai dalla fase ${result.currentStage}.`,
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Errore durante il reset",
       );
     } finally {
       setIsGenerating(false);
@@ -825,6 +873,29 @@ function AdvancementManagement({ tournamentId }: { tournamentId: string }) {
             </div>
           )}
 
+          {hasKnockoutMatches && latestKnockoutStage && (
+            <div className="flex flex-col gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold">
+                  Annulla {stageLabelMap[latestKnockoutStage]}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Elimina questo turno e tutti quelli successivi per correggere
+                  un errore di selezione o di seeding.
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={handleResetKnockoutMatches}
+                disabled={isGenerating}
+                className="shrink-0"
+              >
+                <RotateCcw className="size-4" />
+                Annulla bracket
+              </Button>
+            </div>
+          )}
+
           {!stageToGenerate && (
             <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
               <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
@@ -839,13 +910,15 @@ function AdvancementManagement({ tournamentId }: { tournamentId: string }) {
         </CardContent>
       </Card>
 
-      {!hasKnockoutMatches ? (
+      {stageToGenerate && (
         <StageAdvancementPanel
           tournamentCategoryId={selectedCategory._id}
-          stage={selectedStage}
+          stage={stageToGenerate}
           editable
         />
-      ) : (
+      )}
+
+      {hasKnockoutMatches ? (
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -856,7 +929,7 @@ function AdvancementManagement({ tournamentId }: { tournamentId: string }) {
             <KnockoutBracket tournamentCategoryId={selectedCategory._id} />
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -26,11 +26,30 @@ export const getSelectionByCategoryStage = query({
     ),
 });
 
+export const getKnockoutCandidatesByCategoryStage = query({
+  args: { tournamentCategoryId: v.string(), stage: stageValidator },
+  handler: async (ctx, args) =>
+    await ctx.runQuery(
+      components.tournaments.modules.advancements
+        .getKnockoutCandidatesByCategoryStage,
+      args,
+    ),
+});
+
 export const saveSelectionByCategoryStage = mutation({
   args: {
     tournamentCategoryId: v.string(),
     stage: stageValidator,
+    mode: v.optional(v.union(v.literal("smart"), v.literal("manual"))),
     qualifiedTeamIds: v.array(v.string()),
+    manualPairings: v.optional(
+      v.array(
+        v.object({
+          teamAId: v.string(),
+          teamBId: v.string(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) =>
     await ctx.runMutation(
@@ -47,6 +66,18 @@ export const generateKnockoutMatches = mutation({
   handler: async (ctx, args) =>
     await ctx.runMutation(
       components.tournaments.modules.advancements.generateKnockoutMatches,
+      args,
+    ),
+});
+
+export const resetKnockoutMatches = mutation({
+  args: {
+    tournamentCategoryId: v.string(),
+    stage: stageValidator,
+  },
+  handler: async (ctx, args) =>
+    await ctx.runMutation(
+      components.tournaments.modules.advancements.resetKnockoutMatches,
       args,
     ),
 });

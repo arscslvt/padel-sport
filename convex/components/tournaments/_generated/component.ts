@@ -49,6 +49,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           }>,
           Name
         >;
+        getKnockoutCandidatesByCategoryStage: FunctionReference<
+          "query",
+          "internal",
+          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
+          Array<{ id: string; position?: number; slot?: string; team: string }>,
+          Name
+        >;
         getSelectionByCategoryStage: FunctionReference<
           "query",
           "internal",
@@ -56,6 +63,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           {
             _creationTime: number;
             _id: string;
+            manualPairings?: Array<{ teamAId: string; teamBId: string }>;
+            mode?: "smart" | "manual";
             qualifiedTeamIds: Array<string>;
             stage: "quarter" | "semi" | "final";
             tournamentCategoryId: string;
@@ -63,10 +72,23 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           } | null,
           Name
         >;
+        resetKnockoutMatches: FunctionReference<
+          "mutation",
+          "internal",
+          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
+          {
+            currentStage: "group" | "quarter" | "semi" | "final" | "completed";
+            deletedMatches: number;
+            deletedSelections: number;
+          },
+          Name
+        >;
         saveSelectionByCategoryStage: FunctionReference<
           "mutation",
           "internal",
           {
+            manualPairings?: Array<{ teamAId: string; teamBId: string }>;
+            mode?: "smart" | "manual";
             qualifiedTeamIds: Array<string>;
             stage: "quarter" | "semi" | "final";
             tournamentCategoryId: string;
@@ -243,6 +265,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   name: string;
                 }>;
               }>;
+              tournamentTeamAId: string;
+              tournamentTeamBId: string;
             }>,
             Name
           >;
@@ -270,6 +294,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   name: string;
                 }>;
               }>;
+              tournamentTeamAId: string;
+              tournamentTeamBId: string;
             }>,
             Name
           >;
@@ -300,6 +326,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   name: string;
                 }>;
               }>;
+              tournamentTeamAId: string;
+              tournamentTeamBId: string;
             }>,
             Name
           >;
@@ -327,6 +355,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   name: string;
                 }>;
               }>;
+              tournamentTeamAId: string;
+              tournamentTeamBId: string;
             }>,
             Name
           >;
@@ -354,6 +384,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   name: string;
                 }>;
               }>;
+              tournamentTeamAId: string;
+              tournamentTeamBId: string;
             }>,
             Name
           >;

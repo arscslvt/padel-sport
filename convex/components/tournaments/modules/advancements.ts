@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { mutation, query } from "../_generated/server";
 
 type KnockoutStage = "quarter" | "semi" | "final";
+const knockoutStageOrder: KnockoutStage[] = ["quarter", "semi", "final"];
 
 const stageValidator = v.union(
   v.literal("quarter"),
@@ -28,8 +29,24 @@ const stageSelectionValidator = v.object({
   _creationTime: v.number(),
   tournamentCategoryId: v.id("tournamentCategories"),
   stage: stageValidator,
+  mode: v.optional(v.union(v.literal("smart"), v.literal("manual"))),
   qualifiedTeamIds: v.array(v.id("tournamentTeams")),
+  manualPairings: v.optional(
+    v.array(
+      v.object({
+        teamAId: v.id("tournamentTeams"),
+        teamBId: v.id("tournamentTeams"),
+      }),
+    ),
+  ),
   updatedAt: v.number(),
+});
+
+const stageCandidateTeamValidator = v.object({
+  id: v.id("tournamentTeams"),
+  team: v.string(),
+  slot: v.optional(v.string()),
+  position: v.optional(v.number()),
 });
 
 async function getStandingsForCategory(
@@ -154,6 +171,15 @@ const expectedTeams: Record<KnockoutStage, number> = {
   final: 2,
 };
 
+const previousStageByStage: Partial<Record<KnockoutStage, KnockoutStage>> = {
+  semi: "quarter",
+  final: "semi",
+};
+
+function getStagesFrom(stage: KnockoutStage) {
+  return knockoutStageOrder.slice(knockoutStageOrder.indexOf(stage));
+}
+
 // Standard seeding keeps 1/2 apart until the final and 1/4 apart until a semi.
 function seededPairs(teamIds: Id<"tournamentTeams">[]) {
   if (teamIds.length === 8) {
@@ -199,11 +225,74 @@ export const getSelectionByCategoryStage = query({
       .first(),
 });
 
+export const getKnockoutCandidatesByCategoryStage = query({
+  args: {
+    tournamentCategoryId: v.id("tournamentCategories"),
+    stage: stageValidator,
+  },
+  returns: v.array(stageCandidateTeamValidator),
+  handler: async (ctx, args) => {
+    if (args.stage === "quarter") {
+      return await getStandingsForCategory(ctx, args.tournamentCategoryId);
+    }
+
+    const sourceStage = previousStage[args.stage];
+    if (!sourceStage) return [];
+
+    const matches = await ctx.db
+      .query("matches")
+      .withIndex("by_tournamentCategory_and_stage", (q) =>
+        q
+          .eq("tournamentCategoryId", args.tournamentCategoryId)
+          .eq("stage", sourceStage),
+      )
+      .collect();
+
+    if (matches.length === 0) return [];
+
+    matches.sort((a, b) => (a.bracketPosition ?? 0) - (b.bracketPosition ?? 0));
+    if (matches.some((match) => match.status !== "completed")) {
+      return [];
+    }
+
+    const winners = await Promise.all(
+      matches.map(async (match, index) => {
+        const winnerId = winnerOf(match);
+        if (!winnerId) return null;
+
+        const tournamentTeam = await ctx.db.get(winnerId);
+        if (!tournamentTeam) return null;
+        const team = await ctx.db.get(tournamentTeam.teamId);
+
+        return {
+          id: tournamentTeam._id,
+          team: team?.name ?? "Squadra",
+          slot: sourceStage,
+          position: index + 1,
+        };
+      }),
+    );
+
+    return winners.filter(
+      (team): team is NonNullable<typeof team> => team !== null,
+    );
+  },
+});
+
 export const saveSelectionByCategoryStage = mutation({
   args: {
     tournamentCategoryId: v.id("tournamentCategories"),
     stage: stageValidator,
+    mode: v.optional(v.union(v.literal("smart"), v.literal("manual"))),
     qualifiedTeamIds: v.array(v.id("tournamentTeams")),
+    manualPairings: v.optional(
+      v.array(
+        v.object({
+          teamAId: v.id("tournamentTeams"),
+          teamBId: v.id("tournamentTeams"),
+        }),
+      ),
+    ),
   },
   returns: v.id("categoryStageSelections"),
   handler: async (ctx, args) => {
@@ -223,6 +312,9 @@ export const saveSelectionByCategoryStage = mutation({
     }
 
     const qualifiedTeamIds = [...new Set(args.qualifiedTeamIds)];
+    const mode = args.mode ?? "smart";
+    const manualPairings = args.manualPairings ?? [];
+
     for (const teamId of qualifiedTeamIds) {
       const tournamentTeam = await ctx.db.get(teamId);
       if (
@@ -230,6 +322,33 @@ export const saveSelectionByCategoryStage = mutation({
         tournamentTeam.tournamentCategoryId !== args.tournamentCategoryId
       ) {
         throw new Error("Una delle squadre non appartiene alla categoria.");
+      }
+    }
+
+    if (mode === "manual") {
+      if (manualPairings.length === 0) {
+        throw new Error("Imposta gli accoppiamenti manuali prima di salvare.");
+      }
+
+      const pairTeamIds = new Set<string>();
+      for (const pairing of manualPairings) {
+        if (pairing.teamAId === pairing.teamBId) {
+          throw new Error("Una coppia non può contenere la stessa squadra.");
+        }
+        pairTeamIds.add(pairing.teamAId);
+        pairTeamIds.add(pairing.teamBId);
+      }
+
+      if (pairTeamIds.size !== qualifiedTeamIds.length) {
+        throw new Error(
+          "Ogni squadra selezionata deve comparire una sola volta.",
+        );
+      }
+
+      for (const teamId of qualifiedTeamIds) {
+        if (!pairTeamIds.has(teamId)) {
+          throw new Error("Ogni squadra selezionata deve essere abbinata.");
+        }
       }
     }
 
@@ -243,7 +362,9 @@ export const saveSelectionByCategoryStage = mutation({
       .first();
     if (existing) {
       await ctx.db.patch(existing._id, {
+        mode,
         qualifiedTeamIds,
+        manualPairings: mode === "manual" ? manualPairings : undefined,
         updatedAt: Date.now(),
       });
       return existing._id;
@@ -251,7 +372,9 @@ export const saveSelectionByCategoryStage = mutation({
     return await ctx.db.insert("categoryStageSelections", {
       tournamentCategoryId: args.tournamentCategoryId,
       stage: args.stage,
+      mode,
       qualifiedTeamIds,
+      manualPairings: mode === "manual" ? manualPairings : undefined,
       updatedAt: Date.now(),
     });
   },
@@ -283,6 +406,14 @@ export const generateKnockoutMatches = mutation({
     let teams: Id<"tournamentTeams">[];
     let sources: Doc<"matches">[] = [];
     const sourceStage = previousStage[args.stage];
+    const selection = await ctx.db
+      .query("categoryStageSelections")
+      .withIndex("by_category_and_stage", (q) =>
+        q
+          .eq("tournamentCategoryId", args.tournamentCategoryId)
+          .eq("stage", args.stage),
+      )
+      .first();
     if (sourceStage) {
       sources = await ctx.db
         .query("matches")
@@ -311,19 +442,25 @@ export const generateKnockoutMatches = mutation({
           );
         }
         teams = winners as Id<"tournamentTeams">[];
+
+        if (selection?.mode === "manual") {
+          validateManualSelection(selection, teams, args.stage);
+        }
       } else {
-        teams = await getSavedSelection(
+        const savedSelection = await getSavedSelection(
           ctx,
           args.tournamentCategoryId,
           args.stage,
         );
+        teams = savedSelection;
       }
     } else {
-      teams = await getSavedSelection(
+      const savedSelection = await getSavedSelection(
         ctx,
         args.tournamentCategoryId,
         args.stage,
       );
+      teams = savedSelection;
     }
 
     if (sources.length === 0) {
@@ -339,21 +476,34 @@ export const generateKnockoutMatches = mutation({
       );
     }
 
+    if (selection?.mode === "manual") {
+      validateManualSelection(selection, teams, args.stage);
+    }
+
     if (teams.length !== expectedTeams[args.stage]) {
       throw new Error(
         `Per questa fase servono esattamente ${expectedTeams[args.stage]} squadre.`,
       );
     }
 
-    const pairs = sources.length
-      ? teams.reduce<Array<[Id<"tournamentTeams">, Id<"tournamentTeams">]>>(
-          (result, team, index) => {
-            if (index % 2 === 0) result.push([team, teams[index + 1]]);
-            return result;
-          },
-          [],
-        )
-      : seededPairs(teams);
+    const pairs =
+      selection?.mode === "manual"
+        ? (selection.manualPairings ?? []).map(
+            (pairing) =>
+              [pairing.teamAId, pairing.teamBId] as [
+                Id<"tournamentTeams">,
+                Id<"tournamentTeams">,
+              ],
+          )
+        : sources.length
+          ? teams.reduce<Array<[Id<"tournamentTeams">, Id<"tournamentTeams">]>>(
+              (result, team, index) => {
+                if (index % 2 === 0) result.push([team, teams[index + 1]]);
+                return result;
+              },
+              [],
+            )
+          : seededPairs(teams);
 
     const matchIds: Id<"matches">[] = [];
     for (const [index, [teamA, teamB]] of pairs.entries()) {
@@ -373,10 +523,127 @@ export const generateKnockoutMatches = mutation({
     }
 
     await ctx.db.patch(args.tournamentCategoryId, { currentStage: args.stage });
-    await upsertSelection(ctx, args.tournamentCategoryId, args.stage, teams);
+    await upsertSelection(
+      ctx,
+      args.tournamentCategoryId,
+      args.stage,
+      teams,
+      selection?.mode ?? "smart",
+      selection?.manualPairings,
+    );
     return { matchIds, generatedMatches: matchIds.length };
   },
 });
+
+export const resetKnockoutMatches = mutation({
+  args: {
+    tournamentCategoryId: v.id("tournamentCategories"),
+    stage: stageValidator,
+  },
+  returns: v.object({
+    deletedMatches: v.number(),
+    deletedSelections: v.number(),
+    currentStage: v.union(
+      v.literal("group"),
+      v.literal("quarter"),
+      v.literal("semi"),
+      v.literal("final"),
+      v.literal("completed"),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const category = await ctx.db.get(args.tournamentCategoryId);
+    if (!category) throw new Error("Categoria non trovata.");
+
+    const stagesToDelete = getStagesFrom(args.stage);
+
+    let deletedMatches = 0;
+    for (const stage of stagesToDelete) {
+      const matches = await ctx.db
+        .query("matches")
+        .withIndex("by_tournamentCategory_and_stage", (q) =>
+          q
+            .eq("tournamentCategoryId", args.tournamentCategoryId)
+            .eq("stage", stage),
+        )
+        .collect();
+
+      for (const match of matches) {
+        await ctx.db.delete(match._id);
+        deletedMatches += 1;
+      }
+    }
+
+    let deletedSelections = 0;
+    for (const stage of stagesToDelete) {
+      const selection = await ctx.db
+        .query("categoryStageSelections")
+        .withIndex("by_category_and_stage", (q) =>
+          q
+            .eq("tournamentCategoryId", args.tournamentCategoryId)
+            .eq("stage", stage),
+        )
+        .first();
+
+      if (selection) {
+        await ctx.db.delete(selection._id);
+        deletedSelections += 1;
+      }
+    }
+
+    const currentStage = previousStageByStage[args.stage] ?? ("group" as const);
+    await ctx.db.patch(args.tournamentCategoryId, {
+      currentStage,
+    });
+
+    return {
+      deletedMatches,
+      deletedSelections,
+      currentStage,
+    };
+  },
+});
+
+function validateManualSelection(
+  selection: {
+    qualifiedTeamIds: Id<"tournamentTeams">[];
+    manualPairings?: Array<{
+      teamAId: Id<"tournamentTeams">;
+      teamBId: Id<"tournamentTeams">;
+    }>;
+  },
+  teams: Id<"tournamentTeams">[],
+  stage: KnockoutStage,
+) {
+  const pairings = selection.manualPairings ?? [];
+  if (pairings.length !== expectedTeams[stage] / 2) {
+    throw new Error("Il numero di accoppiamenti manuali non è corretto.");
+  }
+
+  const selectedTeamSet = new Set(selection.qualifiedTeamIds);
+  const usedTeamIds = new Set<Id<"tournamentTeams">>();
+  for (const pairing of pairings) {
+    if (
+      !selectedTeamSet.has(pairing.teamAId) ||
+      !selectedTeamSet.has(pairing.teamBId)
+    ) {
+      throw new Error(
+        "Le coppie manuali devono usare solo le squadre selezionate.",
+      );
+    }
+    if (pairing.teamAId === pairing.teamBId) {
+      throw new Error("Una coppia manuale non può avere due squadre uguali.");
+    }
+    usedTeamIds.add(pairing.teamAId);
+    usedTeamIds.add(pairing.teamBId);
+  }
+
+  if (usedTeamIds.size !== teams.length) {
+    throw new Error(
+      "Ogni squadra selezionata deve comparire in una sola coppia.",
+    );
+  }
+}
 
 async function getSavedSelection(
   ctx: MutationCtx,
@@ -398,6 +665,11 @@ async function upsertSelection(
   tournamentCategoryId: Id<"tournamentCategories">,
   stage: KnockoutStage,
   qualifiedTeamIds: Id<"tournamentTeams">[],
+  mode: "smart" | "manual",
+  manualPairings?: Array<{
+    teamAId: Id<"tournamentTeams">;
+    teamBId: Id<"tournamentTeams">;
+  }>,
 ) {
   const existing = await ctx.db
     .query("categoryStageSelections")
@@ -408,6 +680,8 @@ async function upsertSelection(
   if (existing) {
     await ctx.db.patch(existing._id, {
       qualifiedTeamIds,
+      mode,
+      manualPairings: mode === "manual" ? manualPairings : undefined,
       updatedAt: Date.now(),
     });
   } else {
@@ -415,6 +689,8 @@ async function upsertSelection(
       tournamentCategoryId,
       stage,
       qualifiedTeamIds,
+      mode,
+      manualPairings: mode === "manual" ? manualPairings : undefined,
       updatedAt: Date.now(),
     });
   }
