@@ -604,12 +604,12 @@ function AdvancementManagement({ tournamentId }: { tournamentId: string }) {
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [selectedStage, setSelectedStage] = useState<
-    "quarter" | "semi" | "final"
-  >("quarter");
+    "" | "quarter" | "semi" | "final"
+  >("");
   const [isGenerating, setIsGenerating] = useState(false);
   const savedInitialSelection = useQuery(
     api.modules.tournaments.advancements.getSelectionByCategoryStage,
-    selectedCategoryId
+    selectedCategoryId && selectedStage
       ? { tournamentCategoryId: selectedCategoryId, stage: selectedStage }
       : "skip",
   );
@@ -679,15 +679,17 @@ function AdvancementManagement({ tournamentId }: { tournamentId: string }) {
   }, null);
   const stageToGenerate: "quarter" | "semi" | "final" | null =
     !hasKnockoutMatches
-      ? selectedStage
+      ? selectedStage || null
       : hasQuarter && !hasSemi
         ? "semi"
         : hasSemi && !hasFinal
           ? "final"
           : null;
-  const requiredTeams = { quarter: 8, semi: 4, final: 2 }[selectedStage];
+  const requiredTeams =
+    selectedStage === "" ? 0 : { quarter: 8, semi: 4, final: 2 }[selectedStage];
   const initialSelectionReady =
     hasKnockoutMatches ||
+    selectedStage === "" ||
     savedInitialSelection?.qualifiedTeamIds.length === requiredTeams;
   const stageSteps = [
     { key: "quarter", label: "Quarti", done: hasQuarter },
@@ -821,8 +823,8 @@ function AdvancementManagement({ tournamentId }: { tournamentId: string }) {
               <div>
                 <p className="font-semibold">1. Imposta il turno di partenza</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Poi seleziona e salva esattamente {requiredTeams} squadre
-                  nella sezione sottostante.
+                  Scegli se partire da quarti, semifinali o finale. Poi salva il
+                  numero corretto di squadre per quella fase.
                 </p>
               </div>
               <div className="space-y-2">
@@ -834,7 +836,7 @@ function AdvancementManagement({ tournamentId }: { tournamentId: string }) {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Seleziona la fase di partenza" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="quarter">Quarti · 8 squadre</SelectItem>
@@ -900,9 +902,15 @@ function AdvancementManagement({ tournamentId }: { tournamentId: string }) {
             <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
               <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
               <div>
-                <p className="font-semibold">Tabellone completo</p>
+                <p className="font-semibold">
+                  {selectedStage === ""
+                    ? "Seleziona una fase di partenza"
+                    : "Tabellone completo"}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Registra il risultato della finale nella scheda Partite.
+                  {selectedStage === ""
+                    ? "Scegli da quale fase iniziare per generare il bracket."
+                    : "Registra il risultato della finale nella scheda Partite."}
                 </p>
               </div>
             </div>
