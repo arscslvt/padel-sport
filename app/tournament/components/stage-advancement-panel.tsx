@@ -124,7 +124,9 @@ export default function StageAdvancementPanel({
   const candidateTeams = useMemo<StageCandidateTeam[]>(() => {
     if (!standings) return [];
     if (stage === "quarter") return standings;
-    if (!previousStageMatches || previousStageMatches.length === 0) return [];
+    if (!previousStageMatches || previousStageMatches.length === 0) {
+      return standings;
+    }
     if (previousStageMatches.some((match) => match.status !== "finished")) {
       return [];
     }
@@ -525,6 +527,15 @@ export default function StageAdvancementPanel({
                   <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
                     Completa prima il turno precedente: i match manuali usano i
                     vincitori di quella fase.
+                  </div>
+                )}
+
+              {(!previousStageMatches || previousStageMatches.length === 0) &&
+                stage !== "quarter" && (
+                  <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4 text-sm text-blue-700 dark:text-blue-300">
+                    Nessun turno precedente trovato: puoi iniziare direttamente
+                    da {STAGE_LABELS[stage].toLowerCase()} e scegliere le
+                    squadre dalla classifica.
                   </div>
                 )}
 
