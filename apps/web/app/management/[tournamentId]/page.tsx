@@ -37,7 +37,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/convex/_generated/api";
+import { api } from "@padel-sport/backend/convex/_generated/api";
 import KnockoutBracket from "../../tournament/components/knockout-bracket";
 import StageAdvancementPanel from "../../tournament/components/stage-advancement-panel";
 import MatchEditor, { type MatchEditorMatch } from "./match-editor";

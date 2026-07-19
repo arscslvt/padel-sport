@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api } from "@/convex/_generated/api";
+import { api } from "@padel-sport/backend/convex/_generated/api";
 import { columns } from "../[tournamentId]/columns";
 import { DataTable } from "../[tournamentId]/data-table";
 

@@ -44,8 +44,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/app/(dashboard)/_components/tabs";
-import { api } from "@/convex/_generated/api";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { api } from "@padel-sport/backend/convex/_generated/api";
+import type { Doc, Id } from "@padel-sport/backend/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import {

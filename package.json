@@ -1,0 +1,15 @@
+{
+  "name": "padel-sport",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "bun run --cwd apps/web dev",
+    "dev:mobile": "bun run --cwd apps/mobile start",
+    "dev:backend": "bun run --cwd packages/backend dev",
+    "build:web": "bun run --cwd apps/web build"
+  }
+}

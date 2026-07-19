@@ -17,8 +17,8 @@ import {
 import { Item, ItemContent, ItemHeader, ItemTitle } from "@/components/ui/item";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
+import { api } from "@padel-sport/backend/convex/_generated/api";
+import type { Doc } from "@padel-sport/backend/convex/components/tournaments/_generated/dataModel";
 import GroupTabs, {
   GroupMatchesList,
   useGroupTabs,

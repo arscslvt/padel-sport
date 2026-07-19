@@ -6,7 +6,7 @@ import {
   type ResponsiveDrawerProps,
 } from "@/components/ui/responsive-drawer";
 
-import { api } from "@/convex/_generated/api";
+import { api } from "@padel-sport/backend/convex/_generated/api";
 
 interface TeamsListDrawerProps extends ResponsiveDrawerProps {
   categoryName?: string;

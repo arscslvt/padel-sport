@@ -44,7 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { api } from "@/convex/_generated/api";
+import { api } from "@padel-sport/backend/convex/_generated/api";
 import { cn } from "@/lib/utils";
 
 const LEVELS = ["principiante", "intermedio", "avanzato"] as const;

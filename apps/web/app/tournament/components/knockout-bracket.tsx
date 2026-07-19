@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { Check, Clock3, Crown, Radio, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { api } from "@/convex/_generated/api";
+import { api } from "@padel-sport/backend/convex/_generated/api";
 import { cn } from "@/lib/utils";
 
 type Stage = "quarter" | "semi" | "final";

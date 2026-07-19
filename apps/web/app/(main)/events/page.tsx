@@ -19,7 +19,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { usePaginatedQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { api } from "@padel-sport/backend/convex/_generated/api";
 import { useState } from "react";
 import {
   Card,

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/responsive-drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
-import { api } from "@/convex/_generated/api";
+import { api } from "@padel-sport/backend/convex/_generated/api";
 import {
   type SelectedMatchDetails,
   useTournamentStore,

@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@padel-sport/backend": "workspace:*",
+    "convex": "^1.31.0",
     "@react-native-masked-view/masked-view": "0.3.2",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",

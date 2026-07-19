@@ -1,7 +1,7 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MatchCard from "./match.card";
 import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { api } from "@padel-sport/backend/convex/_generated/api";
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
