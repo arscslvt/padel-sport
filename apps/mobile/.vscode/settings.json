@@ -1,0 +1,13 @@
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit",
+    "source.sortMembers": "explicit"
+  },
+  "chat.tools.terminal.autoApprove": {
+    "/^cat app/\\\\\\\\\\(tabs\\\\\\\\\\)/_layout\\.tsx$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
+}
