@@ -1,8 +1,8 @@
 "use node";
 
-import { api, internal } from "@/convex/_generated/api";
-import { internalAction } from "@/convex/_generated/server";
-import { getMessagingClient } from "@/convex/utils/notification_client";
+import { api, internal } from "../../_generated/api";
+import { internalAction } from "../../_generated/server";
+import { getMessagingClient } from "../../utils/notification_client";
 import { v } from "convex/values";
 import { format } from "date-fns";
 

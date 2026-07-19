@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { components } from "@/convex/_generated/api";
-import { mutation } from "@/convex/_generated/server";
+import { components } from "../../../_generated/api";
+import { mutation } from "../../../_generated/server";
 
 export default mutation({
   args: {

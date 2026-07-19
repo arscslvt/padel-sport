@@ -1,5 +1,5 @@
-import { components } from "@/convex/_generated/api";
-import { query } from "@/convex/_generated/server";
+import { components } from "../../../_generated/api";
+import { query } from "../../../_generated/server";
 import { v } from "convex/values";
 
 export const byTournamentId = query({

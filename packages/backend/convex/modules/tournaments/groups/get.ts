@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { components } from "@/convex/_generated/api";
-import { query } from "@/convex/_generated/server";
+import { components } from "../../../_generated/api";
+import { query } from "../../../_generated/server";
 
 export const getGroupsByTournamentCategory = query({
   args: {

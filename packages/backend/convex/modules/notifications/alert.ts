@@ -1,7 +1,7 @@
 "use node";
 
-import { internalAction } from "@/convex/_generated/server";
-import { sendAlert } from "@/convex/utils/notification_client";
+import { internalAction } from "../../_generated/server";
+import { sendAlert } from "../../utils/notification_client";
 import { v } from "convex/values";
 
 const schema = {

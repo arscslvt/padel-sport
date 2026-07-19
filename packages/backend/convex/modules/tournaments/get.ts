@@ -1,6 +1,6 @@
-import { components } from "@/convex/_generated/api";
-import { query } from "@/convex/_generated/server";
-import type { Doc } from "@/convex/components/tournaments/_generated/dataModel";
+import { components } from "../../_generated/api";
+import { query } from "../../_generated/server";
+import type { Doc } from "../../components/tournaments/_generated/dataModel";
 import { v } from "convex/values";
 
 const bySlug = query({
