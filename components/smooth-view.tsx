@@ -1,11 +1,6 @@
 import { useTheme } from "@/hooks/use-theme";
-import {
-	Canvas,
-	Group,
-	RoundedRect,
-	rect,
-	rrect,
-} from "@shopify/react-native-skia";
+import { Canvas, Group, Path, Skia } from "@shopify/react-native-skia";
+import { getSvgPath } from "figma-squircle";
 import React from "react";
 import {
 	type LayoutChangeEvent,
@@ -87,42 +82,40 @@ export default function SmoothView({
 		}
 	};
 
-	// Approssimazione smoothing:
-	// aumentiamo leggermente il raggio effettivo
-	const effectiveRadius = radius * (1 + smoothing * 0.6);
+	const svgString = React.useMemo(() => {
+		if (layout.w === 0 || layout.h === 0) return null;
+
+		// Figma squircle expects smoothing between 0 and 1
+		const clampedSmoothing = Math.max(0, Math.min(1, smoothing));
+
+		return getSvgPath({
+			width: layout.w,
+			height: layout.h,
+			cornerRadius: radius,
+			cornerSmoothing: clampedSmoothing,
+		});
+	}, [layout.w, layout.h, radius, smoothing]);
+
+	const path = React.useMemo(() => {
+		if (!svgString) return null;
+		return Skia.Path.MakeFromSVGString(svgString);
+	}, [svgString]);
 
 	const inner = (
 		<>
-			{layout.w > 0 && layout.h > 0 && (
+			{layout.w > 0 && layout.h > 0 && path && (
 				<Canvas
 					style={[StyleSheet.absoluteFill, { zIndex: -1 }]}
 					pointerEvents="none"
 				>
-					<Group
-						clip={rrect(
-							rect(0, 0, layout.w, layout.h),
-							effectiveRadius,
-							effectiveRadius,
-						)}
-					>
-						<RoundedRect
-							x={0}
-							y={0}
-							width={layout.w}
-							height={layout.h}
-							r={effectiveRadius}
-							color={backgroundColor}
-						/>
+					<Group clip={path}>
+						<Path path={path} color={backgroundColor} />
 						{borderColor && borderWidth > 0 && (
-							<RoundedRect
-								x={borderWidth / 2}
-								y={borderWidth / 2}
-								width={Math.max(0, layout.w - borderWidth)}
-								height={Math.max(0, layout.h - borderWidth)}
-								r={Math.max(0, effectiveRadius - borderWidth / 2)}
+							<Path
+								path={path}
 								color={borderColor}
 								style="stroke"
-								strokeWidth={borderWidth}
+								strokeWidth={borderWidth * 2}
 							/>
 						)}
 					</Group>
@@ -148,6 +141,7 @@ export default function SmoothView({
 				disabled={disabled}
 				onLayout={onLayout}
 				style={[baseStyle, animatedStyle]}
+				hitSlop={8}
 			>
 				{inner}
 			</AnimatedPressable>

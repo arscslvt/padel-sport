@@ -20,9 +20,8 @@ export default function KpiCard({
 	const theme = useTheme();
 	return (
 		<SmoothView
-			radius={12}
-			smoothing={1.3}
-			shadow={false}
+			radius={22}
+			smoothing={4}
 			onPress={onPress}
 			style={{
 				flex: 1,

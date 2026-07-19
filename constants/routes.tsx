@@ -1,26 +1,35 @@
-interface Route {
+import type { SFSymbol } from "sf-symbols-typescript";
+
+type SFSymbolName = SFSymbol;
+
+interface TabRoute {
+	/** Nome del file route dentro app/(tabs) */
 	name: string;
-	displayName: string;
-	iconName: string;
+	/** Etichetta mostrata nella tab bar */
+	title: string;
+	/**
+	 * Nome SF Symbol: usato nativamente su iOS (NativeTabs / SymbolView),
+	 * mappato a Material Icons su Android/web da components/ui/icon-symbol.tsx
+	 */
+	icon: SFSymbolName;
 }
 
-export const routes: Route[] = [
+export const routes: TabRoute[] = [
 	{
 		name: "index",
-		displayName: "Home",
-		iconName: "house.fill",
+		title: "Home",
+		icon: "house.fill",
 	},
 	{
 		name: "bookings",
-		displayName: "Prenotazioni",
-		iconName: "calendar",
+		title: "Prenotazioni",
+		icon: "calendar",
 	},
 	{
 		name: "rankings",
-		displayName: "Classifiche",
-		iconName: "trophy",
+		title: "Classifiche",
+		icon: "trophy",
 	},
 ];
 
-export const RouteNames = routes.map((route) => route.name);
-export type { Route };
+export type { TabRoute };

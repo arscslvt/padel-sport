@@ -23,6 +23,16 @@ const MAPPING = {
 	calendar: "event",
 	trophy: "emoji-events",
 	"arrow.forward.circle.fill": "arrow-circle-right",
+	plus: "add",
+	xmark: "close",
+	"bolt.fill": "flash-on",
+	"envelope.fill": "mail",
+	"person.2.fill": "group",
+	"mappin.and.ellipse": "place",
+	"clock.fill": "schedule",
+	"note.text": "notes",
+	"checkmark.circle.fill": "check-circle",
+	"person.crop.circle.badge.plus": "person-add",
 } as IconMapping;
 
 /**
