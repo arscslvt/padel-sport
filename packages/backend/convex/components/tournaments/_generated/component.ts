@@ -107,11 +107,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               _creationTime: number;
               _id: string;
               currentStage:
-                | "group"
-                | "quarter"
-                | "semi"
-                | "final"
-                | "completed";
+                "group" | "quarter" | "semi" | "final" | "completed";
               icon?: string;
               name: string;
               slug: string;
@@ -132,11 +128,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             "internal",
             {
               currentStage?:
-                | "group"
-                | "quarter"
-                | "semi"
-                | "final"
-                | "completed";
+                "group" | "quarter" | "semi" | "final" | "completed";
               name: string;
               tournamentId: string;
             },

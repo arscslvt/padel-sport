@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 
 import RootStack from "@/components/root-stack";
+import ConvexClerkProvider from "@/providers/convex.provider";
 import AppThemeProvider from "@/providers/theme.provider";
 
 export const unstable_settings = {
@@ -30,9 +31,11 @@ export default function RootLayout() {
 	}
 
 	return (
-		<AppThemeProvider>
-			<RootStack />
-			<StatusBar style="auto" />
-		</AppThemeProvider>
+		<ConvexClerkProvider>
+			<AppThemeProvider>
+				<RootStack />
+				<StatusBar style="auto" />
+			</AppThemeProvider>
+		</ConvexClerkProvider>
 	);
 }

@@ -32,6 +32,14 @@ export default function RootStack() {
 				name="book"
 				options={{ ...sheetOptions, sheetAllowedDetents: [0.95] }}
 			/>
+			<Stack.Screen
+				name="auth"
+				options={{ ...sheetOptions, sheetAllowedDetents: [0.6, 1] }}
+			/>
+			<Stack.Screen
+				name="profile-setup"
+				options={{ ...sheetOptions, sheetAllowedDetents: [0.85, 1] }}
+			/>
 		</Stack>
 	);
 }

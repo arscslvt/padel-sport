@@ -1,7 +1,9 @@
-import { Image } from "expo-image";
+import { api } from "@padel-sport/backend/convex/_generated/api";
+import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+	ActivityIndicator,
 	Alert,
 	Platform,
 	Pressable,
@@ -10,19 +12,25 @@ import {
 	TextInput,
 	View,
 } from "react-native";
+import { Avatar } from "@/components/open-match-card";
 import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import Pill from "@/components/ui/pill";
+import { usePlayerGate } from "@/hooks/use-current-player";
+import { useTheme } from "@/hooks/use-theme";
 import {
-	currentUser,
+	convexErrorMessage,
 	formatLevel,
 	formatLevelRange,
-	joinModeMeta,
 	type JoinMode,
-	type LevelRange,
-} from "@/constants/mock-data";
-import { useTheme } from "@/hooks/use-theme";
+	joinModeMeta,
+} from "@/lib/format";
+
+interface LevelRange {
+	min: number;
+	max: number;
+}
 
 const LEVEL_RANGES: LevelRange[] = [
 	{ min: 1.0, max: 1.5 },
@@ -56,15 +64,20 @@ function nextDays(count: number) {
 export default function BookMatch() {
 	const theme = useTheme();
 	const router = useRouter();
+	const { player, gate } = usePlayerGate();
+	const createBooking = useMutation(api.modules.openMatches.create.default);
+	const [submitting, setSubmitting] = useState(false);
 
 	const days = nextDays(7);
 
 	// Il livello di default è quello dell'utente creatore
 	const defaultRangeIndex = Math.max(
 		0,
-		LEVEL_RANGES.findIndex(
-			(r) => currentUser.level >= r.min - 0.5 && currentUser.level <= r.max,
-		),
+		player
+			? LEVEL_RANGES.findIndex(
+					(r) => player.level >= r.min - 0.5 && player.level <= r.max,
+				)
+			: 1,
 	);
 
 	const [levelIndex, setLevelIndex] = useState(defaultRangeIndex);
@@ -74,28 +87,50 @@ export default function BookMatch() {
 	const [keepOpen, setKeepOpen] = useState(true);
 	const [joinMode, setJoinMode] = useState<JoinMode>("direct");
 
-	// Per ora l'unico giocatore presente è il creatore (dati mock)
-	const players = [currentUser];
-	const freeSlots = MAX_PLAYERS - players.length;
+	// L'unico giocatore certo è il creatore; gli altri si uniscono dopo
+	const freeSlots = MAX_PLAYERS - 1;
 
-	const handleConfirm = () => {
-		if (!timeSlot) {
-			Alert.alert("Manca l'orario", "Scegli un orario per la partita.");
-			return;
-		}
+	const handleConfirm = () =>
+		gate(async () => {
+			if (!timeSlot) {
+				Alert.alert("Manca l'orario", "Scegli un orario per la partita.");
+				return;
+			}
 
-		const summary = [
-			`${days[dayIndex].label} alle ${timeSlot}`,
-			`Livello ${formatLevelRange(LEVEL_RANGES[levelIndex])}`,
-			keepOpen
-				? `Partita aperta (${joinModeMeta[joinMode].label.toLowerCase()})`
-				: "Partita privata",
-		].join("\n");
+			const [hours, minutes] = timeSlot.split(":").map(Number);
+			const bookingDate = new Date(days[dayIndex].date);
+			bookingDate.setHours(hours, minutes, 0, 0);
 
-		Alert.alert("Prenotazione confermata 🎾", summary, [
-			{ text: "OK", onPress: () => router.back() },
-		]);
-	};
+			const range = LEVEL_RANGES[levelIndex];
+
+			setSubmitting(true);
+			try {
+				await createBooking({
+					bookingDate: bookingDate.getTime(),
+					levelMin: range.min,
+					levelMax: range.max,
+					open: keepOpen,
+					joinMode: keepOpen ? joinMode : undefined,
+					notes: notes.trim() || undefined,
+				});
+
+				const summary = [
+					`${days[dayIndex].label} alle ${timeSlot}`,
+					`Livello ${formatLevelRange(range.min, range.max)}`,
+					keepOpen
+						? `Partita aperta (${joinModeMeta[joinMode].label.toLowerCase()})`
+						: "Partita privata",
+				].join("\n");
+
+				Alert.alert("Prenotazione confermata 🎾", summary, [
+					{ text: "OK", onPress: () => router.back() },
+				]);
+			} catch (err) {
+				Alert.alert("Ops", convexErrorMessage(err));
+			} finally {
+				setSubmitting(false);
+			}
+		});
 
 	return (
 		<ScrollView
@@ -129,13 +164,17 @@ export default function BookMatch() {
 			{/* Livello richiesto */}
 			<Section
 				title="Livello richiesto"
-				subtitle={`Di default il tuo livello (${formatLevel(currentUser.level)})`}
+				subtitle={
+					player
+						? `Di default il tuo livello (${formatLevel(player.level)})`
+						: "Scegli il livello dei giocatori che cerchi"
+				}
 			>
 				<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
 					{LEVEL_RANGES.map((range, index) => (
 						<SelectChip
 							key={range.min}
-							label={formatLevelRange(range)}
+							label={formatLevelRange(range.min, range.max)}
 							selected={index === levelIndex}
 							onPress={() => setLevelIndex(index)}
 						/>
@@ -203,27 +242,16 @@ export default function BookMatch() {
 
 			{/* Giocatori già presenti */}
 			<Section
-				title={`Giocatori (${players.length}/${MAX_PLAYERS})`}
+				title={`Giocatori (1/${MAX_PLAYERS})`}
 				subtitle="Gli inviti diretti arriveranno con un prossimo aggiornamento"
 			>
 				<View style={{ flexDirection: "row", gap: 10 }}>
-					{players.map((player) => (
-						<View key={player.id} style={{ alignItems: "center", gap: 6 }}>
-							<Image
-								source={player.avatarUrl}
-								style={{
-									width: 52,
-									height: 52,
-									borderRadius: 999,
-									borderWidth: 1,
-									borderColor: theme.border,
-								}}
-							/>
-							<ThemedText style={{ fontSize: 12, color: theme.textMuted }}>
-								Tu
-							</ThemedText>
-						</View>
-					))}
+					<View style={{ alignItems: "center", gap: 6 }}>
+						<Avatar url={player?.avatarUrl} size={52} />
+						<ThemedText style={{ fontSize: 12, color: theme.textMuted }}>
+							Tu
+						</ThemedText>
+					</View>
 					{Array.from({ length: freeSlots }).map((_, index) => (
 						<Pressable
 							key={`slot-${index}`}
@@ -345,25 +373,32 @@ export default function BookMatch() {
 				radius={20}
 				smoothing={1}
 				backgroundColor={theme.tint}
-				onPress={handleConfirm}
+				onPress={submitting ? undefined : handleConfirm}
 				style={{
 					height: 56,
 					flexDirection: "row",
 					alignItems: "center",
 					justifyContent: "center",
 					gap: 8,
+					opacity: submitting ? 0.7 : 1,
 				}}
 			>
-				<IconSymbol name="calendar" size={18} color={theme.tintForeground} />
-				<ThemedText
-					style={{
-						fontSize: 17,
-						fontWeight: "600",
-						color: theme.tintForeground,
-					}}
-				>
-					Conferma prenotazione
-				</ThemedText>
+				{submitting ? (
+					<ActivityIndicator color={theme.tintForeground} />
+				) : (
+					<>
+						<IconSymbol name="calendar" size={18} color={theme.tintForeground} />
+						<ThemedText
+							style={{
+								fontSize: 17,
+								fontWeight: "600",
+								color: theme.tintForeground,
+							}}
+						>
+							Conferma prenotazione
+						</ThemedText>
+					</>
+				)}
 			</SmoothView>
 		</ScrollView>
 	);

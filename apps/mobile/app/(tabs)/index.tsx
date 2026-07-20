@@ -1,5 +1,7 @@
+import { api } from "@padel-sport/backend/convex/_generated/api";
+import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
-import { ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import KpiCard from "@/components/kpi-card";
 import OpenMatchCard from "@/components/open-match-card";
@@ -7,7 +9,7 @@ import SmoothView from "@/components/smooth-view";
 import TabScreen from "@/components/tab-screen";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { openMatches } from "@/constants/mock-data";
+import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTabBarInset } from "@/hooks/use-tab-bar-inset";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -16,6 +18,8 @@ export default function TabsIndex() {
 	const theme = useTheme();
 	const router = useRouter();
 	const tabBarInset = useTabBarInset();
+	const openMatches = useQuery(api.modules.openMatches.list.default);
+	const { player } = useCurrentPlayer();
 
 	return (
 		<TabScreen>
@@ -164,18 +168,30 @@ export default function TabsIndex() {
 						</ThemedText>
 					</View>
 
-					{openMatches.map((match) => (
-						<OpenMatchCard
-							key={match.id}
-							match={match}
-							onPress={() =>
-								router.push({
-									pathname: "/match/[id]",
-									params: { id: match.id },
-								})
-							}
-						/>
-					))}
+					{openMatches === undefined ? (
+						<ActivityIndicator style={{ marginVertical: 24 }} />
+					) : openMatches.length === 0 ? (
+						<ThemedText
+							type="subtitle"
+							style={{ fontSize: 15, lineHeight: 22, marginVertical: 12 }}
+						>
+							Nessuna partita aperta al momento. Creane una tu!
+						</ThemedText>
+					) : (
+						openMatches.map((match) => (
+							<OpenMatchCard
+								key={match.id}
+								match={match}
+								myLevel={player?.level}
+								onPress={() =>
+									router.push({
+										pathname: "/match/[id]",
+										params: { id: match.id },
+									})
+								}
+							/>
+						))
+					)}
 				</View>
 			</ScrollView>
 		</TabScreen>

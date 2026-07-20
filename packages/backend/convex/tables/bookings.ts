@@ -35,12 +35,15 @@ const bookings = defineTable({
   createdAt: v.float64(),
   slot: v.id("slots"),
   code: v.optional(v.string()),
+  /** Giocatore dell'app mobile che ha creato la prenotazione (assente per il web) */
+  createdByPlayer: v.optional(v.id("players")),
 })
   .index("by_booking_date", ["bookingDate"])
   .index("by_created_at", ["createdAt"])
   .index("by_status", ["status"])
   .index("by_code", ["code"])
-  .index("by_notification_status", ["notificationStatus"]);
+  .index("by_notification_status", ["notificationStatus"])
+  .index("by_created_by_player", ["createdByPlayer", "bookingDate"]);
 
 export default bookings;
 export { notificationStatus };

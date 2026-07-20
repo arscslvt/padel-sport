@@ -18,6 +18,14 @@ import type * as events_list from "../events/list.js";
 import type * as events_new from "../events/new.js";
 import type * as modules_notifications_alert from "../modules/notifications/alert.js";
 import type * as modules_notifications_confirmation from "../modules/notifications/confirmation.js";
+import type * as modules_openMatches_create from "../modules/openMatches/create.js";
+import type * as modules_openMatches_get from "../modules/openMatches/get.js";
+import type * as modules_openMatches_join from "../modules/openMatches/join.js";
+import type * as modules_openMatches_lib from "../modules/openMatches/lib.js";
+import type * as modules_openMatches_list from "../modules/openMatches/list.js";
+import type * as modules_openMatches_my from "../modules/openMatches/my.js";
+import type * as modules_openMatches_players from "../modules/openMatches/players.js";
+import type * as modules_openMatches_requests from "../modules/openMatches/requests.js";
 import type * as modules_tournaments_advancements from "../modules/tournaments/advancements.js";
 import type * as modules_tournaments_categories_get from "../modules/tournaments/categories/get.js";
 import type * as modules_tournaments_edit from "../modules/tournaments/edit.js";
@@ -30,7 +38,10 @@ import type * as modules_tournaments_teams_get from "../modules/tournaments/team
 import type * as slots_listActive from "../slots/listActive.js";
 import type * as tables_bookings from "../tables/bookings.js";
 import type * as tables_events from "../tables/events.js";
+import type * as tables_joinRequests from "../tables/joinRequests.js";
 import type * as tables_links from "../tables/links.js";
+import type * as tables_openMatches from "../tables/openMatches.js";
+import type * as tables_players from "../tables/players.js";
 import type * as tables_slots from "../tables/slots.js";
 import type * as utils_notification_client from "../utils/notification_client.js";
 
@@ -51,6 +62,14 @@ declare const fullApi: ApiFromModules<{
   "events/new": typeof events_new;
   "modules/notifications/alert": typeof modules_notifications_alert;
   "modules/notifications/confirmation": typeof modules_notifications_confirmation;
+  "modules/openMatches/create": typeof modules_openMatches_create;
+  "modules/openMatches/get": typeof modules_openMatches_get;
+  "modules/openMatches/join": typeof modules_openMatches_join;
+  "modules/openMatches/lib": typeof modules_openMatches_lib;
+  "modules/openMatches/list": typeof modules_openMatches_list;
+  "modules/openMatches/my": typeof modules_openMatches_my;
+  "modules/openMatches/players": typeof modules_openMatches_players;
+  "modules/openMatches/requests": typeof modules_openMatches_requests;
   "modules/tournaments/advancements": typeof modules_tournaments_advancements;
   "modules/tournaments/categories/get": typeof modules_tournaments_categories_get;
   "modules/tournaments/edit": typeof modules_tournaments_edit;
@@ -63,7 +82,10 @@ declare const fullApi: ApiFromModules<{
   "slots/listActive": typeof slots_listActive;
   "tables/bookings": typeof tables_bookings;
   "tables/events": typeof tables_events;
+  "tables/joinRequests": typeof tables_joinRequests;
   "tables/links": typeof tables_links;
+  "tables/openMatches": typeof tables_openMatches;
+  "tables/players": typeof tables_players;
   "tables/slots": typeof tables_slots;
   "utils/notification_client": typeof utils_notification_client;
 }>;
@@ -95,462 +117,5 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  tournaments: {
-    modules: {
-      advancements: {
-        generateKnockoutMatches: FunctionReference<
-          "mutation",
-          "internal",
-          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
-          { generatedMatches: number; matchIds: Array<string> }
-        >;
-        getCategoryStandings: FunctionReference<
-          "query",
-          "internal",
-          { tournamentCategoryId: string },
-          Array<{
-            defeats: number;
-            dg: number;
-            games: number;
-            id: string;
-            position: number;
-            pts: number;
-            slot?: string;
-            team: string;
-            victories: number;
-          }>
-        >;
-        getKnockoutCandidatesByCategoryStage: FunctionReference<
-          "query",
-          "internal",
-          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
-          Array<{ id: string; position?: number; slot?: string; team: string }>
-        >;
-        getSelectionByCategoryStage: FunctionReference<
-          "query",
-          "internal",
-          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
-          {
-            _creationTime: number;
-            _id: string;
-            manualPairings?: Array<{ teamAId: string; teamBId: string }>;
-            mode?: "smart" | "manual";
-            qualifiedTeamIds: Array<string>;
-            stage: "quarter" | "semi" | "final";
-            tournamentCategoryId: string;
-            updatedAt: number;
-          } | null
-        >;
-        resetKnockoutMatches: FunctionReference<
-          "mutation",
-          "internal",
-          { stage: "quarter" | "semi" | "final"; tournamentCategoryId: string },
-          {
-            currentStage: "group" | "quarter" | "semi" | "final" | "completed";
-            deletedMatches: number;
-            deletedSelections: number;
-          }
-        >;
-        saveSelectionByCategoryStage: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            manualPairings?: Array<{ teamAId: string; teamBId: string }>;
-            mode?: "smart" | "manual";
-            qualifiedTeamIds: Array<string>;
-            stage: "quarter" | "semi" | "final";
-            tournamentCategoryId: string;
-          },
-          string
-        >;
-      };
-      categories: {
-        get: {
-          byTournamentId: FunctionReference<
-            "query",
-            "internal",
-            { tournamentId: string },
-            Array<{
-              _creationTime: number;
-              _id: string;
-              currentStage:
-                | "group"
-                | "quarter"
-                | "semi"
-                | "final"
-                | "completed";
-              icon?: string;
-              name: string;
-              slug: string;
-              teams: Array<{
-                _creationTime: number;
-                _id: string;
-                teamId: string;
-                tournamentCategoryId: string;
-              }>;
-              tournamentId: string;
-            }>
-          >;
-        };
-        new: {
-          default: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              currentStage?:
-                | "group"
-                | "quarter"
-                | "semi"
-                | "final"
-                | "completed";
-              name: string;
-              tournamentId: string;
-            },
-            any
-          >;
-        };
-      };
-      groups: {
-        assign: {
-          assignTeamToGroup: FunctionReference<
-            "mutation",
-            "internal",
-            { groupId: string; teamId: string },
-            any
-          >;
-        };
-        create: {
-          createGroup: FunctionReference<
-            "mutation",
-            "internal",
-            { name: string; tournamentCategoryId: string },
-            any
-          >;
-        };
-        get: {
-          getGroupsByTournamentCategoryId: FunctionReference<
-            "query",
-            "internal",
-            { tournamentCategoryId: string },
-            Array<{
-              _creationTime: number;
-              _id: string;
-              name: string;
-              tournamentCategoryId: string;
-            }>
-          >;
-          getGroupStandings: FunctionReference<
-            "query",
-            "internal",
-            { groupId: string },
-            any
-          >;
-        };
-      };
-      matches: {
-        delete: {
-          deleteMatchesByGroupId: FunctionReference<
-            "mutation",
-            "internal",
-            { groupId: string },
-            any
-          >;
-        };
-        edit: {
-          editById: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              comment?: string;
-              dateStart?: string | null;
-              matchId: string;
-              sets?: Array<{ teamAPoints: number; teamBPoints: number }>;
-              stage?: "group" | "round16" | "quarter" | "semi" | "final";
-              status?: "scheduled" | "live" | "completed";
-            },
-            any
-          >;
-          editByTeamIds: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              data: any;
-              team1Id: string;
-              team2Id: string;
-              tournamentId: string;
-            },
-            any
-          >;
-        };
-        generate: {
-          generateMatches: FunctionReference<
-            "mutation",
-            "internal",
-            { groupId: string },
-            any
-          >;
-        };
-        get: {
-          getAllByTournamentId: FunctionReference<
-            "query",
-            "internal",
-            { tournamentId: string },
-            any
-          >;
-          getLiveMatchesByTournamentId: FunctionReference<
-            "query",
-            "internal",
-            { tournamentId: string },
-            Array<{
-              _id: string;
-              bracketPosition?: number;
-              categoryId?: string;
-              categoryName?: string;
-              groupId?: string;
-              groupName?: string;
-              points: { teamA: number; teamB: number };
-              scheduledAt?: string;
-              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
-              stage?: string;
-              status: "scheduled" | "in_progress" | "finished";
-              teams: Array<{
-                name: string;
-                players: Array<{
-                  firstName?: string;
-                  lastName: string;
-                  name: string;
-                }>;
-              }>;
-              tournamentTeamAId: string;
-              tournamentTeamBId: string;
-            }>
-          >;
-          getMatchByPlayerName: FunctionReference<
-            "query",
-            "internal",
-            { playerName: string },
-            Array<{
-              _id: string;
-              bracketPosition?: number;
-              categoryId?: string;
-              categoryName?: string;
-              groupId?: string;
-              groupName?: string;
-              points: { teamA: number; teamB: number };
-              scheduledAt?: string;
-              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
-              stage?: string;
-              status: "scheduled" | "in_progress" | "finished";
-              teams: Array<{
-                name: string;
-                players: Array<{
-                  firstName?: string;
-                  lastName: string;
-                  name: string;
-                }>;
-              }>;
-              tournamentTeamAId: string;
-              tournamentTeamBId: string;
-            }>
-          >;
-          getMatchesByCategoryAndStage: FunctionReference<
-            "query",
-            "internal",
-            {
-              stage: "quarter" | "semi" | "final";
-              tournamentCategoryId: string;
-            },
-            Array<{
-              _id: string;
-              bracketPosition?: number;
-              categoryId?: string;
-              categoryName?: string;
-              groupId?: string;
-              groupName?: string;
-              points: { teamA: number; teamB: number };
-              scheduledAt?: string;
-              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
-              stage?: string;
-              status: "scheduled" | "in_progress" | "finished";
-              teams: Array<{
-                name: string;
-                players: Array<{
-                  firstName?: string;
-                  lastName: string;
-                  name: string;
-                }>;
-              }>;
-              tournamentTeamAId: string;
-              tournamentTeamBId: string;
-            }>
-          >;
-          getMatchesByGroupId: FunctionReference<
-            "query",
-            "internal",
-            { groupId: string; teamName?: string },
-            Array<{
-              _id: string;
-              bracketPosition?: number;
-              categoryId?: string;
-              categoryName?: string;
-              groupId?: string;
-              groupName?: string;
-              points: { teamA: number; teamB: number };
-              scheduledAt?: string;
-              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
-              stage?: string;
-              status: "scheduled" | "in_progress" | "finished";
-              teams: Array<{
-                name: string;
-                players: Array<{
-                  firstName?: string;
-                  lastName: string;
-                  name: string;
-                }>;
-              }>;
-              tournamentTeamAId: string;
-              tournamentTeamBId: string;
-            }>
-          >;
-          getTodayCompletedMatchesByTournamentId: FunctionReference<
-            "query",
-            "internal",
-            { tournamentId: string },
-            Array<{
-              _id: string;
-              bracketPosition?: number;
-              categoryId?: string;
-              categoryName?: string;
-              groupId?: string;
-              groupName?: string;
-              points: { teamA: number; teamB: number };
-              scheduledAt?: string;
-              sets: Array<{ teamAPoints: number; teamBPoints: number }>;
-              stage?: string;
-              status: "scheduled" | "in_progress" | "finished";
-              teams: Array<{
-                name: string;
-                players: Array<{
-                  firstName?: string;
-                  lastName: string;
-                  name: string;
-                }>;
-              }>;
-              tournamentTeamAId: string;
-              tournamentTeamBId: string;
-            }>
-          >;
-        };
-      };
-      players: {
-        add: {
-          default: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              email?: string;
-              firstName: string;
-              image?: string;
-              lastName: string;
-            },
-            any
-          >;
-        };
-        get: {
-          byFullName: FunctionReference<
-            "query",
-            "internal",
-            { firstName: string; lastName: string },
-            any
-          >;
-          search: FunctionReference<
-            "query",
-            "internal",
-            { query: string },
-            any
-          >;
-        };
-      };
-      teams: {
-        create: {
-          default: FunctionReference<
-            "mutation",
-            "internal",
-            { image?: string; name: string; playersIds: Array<string> },
-            any
-          >;
-        };
-        get: {
-          getTeamsByCategoryId: FunctionReference<
-            "query",
-            "internal",
-            { categoryId: string },
-            Array<{
-              _creationTime: number;
-              _id: string;
-              image?: string;
-              name?: string;
-              players: Array<{
-                _creationTime: number;
-                _id: string;
-                email?: string;
-                firstName?: string;
-                image?: string;
-                lastName: string;
-              }>;
-              playersIds: Array<string>;
-            }>
-          >;
-        };
-      };
-      tournaments: {
-        create: {
-          default: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              endDate?: string;
-              name: string;
-              slug?: string;
-              startDate: string;
-            },
-            any
-          >;
-        };
-        edit: {
-          editComment: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              comment?: { content?: string; title: string };
-              tournamentId: string;
-            },
-            any
-          >;
-        };
-        get: {
-          bySlug: FunctionReference<"query", "internal", { slug: string }, any>;
-          list: FunctionReference<"query", "internal", {}, any>;
-        };
-        teams: {
-          add: {
-            default: FunctionReference<
-              "mutation",
-              "internal",
-              { teamId: string; tournamentCategoryId: string },
-              any
-            >;
-          };
-          update: {
-            sync: FunctionReference<
-              "mutation",
-              "internal",
-              { tournamentId: string },
-              any
-            >;
-          };
-        };
-      };
-    };
-  };
+  tournaments: import("../components/tournaments/_generated/component.js").ComponentApi<"tournaments">;
 };

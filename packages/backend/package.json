@@ -13,6 +13,7 @@
     "twilio": "^6.0.0"
   },
   "devDependencies": {
+    "@types/node": "^20.19.27",
     "typescript": "^5.9.3"
   }
 }

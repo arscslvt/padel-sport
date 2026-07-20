@@ -1,21 +1,32 @@
-import { Image } from "expo-image";
+import { api } from "@padel-sport/backend/convex/_generated/api";
+import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
+import { useState } from "react";
+import {
+	ActivityIndicator,
+	Alert,
+	Platform,
+	Pressable,
+	ScrollView,
+	View,
+} from "react-native";
+import { Avatar } from "@/components/open-match-card";
 import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import Pill from "@/components/ui/pill";
+import { usePlayerGate } from "@/hooks/use-current-player";
+import { useTheme } from "@/hooks/use-theme";
 import {
+	convexErrorMessage,
 	formatLevel,
 	formatLevelRange,
 	formatMatchDay,
 	formatMatchTime,
-	getMatchCreator,
-	getOpenMatch,
 	joinModeMeta,
-	type Player,
-} from "@/constants/mock-data";
-import { useTheme } from "@/hooks/use-theme";
+	type PlayerView,
+} from "@/lib/format";
 
 /**
  * Dettaglio di una partita aperta, presentato come sheet
@@ -25,9 +36,23 @@ export default function OpenMatchDetail() {
 	const theme = useTheme();
 	const router = useRouter();
 	const { id } = useLocalSearchParams<{ id: string }>();
-	const match = getOpenMatch(id);
+	const matchId = id as Id<"openMatches">;
 
-	if (!match) {
+	const match = useQuery(api.modules.openMatches.get.default, { matchId });
+	const join = useMutation(api.modules.openMatches.join.default);
+	const sendRequest = useMutation(api.modules.openMatches.requests.request);
+	const { gate } = usePlayerGate();
+	const [submitting, setSubmitting] = useState(false);
+
+	if (match === undefined) {
+		return (
+			<View style={{ padding: 48, alignItems: "center" }}>
+				<ActivityIndicator />
+			</View>
+		);
+	}
+
+	if (match === null) {
 		return (
 			<View style={{ padding: 24, alignItems: "center", gap: 8 }}>
 				<ThemedText type="title">Partita non trovata</ThemedText>
@@ -38,26 +63,59 @@ export default function OpenMatchDetail() {
 		);
 	}
 
-	const creator = getMatchCreator(match);
+	const creator = match.creator;
 	const freeSlots = match.maxPlayers - match.players.length;
-	const emptySlots = Array.from({ length: freeSlots });
+	const emptySlots = Array.from({ length: Math.max(0, freeSlots) });
 	const isDirect = match.joinMode === "direct";
+	const { viewer } = match;
 
-	const handleJoin = () => {
-		if (isDirect) {
-			Alert.alert(
-				"Sei in partita! 🎾",
-				`Ti sei unito alla partita di ${creator.name}. Ci vediamo in campo!`,
-				[{ text: "OK", onPress: () => router.back() }],
-			);
-		} else {
-			Alert.alert(
-				"Richiesta inviata",
-				`${creator.name} riceverà la tua richiesta di partecipazione e potrà accettarla o rifiutarla.`,
-				[{ text: "OK", onPress: () => router.back() }],
-			);
+	const handleJoin = () =>
+		gate(async () => {
+			setSubmitting(true);
+			try {
+				if (isDirect) {
+					await join({ matchId });
+					Alert.alert(
+						"Sei in partita! 🎾",
+						`Ti sei unito alla partita di ${creator.name}. Ci vediamo in campo!`,
+						[{ text: "OK", onPress: () => router.back() }],
+					);
+				} else {
+					await sendRequest({ matchId });
+					Alert.alert(
+						"Richiesta inviata",
+						`${creator.name} riceverà la tua richiesta di partecipazione e potrà accettarla o rifiutarla.`,
+						[{ text: "OK" }],
+					);
+				}
+			} catch (err) {
+				Alert.alert("Ops", convexErrorMessage(err));
+			} finally {
+				setSubmitting(false);
+			}
+		});
+
+	// Stato della CTA in base al viewer
+	const cta = (() => {
+		if (viewer.isMember) {
+			return { label: "Sei in partita", icon: "checkmark.circle.fill", disabled: true };
 		}
-	};
+		if (match.status === "full" || freeSlots <= 0) {
+			return { label: "Partita completa", icon: "xmark", disabled: true };
+		}
+		if (match.status === "cancelled") {
+			return { label: "Partita annullata", icon: "xmark", disabled: true };
+		}
+		if (viewer.requestStatus === "pending") {
+			return { label: "Richiesta inviata", icon: "envelope.fill", disabled: true };
+		}
+		if (viewer.levelOk === false) {
+			return { label: "Livello non adatto", icon: "xmark", disabled: true };
+		}
+		return isDirect
+			? { label: "Unisciti alla partita", icon: "bolt.fill", disabled: false }
+			: { label: "Richiedi di partecipare", icon: "envelope.fill", disabled: false };
+	})();
 
 	return (
 		<ScrollView
@@ -73,19 +131,20 @@ export default function OpenMatchDetail() {
 						tinted={isDirect}
 					/>
 					<ThemedText type="title">
-						{formatMatchDay(match.dateISO)}, {formatMatchTime(match.dateISO)}
+						{formatMatchDay(match.matchDate)}, {formatMatchTime(match.matchDate)}
 					</ThemedText>
-					<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-						<IconSymbol
-							name="mappin.and.ellipse"
-							size={16}
-							color={theme.textMuted}
-						/>
-						<ThemedText type="subtitle" style={{ fontSize: 15 }}>
-							{match.club}
-							{match.court ? ` · ${match.court}` : ""}
-						</ThemedText>
-					</View>
+					{match.court && (
+						<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+							<IconSymbol
+								name="mappin.and.ellipse"
+								size={16}
+								color={theme.textMuted}
+							/>
+							<ThemedText type="subtitle" style={{ fontSize: 15 }}>
+								{match.court}
+							</ThemedText>
+						</View>
+					)}
 				</View>
 				{Platform.OS !== "ios" && (
 					<Pressable
@@ -106,7 +165,7 @@ export default function OpenMatchDetail() {
 			<View style={{ flexDirection: "row", gap: 10 }}>
 				<InfoBox
 					label="Livello richiesto"
-					value={formatLevelRange(match.requiredLevel)}
+					value={formatLevelRange(match.levelMin, match.levelMax)}
 				/>
 				<InfoBox
 					label="Posti liberi"
@@ -122,7 +181,9 @@ export default function OpenMatchDetail() {
 
 			{/* Giocatori */}
 			<View style={{ gap: 10 }}>
-				<SectionLabel>Giocatori ({match.players.length}/{match.maxPlayers})</SectionLabel>
+				<SectionLabel>
+					Giocatori ({match.players.length}/{match.maxPlayers})
+				</SectionLabel>
 				<View style={{ gap: 8 }}>
 					{match.players
 						.filter((p) => p.id !== creator.id)
@@ -135,6 +196,11 @@ export default function OpenMatchDetail() {
 				</View>
 			</View>
 
+			{/* Richieste pendenti, visibili solo al creatore */}
+			{viewer.isCreator && match.joinMode === "request" && (
+				<PendingRequests matchId={matchId} />
+			)}
+
 			{/* Note */}
 			{match.notes && (
 				<View style={{ gap: 10 }}>
@@ -145,9 +211,7 @@ export default function OpenMatchDetail() {
 						backgroundColor={theme.muted}
 						shadow={false}
 					>
-						<ThemedText
-							style={{ padding: 14, fontSize: 15, lineHeight: 22 }}
-						>
+						<ThemedText style={{ padding: 14, fontSize: 15, lineHeight: 22 }}>
 							{match.notes}
 						</ThemedText>
 					</SmoothView>
@@ -165,32 +229,127 @@ export default function OpenMatchDetail() {
 			<SmoothView
 				radius={20}
 				smoothing={1}
-				backgroundColor={theme.tint}
-				onPress={handleJoin}
+				backgroundColor={cta.disabled ? theme.muted : theme.tint}
+				onPress={cta.disabled || submitting ? undefined : handleJoin}
 				style={{
 					height: 56,
 					flexDirection: "row",
 					alignItems: "center",
 					justifyContent: "center",
 					gap: 8,
+					opacity: submitting ? 0.7 : 1,
 				}}
 			>
-				<IconSymbol
-					name={isDirect ? "bolt.fill" : "envelope.fill"}
-					size={18}
-					color={theme.tintForeground}
-				/>
-				<ThemedText
-					style={{
-						fontSize: 17,
-						fontWeight: "600",
-						color: theme.tintForeground,
-					}}
-				>
-					{isDirect ? "Unisciti alla partita" : "Richiedi di partecipare"}
-				</ThemedText>
+				{submitting ? (
+					<ActivityIndicator color={theme.tintForeground} />
+				) : (
+					<>
+						<IconSymbol
+							name={cta.icon}
+							size={18}
+							color={cta.disabled ? theme.textMuted : theme.tintForeground}
+						/>
+						<ThemedText
+							style={{
+								fontSize: 17,
+								fontWeight: "600",
+								color: cta.disabled ? theme.textMuted : theme.tintForeground,
+							}}
+						>
+							{cta.label}
+						</ThemedText>
+					</>
+				)}
 			</SmoothView>
 		</ScrollView>
+	);
+}
+
+/** Richieste di partecipazione pendenti con azioni accetta/rifiuta. */
+function PendingRequests({ matchId }: { matchId: Id<"openMatches"> }) {
+	const theme = useTheme();
+	const requests = useQuery(api.modules.openMatches.requests.listForMatch, {
+		matchId,
+	});
+	const respond = useMutation(api.modules.openMatches.requests.respond);
+
+	if (!requests || requests.length === 0) return null;
+
+	const handleRespond = async (
+		requestId: Id<"joinRequests">,
+		accept: boolean,
+	) => {
+		try {
+			await respond({ requestId, accept });
+		} catch (err) {
+			Alert.alert("Ops", convexErrorMessage(err));
+		}
+	};
+
+	return (
+		<View style={{ gap: 10 }}>
+			<SectionLabel>Richieste di partecipazione</SectionLabel>
+			<View style={{ gap: 8 }}>
+				{requests.map((request) => (
+					<SmoothView
+						key={request.id}
+						radius={18}
+						smoothing={1}
+						backgroundColor={theme.elevated}
+						borderColor={theme.border}
+						borderWidth={1}
+						shadow={false}
+					>
+						<View
+							style={{
+								flexDirection: "row",
+								alignItems: "center",
+								gap: 10,
+								padding: 12,
+							}}
+						>
+							<Avatar url={request.player.avatarUrl} size={38} />
+							<View style={{ flex: 1 }}>
+								<ThemedText style={{ fontSize: 15, fontWeight: "600" }}>
+									{request.player.name}
+								</ThemedText>
+								<ThemedText
+									style={{ fontSize: 12, lineHeight: 16, color: theme.textMuted }}
+								>
+									Liv. {formatLevel(request.player.level)}
+								</ThemedText>
+							</View>
+							<Pressable
+								onPress={() => handleRespond(request.id, false)}
+								hitSlop={8}
+								style={{
+									backgroundColor: theme.muted,
+									borderRadius: 999,
+									padding: 10,
+								}}
+							>
+								<IconSymbol name="xmark" size={16} color={theme.textMuted} />
+							</Pressable>
+							<Pressable
+								onPress={() => handleRespond(request.id, true)}
+								hitSlop={8}
+								style={{
+									backgroundColor: theme.tint,
+									borderRadius: 999,
+									padding: 10,
+								}}
+							>
+								<IconSymbol
+									name="checkmark"
+									size={16}
+									color={theme.tintForeground}
+								/>
+							</Pressable>
+						</View>
+					</SmoothView>
+				))}
+			</View>
+		</View>
 	);
 }
 
@@ -229,9 +388,7 @@ function InfoBox({ label, value }: { label: string; value: string }) {
 				>
 					{label}
 				</ThemedText>
-				<ThemedText
-					style={{ fontSize: 18, lineHeight: 24, fontWeight: "700" }}
-				>
+				<ThemedText style={{ fontSize: 18, lineHeight: 24, fontWeight: "700" }}>
 					{value}
 				</ThemedText>
 			</View>
@@ -243,7 +400,7 @@ function PlayerRow({
 	player,
 	highlight,
 }: {
-	player: Player;
+	player: PlayerView;
 	highlight?: string;
 }) {
 	const theme = useTheme();
@@ -264,16 +421,7 @@ function PlayerRow({
 					padding: 12,
 				}}
 			>
-				<Image
-					source={player.avatarUrl}
-					style={{
-						width: 38,
-						height: 38,
-						borderRadius: 999,
-						borderWidth: 1,
-						borderColor: theme.border,
-					}}
-				/>
+				<Avatar url={player.avatarUrl} size={38} />
 				<View style={{ flex: 1 }}>
 					<ThemedText style={{ fontSize: 15, fontWeight: "600" }}>
 						{player.name}
