@@ -3,14 +3,13 @@ import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import BookingCard from "@/components/booking-card";
 import SmoothView from "@/components/smooth-view";
 import TabScreen from "@/components/tab-screen";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import Pill from "@/components/ui/pill";
 import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
-import { formatMatchDate } from "@/lib/format";
 
 export default function BookingsScreen() {
 	const { top } = useSafeAreaInsets();
@@ -71,7 +70,7 @@ export default function BookingsScreen() {
 								radius={22}
 								smoothing={6}
 								onPress={() =>
-									router.push(isSignedIn ? "/book" : "/auth")
+									isSignedIn ? router.navigate("/book") : router.push("/auth")
 								}
 							>
 								<IconSymbol
@@ -95,80 +94,19 @@ export default function BookingsScreen() {
 							{bookings.map((booking) => {
 								const matchId = booking.matchId;
 								return (
-								<SmoothView
-									key={booking.bookingId}
-									radius={18}
-									smoothing={1}
-									backgroundColor={theme.elevated}
-									borderColor={theme.border}
-									borderWidth={1}
-									shadow={false}
-									onPress={
-										matchId
-											? () =>
-													router.push({
-														pathname: "/match/[id]",
-														params: { id: matchId },
-													})
-											: undefined
-									}
-								>
-									<View style={{ padding: 14, gap: 8 }}>
-										<View
-											style={{
-												flexDirection: "row",
-												alignItems: "center",
-												justifyContent: "space-between",
-											}}
-										>
-											<ThemedText style={{ fontSize: 16, fontWeight: "600" }}>
-												{formatMatchDate(booking.bookingDate)}
-											</ThemedText>
-											{booking.open && (
-												<Pill
-													label={
-														booking.isCreator ? "Partita aperta" : "Ti sei unito"
-													}
-													tinted
-												/>
-											)}
-										</View>
-										{booking.court && (
-											<View
-												style={{
-													flexDirection: "row",
-													alignItems: "center",
-													gap: 6,
-												}}
-											>
-												<IconSymbol
-													name="mappin.and.ellipse"
-													size={14}
-													color={theme.textMuted}
-												/>
-												<ThemedText
-													style={{ fontSize: 13, color: theme.textMuted }}
-												>
-													{booking.court}
-												</ThemedText>
-											</View>
-										)}
-										<ThemedText style={{ fontSize: 13, color: theme.textMuted }}>
-											{booking.playerNames.join(", ")}
-										</ThemedText>
-										{booking.code && (
-											<ThemedText
-												style={{
-													fontSize: 12,
-													color: theme.textMuted,
-													letterSpacing: 1,
-												}}
-											>
-												Codice {booking.code}
-											</ThemedText>
-										)}
-									</View>
-								</SmoothView>
+									<BookingCard
+										key={booking.bookingId}
+										booking={booking}
+										onPress={
+											matchId
+												? () =>
+														router.push({
+															pathname: "/match/[id]",
+															params: { id: matchId },
+														})
+												: undefined
+										}
+									/>
 								);
 							})}
 						</View>

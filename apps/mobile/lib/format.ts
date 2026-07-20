@@ -36,6 +36,16 @@ export function formatMatchDay(timestamp: number): string {
 	);
 }
 
+/** Mese e anno, per date poco precise come l'iscrizione ("maggio 2026"). */
+export function formatMonthYear(timestamp: number): string {
+	return capitalize(
+		new Date(timestamp).toLocaleDateString("it-IT", {
+			month: "long",
+			year: "numeric",
+		}),
+	);
+}
+
 export function formatMatchTime(timestamp: number): string {
 	return new Date(timestamp).toLocaleTimeString("it-IT", {
 		hour: "2-digit",

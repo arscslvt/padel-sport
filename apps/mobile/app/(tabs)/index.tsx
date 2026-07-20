@@ -3,23 +3,36 @@ import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import BookingCard from "@/components/booking-card";
 import KpiCard from "@/components/kpi-card";
 import OpenMatchCard from "@/components/open-match-card";
-import SmoothView from "@/components/smooth-view";
 import TabScreen from "@/components/tab-screen";
 import { ThemedText } from "@/components/themed-text";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTabBarInset } from "@/hooks/use-tab-bar-inset";
 import { useTheme } from "@/hooks/use-theme";
+import { mockProfile } from "@/lib/mock-profile";
 
 export default function TabsIndex() {
 	const { top } = useSafeAreaInsets();
 	const theme = useTheme();
 	const router = useRouter();
 	const tabBarInset = useTabBarInset();
-	const openMatches = useQuery(api.modules.openMatches.list.default);
-	const { player } = useCurrentPlayer();
+	// Le partite create dall'utente sono già escluse lato server
+	const openMatches = useQuery(api.modules.openMatches.list.default, {});
+	const { player, isSignedIn } = useCurrentPlayer();
+	const myBookings = useQuery(
+		api.modules.openMatches.my.default,
+		isSignedIn ? {} : "skip",
+	);
+
+	// Le prenotazioni arrivano ordinate per data crescente: la prima ancora
+	// valida è la prossima in programma.
+	const nextBooking = myBookings?.find((booking) => !booking.cancelled) ?? null;
+
+	// Punteggio e partite giocate sono ancora dimostrativi (lib/mock-profile.ts):
+	// stessi numeri del profilo, così le due schermate restano coerenti
+	const profile = player ? mockProfile(player.id) : null;
 
 	return (
 		<TabScreen>
@@ -54,11 +67,11 @@ export default function TabsIndex() {
 									color: theme.textTinted,
 								}}
 							>
-								4
+								{profile?.stats.monthlyMatches ?? "–"}
 							</ThemedText>
 						}
 						iconName="arrow.forward.circle.fill"
-						// onPress={() => navigate("/profile/matches")}
+						onPress={() => router.push(isSignedIn ? "/profile" : "/auth")}
 					/>
 
 					<KpiCard
@@ -72,90 +85,33 @@ export default function TabsIndex() {
 									color: theme.textTinted,
 								}}
 							>
-								2.3
+								{profile?.stats.score.toFixed(1) ?? "–"}
 							</ThemedText>
 						}
 						iconName="arrow.forward.circle.fill"
-						// onPress={() => navigate("/profile/score")}
+						onPress={() => router.push(isSignedIn ? "/profile" : "/auth")}
 					/>
 				</View>
 
-				<View style={{ paddingHorizontal: 16, marginTop: 24 }}>
-					<View>
-						<ThemedText type="title">Prenotazioni</ThemedText>
-					</View>
+				{/* La prossima prenotazione compare solo se esiste: l'elenco
+				    completo vive nella tab dedicata */}
+				{nextBooking && (
+					<View style={{ paddingHorizontal: 16, marginTop: 24, gap: 14 }}>
+						<ThemedText type="title">Prossima prenotazione</ThemedText>
 
-					<View
-						style={{
-							marginVertical: 18,
-							flexDirection: "row",
-							alignItems: "center",
-							gap: 18,
-						}}
-					>
-						<View style={{ flex: 1 }}>
-							<ThemedText
-								style={{
-									fontSize: 16,
-									lineHeight: 24,
-									fontWeight: "500",
-								}}
-							>
-								Non hai ancora prenotato
-							</ThemedText>
-							<ThemedText
-								type="subtitle"
-								style={{
-									fontSize: 16,
-									lineHeight: 24,
-									fontWeight: 400,
-								}}
-								numberOfLines={2}
-							>
-								Che aspetti? Prenota e riunisci la tua squadra
-							</ThemedText>
-						</View>
-						<View
-							style={{
-								flexDirection: "row",
-								alignItems: "center",
-								gap: 4,
-							}}
-						>
-							<SmoothView
-								backgroundColor={theme.tint}
-								radius={22}
-								smoothing={1}
-								style={{
-									height: 90,
-									width: 90,
-									gap: 4,
-									justifyContent: "center",
-									alignItems: "center",
-								}}
-								onPress={() => router.push("/book")}
-							>
-								<IconSymbol
-									name="plus"
-									size={24}
-									color={theme.tintForeground}
-								/>
-								<ThemedText
-									type="link"
-									style={{
-										fontSize: 14,
-										lineHeight: 22,
-										fontWeight: "500",
-										color: theme.tintForeground,
-										textAlign: "center",
-									}}
-								>
-									Prenota
-								</ThemedText>
-							</SmoothView>
-						</View>
+						<BookingCard
+							booking={nextBooking}
+							onPress={() =>
+								nextBooking.matchId
+									? router.push({
+											pathname: "/match/[id]",
+											params: { id: nextBooking.matchId },
+										})
+									: router.navigate("/bookings")
+							}
+						/>
 					</View>
-				</View>
+				)}
 
 				<View style={{ paddingHorizontal: 16, marginTop: 24, gap: 14 }}>
 					<View style={{ gap: 2 }}>

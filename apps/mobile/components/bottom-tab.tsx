@@ -1,5 +1,6 @@
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import Animated, {
 	interpolateColor,
 	useAnimatedStyle,
@@ -8,24 +9,40 @@ import Animated, {
 	withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { routes, type TabRoute } from "@/constants/routes";
+import { bookAction, routes, type TabRoute } from "@/constants/routes";
 import { useTheme } from "@/hooks/use-theme";
 import SmoothView from "./smooth-view";
 import { IconSymbol } from "./ui/icon-symbol";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
+const BAR_HEIGHT = 72;
+const DETACHED_SIZE = 64;
+const GAP = 10;
+const MAX_ITEM_WIDTH = 120;
+
 interface BottomTabProps extends BottomTabBarProps {}
 
 export function BottomTab({ state, navigation }: BottomTabProps) {
 	const { bottom } = useSafeAreaInsets();
+	const { width } = useWindowDimensions();
+	const router = useRouter();
 	const theme = useTheme();
+
+	// Il pulsante "Prenota" sta fuori dalla barra: la larghezza degli item si
+	// adatta allo spazio rimasto, così su schermi stretti nulla va a capo.
+	const itemWidth = Math.min(
+		MAX_ITEM_WIDTH,
+		Math.floor((width - 24 - (DETACHED_SIZE + GAP)) / routes.length),
+	);
+
+	const activeIndex = state.index;
 
 	const animatedIndicatorStyle = useAnimatedStyle(() => {
 		return {
 			transform: [
 				{
-					translateX: withSpring(state.index * 120, {
+					translateX: withSpring(activeIndex * itemWidth, {
 						damping: 24,
 						stiffness: 360,
 						mass: 1,
@@ -42,6 +59,8 @@ export function BottomTab({ state, navigation }: BottomTabProps) {
 				paddingBottom: bottom,
 				flexDirection: "row",
 				justifyContent: "center",
+				alignItems: "center",
+				gap: GAP,
 			}}
 		>
 			<SmoothView
@@ -50,7 +69,7 @@ export function BottomTab({ state, navigation }: BottomTabProps) {
 				style={{
 					flexDirection: "row",
 					justifyContent: "space-around",
-					height: 72,
+					height: BAR_HEIGHT,
 					position: "relative",
 				}}
 				borderWidth={1}
@@ -62,7 +81,7 @@ export function BottomTab({ state, navigation }: BottomTabProps) {
 						{
 							position: "absolute",
 							left: 0,
-							width: 120,
+							width: itemWidth,
 							height: "100%",
 							padding: 4,
 						},
@@ -82,10 +101,30 @@ export function BottomTab({ state, navigation }: BottomTabProps) {
 						key={route.name}
 						iconName={route.icon}
 						label={route.title}
-						state={state.index === index ? "active" : "default"}
+						width={itemWidth}
+						state={index === activeIndex ? "active" : "default"}
 						onPress={() => navigation.navigate(route.name)}
 					/>
 				))}
+			</SmoothView>
+
+			{/* Azione staccata: apre lo sheet di prenotazione, non è una tab.
+			    Stesso materiale della barra, icona nel colore d'accento */}
+			<SmoothView
+				radius={100}
+				smoothing={1.6}
+				borderWidth={1}
+				borderColor={theme.tabBarBorder}
+				backgroundColor={theme.elevated}
+				style={{
+					height: DETACHED_SIZE,
+					width: DETACHED_SIZE,
+					alignItems: "center",
+					justifyContent: "center",
+				}}
+				onPress={() => router.push(bookAction.href)}
+			>
+				<IconSymbol name={bookAction.icon} size={28} color={theme.tint} />
 			</SmoothView>
 		</View>
 	);
@@ -94,6 +133,7 @@ export function BottomTab({ state, navigation }: BottomTabProps) {
 type BottomTabItemProps = {
 	iconName: TabRoute["icon"];
 	label: string;
+	width?: number;
 	state: "active" | "default";
 	onPress: () => void;
 };
@@ -101,6 +141,7 @@ type BottomTabItemProps = {
 export function BottomTabItem({
 	iconName,
 	label,
+	width = MAX_ITEM_WIDTH,
 	state = "default",
 	onPress,
 }: BottomTabItemProps) {
@@ -131,8 +172,8 @@ export function BottomTabItem({
 	return (
 		<Pressable
 			style={{
-				width: 120,
-				paddingHorizontal: 16,
+				width,
+				paddingHorizontal: 8,
 				alignItems: "center",
 				justifyContent: "center",
 				gap: 4,

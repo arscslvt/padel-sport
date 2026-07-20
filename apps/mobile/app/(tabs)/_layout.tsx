@@ -1,13 +1,20 @@
 import { Tabs } from "expo-router";
+import { Platform } from "react-native";
 import { BottomTab } from "@/components/bottom-tab";
-import { routes } from "@/constants/routes";
+import NativeTabsLayout from "@/components/native-tabs-layout";
+import { routes, USE_NATIVE_TABS } from "@/constants/routes";
 
 /**
- * Layout tab per Android e web: mantiene la bottom bar custom animata.
- * Su iOS viene usato _layout.ios.tsx con la tab bar nativa (Liquid Glass).
+ * Layout delle tab: per ora la bottom bar custom animata su tutte le
+ * piattaforme, così il pulsante "Prenota" resta agganciato alla barra.
+ * Con `USE_NATIVE_TABS` si torna alla tab bar nativa su iOS.
  * L'header è renderizzato dalle singole schermate tramite <TabScreen>.
  */
 export default function TabsLayout() {
+	if (USE_NATIVE_TABS && Platform.OS === "ios") {
+		return <NativeTabsLayout />;
+	}
+
 	return (
 		<Tabs
 			safeAreaInsets={{ bottom: 0 }}

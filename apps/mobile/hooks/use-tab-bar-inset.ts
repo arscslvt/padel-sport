@@ -1,12 +1,12 @@
 import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { USE_NATIVE_TABS } from "@/constants/routes";
 
 /**
- * Altezza della tab bar flottante sopra la safe area inferiore:
- * su iOS la UITabBar nativa (Liquid Glass), su Android/web la
- * BottomTab custom alta 72 (components/bottom-tab.tsx).
+ * Altezza della tab bar flottante sopra la safe area inferiore: la BottomTab
+ * custom è alta 72 (components/bottom-tab.tsx), la UITabBar nativa di iOS 54.
  */
-const TAB_BAR_HEIGHT = Platform.OS === "ios" ? 54 : 72;
+const TAB_BAR_HEIGHT = USE_NATIVE_TABS && Platform.OS === "ios" ? 54 : 72;
 
 /**
  * Padding inferiore da applicare al contenuto scrollabile delle schermate

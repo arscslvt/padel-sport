@@ -1,8 +1,9 @@
-import { useTheme } from "@/hooks/use-theme";
+import { useUser } from "@clerk/clerk-expo";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import {
 	Pressable,
 	StyleSheet,
@@ -11,6 +12,11 @@ import {
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Avatar } from "@/components/open-match-card";
+import Pill from "@/components/ui/pill";
+import { useCurrentPlayer } from "@/hooks/use-current-player";
+import { useTheme } from "@/hooks/use-theme";
+import { mockProfile } from "@/lib/mock-profile";
 
 type HeaderProps = {
 	withSafeAreaInsets?: boolean;
@@ -23,6 +29,21 @@ export default function Header({
 	const { top } = useSafeAreaInsets();
 	const theme = useTheme();
 	const colorScheme = useColorScheme();
+	const router = useRouter();
+	const { user } = useUser();
+	const { isSignedIn, player } = useCurrentPlayer();
+
+	// Il profilo giocatore Convex ha la precedenza (nome scelto in app),
+	// con fallback sui dati dell'account Clerk
+	const displayName =
+		player?.name ??
+		user?.firstName ??
+		user?.fullName ??
+		user?.primaryEmailAddress?.emailAddress ??
+		"Giocatore";
+	const avatarUrl = player?.avatarUrl ?? user?.imageUrl;
+	// Il codice giocatore non esiste ancora su Convex: derivato dall'utente
+	const code = user ? mockProfile(player?.id ?? user.id).code : null;
 
 	return (
 		<View
@@ -70,40 +91,49 @@ export default function Header({
 				/>
 			</View>
 
-			<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-				<View style={{ flexDirection: "column", alignItems: "flex-end" }}>
-					<Text style={{ fontWeight: "600", color: theme.text }}>Antonio</Text>
-					<Text style={{ fontWeight: "600", color: `${theme.textMuted}90` }}>
-						#<Text style={{ color: theme.text, opacity: 0.7 }}>29103</Text>
-					</Text>
-				</View>
-
+			{isSignedIn ? (
 				<Pressable
 					style={({ pressed }) => [
-						styles.avatarButton,
+						{ flexDirection: "row", alignItems: "center", gap: 6 },
 						pressed && { opacity: 0.8 },
 					]}
 					hitSlop={8}
+					accessibilityRole="button"
+					accessibilityLabel="Il tuo profilo"
+					onPress={() => router.push("/profile")}
 				>
-					<View
-						style={{
-							...styles.avatarImageContainer,
-							borderWidth: 1,
-							borderColor: theme.border,
-						}}
-					>
-						<Image
-							source={"https://api.dicebear.com/9.x/glass/png?seed=Sadie"}
+					<View style={{ flexDirection: "column", alignItems: "flex-end" }}>
+						<Text style={{ fontWeight: "600", color: theme.text }}>
+							{displayName}
+						</Text>
+						{code && (
+							<Text style={{ fontWeight: "600", color: `${theme.textMuted}90` }}>
+								#<Text style={{ color: theme.text, opacity: 0.7 }}>{code}</Text>
+							</Text>
+						)}
+					</View>
+
+					<View style={styles.avatarButton}>
+						<View
 							style={{
-								objectFit: "contain",
-								width: "100%",
-								height: "100%",
-								borderRadius: 9999,
+								...styles.avatarImageContainer,
+								borderWidth: 1,
+								borderColor: theme.border,
 							}}
-						/>
+						>
+							<Avatar url={avatarUrl} size={46} borderWidth={0} />
+						</View>
 					</View>
 				</Pressable>
-			</View>
+			) : (
+				<Pressable
+					style={({ pressed }) => [pressed && { opacity: 0.8 }]}
+					hitSlop={8}
+					onPress={() => router.push("/auth")}
+				>
+					<Pill label="Accedi" icon="person.crop.circle.badge.plus" tinted />
+				</Pressable>
+			)}
 		</View>
 	);
 }
