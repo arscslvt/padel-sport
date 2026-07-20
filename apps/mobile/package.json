@@ -5,6 +5,8 @@
   "scripts": {
     "start": "expo start",
     "dev": "expo run:ios --device",
+    "clean": "rm -rf \"$TMPDIR/metro-cache\" \"$TMPDIR\"/metro-file-map-* .expo/web/cache",
+    "dev:clean": "bun run clean && bun run dev",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",

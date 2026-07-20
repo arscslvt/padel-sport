@@ -1,0 +1,5 @@
+# Metro (Expo) non risolve la struttura isolata di bun (node_modules/.bun/...,
+# stile pnpm) attraverso i symlink delle dipendenze transitive.
+# Il linker "hoisted" produce un node_modules piatto, supportato nativamente.
+[install]
+linker = "hoisted"
