@@ -35,63 +35,6 @@ function toTime(minutes: number) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                   Livelli                                  */
-/* -------------------------------------------------------------------------- */
-
-export interface LevelRange {
-	min: number;
-	max: number;
-	/** Nome della fascia, mostrato accanto al range numerico. */
-	label: string;
-	/** Descrizione breve per aiutare chi non conosce la scala. */
-	hint: string;
-}
-
-/** Fasce proposte in prenotazione: coprono l'intera scala 1.0 – 5.0. */
-export const LEVEL_RANGES: LevelRange[] = [
-	{
-		min: 1,
-		max: 1.5,
-		label: "Principiante",
-		hint: "Prime partite, si impara giocando.",
-	},
-	{
-		min: 2,
-		max: 2.5,
-		label: "Intermedio",
-		hint: "Scambi continui e colpi base sicuri.",
-	},
-	{
-		min: 3,
-		max: 3.5,
-		label: "Avanzato",
-		hint: "Tattica di coppia e gioco sulle pareti.",
-	},
-	{
-		min: 4,
-		max: 5,
-		label: "Esperto",
-		hint: "Ritmo alto, partite competitive.",
-	},
-];
-
-/**
- * Fascia che contiene il livello del giocatore: è quella pre-selezionata in
- * prenotazione. Senza profilo proponiamo la fascia intermedia.
- */
-export function findLevelRangeIndex(level?: number | null): number {
-	if (level === undefined || level === null) return 1;
-
-	const index = LEVEL_RANGES.findIndex(
-		(range) => level >= range.min && level <= range.max,
-	);
-	if (index >= 0) return index;
-
-	// Livelli fuori scala o a cavallo tra due fasce: prendiamo l'estremo vicino
-	return level < LEVEL_RANGES[0].min ? 0 : LEVEL_RANGES.length - 1;
-}
-
-/* -------------------------------------------------------------------------- */
 /*                                   Giorni                                   */
 /* -------------------------------------------------------------------------- */
 

@@ -40,6 +40,8 @@ const MAPPING = {
 	"arrow.right": "arrow-forward",
 	lifepreserver: "support",
 	"lock.fill": "lock",
+	"camera.fill": "photo-camera",
+	"questionmark.circle": "help-outline",
 } as IconMapping;
 
 /**

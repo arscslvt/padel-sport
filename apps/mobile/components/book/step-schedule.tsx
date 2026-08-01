@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { ThemedText } from "@/components/themed-text";
 import {
 	Hint,
 	SectionLabel,
 	SelectChip,
 	selectionFeedback,
-} from "@/components/book/primitives";
-import { ThemedText } from "@/components/themed-text";
+} from "@/components/ui/choice";
 import { useTheme } from "@/hooks/use-theme";
 import {
 	type BookingDay,

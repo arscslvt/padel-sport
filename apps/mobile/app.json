@@ -59,6 +59,13 @@
         }
       ],
       "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Consenti l'accesso alle foto per scegliere l'immagine del tuo profilo giocatore.",
+          "cameraPermission": "Consenti l'accesso alla fotocamera per scattare l'immagine del tuo profilo giocatore."
+        }
+      ],
       "expo-web-browser",
       "expo-secure-store"
     ],

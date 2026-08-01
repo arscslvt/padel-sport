@@ -1,8 +1,8 @@
 import type { ComponentProps } from "react";
 import { Pressable, View } from "react-native";
-import { SectionLabel } from "@/components/book/primitives";
 import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
+import { SectionLabel } from "@/components/ui/choice";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TextField } from "@/components/ui/text-field";
 import { useTheme } from "@/hooks/use-theme";
@@ -10,10 +10,10 @@ import {
 	type BookingDay,
 	formatDayLong,
 	formatSlotRange,
-	type LevelRange,
 	MAX_PLAYERS,
 } from "@/lib/booking";
 import { formatLevelRange, type JoinMode, joinModeMeta } from "@/lib/format";
+import type { LevelRange } from "@/lib/levels";
 
 type IconName = ComponentProps<typeof IconSymbol>["name"];
 

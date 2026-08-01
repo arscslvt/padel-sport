@@ -4,43 +4,36 @@ import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import {
 	Alert,
-	type LayoutChangeEvent,
 	Platform,
 	Pressable,
-	ScrollView,
-	StyleSheet,
+	type ScrollView,
 	View,
 } from "react-native";
 import Animated, {
-	useAnimatedKeyboard,
 	useAnimatedStyle,
 	useSharedValue,
 	withTiming,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StepProgress, selectionFeedback } from "@/components/book/primitives";
 import StepLevel from "@/components/book/step-level";
 import StepPlayers from "@/components/book/step-players";
 import StepSchedule from "@/components/book/step-schedule";
 import StepSummary from "@/components/book/step-summary";
+import SheetLayout from "@/components/sheet-layout";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
+import { StepProgress, selectionFeedback } from "@/components/ui/choice";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import ProgressiveBlur from "@/components/ui/progressive-blur";
 import { usePlayerGate } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 import {
 	availableSlots,
 	bookableDays,
 	combineDateAndTime,
-	findLevelRangeIndex,
 	formatDayLong,
 	formatSlotRange,
-	LEVEL_RANGES,
 } from "@/lib/booking";
 import { convexErrorMessage, type JoinMode } from "@/lib/format";
-
-const CONTENT_PADDING = 20;
+import { findLevelRangeIndex, LEVEL_RANGES } from "@/lib/levels";
 
 /** I passi del flusso, nell'ordine in cui vengono presentati. */
 const STEPS = [
@@ -99,24 +92,9 @@ export default function BookMatch() {
 	const { player, gate } = usePlayerGate();
 	const createBooking = useMutation(api.modules.openMatches.create.default);
 
-	const insets = useSafeAreaInsets();
 	const scrollRef = useRef<ScrollView>(null);
 	const [submitting, setSubmitting] = useState(false);
 	const [step, setStep] = useState(0);
-
-	// Le barre sono sovrapposte al contenuto: misurandole sappiamo di quanto
-	// scostare il contenuto perché non finisca sotto al blur. Le stime iniziali
-	// evitano il salto al primo layout e cambiano col numero di righe del titolo.
-	const [barHeights, setBarHeights] = useState({ header: 152, footer: 110 });
-	const measureBar =
-		(bar: "header" | "footer") => (event: LayoutChangeEvent) => {
-			const { height } = event.nativeEvent.layout;
-			setBarHeights((current) =>
-				Math.round(current[bar]) === Math.round(height)
-					? current
-					: { ...current, [bar]: height },
-			);
-		};
 	const [draft, setDraft] = useState<BookingDraft>({
 		levelIndex: null,
 		dayIndex: null,
@@ -131,15 +109,6 @@ export default function BookMatch() {
 	// posizionerebbe male il contenuto.
 	const stepOpacity = useSharedValue(1);
 	const stepStyle = useAnimatedStyle(() => ({ opacity: stepOpacity.value }));
-
-	// La barra in basso sale con la tastiera (nota dell'ultimo passo): è una
-	// traslazione, quindi non tocca il layout del foglio.
-	const keyboard = useAnimatedKeyboard();
-	const footerStyle = useAnimatedStyle(() => ({
-		transform: [
-			{ translateY: -Math.max(keyboard.height.value - insets.bottom, 0) },
-		],
-	}));
 
 	const days = useMemo(() => bookableDays(), []);
 	const slotsByDay = useMemo(
@@ -229,84 +198,10 @@ export default function BookMatch() {
 		});
 
 	return (
-		/*
-		 * Dentro un form sheet react-native-screens assegna nativamente alla prima
-		 * ScrollView tra i figli del contenuto il frame dell'intero foglio
-		 * (RNSScreenContentWrapper.mm), e avverte se i figli sono più di due.
-		 * Quindi: la lista per prima, e una sola vista sopra con le due barre
-		 * flottanti, che il contenuto attraversa scorrendo sotto al blur.
-		 */
-		<>
-			<ScrollView
-				ref={scrollRef}
-				style={{ flex: 1, backgroundColor: theme.background }}
-				contentContainerStyle={{
-					paddingHorizontal: CONTENT_PADDING,
-					paddingTop: barHeights.header,
-					paddingBottom: barHeights.footer + 24,
-					gap: 24,
-				}}
-				keyboardShouldPersistTaps="handled"
-				showsVerticalScrollIndicator={false}
-				// Su iOS lascia spazio alla tastiera quando si scrive la nota
-				automaticallyAdjustKeyboardInsets
-			>
-				<Animated.View style={[{ gap: 24 }, stepStyle]}>
-					{step === 0 && (
-						<StepLevel
-							selectedIndex={levelIndex}
-							onSelect={(index) => patch({ levelIndex: index })}
-							playerLevel={player?.level}
-							suggested={draft.levelIndex === null}
-						/>
-					)}
-					{step === 1 && (
-						<StepSchedule
-							days={days}
-							slotsByDay={slotsByDay}
-							dayIndex={dayIndex}
-							time={draft.time}
-							onSelectDay={selectDay}
-							onSelectTime={(time) => patch({ time })}
-						/>
-					)}
-					{step === 2 && (
-						<StepPlayers
-							player={player}
-							keepOpen={draft.keepOpen}
-							joinMode={draft.joinMode}
-							onKeepOpenChange={(keepOpen) => patch({ keepOpen })}
-							onJoinModeChange={(joinMode) => patch({ joinMode })}
-						/>
-					)}
-					{step === 3 && draft.time && (
-						<StepSummary
-							level={LEVEL_RANGES[levelIndex]}
-							day={days[dayIndex]}
-							time={draft.time}
-							keepOpen={draft.keepOpen}
-							joinMode={draft.joinMode}
-							notes={draft.notes}
-							onNotesChange={(notes) => patch({ notes })}
-							onEdit={goTo}
-						/>
-					)}
-				</Animated.View>
-			</ScrollView>
-
-			{/* Barre flottanti: `box-none` lascia scorrere il contenuto in mezzo */}
-			<View style={styles.bars} pointerEvents="box-none" collapsable={false}>
-				{/* Intestazione: avanzamento, ritorno al passo precedente e titolo */}
-				<View
-					onLayout={measureBar("header")}
-					style={{
-						paddingHorizontal: CONTENT_PADDING,
-						paddingTop: 18,
-						paddingBottom: 16,
-						gap: 14,
-					}}
-				>
-					<ProgressiveBlur direction="down" />
+		<SheetLayout
+			scrollRef={scrollRef}
+			header={
+				<>
 					<StepProgress step={step} total={STEPS.length} />
 
 					<View
@@ -353,43 +248,60 @@ export default function BookMatch() {
 							{STEPS[step].subtitle}
 						</ThemedText>
 					</View>
-				</View>
-
-				{/* Azione principale, sempre a portata di pollice */}
-				<Animated.View
-					onLayout={measureBar("footer")}
-					style={[
-						{
-							paddingHorizontal: CONTENT_PADDING,
-							paddingTop: 16,
-							paddingBottom: Math.max(insets.bottom, 16),
-						},
-						footerStyle,
-					]}
-				>
-					<ProgressiveBlur direction="up" />
-					<Button
-						label={primaryLabel(step, player !== null, draft.time !== null)}
-						icon={isLastStep ? "checkmark.circle.fill" : "arrow.right"}
-						iconPosition={isLastStep ? "leading" : "trailing"}
-						onPress={isLastStep ? handleConfirm : () => goTo(step + 1)}
-						disabled={!canContinue}
-						loading={submitting}
+				</>
+			}
+			footer={
+				<Button
+					label={primaryLabel(step, player !== null, draft.time !== null)}
+					icon={isLastStep ? "checkmark.circle.fill" : "arrow.right"}
+					iconPosition={isLastStep ? "leading" : "trailing"}
+					onPress={isLastStep ? handleConfirm : () => goTo(step + 1)}
+					disabled={!canContinue}
+					loading={submitting}
+				/>
+			}
+		>
+			<Animated.View style={[{ gap: 24 }, stepStyle]}>
+				{step === 0 && (
+					<StepLevel
+						selectedIndex={levelIndex}
+						onSelect={(index) => patch({ levelIndex: index })}
+						playerLevel={player?.level}
+						suggested={draft.levelIndex === null}
 					/>
-				</Animated.View>
-			</View>
-		</>
+				)}
+				{step === 1 && (
+					<StepSchedule
+						days={days}
+						slotsByDay={slotsByDay}
+						dayIndex={dayIndex}
+						time={draft.time}
+						onSelectDay={selectDay}
+						onSelectTime={(time) => patch({ time })}
+					/>
+				)}
+				{step === 2 && (
+					<StepPlayers
+						player={player}
+						keepOpen={draft.keepOpen}
+						joinMode={draft.joinMode}
+						onKeepOpenChange={(keepOpen) => patch({ keepOpen })}
+						onJoinModeChange={(joinMode) => patch({ joinMode })}
+					/>
+				)}
+				{step === 3 && draft.time && (
+					<StepSummary
+						level={LEVEL_RANGES[levelIndex]}
+						day={days[dayIndex]}
+						time={draft.time}
+						keepOpen={draft.keepOpen}
+						joinMode={draft.joinMode}
+						notes={draft.notes}
+						onNotesChange={(notes) => patch({ notes })}
+						onEdit={goTo}
+					/>
+				)}
+			</Animated.View>
+		</SheetLayout>
 	);
 }
-
-const styles = StyleSheet.create({
-	/** Le due barre agli estremi del foglio, sopra il contenuto scorrevole. */
-	bars: {
-		position: "absolute",
-		top: 0,
-		bottom: 0,
-		left: 0,
-		right: 0,
-		justifyContent: "space-between",
-	},
-});

@@ -1,7 +1,7 @@
 import { View } from "react-native";
-import { ChoiceCard, Hint } from "@/components/book/primitives";
-import { findLevelRangeIndex, LEVEL_RANGES } from "@/lib/booking";
+import { ChoiceCard, Hint } from "@/components/ui/choice";
 import { formatLevel, formatLevelRange } from "@/lib/format";
+import { findLevelRangeIndex, LEVEL_RANGES } from "@/lib/levels";
 
 /**
  * Primo passo: la fascia di livello dei giocatori cercati.

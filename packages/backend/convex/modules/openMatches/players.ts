@@ -20,8 +20,13 @@ export const upsertProfile = mutation({
   args: {
     name: v.string(),
     level: v.number(),
+    /**
+     * Immagine scelta in app: l'upload avviene su Clerk, che la serve dal
+     * proprio CDN. Se assente teniamo quella già nota.
+     */
+    avatarUrl: v.optional(v.string()),
   },
-  handler: async (ctx, { name, level }) => {
+  handler: async (ctx, { name, level, avatarUrl: chosenAvatarUrl }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Devi effettuare l'accesso.");
@@ -36,8 +41,13 @@ export const upsertProfile = mutation({
       throw new Error("Il livello deve essere compreso tra 1.0 e 5.0.");
     }
 
+    // L'immagine scelta in app ha la precedenza su quella dell'account Clerk,
+    // che nel token può essere ancora quella precedente.
     const avatarUrl =
-      typeof identity.pictureUrl === "string" ? identity.pictureUrl : undefined;
+      chosenAvatarUrl ??
+      (typeof identity.pictureUrl === "string"
+        ? identity.pictureUrl
+        : undefined);
 
     const existing = await ctx.db
       .query("players")

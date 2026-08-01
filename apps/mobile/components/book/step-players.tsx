@@ -1,12 +1,12 @@
 import { Alert, Pressable, View } from "react-native";
+import { Avatar } from "@/components/open-match-card";
+import { ThemedText } from "@/components/themed-text";
 import {
 	ChoiceCard,
 	Hint,
 	NestedOption,
 	SectionLabel,
-} from "@/components/book/primitives";
-import { Avatar } from "@/components/open-match-card";
-import { ThemedText } from "@/components/themed-text";
+} from "@/components/ui/choice";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useTheme } from "@/hooks/use-theme";
 import { MAX_PLAYERS } from "@/lib/booking";
