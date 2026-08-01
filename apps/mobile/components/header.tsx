@@ -1,8 +1,5 @@
 import { useUser } from "@clerk/clerk-expo";
-import MaskedView from "@react-native-masked-view/masked-view";
-import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
 	Pressable,
@@ -14,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/open-match-card";
 import Pill from "@/components/ui/pill";
+import ProgressiveBlur from "@/components/ui/progressive-blur";
 import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 import { mockProfile } from "@/lib/mock-profile";
@@ -50,36 +48,7 @@ export default function Header({
 			style={[styles.header, { paddingTop: withSafeAreaInsets ? top : 0 }]}
 			{...props}
 		>
-			{/* Progressive blur: il blur sfuma verso il basso tramite mask, e il gradiente
-			    del colore di sfondo (pieno in alto → trasparente) copre il tint grigio
-			    del materiale di sistema senza creare un velo uniforme */}
-			<View style={StyleSheet.absoluteFill} pointerEvents="none">
-				<MaskedView
-					style={StyleSheet.absoluteFill}
-					maskElement={
-						<LinearGradient
-							colors={["black", "black", "transparent"]}
-							locations={[0, 0.55, 1]}
-							style={StyleSheet.absoluteFill}
-						/>
-					}
-				>
-					<BlurView
-						intensity={60}
-						tint={
-							colorScheme === "dark"
-								? "systemUltraThinMaterialDark"
-								: "systemUltraThinMaterialLight"
-						}
-						style={StyleSheet.absoluteFill}
-					/>
-				</MaskedView>
-				<LinearGradient
-					colors={[theme.background, `${theme.background}00`]}
-					locations={[0.35, 1]}
-					style={StyleSheet.absoluteFill}
-				/>
-			</View>
+			<ProgressiveBlur />
 			<View style={{ ...styles.leading, paddingLeft: 14 }}>
 				<Image
 					source={
@@ -107,7 +76,9 @@ export default function Header({
 							{displayName}
 						</Text>
 						{code && (
-							<Text style={{ fontWeight: "600", color: `${theme.textMuted}90` }}>
+							<Text
+								style={{ fontWeight: "600", color: `${theme.textMuted}90` }}
+							>
 								#<Text style={{ color: theme.text, opacity: 0.7 }}>{code}</Text>
 							</Text>
 						)}
@@ -129,7 +100,7 @@ export default function Header({
 				<Pressable
 					style={({ pressed }) => [pressed && { opacity: 0.8 }]}
 					hitSlop={8}
-					onPress={() => router.push("/auth")}
+					onPress={() => router.push("/login")}
 				>
 					<Pill label="Accedi" icon="person.crop.circle.badge.plus" tinted />
 				</Pressable>

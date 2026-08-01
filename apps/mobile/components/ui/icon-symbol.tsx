@@ -37,6 +37,9 @@ const MAPPING = {
 	"note.text": "notes",
 	"checkmark.circle.fill": "check-circle",
 	"person.crop.circle.badge.plus": "person-add",
+	"arrow.right": "arrow-forward",
+	lifepreserver: "support",
+	"lock.fill": "lock",
 } as IconMapping;
 
 /**

@@ -3,18 +3,11 @@ import { api } from "@padel-sport/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-	ActivityIndicator,
-	Alert,
-	Platform,
-	Pressable,
-	ScrollView,
-	TextInput,
-	View,
-} from "react-native";
-import SmoothView from "@/components/smooth-view";
+import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
+import { Button } from "@/components/ui/button";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { TextField } from "@/components/ui/text-field";
 import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 import { convexErrorMessage, formatLevel } from "@/lib/format";
@@ -91,23 +84,12 @@ export default function ProfileSetup() {
 				>
 					Nome
 				</ThemedText>
-				<SmoothView
-					radius={18}
-					smoothing={1}
-					backgroundColor={theme.elevated}
-					borderColor={theme.border}
-					borderWidth={1}
-					shadow={false}
-				>
-					<TextInput
-						value={name}
-						onChangeText={setName}
-						placeholder="Es. Marco R."
-						placeholderTextColor={theme.textMuted}
-						autoComplete="name"
-						style={{ padding: 16, fontSize: 16, color: theme.text }}
-					/>
-				</SmoothView>
+				<TextField
+					value={name}
+					onChangeText={setName}
+					placeholder="Es. Marco R."
+					autoComplete="name"
+				/>
 			</View>
 
 			<View style={{ gap: 10 }}>
@@ -161,41 +143,13 @@ export default function ProfileSetup() {
 				</View>
 			</View>
 
-			<SmoothView
-				radius={20}
-				smoothing={1}
-				backgroundColor={theme.tint}
+			<Button
+				label="Salva profilo"
+				icon="checkmark.circle.fill"
+				iconPosition="leading"
 				onPress={handleSave}
-				style={{
-					height: 56,
-					flexDirection: "row",
-					alignItems: "center",
-					justifyContent: "center",
-					gap: 8,
-					opacity: saving ? 0.7 : 1,
-				}}
-			>
-				{saving ? (
-					<ActivityIndicator color={theme.tintForeground} />
-				) : (
-					<>
-						<IconSymbol
-							name="checkmark.circle.fill"
-							size={18}
-							color={theme.tintForeground}
-						/>
-						<ThemedText
-							style={{
-								fontSize: 17,
-								fontWeight: "600",
-								color: theme.tintForeground,
-							}}
-						>
-							Salva profilo
-						</ThemedText>
-					</>
-				)}
-			</SmoothView>
+				loading={saving}
+			/>
 		</ScrollView>
 	);
 }

@@ -1,7 +1,6 @@
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
 import "react-native-reanimated";
 
 import RootStack from "@/components/root-stack";
@@ -20,12 +19,8 @@ export default function RootLayout() {
 		GoogleSans: require("../assets/fonts/Google_Sans/GoogleSans-VariableFont_GRAD,opsz,wght.ttf"),
 	});
 
-	useEffect(() => {
-		if (loaded || error) {
-			SplashScreen.hideAsync();
-		}
-	}, [loaded, error]);
-
+	// Lo splash resta finché i font non sono pronti; poi lo nasconde RootStack
+	// una volta noto lo stato di autenticazione Clerk (vedi components/root-stack).
 	if (!loaded && !error) {
 		return null;
 	}

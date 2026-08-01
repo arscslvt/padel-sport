@@ -71,7 +71,7 @@ export default function TabsIndex() {
 							</ThemedText>
 						}
 						iconName="arrow.forward.circle.fill"
-						onPress={() => router.push(isSignedIn ? "/profile" : "/auth")}
+						onPress={() => router.push(isSignedIn ? "/profile" : "/login")}
 					/>
 
 					<KpiCard
@@ -89,7 +89,7 @@ export default function TabsIndex() {
 							</ThemedText>
 						}
 						iconName="arrow.forward.circle.fill"
-						onPress={() => router.push(isSignedIn ? "/profile" : "/auth")}
+						onPress={() => router.push(isSignedIn ? "/profile" : "/login")}
 					/>
 				</View>
 

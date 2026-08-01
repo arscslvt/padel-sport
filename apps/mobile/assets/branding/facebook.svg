@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Facebook">
+<path id="Vector" d="M11 20.625C16.3157 20.625 20.625 16.3157 20.625 11C20.625 5.68426 16.3157 1.375 11 1.375C5.68426 1.375 1.375 5.68426 1.375 11C1.375 16.3157 5.68426 20.625 11 20.625Z" fill="url(#paint0_linear_0_38)"/>
+<path id="Vector_2" d="M14.5844 13.9436L15.012 11.2269H12.3373V9.46481C12.3373 8.72142 12.7103 7.99638 13.9083 7.99638H15.125V5.68356C15.125 5.68356 14.0212 5.5 12.9665 5.5C10.7627 5.5 9.32367 6.8014 9.32367 9.1564V11.2269H6.875V13.9436H9.32367V20.5112C9.81523 20.5865 10.3181 20.625 10.8305 20.625C11.3428 20.625 11.8458 20.5865 12.3373 20.5112V13.9436H14.5844Z" fill="white" style="fill:white;fill-opacity:1;"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_38" x1="11" y1="1.375" x2="11" y2="20.5679" gradientUnits="userSpaceOnUse">
+<stop stop-color="#18ACFE" style="stop-color:#18ACFE;stop-color:color(display-p3 0.0941 0.6745 0.9961);stop-opacity:1;"/>
+<stop offset="1" stop-color="#0163E0" style="stop-color:#0163E0;stop-color:color(display-p3 0.0039 0.3882 0.8784);stop-opacity:1;"/>
+</linearGradient>
+</defs>
+</svg>

@@ -29,7 +29,7 @@ export function usePlayerGate() {
 	const gate = (action: () => void) => {
 		if (isLoading) return;
 		if (!isSignedIn) {
-			router.push("/auth");
+			router.push("/login");
 			return;
 		}
 		if (!player) {

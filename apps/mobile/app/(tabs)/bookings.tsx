@@ -70,7 +70,7 @@ export default function BookingsScreen() {
 								radius={22}
 								smoothing={6}
 								onPress={() =>
-									isSignedIn ? router.navigate("/book") : router.push("/auth")
+									isSignedIn ? router.navigate("/book") : router.push("/login")
 								}
 							>
 								<IconSymbol

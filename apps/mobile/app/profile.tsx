@@ -1,8 +1,7 @@
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
 import { Avatar } from "@/components/open-match-card";
 import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
@@ -21,7 +20,6 @@ import { mockProfile, type PlayedMatchMock } from "@/lib/mock-profile";
 export default function ProfileScreen() {
 	const theme = useTheme();
 	const router = useRouter();
-	const { top } = useSafeAreaInsets();
 	const { user, isLoaded } = useUser();
 	const { signOut } = useAuth();
 	const { player, isLoading } = useCurrentPlayer();
@@ -43,8 +41,8 @@ export default function ProfileScreen() {
 				text: "Esci",
 				style: "destructive",
 				onPress: async () => {
+					// Il gate reagisce a isSignedIn e riporta al login: nessuna nav manuale.
 					await signOut();
-					router.dismissTo("/");
 				},
 			},
 		]);
@@ -84,7 +82,7 @@ export default function ProfileScreen() {
 					smoothing={6}
 					backgroundColor={theme.tint}
 					style={{ paddingHorizontal: 22, paddingVertical: 14 }}
-					onPress={() => router.replace("/auth")}
+					onPress={() => router.replace("/login")}
 				>
 					<ThemedText
 						style={{
@@ -103,46 +101,13 @@ export default function ProfileScreen() {
 	return (
 		<ScrollView
 			style={{ flex: 1, backgroundColor: theme.background }}
+			contentInsetAdjustmentBehavior="automatic"
 			contentContainerStyle={{
 				padding: 20,
-				paddingTop: top + 8,
 				paddingBottom: 48,
 				gap: 24,
 			}}
 		>
-			{/* Barra di navigazione */}
-			<View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-				<Pressable
-					onPress={() => router.back()}
-					hitSlop={10}
-					accessibilityRole="button"
-					accessibilityLabel="Indietro"
-					style={{
-						backgroundColor: theme.muted,
-						borderRadius: 999,
-						padding: 8,
-					}}
-				>
-					<IconSymbol name="chevron.left" size={18} color={theme.text} />
-				</Pressable>
-				<ThemedText type="title" style={{ flex: 1 }}>
-					Profilo
-				</ThemedText>
-				<Pressable
-					onPress={() => router.push("/profile-setup")}
-					hitSlop={10}
-					accessibilityRole="button"
-					accessibilityLabel="Modifica profilo"
-					style={{
-						backgroundColor: theme.muted,
-						borderRadius: 999,
-						padding: 8,
-					}}
-				>
-					<IconSymbol name="pencil" size={18} color={theme.text} />
-				</Pressable>
-			</View>
-
 			{/* Anagrafica */}
 			<View style={{ alignItems: "center", gap: 12 }}>
 				<Avatar url={player?.avatarUrl ?? user?.imageUrl} size={96} />

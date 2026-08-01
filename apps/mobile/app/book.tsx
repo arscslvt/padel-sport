@@ -1,130 +1,226 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
-	ActivityIndicator,
 	Alert,
+	type LayoutChangeEvent,
 	Platform,
 	Pressable,
 	ScrollView,
-	Switch,
-	TextInput,
+	StyleSheet,
 	View,
 } from "react-native";
-import { Avatar } from "@/components/open-match-card";
-import SmoothView from "@/components/smooth-view";
+import Animated, {
+	useAnimatedKeyboard,
+	useAnimatedStyle,
+	useSharedValue,
+	withTiming,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StepProgress, selectionFeedback } from "@/components/book/primitives";
+import StepLevel from "@/components/book/step-level";
+import StepPlayers from "@/components/book/step-players";
+import StepSchedule from "@/components/book/step-schedule";
+import StepSummary from "@/components/book/step-summary";
 import { ThemedText } from "@/components/themed-text";
+import { Button } from "@/components/ui/button";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import Pill from "@/components/ui/pill";
+import ProgressiveBlur from "@/components/ui/progressive-blur";
 import { usePlayerGate } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 import {
-	convexErrorMessage,
-	formatLevel,
-	formatLevelRange,
-	type JoinMode,
-	joinModeMeta,
-} from "@/lib/format";
+	availableSlots,
+	bookableDays,
+	combineDateAndTime,
+	findLevelRangeIndex,
+	formatDayLong,
+	formatSlotRange,
+	LEVEL_RANGES,
+} from "@/lib/booking";
+import { convexErrorMessage, type JoinMode } from "@/lib/format";
 
-interface LevelRange {
-	min: number;
-	max: number;
-}
+const CONTENT_PADDING = 20;
 
-const LEVEL_RANGES: LevelRange[] = [
-	{ min: 1.0, max: 1.5 },
-	{ min: 2.0, max: 2.5 },
-	{ min: 3.0, max: 3.5 },
-	{ min: 4.0, max: 5.0 },
-];
+/** I passi del flusso, nell'ordine in cui vengono presentati. */
+const STEPS = [
+	{
+		title: "Che livello cerchi?",
+		subtitle: "Di default usiamo il tuo, ma puoi cambiarlo.",
+	},
+	{
+		title: "Quando vuoi giocare?",
+		subtitle: "Scegli il giorno e l'orario di inizio.",
+	},
+	{
+		title: "Con chi giochi?",
+		subtitle: "Riunisci la squadra o lascia la partita aperta.",
+	},
+	{
+		title: "Tutto pronto?",
+		subtitle: "Controlla il riepilogo e conferma la prenotazione.",
+	},
+] as const;
 
-const TIME_SLOTS = ["09:00", "10:30", "12:00", "17:00", "18:30", "20:00"];
-
-const MAX_PLAYERS = 4;
-
-function nextDays(count: number) {
-	return Array.from({ length: count }, (_, i) => {
-		const d = new Date();
-		d.setDate(d.getDate() + i);
-		const label =
-			i === 0
-				? "Oggi"
-				: i === 1
-					? "Domani"
-					: d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric" });
-		return { date: d, label: label.charAt(0).toUpperCase() + label.slice(1) };
-	});
+/**
+ * Etichetta dell'azione principale: dice sempre cosa succede toccandola,
+ * anche quando manca ancora una scelta per proseguire.
+ */
+function primaryLabel(step: number, confirmsLevel: boolean, hasTime: boolean) {
+	if (step === 0) return confirmsLevel ? "Conferma livello" : "Continua";
+	if (step === 1) return hasTime ? "Continua" : "Scegli un orario";
+	if (step === STEPS.length - 1) return "Conferma prenotazione";
+	return "Continua";
 }
 
 /**
- * Flusso di prenotazione / creazione di una partita aperta,
- * presentato come sheet (modal nativo su iOS, drawer su Android).
+ * Scelte accumulate durante il flusso. Livello e giorno restano `null` finché
+ * l'utente non li tocca: fino a quel momento seguono i valori proposti
+ * (il livello del profilo, che arriva in modo asincrono, e il primo giorno
+ * con orari ancora liberi).
+ */
+interface BookingDraft {
+	levelIndex: number | null;
+	dayIndex: number | null;
+	time: string | null;
+	keepOpen: boolean;
+	joinMode: JoinMode;
+	notes: string;
+}
+
+/**
+ * Flusso di prenotazione / creazione di una partita aperta, presentato come
+ * sheet (modal nativo su iOS, drawer su Android) e diviso in quattro passi:
+ * livello, data e orario, giocatori, riepilogo.
  */
 export default function BookMatch() {
 	const theme = useTheme();
 	const router = useRouter();
 	const { player, gate } = usePlayerGate();
 	const createBooking = useMutation(api.modules.openMatches.create.default);
+
+	const insets = useSafeAreaInsets();
+	const scrollRef = useRef<ScrollView>(null);
 	const [submitting, setSubmitting] = useState(false);
+	const [step, setStep] = useState(0);
 
-	const days = nextDays(7);
+	// Le barre sono sovrapposte al contenuto: misurandole sappiamo di quanto
+	// scostare il contenuto perché non finisca sotto al blur. Le stime iniziali
+	// evitano il salto al primo layout e cambiano col numero di righe del titolo.
+	const [barHeights, setBarHeights] = useState({ header: 152, footer: 110 });
+	const measureBar =
+		(bar: "header" | "footer") => (event: LayoutChangeEvent) => {
+			const { height } = event.nativeEvent.layout;
+			setBarHeights((current) =>
+				Math.round(current[bar]) === Math.round(height)
+					? current
+					: { ...current, [bar]: height },
+			);
+		};
+	const [draft, setDraft] = useState<BookingDraft>({
+		levelIndex: null,
+		dayIndex: null,
+		time: null,
+		keepOpen: true,
+		joinMode: "direct",
+		notes: "",
+	});
 
-	// Il livello di default è quello dell'utente creatore
-	const defaultRangeIndex = Math.max(
-		0,
-		player
-			? LEVEL_RANGES.findIndex(
-					(r) => player.level >= r.min - 0.5 && player.level <= r.max,
-				)
-			: 1,
+	// Dissolvenza del contenuto a ogni cambio di passo: è uno stile animato
+	// normale e non una layout animation, che dentro il form sheet
+	// posizionerebbe male il contenuto.
+	const stepOpacity = useSharedValue(1);
+	const stepStyle = useAnimatedStyle(() => ({ opacity: stepOpacity.value }));
+
+	// La barra in basso sale con la tastiera (nota dell'ultimo passo): è una
+	// traslazione, quindi non tocca il layout del foglio.
+	const keyboard = useAnimatedKeyboard();
+	const footerStyle = useAnimatedStyle(() => ({
+		transform: [
+			{ translateY: -Math.max(keyboard.height.value - insets.bottom, 0) },
+		],
+	}));
+
+	const days = useMemo(() => bookableDays(), []);
+	const slotsByDay = useMemo(
+		() => days.map((day) => availableSlots(day.date)),
+		[days],
 	);
 
-	const [levelIndex, setLevelIndex] = useState(defaultRangeIndex);
-	const [dayIndex, setDayIndex] = useState(0);
-	const [timeSlot, setTimeSlot] = useState<string | null>(null);
-	const [notes, setNotes] = useState("");
-	const [keepOpen, setKeepOpen] = useState(true);
-	const [joinMode, setJoinMode] = useState<JoinMode>("direct");
+	const suggestedLevelIndex = findLevelRangeIndex(player?.level);
+	const levelIndex = draft.levelIndex ?? suggestedLevelIndex;
+	// A fine giornata gli orari di oggi sono esauriti: partiamo dal primo utile
+	const suggestedDayIndex = Math.max(
+		0,
+		slotsByDay.findIndex((slots) => slots.length > 0),
+	);
+	const dayIndex = draft.dayIndex ?? suggestedDayIndex;
 
-	// L'unico giocatore certo è il creatore; gli altri si uniscono dopo
-	const freeSlots = MAX_PLAYERS - 1;
+	const patch = (values: Partial<BookingDraft>) =>
+		setDraft((current) => ({ ...current, ...values }));
+
+	const isLastStep = step === STEPS.length - 1;
+	// L'orario è l'unica scelta senza un valore di default sensato
+	const canContinue = step !== 1 || draft.time !== null;
+
+	const goTo = (target: number) => {
+		selectionFeedback();
+		// I passi hanno altezze molto diverse: ognuno riparte dall'inizio
+		scrollRef.current?.scrollTo({ y: 0, animated: false });
+		stepOpacity.value = 0;
+		stepOpacity.value = withTiming(1, { duration: 220 });
+		setStep(target);
+	};
+
+	const goBack = () => {
+		if (step === 0) {
+			router.back();
+			return;
+		}
+		goTo(step - 1);
+	};
+
+	/** Cambiando giorno l'orario scelto potrebbe non esserci più. */
+	const selectDay = (index: number) => {
+		const stillAvailable = slotsByDay[index].some(
+			(slot) => slot.time === draft.time,
+		);
+		patch({ dayIndex: index, time: stillAvailable ? draft.time : null });
+	};
 
 	const handleConfirm = () =>
 		gate(async () => {
-			if (!timeSlot) {
-				Alert.alert("Manca l'orario", "Scegli un orario per la partita.");
+			const time = draft.time;
+			if (!time) {
+				goTo(1);
 				return;
 			}
 
-			const [hours, minutes] = timeSlot.split(":").map(Number);
-			const bookingDate = new Date(days[dayIndex].date);
-			bookingDate.setHours(hours, minutes, 0, 0);
-
 			const range = LEVEL_RANGES[levelIndex];
+			const day = days[dayIndex];
 
 			setSubmitting(true);
 			try {
-				await createBooking({
-					bookingDate: bookingDate.getTime(),
+				const { code } = await createBooking({
+					bookingDate: combineDateAndTime(day.date, time),
 					levelMin: range.min,
 					levelMax: range.max,
-					open: keepOpen,
-					joinMode: keepOpen ? joinMode : undefined,
-					notes: notes.trim() || undefined,
+					open: draft.keepOpen,
+					joinMode: draft.keepOpen ? draft.joinMode : undefined,
+					notes: draft.notes.trim() || undefined,
 				});
 
-				const summary = [
-					`${days[dayIndex].label} alle ${timeSlot}`,
-					`Livello ${formatLevelRange(range.min, range.max)}`,
-					keepOpen
-						? `Partita aperta (${joinModeMeta[joinMode].label.toLowerCase()})`
-						: "Partita privata",
-				].join("\n");
-
-				Alert.alert("Prenotazione confermata 🎾", summary, [
-					{ text: "OK", onPress: () => router.back() },
-				]);
+				Alert.alert(
+					"Prenotazione confermata 🎾",
+					[
+						`${formatDayLong(day.date)}, ${formatSlotRange(time)}`,
+						draft.keepOpen
+							? "La partita è visibile tra quelle aperte."
+							: "Partita privata.",
+						`Codice prenotazione: ${code}`,
+					].join("\n"),
+					[{ text: "OK", onPress: () => router.back() }],
+				);
 			} catch (err) {
 				Alert.alert("Ops", convexErrorMessage(err));
 			} finally {
@@ -133,346 +229,167 @@ export default function BookMatch() {
 		});
 
 	return (
-		<ScrollView
-			style={{ flex: 1, backgroundColor: theme.background }}
-			contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 24 }}
-			keyboardShouldPersistTaps="handled"
-		>
-			{/* Intestazione */}
-			<View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-				<View style={{ flex: 1, gap: 4 }}>
-					<ThemedText type="title">Prenota una partita</ThemedText>
-					<ThemedText type="subtitle" style={{ fontSize: 15 }}>
-						Scegli data e livello, poi riunisci la squadra.
-					</ThemedText>
-				</View>
-				{Platform.OS !== "ios" && (
-					<Pressable
-						onPress={() => router.back()}
-						hitSlop={8}
-						style={{
-							backgroundColor: theme.muted,
-							borderRadius: 999,
-							padding: 8,
-						}}
-					>
-						<IconSymbol name="xmark" size={18} color={theme.textMuted} />
-					</Pressable>
-				)}
-			</View>
-
-			{/* Livello richiesto */}
-			<Section
-				title="Livello richiesto"
-				subtitle={
-					player
-						? `Di default il tuo livello (${formatLevel(player.level)})`
-						: "Scegli il livello dei giocatori che cerchi"
-				}
-			>
-				<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-					{LEVEL_RANGES.map((range, index) => (
-						<SelectChip
-							key={range.min}
-							label={formatLevelRange(range.min, range.max)}
-							selected={index === levelIndex}
-							onPress={() => setLevelIndex(index)}
-						/>
-					))}
-				</View>
-			</Section>
-
-			{/* Data */}
-			<Section title="Data e orario">
-				<ScrollView
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={{ gap: 8 }}
-					style={{ marginHorizontal: -20, paddingHorizontal: 20 }}
-				>
-					{days.map((day, index) => (
-						<SelectChip
-							key={day.label}
-							label={day.label}
-							selected={index === dayIndex}
-							onPress={() => setDayIndex(index)}
-						/>
-					))}
-				</ScrollView>
-				<View
-					style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 }}
-				>
-					{TIME_SLOTS.map((slot) => (
-						<SelectChip
-							key={slot}
-							label={slot}
-							selected={slot === timeSlot}
-							onPress={() => setTimeSlot(slot)}
-						/>
-					))}
-				</View>
-			</Section>
-
-			{/* Note */}
-			<Section title="Note" subtitle="Facoltative, visibili agli altri giocatori">
-				<SmoothView
-					radius={18}
-					smoothing={1}
-					backgroundColor={theme.elevated}
-					borderColor={theme.border}
-					borderWidth={1}
-					shadow={false}
-				>
-					<TextInput
-						value={notes}
-						onChangeText={setNotes}
-						placeholder="Es. partita amichevole, ritmo tranquillo…"
-						placeholderTextColor={theme.textMuted}
-						multiline
-						style={{
-							minHeight: 80,
-							padding: 14,
-							fontSize: 15,
-							color: theme.text,
-							textAlignVertical: "top",
-						}}
-					/>
-				</SmoothView>
-			</Section>
-
-			{/* Giocatori già presenti */}
-			<Section
-				title={`Giocatori (1/${MAX_PLAYERS})`}
-				subtitle="Gli inviti diretti arriveranno con un prossimo aggiornamento"
-			>
-				<View style={{ flexDirection: "row", gap: 10 }}>
-					<View style={{ alignItems: "center", gap: 6 }}>
-						<Avatar url={player?.avatarUrl} size={52} />
-						<ThemedText style={{ fontSize: 12, color: theme.textMuted }}>
-							Tu
-						</ThemedText>
-					</View>
-					{Array.from({ length: freeSlots }).map((_, index) => (
-						<Pressable
-							key={`slot-${index}`}
-							onPress={() =>
-								Alert.alert("[MVP]", "Gli inviti diretti arriveranno presto.")
-							}
-							style={{ alignItems: "center", gap: 6 }}
-						>
-							<View
-								style={{
-									width: 52,
-									height: 52,
-									borderRadius: 999,
-									borderWidth: 1,
-									borderStyle: "dashed",
-									borderColor: theme.border,
-									backgroundColor: theme.muted,
-									alignItems: "center",
-									justifyContent: "center",
-								}}
-							>
-								<IconSymbol name="plus" size={18} color={theme.textMuted} />
-							</View>
-							<ThemedText style={{ fontSize: 12, color: theme.textMuted }}>
-								Invita
-							</ThemedText>
-						</Pressable>
-					))}
-				</View>
-			</Section>
-
-			{/* Partita aperta: proposta quando non si raggiungono i 4 giocatori */}
-			{freeSlots > 0 && (
-				<SmoothView
-					radius={20}
-					smoothing={1}
-					backgroundColor={theme.elevated}
-					borderColor={theme.border}
-					borderWidth={1}
-					shadow={false}
-				>
-					<View style={{ padding: 16, gap: 12 }}>
-						<View
-							style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
-						>
-							<View style={{ flex: 1, gap: 2 }}>
-								<ThemedText style={{ fontSize: 16, fontWeight: "600" }}>
-									Lascia la partita aperta
-								</ThemedText>
-								<ThemedText
-									style={{ fontSize: 13, lineHeight: 18, color: theme.textMuted }}
-								>
-									Mancano {freeSlots} giocatori: rendila visibile a chi cerca
-									una partita.
-								</ThemedText>
-							</View>
-							<Switch
-								value={keepOpen}
-								onValueChange={setKeepOpen}
-								trackColor={{ true: theme.tint }}
-							/>
-						</View>
-
-						{keepOpen && (
-							<View style={{ gap: 8 }}>
-								{(Object.keys(joinModeMeta) as JoinMode[]).map((mode) => (
-									<Pressable
-										key={mode}
-										onPress={() => setJoinMode(mode)}
-										style={{
-											flexDirection: "row",
-											alignItems: "center",
-											gap: 10,
-											padding: 12,
-											borderRadius: 16,
-											borderWidth: 1,
-											borderColor:
-												joinMode === mode ? theme.tint : theme.border,
-											backgroundColor:
-												joinMode === mode ? theme.muted : "transparent",
-										}}
-									>
-										<IconSymbol
-											name={joinModeMeta[mode].icon}
-											size={18}
-											color={joinMode === mode ? theme.tint : theme.textMuted}
-										/>
-										<View style={{ flex: 1 }}>
-											<ThemedText style={{ fontSize: 15, fontWeight: "600" }}>
-												{joinModeMeta[mode].label}
-											</ThemedText>
-											<ThemedText
-												style={{
-													fontSize: 12,
-													lineHeight: 16,
-													color: theme.textMuted,
-												}}
-											>
-												{joinModeMeta[mode].description}
-											</ThemedText>
-										</View>
-										{joinMode === mode && (
-											<IconSymbol
-												name="checkmark.circle.fill"
-												size={20}
-												color={theme.tint}
-											/>
-										)}
-									</Pressable>
-								))}
-							</View>
-						)}
-					</View>
-				</SmoothView>
-			)}
-
-			{/* CTA */}
-			<SmoothView
-				radius={20}
-				smoothing={1}
-				backgroundColor={theme.tint}
-				onPress={submitting ? undefined : handleConfirm}
-				style={{
-					height: 56,
-					flexDirection: "row",
-					alignItems: "center",
-					justifyContent: "center",
-					gap: 8,
-					opacity: submitting ? 0.7 : 1,
+		/*
+		 * Dentro un form sheet react-native-screens assegna nativamente alla prima
+		 * ScrollView tra i figli del contenuto il frame dell'intero foglio
+		 * (RNSScreenContentWrapper.mm), e avverte se i figli sono più di due.
+		 * Quindi: la lista per prima, e una sola vista sopra con le due barre
+		 * flottanti, che il contenuto attraversa scorrendo sotto al blur.
+		 */
+		<>
+			<ScrollView
+				ref={scrollRef}
+				style={{ flex: 1, backgroundColor: theme.background }}
+				contentContainerStyle={{
+					paddingHorizontal: CONTENT_PADDING,
+					paddingTop: barHeights.header,
+					paddingBottom: barHeights.footer + 24,
+					gap: 24,
 				}}
+				keyboardShouldPersistTaps="handled"
+				showsVerticalScrollIndicator={false}
+				// Su iOS lascia spazio alla tastiera quando si scrive la nota
+				automaticallyAdjustKeyboardInsets
 			>
-				{submitting ? (
-					<ActivityIndicator color={theme.tintForeground} />
-				) : (
-					<>
-						<IconSymbol name="calendar" size={18} color={theme.tintForeground} />
-						<ThemedText
-							style={{
-								fontSize: 17,
-								fontWeight: "600",
-								color: theme.tintForeground,
-							}}
-						>
-							Conferma prenotazione
-						</ThemedText>
-					</>
-				)}
-			</SmoothView>
-		</ScrollView>
-	);
-}
+				<Animated.View style={[{ gap: 24 }, stepStyle]}>
+					{step === 0 && (
+						<StepLevel
+							selectedIndex={levelIndex}
+							onSelect={(index) => patch({ levelIndex: index })}
+							playerLevel={player?.level}
+							suggested={draft.levelIndex === null}
+						/>
+					)}
+					{step === 1 && (
+						<StepSchedule
+							days={days}
+							slotsByDay={slotsByDay}
+							dayIndex={dayIndex}
+							time={draft.time}
+							onSelectDay={selectDay}
+							onSelectTime={(time) => patch({ time })}
+						/>
+					)}
+					{step === 2 && (
+						<StepPlayers
+							player={player}
+							keepOpen={draft.keepOpen}
+							joinMode={draft.joinMode}
+							onKeepOpenChange={(keepOpen) => patch({ keepOpen })}
+							onJoinModeChange={(joinMode) => patch({ joinMode })}
+						/>
+					)}
+					{step === 3 && draft.time && (
+						<StepSummary
+							level={LEVEL_RANGES[levelIndex]}
+							day={days[dayIndex]}
+							time={draft.time}
+							keepOpen={draft.keepOpen}
+							joinMode={draft.joinMode}
+							notes={draft.notes}
+							onNotesChange={(notes) => patch({ notes })}
+							onEdit={goTo}
+						/>
+					)}
+				</Animated.View>
+			</ScrollView>
 
-function Section({
-	title,
-	subtitle,
-	children,
-}: {
-	title: string;
-	subtitle?: string;
-	children: React.ReactNode;
-}) {
-	const theme = useTheme();
-	return (
-		<View style={{ gap: 10 }}>
-			<View style={{ gap: 2 }}>
-				<ThemedText
+			{/* Barre flottanti: `box-none` lascia scorrere il contenuto in mezzo */}
+			<View style={styles.bars} pointerEvents="box-none" collapsable={false}>
+				{/* Intestazione: avanzamento, ritorno al passo precedente e titolo */}
+				<View
+					onLayout={measureBar("header")}
 					style={{
-						fontSize: 14,
-						fontWeight: "600",
-						color: theme.textMuted,
-						textTransform: "uppercase",
-						letterSpacing: 0.4,
+						paddingHorizontal: CONTENT_PADDING,
+						paddingTop: 18,
+						paddingBottom: 16,
+						gap: 14,
 					}}
 				>
-					{title}
-				</ThemedText>
-				{subtitle && (
-					<ThemedText
-						style={{ fontSize: 13, lineHeight: 18, color: theme.textMuted }}
+					<ProgressiveBlur direction="down" />
+					<StepProgress step={step} total={STEPS.length} />
+
+					<View
+						style={{
+							flexDirection: "row",
+							alignItems: "center",
+							justifyContent: "space-between",
+							minHeight: 36,
+						}}
 					>
-						{subtitle}
-					</ThemedText>
-				)}
+						{step > 0 || Platform.OS !== "ios" ? (
+							<Pressable
+								onPress={goBack}
+								hitSlop={10}
+								accessibilityRole="button"
+								accessibilityLabel={step > 0 ? "Passo precedente" : "Chiudi"}
+								style={{
+									width: 36,
+									height: 36,
+									borderRadius: 999,
+									alignItems: "center",
+									justifyContent: "center",
+									backgroundColor: theme.muted,
+								}}
+							>
+								<IconSymbol
+									name={step > 0 ? "chevron.left" : "xmark"}
+									size={18}
+									color={theme.text}
+								/>
+							</Pressable>
+						) : (
+							<View />
+						)}
+
+						<ThemedText style={{ fontSize: 13, color: theme.textMuted }}>
+							Passo {step + 1} di {STEPS.length}
+						</ThemedText>
+					</View>
+
+					<View style={{ gap: 4 }}>
+						<ThemedText type="title">{STEPS[step].title}</ThemedText>
+						<ThemedText type="subtitle" style={{ fontSize: 15 }}>
+							{STEPS[step].subtitle}
+						</ThemedText>
+					</View>
+				</View>
+
+				{/* Azione principale, sempre a portata di pollice */}
+				<Animated.View
+					onLayout={measureBar("footer")}
+					style={[
+						{
+							paddingHorizontal: CONTENT_PADDING,
+							paddingTop: 16,
+							paddingBottom: Math.max(insets.bottom, 16),
+						},
+						footerStyle,
+					]}
+				>
+					<ProgressiveBlur direction="up" />
+					<Button
+						label={primaryLabel(step, player !== null, draft.time !== null)}
+						icon={isLastStep ? "checkmark.circle.fill" : "arrow.right"}
+						iconPosition={isLastStep ? "leading" : "trailing"}
+						onPress={isLastStep ? handleConfirm : () => goTo(step + 1)}
+						disabled={!canContinue}
+						loading={submitting}
+					/>
+				</Animated.View>
 			</View>
-			{children}
-		</View>
+		</>
 	);
 }
 
-function SelectChip({
-	label,
-	selected,
-	onPress,
-}: {
-	label: string;
-	selected: boolean;
-	onPress: () => void;
-}) {
-	const theme = useTheme();
-	return (
-		<Pressable
-			onPress={onPress}
-			style={{
-				paddingHorizontal: 14,
-				paddingVertical: 8,
-				borderRadius: 999,
-				borderWidth: 1,
-				borderColor: selected ? theme.tint : theme.border,
-				backgroundColor: selected ? theme.tint : theme.elevated,
-			}}
-		>
-			<ThemedText
-				style={{
-					fontSize: 14,
-					lineHeight: 18,
-					fontWeight: "500",
-					color: selected ? theme.tintForeground : theme.text,
-				}}
-			>
-				{label}
-			</ThemedText>
-		</Pressable>
-	);
-}
+const styles = StyleSheet.create({
+	/** Le due barre agli estremi del foglio, sopra il contenuto scorrevole. */
+	bars: {
+		position: "absolute",
+		top: 0,
+		bottom: 0,
+		left: 0,
+		right: 0,
+		justifyContent: "space-between",
+	},
+});

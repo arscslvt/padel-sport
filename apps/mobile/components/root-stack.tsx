@@ -1,9 +1,23 @@
+import { useAuth } from "@clerk/clerk-expo";
+import { Stack, useRouter } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+import { Platform, Pressable } from "react-native";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useTheme } from "@/hooks/use-theme";
-import { Stack } from "expo-router";
-import { Platform } from "react-native";
 
 export default function RootStack() {
 	const theme = useTheme();
+	const router = useRouter();
+	// Gate di autenticazione: mentre Clerk carica teniamo lo splash; quando è
+	// pronto scegliamo il gruppo di route in base a `isSignedIn`.
+	const { isLoaded, isSignedIn } = useAuth();
+
+	useEffect(() => {
+		if (isLoaded) {
+			SplashScreen.hideAsync();
+		}
+	}, [isLoaded]);
 
 	/**
 	 * Opzioni condivise per gli sheet delle azioni (dettaglio partita,
@@ -23,32 +37,66 @@ export default function RootStack() {
 		contentStyle: { backgroundColor: theme.background },
 	} as const;
 
+	// Splash ancora visibile finché non conosciamo lo stato di autenticazione:
+	// evita di mostrare per un istante l'app (o il login) prima del ripristino
+	// della sessione dalla token cache.
+	if (!isLoaded) {
+		return null;
+	}
+
 	return (
 		<Stack
 			screenOptions={{
 				contentStyle: { backgroundColor: theme.background },
 			}}
 		>
-			<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-			{/* Il profilo è una pagina (push), non uno sheet: ha contenuto lungo
-			    e la sua barra di navigazione */}
-			<Stack.Screen name="profile" options={{ headerShown: false }} />
-			<Stack.Screen
-				name="match/[id]"
-				options={{ ...sheetOptions, sheetAllowedDetents: [0.85, 1] }}
-			/>
-			<Stack.Screen
-				name="book"
-				options={{ ...sheetOptions, sheetAllowedDetents: [0.95] }}
-			/>
-			<Stack.Screen
-				name="auth"
-				options={{ ...sheetOptions, sheetAllowedDetents: [0.6, 1] }}
-			/>
-			<Stack.Screen
-				name="profile-setup"
-				options={{ ...sheetOptions, sheetAllowedDetents: [0.85, 1] }}
-			/>
+			{/* Utente autenticato: l'app vera e propria */}
+			<Stack.Protected guard={!!isSignedIn}>
+				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+				{/* Il profilo è una pagina (push): usa l'header nativo di navigazione
+				    (sticky by default, con back automatico), configurato qui in modo
+				    centralizzato invece di una barra custom che scorre col contenuto. */}
+				<Stack.Screen
+					name="profile"
+					options={{
+						headerShown: true,
+						title: "Profilo",
+						headerBackButtonDisplayMode: "minimal",
+						headerTintColor: theme.text,
+						headerTitleStyle: { color: theme.text },
+						headerStyle: { backgroundColor: theme.background },
+						// Niente linea/ombra sotto la testata
+						headerShadowVisible: false,
+						headerRight: () => (
+							<Pressable
+								onPress={() => router.push("/profile-setup")}
+								hitSlop={10}
+								accessibilityRole="button"
+								accessibilityLabel="Modifica profilo"
+							>
+								<IconSymbol name="pencil" size={18} color={theme.text} />
+							</Pressable>
+						),
+					}}
+				/>
+				<Stack.Screen
+					name="match/[id]"
+					options={{ ...sheetOptions, sheetAllowedDetents: [0.85, 1] }}
+				/>
+				<Stack.Screen
+					name="book"
+					options={{ ...sheetOptions, sheetAllowedDetents: [0.95] }}
+				/>
+				<Stack.Screen
+					name="profile-setup"
+					options={{ ...sheetOptions, sheetAllowedDetents: [0.85, 1] }}
+				/>
+			</Stack.Protected>
+
+			{/* Utente non autenticato: il login è la route principale */}
+			<Stack.Protected guard={!isSignedIn}>
+				<Stack.Screen name="login" options={{ headerShown: false }} />
+			</Stack.Protected>
 		</Stack>
 	);
 }
