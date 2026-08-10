@@ -14,42 +14,35 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  LEVELS,
-  type MatchRequestValues,
-  MISSING_PLAYERS,
-  matchRequestSchema,
-} from "@/lib/match-request";
+  type SupportRequestValues,
+  supportRequestSchema,
+} from "@/lib/support-request";
 
-/** Su superficie grigia i campi hanno bisogno di fondo pieno per non sparirci dentro. */
-const FIELD_CLASS = "bg-background border-border h-11 rounded-xl";
+/**
+ * Sopra il verde i campi non possono usare `bg-background`: il bianco velato
+ * è l'unico riempimento che regge sia il contrasto del testo sia il colore
+ * della banda.
+ */
+const FIELD_CLASS =
+  "h-11 rounded-xl border-white/20 bg-white/10 text-foreground placeholder:text-foreground/45";
 
-export function FindPlayersForm() {
-  const form = useForm<MatchRequestValues>({
-    resolver: zodResolver(matchRequestSchema),
+export function SupportForm() {
+  const form = useForm<SupportRequestValues>({
+    resolver: zodResolver(supportRequestSchema),
     defaultValues: {
       name: "",
       email: "",
       phone: "",
-      date: "",
-      time: "",
-      level: "intermedio",
-      missing: "1",
-      notes: "",
+      memberId: "",
+      message: "",
     },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      const response = await fetch("/api/match-request", {
+      const response = await fetch("/api/support-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -60,15 +53,15 @@ export function FindPlayersForm() {
       if (!response.ok) {
         toast.error("Richiesta non inviata", {
           description:
-            payload?.error ?? "Riprova fra poco o chiamaci direttamente.",
+            payload?.error ?? "Riprova fra poco o scrivici su WhatsApp.",
         });
         return;
       }
 
       toast.success("Richiesta inviata", {
         description: payload?.notified
-          ? "Ti abbiamo mandato una copia via email. Ti avvisiamo appena il match è al completo."
-          : "Ti avvisiamo appena il match è al completo.",
+          ? "Ti abbiamo mandato una copia via email. Ti rispondiamo il prima possibile."
+          : "Ti rispondiamo il prima possibile.",
       });
       form.reset();
     } catch {
@@ -87,7 +80,7 @@ export function FindPlayersForm() {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nome e cognome</FormLabel>
+                <FormLabel>Nome completo</FormLabel>
                 <FormControl>
                   <Input
                     autoComplete="name"
@@ -145,77 +138,22 @@ export function FindPlayersForm() {
 
           <FormField
             control={form.control}
-            name="date"
+            name="memberId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Data</FormLabel>
+                <FormLabel>
+                  Matricola socio{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (facoltativa)
+                  </span>
+                </FormLabel>
                 <FormControl>
-                  <Input type="date" className={FIELD_CLASS} {...field} />
+                  <Input
+                    placeholder="Es. PS-01429"
+                    className={FIELD_CLASS}
+                    {...field}
+                  />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="time"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Orario</FormLabel>
-                <FormControl>
-                  <Input type="time" className={FIELD_CLASS} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="level"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Livello di gioco</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className={`w-full ${FIELD_CLASS}`}>
-                      <SelectValue placeholder="Seleziona livello" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {LEVELS.map((level) => (
-                      <SelectItem key={level.value} value={level.value}>
-                        {level.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="missing"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Giocatori mancanti</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className={`w-full ${FIELD_CLASS}`}>
-                      <SelectValue placeholder="Quanti ne cerchi?" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {MISSING_PLAYERS.map((count) => (
-                      <SelectItem key={count} value={count}>
-                        {count === "1" ? "1 giocatore" : `${count} giocatori`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -224,20 +162,15 @@ export function FindPlayersForm() {
 
         <FormField
           control={form.control}
-          name="notes"
+          name="message"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>
-                Note{" "}
-                <span className="text-muted-foreground font-normal">
-                  (facoltative)
-                </span>
-              </FormLabel>
+              <FormLabel>Messaggio</FormLabel>
               <FormControl>
                 <Textarea
-                  rows={3}
-                  placeholder="Qualcosa che dovremmo sapere?"
-                  className="bg-background border-border min-h-24 rounded-xl"
+                  rows={4}
+                  placeholder="Dicci come possiamo aiutarti."
+                  className="text-foreground placeholder:text-foreground/45 min-h-28 rounded-xl border-white/20 bg-white/10"
                   {...field}
                 />
               </FormControl>

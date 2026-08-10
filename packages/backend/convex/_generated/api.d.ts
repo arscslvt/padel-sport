@@ -22,6 +22,8 @@ import type * as modules_friends_remove from "../modules/friends/remove.js";
 import type * as modules_friends_request from "../modules/friends/request.js";
 import type * as modules_friends_respond from "../modules/friends/respond.js";
 import type * as modules_friends_search from "../modules/friends/search.js";
+import type * as modules_matchRequests_create from "../modules/matchRequests/create.js";
+import type * as modules_matchRequests_markNotified from "../modules/matchRequests/markNotified.js";
 import type * as modules_notifications_alert from "../modules/notifications/alert.js";
 import type * as modules_notifications_confirmation from "../modules/notifications/confirmation.js";
 import type * as modules_openMatches_cancel from "../modules/openMatches/cancel.js";
@@ -34,6 +36,8 @@ import type * as modules_openMatches_list from "../modules/openMatches/list.js";
 import type * as modules_openMatches_my from "../modules/openMatches/my.js";
 import type * as modules_openMatches_players from "../modules/openMatches/players.js";
 import type * as modules_openMatches_requests from "../modules/openMatches/requests.js";
+import type * as modules_supportRequests_create from "../modules/supportRequests/create.js";
+import type * as modules_supportRequests_markNotified from "../modules/supportRequests/markNotified.js";
 import type * as modules_tournaments_advancements from "../modules/tournaments/advancements.js";
 import type * as modules_tournaments_categories_get from "../modules/tournaments/categories/get.js";
 import type * as modules_tournaments_edit from "../modules/tournaments/edit.js";
@@ -49,9 +53,11 @@ import type * as tables_events from "../tables/events.js";
 import type * as tables_friendships from "../tables/friendships.js";
 import type * as tables_joinRequests from "../tables/joinRequests.js";
 import type * as tables_links from "../tables/links.js";
+import type * as tables_matchRequests from "../tables/matchRequests.js";
 import type * as tables_openMatches from "../tables/openMatches.js";
 import type * as tables_players from "../tables/players.js";
 import type * as tables_slots from "../tables/slots.js";
+import type * as tables_supportRequests from "../tables/supportRequests.js";
 import type * as utils_notification_client from "../utils/notification_client.js";
 
 import type {
@@ -75,6 +81,8 @@ declare const fullApi: ApiFromModules<{
   "modules/friends/request": typeof modules_friends_request;
   "modules/friends/respond": typeof modules_friends_respond;
   "modules/friends/search": typeof modules_friends_search;
+  "modules/matchRequests/create": typeof modules_matchRequests_create;
+  "modules/matchRequests/markNotified": typeof modules_matchRequests_markNotified;
   "modules/notifications/alert": typeof modules_notifications_alert;
   "modules/notifications/confirmation": typeof modules_notifications_confirmation;
   "modules/openMatches/cancel": typeof modules_openMatches_cancel;
@@ -87,6 +95,8 @@ declare const fullApi: ApiFromModules<{
   "modules/openMatches/my": typeof modules_openMatches_my;
   "modules/openMatches/players": typeof modules_openMatches_players;
   "modules/openMatches/requests": typeof modules_openMatches_requests;
+  "modules/supportRequests/create": typeof modules_supportRequests_create;
+  "modules/supportRequests/markNotified": typeof modules_supportRequests_markNotified;
   "modules/tournaments/advancements": typeof modules_tournaments_advancements;
   "modules/tournaments/categories/get": typeof modules_tournaments_categories_get;
   "modules/tournaments/edit": typeof modules_tournaments_edit;
@@ -102,9 +112,11 @@ declare const fullApi: ApiFromModules<{
   "tables/friendships": typeof tables_friendships;
   "tables/joinRequests": typeof tables_joinRequests;
   "tables/links": typeof tables_links;
+  "tables/matchRequests": typeof tables_matchRequests;
   "tables/openMatches": typeof tables_openMatches;
   "tables/players": typeof tables_players;
   "tables/slots": typeof tables_slots;
+  "tables/supportRequests": typeof tables_supportRequests;
   "utils/notification_client": typeof utils_notification_client;
 }>;
 

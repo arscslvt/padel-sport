@@ -1,5 +1,5 @@
 const info: { [key: string]: string } = {
-  name: "A.S.D. PadelSport Melilli",
+  name: "A.S.D. Padel Sport Melilli",
   address: "Via Pertini, 96010 Melilli (SR) — Italia",
   email: "segreteria@asdpadelsport.com",
   cf: "93119030893",

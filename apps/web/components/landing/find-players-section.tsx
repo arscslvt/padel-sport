@@ -1,11 +1,12 @@
 import { FindPlayersForm } from "@/components/landing/find-players-form";
+import { ANCHORS } from "@/lib/anchors";
 import { Reveal } from "@/components/reveal";
 import { SectionHeading } from "@/components/ui/heading";
 
 export function FindPlayersSection() {
   return (
     <section
-      id="trova-giocatori"
+      id={ANCHORS.findPlayers}
       className="px-2 pb-16 sm:px-3 sm:pb-24 lg:px-4 lg:pb-32"
     >
       <Reveal>

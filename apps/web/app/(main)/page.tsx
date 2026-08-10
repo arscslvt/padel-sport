@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { FeatureCards } from "@/components/landing/feature-cards";
 import { FindPlayersSection } from "@/components/landing/find-players-section";
 import { Hero } from "@/components/landing/hero";
+import { SupportSection } from "@/components/landing/support-section";
 import { UpcomingEventsSection } from "@/components/landing/upcoming-events-section";
 
 export const revalidate = 300;
@@ -17,6 +18,7 @@ export default function Home() {
       <Suspense fallback={null}>
         <UpcomingEventsSection />
       </Suspense>
+      <SupportSection />
     </>
   );
 }

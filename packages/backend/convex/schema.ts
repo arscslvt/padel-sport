@@ -3,9 +3,11 @@ import bookings from "./tables/bookings";
 import events from "./tables/events";
 import friendships from "./tables/friendships";
 import joinRequests from "./tables/joinRequests";
+import matchRequests from "./tables/matchRequests";
 import openMatches from "./tables/openMatches";
 import players from "./tables/players";
 import slots from "./tables/slots";
+import supportRequests from "./tables/supportRequests";
 
 export default defineSchema({
   events,
@@ -15,4 +17,6 @@ export default defineSchema({
   openMatches,
   joinRequests,
   friendships,
+  matchRequests,
+  supportRequests,
 });

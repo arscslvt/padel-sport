@@ -130,7 +130,8 @@
  * scuro nella banda "Prossimi Eventi" e chiaro su /events.
  */
 .tone-ink,
-.tone-photo {
+.tone-photo,
+.tone-emerald {
   --background: var(--ink);
   --foreground: var(--ink-foreground);
   --surface: oklch(1 0 0 / 6%);
@@ -158,8 +159,14 @@
   color: var(--foreground);
 }
 
-/* Non dipinge nulla: testo e controlli sopra una fotografia. */
-.tone-photo {
+/*
+ * Non dipingono lo sfondo: lo mette chi le usa.
+ * `tone-photo` sta sopra una fotografia, `tone-emerald` sopra la banda verde
+ * del supporto — così il colore resta un'utility Tailwind (`bg-emerald-900`) e
+ * non viene duplicato qui.
+ */
+.tone-photo,
+.tone-emerald {
   color: var(--foreground);
 }
 

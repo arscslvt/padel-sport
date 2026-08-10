@@ -4,6 +4,7 @@ import { FaFacebookF, FaInstagram } from "react-icons/fa";
 
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { ANCHORS } from "@/lib/anchors";
 import { getInfo } from "@/lib/info";
 import { EVENTS_LINK, WHERE_WE_ARE_LINK } from "@/lib/links";
 
@@ -16,7 +17,7 @@ export default function Footer() {
   return (
     // `#contatti` è l'ancora del bottone "Contattaci" nell'hero.
     <footer
-      id="contatti"
+      id={ANCHORS.contacts}
       className="border-border bg-background text-foreground max-w-dvw scroll-mt-24 border-t px-6 pt-14 pb-10 lg:px-12"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-12">
