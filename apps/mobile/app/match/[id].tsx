@@ -14,10 +14,12 @@ import {
 import { Avatar } from "@/components/open-match-card";
 import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
+import { Button } from "@/components/ui/button";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import Pill from "@/components/ui/pill";
 import { usePlayerGate } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
+import { CANCEL_DEADLINE_MINUTES } from "@/lib/booking";
 import {
 	convexErrorMessage,
 	formatLevel,
@@ -41,6 +43,8 @@ export default function OpenMatchDetail() {
 	const match = useQuery(api.modules.openMatches.get.default, { matchId });
 	const join = useMutation(api.modules.openMatches.join.default);
 	const sendRequest = useMutation(api.modules.openMatches.requests.request);
+	const cancelMatch = useMutation(api.modules.openMatches.cancel.default);
+	const leaveMatch = useMutation(api.modules.openMatches.leave.default);
 	const { gate } = usePlayerGate();
 	const [submitting, setSubmitting] = useState(false);
 
@@ -94,6 +98,72 @@ export default function OpenMatchDetail() {
 				setSubmitting(false);
 			}
 		});
+
+	/**
+	 * La partita è del creatore finché è l'unico giocatore: da lì in poi resta
+	 * anche agli altri, quindi si può solo uscirne.
+	 */
+	const isOnlyPlayer = viewer.isCreator && match.players.length === 1;
+	const canCancel =
+		match.matchDate - Date.now() > CANCEL_DEADLINE_MINUTES * 60 * 1000;
+	const showActions =
+		viewer.isMember &&
+		match.status !== "cancelled" &&
+		match.matchDate > Date.now();
+
+	const runAction = async (action: () => Promise<unknown>, done: string) => {
+		setSubmitting(true);
+		try {
+			await action();
+			Alert.alert("Fatto", done, [
+				{ text: "OK", onPress: () => router.back() },
+			]);
+		} catch (err) {
+			Alert.alert("Ops", convexErrorMessage(err));
+		} finally {
+			setSubmitting(false);
+		}
+	};
+
+	const handleCancel = () =>
+		Alert.alert(
+			"Eliminare la partita?",
+			"Anche la prenotazione del campo viene annullata e lo slot torna disponibile agli altri.",
+			[
+				{ text: "No, torna indietro", style: "cancel" },
+				{
+					text: "Elimina",
+					style: "destructive",
+					onPress: () =>
+						runAction(
+							() => cancelMatch({ matchId }),
+							"La partita è stata eliminata e il campo è di nuovo libero.",
+						),
+				},
+			],
+		);
+
+	const handleLeave = () =>
+		Alert.alert(
+			"Uscire dalla partita?",
+			viewer.isCreator
+				? "La partita resta agli altri giocatori e l'organizzazione passa a uno di loro, scelto a sorte."
+				: "Lasci libero il tuo posto: potrà prenderlo un altro giocatore.",
+			[
+				{ text: "No, resto", style: "cancel" },
+				{
+					text: "Esci",
+					style: "destructive",
+					onPress: () =>
+						runAction(
+							() => leaveMatch({ matchId }),
+							viewer.isCreator
+								? "Sei uscito dalla partita, che ora ha un nuovo organizzatore."
+								: "Sei uscito dalla partita.",
+						),
+				},
+			],
+		);
 
 	// Stato della CTA in base al viewer
 	const cta = (() => {
@@ -261,7 +331,70 @@ export default function OpenMatchDetail() {
 					</>
 				)}
 			</SmoothView>
+
+			{/* Azioni di chi è già in partita: eliminarla o uscirne */}
+			{showActions && (
+				<View style={{ gap: 8, marginTop: -8 }}>
+					{isOnlyPlayer ? (
+						<>
+							<Button
+								label="Elimina partita"
+								icon="trash"
+								iconPosition="leading"
+								variant="secondary"
+								height={50}
+								textColor={theme.danger}
+								disabled={!canCancel || submitting}
+								onPress={handleCancel}
+							/>
+							{!canCancel && (
+								<ActionHint>
+									Mancano meno di {CANCEL_DEADLINE_MINUTES / 60} ore all
+									&apos;inizio: per annullare contatta la struttura.
+								</ActionHint>
+							)}
+						</>
+					) : (
+						<>
+							<Button
+								label="Esci dalla partita"
+								icon="rectangle.portrait.and.arrow.right"
+								iconPosition="leading"
+								variant="secondary"
+								height={50}
+								textColor={theme.danger}
+								disabled={submitting}
+								onPress={handleLeave}
+							/>
+							{viewer.isCreator && (
+								<ActionHint>
+									Altri giocatori si sono uniti, quindi la partita non si può
+									più eliminare: uscendo, l&apos;organizzazione passa a uno di
+									loro.
+								</ActionHint>
+							)}
+						</>
+					)}
+				</View>
+			)}
 		</ScrollView>
+	);
+}
+
+/** Riga di spiegazione sotto un'azione distruttiva. */
+function ActionHint({ children }: { children: React.ReactNode }) {
+	const theme = useTheme();
+	return (
+		<ThemedText
+			style={{
+				fontSize: 12,
+				lineHeight: 16,
+				textAlign: "center",
+				color: theme.textMuted,
+			}}
+		>
+			{children}
+		</ThemedText>
 	);
 }
 

@@ -11,6 +11,8 @@
 export const SLOT_INTERVAL_MINUTES = 30;
 export const MATCH_DURATION_MINUTES = 90;
 export const MAX_PLAYERS = 4;
+/** Finestra entro cui il creatore può eliminare la partita. */
+export const CANCEL_DEADLINE_MINUTES = 120;
 
 /** Giorni selezionabili, oggi incluso. */
 export const BOOKABLE_DAYS = 7;

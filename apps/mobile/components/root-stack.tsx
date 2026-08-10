@@ -79,6 +79,33 @@ export default function RootStack() {
 						),
 					}}
 				/>
+				{/* Amici: pagina con la lista e sheet per aggiungerne di nuovi */}
+				<Stack.Screen
+					name="friends/index"
+					options={{
+						headerShown: true,
+						title: "Amici",
+						headerBackButtonDisplayMode: "minimal",
+						headerTintColor: theme.text,
+						headerTitleStyle: { color: theme.text },
+						headerStyle: { backgroundColor: theme.background },
+						headerShadowVisible: false,
+						headerRight: () => (
+							<Pressable
+								onPress={() => router.push("/friends/add")}
+								hitSlop={10}
+								accessibilityRole="button"
+								accessibilityLabel="Aggiungi un amico"
+							>
+								<IconSymbol name="plus" size={20} color={theme.text} />
+							</Pressable>
+						),
+					}}
+				/>
+				<Stack.Screen
+					name="friends/add"
+					options={{ ...sheetOptions, sheetAllowedDetents: [0.85, 1] }}
+				/>
 				<Stack.Screen
 					name="match/[id]"
 					options={{ ...sheetOptions, sheetAllowedDetents: [0.85, 1] }}

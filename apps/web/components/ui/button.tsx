@@ -19,12 +19,21 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
+        inverse: "bg-foreground text-background hover:bg-foreground/90",
+        // `onPhoto` e `glass` sono l'unico posto in cui il bianco letterale è
+        // corretto: stanno sopra una fotografia, non su una superficie a token.
+        onPhoto:
+          "bg-white text-neutral-950 shadow-sm hover:bg-white/90 focus-visible:ring-white/50",
+        glass:
+          "border border-white/25 bg-white/12 text-white backdrop-blur-md hover:bg-white/20 focus-visible:ring-white/50",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
         sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
         lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
         icon: "size-9",
+        pill: "h-11 rounded-full px-6 has-[>svg]:px-5",
+        "pill-lg": "h-14 rounded-full px-8 text-[15px] has-[>svg]:px-7",
       },
     },
     defaultVariants: {

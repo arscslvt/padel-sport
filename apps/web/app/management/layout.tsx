@@ -3,7 +3,6 @@ import { LayoutDashboard, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
-import ThemeSetter from "./_components/theme-setter";
 import UserMenu from "./_components/user-menu";
 
 export default async function ManagementLayout({
@@ -22,7 +21,6 @@ export default async function ManagementLayout({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <ThemeSetter theme="neutral" />
       <Toaster />
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-3 px-4 md:px-6 xl:px-8">

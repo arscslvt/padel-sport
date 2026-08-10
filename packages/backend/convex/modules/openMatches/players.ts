@@ -1,6 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "../../_generated/server";
-import { getIdentityPlayer, LEVEL_MAX, LEVEL_MIN, toPlayerView } from "./lib";
+import {
+  generatePlayerCode,
+  getIdentityPlayer,
+  LEVEL_MAX,
+  LEVEL_MIN,
+  toPlayerView,
+} from "./lib";
 
 /**
  * Profilo giocatore dell'utente autenticato.
@@ -61,6 +67,8 @@ export const upsertProfile = mutation({
         name: trimmedName,
         level,
         avatarUrl: avatarUrl ?? existing.avatarUrl,
+        // I profili creati prima dei codici lo ricevono qui
+        code: existing.code ?? (await generatePlayerCode(ctx)),
       });
       return existing._id;
     }
@@ -70,6 +78,7 @@ export const upsertProfile = mutation({
       name: trimmedName,
       level,
       avatarUrl,
+      code: await generatePlayerCode(ctx),
       createdAt: Date.now(),
     });
   },

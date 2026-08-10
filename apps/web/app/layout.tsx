@@ -5,8 +5,8 @@ import Script from "next/script";
 import {
   Geist,
   Geist_Mono,
+  Instrument_Serif,
   Unbounded,
-  Bricolage_Grotesque,
 } from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers/provider";
@@ -21,13 +21,21 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const heading = Unbounded({
-  variable: "--font-unbounded",
+/**
+ * Serif editoriale dei titoli: esiste solo nel peso 400, mai usarla in
+ * grassetto. Il corsivo serve ai titoli di sezione, che alternano tondo e
+ * corsivo nella stessa riga.
+ */
+const display = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  weight: "400",
+  style: ["normal", "italic"],
   subsets: ["latin"],
 });
 
-const bricolageSans = Bricolage_Grotesque({
-  variable: "--font-bricolage-grotesque",
+/** Display geometrico, ancora in uso su /tournament e /management. */
+const heading = Unbounded({
+  variable: "--font-unbounded",
   subsets: ["latin"],
 });
 
@@ -107,7 +115,7 @@ export default function RootLayout({
       <html
         lang="en"
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} ${heading.variable} ${bricolageSans.variable}`}
+        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${heading.variable}`}
       >
         <body className="font-sans antialiased">
           <Providers>{children}</Providers>

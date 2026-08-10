@@ -11,6 +11,13 @@ export const MAX_PLAYERS = 4;
 export const LEVEL_MIN = 1;
 export const LEVEL_MAX = 5;
 
+/**
+ * Finestra entro cui il creatore può ancora eliminare la partita: oltre le
+ * due ore dall'inizio la struttura non farebbe più in tempo a riassegnare il
+ * campo, quindi la cancellazione passa da lei.
+ */
+export const CANCEL_DEADLINE_MS = 2 * 60 * 60 * 1000;
+
 export type JoinMode = "direct" | "request";
 export type OpenMatchStatus = "open" | "full" | "cancelled";
 
@@ -19,6 +26,8 @@ export interface PlayerView {
   name: string;
   level: number;
   avatarUrl?: string;
+  /** Codice pubblico con cui il giocatore è cercabile dagli amici. */
+  code?: string;
 }
 
 export interface OpenMatchView {
@@ -96,6 +105,25 @@ export function levelLabel(
   return "avanzato";
 }
 
+/**
+ * Codice pubblico di cinque cifre per un nuovo giocatore.
+ * Estratto a caso e verificato sull'indice: alla collisione si riprova.
+ */
+export async function generatePlayerCode(ctx: MutationCtx): Promise<string> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const code = String(Math.floor(Math.random() * 90000) + 10000);
+
+    const taken = await ctx.db
+      .query("players")
+      .withIndex("by_code", (q) => q.eq("code", code))
+      .first();
+
+    if (!taken) return code;
+  }
+
+  throw new Error("Non è stato possibile assegnarti un codice. Riprova.");
+}
+
 export async function getIdentityPlayer(
   ctx: QueryCtx,
 ): Promise<Doc<"players"> | null> {
@@ -133,6 +161,7 @@ export function toPlayerView(player: Doc<"players">): PlayerView {
     name: player.name,
     level: player.level,
     avatarUrl: player.avatarUrl,
+    code: player.code,
   };
 }
 

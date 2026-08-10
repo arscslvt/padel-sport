@@ -41,6 +41,8 @@ const MAPPING = {
 	lifepreserver: "support",
 	"lock.fill": "lock",
 	"camera.fill": "photo-camera",
+	trash: "delete",
+	"rectangle.portrait.and.arrow.right": "logout",
 	"questionmark.circle": "help-outline",
 } as IconMapping;
 

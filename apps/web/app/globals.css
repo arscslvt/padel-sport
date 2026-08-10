@@ -1,5 +1,5 @@
 @import "tailwindcss";
-/* @import "tw-animate-css"; */
+@plugin "@tailwindcss/typography";
 @source "../app";
 @source "../components";
 
@@ -8,8 +8,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--theme-font-display);
   --font-heading: var(--theme-font-heading);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -44,29 +49,64 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-card: var(--radius-surface);
+  --radius-frame: var(--radius-frame-size);
 }
 
 :root {
-  --theme-font-heading: var(--font-unbounded), var(--font-geist-sans);
-  --radius: 0.625rem;
-  --background: oklch(0.22512 0.04207 176.091);
-  --foreground: oklch(1 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #12cc9b;
-  --primary-foreground: #04382b;
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.262 0.051 172.552);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.95 0.052 163.051);
-  --accent-foreground: oklch(0.262 0.051 172.552);
+  /* ---------------------------------------------------------------
+   * BRAND — unica sezione da riscrivere quando arrivano i colori
+   * definitivi. Tutto il resto della palette deriva da qui.
+   * --------------------------------------------------------------- */
+  --brand: oklch(0.205 0 0);
+  --brand-foreground: oklch(0.985 0 0);
+  --brand-subtle: oklch(0.97 0 0);
+  --brand-ring: oklch(0.556 0 0);
+
+  /* Scala neutra: unico posto con valori grezzi. */
+  --n-0: oklch(1 0 0);
+  --n-50: oklch(0.985 0 0);
+  --n-100: oklch(0.967 0 0);
+  --n-200: oklch(0.94 0 0);
+  --n-300: oklch(0.9 0 0);
+  --n-500: oklch(0.556 0 0);
+  --n-700: oklch(0.37 0 0);
+  --n-900: oklch(0.205 0 0);
+  --n-950: oklch(0.145 0 0);
+
+  /* Token semantici. */
+  --background: var(--n-0);
+  --foreground: var(--n-950);
+  --surface: var(--n-100);
+  --surface-foreground: var(--n-950);
+  --card: var(--n-0);
+  --card-foreground: var(--n-950);
+  --popover: var(--n-0);
+  --popover-foreground: var(--n-950);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: var(--n-100);
+  --secondary-foreground: var(--n-900);
+  --muted: var(--n-100);
+  --muted-foreground: var(--n-500);
+  --accent: var(--n-100);
+  --accent-foreground: var(--n-900);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.378 0.077 168.94);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: var(--n-200);
+  --input: var(--n-200);
+  --ring: var(--brand-ring);
+
+  /* Banda scura (sezione "Prossimi Eventi"). */
+  --ink: oklch(0.16 0 0);
+  --ink-foreground: var(--n-50);
+
+  --radius: 0.625rem;
+  --radius-surface: 1.25rem;
+  --radius-frame-size: 1.75rem;
+
+  --theme-font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --theme-font-heading: var(--font-unbounded), var(--font-geist-sans);
+
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -82,25 +122,105 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-.dark {
+/*
+ * Scope di tono.
+ * Ridichiarano i token su una porzione di pagina: ogni utility basata su token
+ * (bg-background, text-muted-foreground, border, …) si adegua da sola, senza
+ * bisogno di varianti nei componenti. È così che lo stesso EventCard rende
+ * scuro nella banda "Prossimi Eventi" e chiaro su /events.
+ */
+.tone-ink,
+.tone-photo {
+  --background: var(--ink);
+  --foreground: var(--ink-foreground);
+  --surface: oklch(1 0 0 / 6%);
+  --surface-foreground: var(--ink-foreground);
+  --card: oklch(1 0 0 / 5%);
+  --card-foreground: var(--ink-foreground);
+  --popover: var(--n-900);
+  --popover-foreground: var(--ink-foreground);
+  --primary: var(--n-0);
+  --primary-foreground: var(--n-950);
+  --secondary: oklch(1 0 0 / 10%);
+  --secondary-foreground: var(--ink-foreground);
+  --muted: oklch(1 0 0 / 6%);
+  --muted-foreground: oklch(1 0 0 / 62%);
+  --accent: oklch(1 0 0 / 10%);
+  --accent-foreground: var(--ink-foreground);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: oklch(1 0 0 / 45%);
+}
+
+/* Dipinge lo sfondo: banda scura a tutta larghezza. */
+.tone-ink {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Non dipinge nulla: testo e controlli sopra una fotografia. */
+.tone-photo {
+  color: var(--foreground);
+}
+
+/*
+ * Ponte per le pagine non ancora ridisegnate (/book, /trofeo-san-sebastiano):
+ * ripristina la vecchia palette teal su cui è tarato il loro markup, che usa
+ * `text-white` ed emerald letterali.
+ */
+.tone-legacy {
+  --background: oklch(0.22512 0.04207 176.091);
+  --foreground: oklch(1 0 0);
+  --surface: oklch(0.262 0.051 172.552);
+  --surface-foreground: oklch(1 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #12cc9b;
+  --primary-foreground: #04382b;
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.262 0.051 172.552);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.95 0.052 163.051);
+  --accent-foreground: oklch(0.262 0.051 172.552);
+  --border: oklch(0.378 0.077 168.94);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/*
+ * Tema neutro: /tournament (forcedTheme) e /management (ThemeSetter).
+ * Ridichiara ogni token, quindi resta isolato dalla palette di :root.
+ */
+:root[data-theme="neutral"] {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
+  --surface: oklch(0.205 0 0);
+  --surface-foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: #12cc9b;
-  --primary-foreground: #04382b;
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.95 0.052 163.051);
+  --accent-foreground: oklch(0.262 0.051 172.552);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
+  --ink: oklch(0.145 0 0);
+  --ink-foreground: oklch(0.985 0 0);
+  --radius-surface: 1.25rem;
+  --radius-frame-size: 1.75rem;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -126,37 +246,76 @@
   }
 }
 
-:root[data-theme="neutral"],
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.95 0.052 163.051);
-  --accent-foreground: oklch(0.262 0.051 172.552);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/*
+ * Senza `backdrop-filter` gli strati del blur progressivo diventano rettangoli
+ * opachi: meglio nasconderli e lasciare che sia lo scrim a gradiente, sempre
+ * presente accanto a loro, a garantire il contrasto del testo.
+ */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  [data-slot="progressive-blur"] {
+    display: none;
+  }
+}
+
+/*
+ * Corpo degli articoli /events.
+ * Volutamente fuori da @layer: gli stili non in layer vincono su quelli del
+ * plugin typography (che vive nel layer `utilities`), così non serve rincorrere
+ * la specificità con `!important`.
+ */
+.prose-event {
+  --tw-prose-body: --alpha(var(--foreground) / 80%);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: --alpha(var(--foreground) / 70%);
+  --tw-prose-links: var(--foreground);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: --alpha(var(--foreground) / 55%);
+  --tw-prose-bullets: --alpha(var(--foreground) / 35%);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: --alpha(var(--foreground) / 55%);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: --alpha(var(--foreground) / 90%);
+  --tw-prose-pre-bg: --alpha(var(--foreground) / 6%);
+  --tw-prose-th-borders: --alpha(var(--foreground) / 25%);
+  --tw-prose-td-borders: --alpha(var(--foreground) / 12%);
+
+  text-wrap: pretty;
+}
+
+.prose-event :is(h2, h3, h4) {
+  font-family: var(--theme-font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 8rem;
+}
+
+.prose-event a {
+  text-decoration-color: --alpha(var(--foreground) / 35%);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 150ms ease;
+}
+
+.prose-event a:hover {
+  text-decoration-color: var(--foreground);
+}
+
+.prose-event blockquote {
+  font-style: normal;
+  border-inline-start-width: 3px;
+}
+
+.prose-event :not(pre) > code {
+  background-color: --alpha(var(--foreground) / 8%);
+  border-radius: var(--radius-sm);
+  padding: 0.15em 0.4em;
+  font-weight: 500;
+}
+
+.prose-event :not(pre) > code::before,
+.prose-event :not(pre) > code::after {
+  content: none;
 }

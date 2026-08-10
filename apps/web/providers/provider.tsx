@@ -8,7 +8,15 @@ export default function Providers({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
-  const isTournament = pathname?.startsWith("/tournament");
+
+  /*
+   * Il tema è una proprietà della rotta, non una preferenza dell'utente: lo
+   * imponiamo qui, così è già corretto al primo paint. Lasciarlo correggere a
+   * un effetto nel layout faceva lampeggiare la palette di chi arrivava sul
+   * sito pubblico da /management (dove localStorage aveva salvato "neutral").
+   */
+  const isNeutral =
+    pathname?.startsWith("/tournament") || pathname?.startsWith("/management");
 
   return (
     <ConvexClientProvider>
@@ -16,9 +24,8 @@ export default function Providers({
         attribute="data-theme"
         defaultTheme="light"
         themes={["light", "dark", "neutral"]}
-        enableSystem
         disableTransitionOnChange
-        forcedTheme={isTournament ? "neutral" : undefined}
+        forcedTheme={isNeutral ? "neutral" : "light"}
       >
         {children}
       </ThemeProvider>

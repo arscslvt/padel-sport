@@ -1,5 +1,4 @@
 import AnimatedBackground from "@/components/animated-background";
-import Header from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
 import Image from "next/image";
 

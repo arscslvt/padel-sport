@@ -1,30 +1,36 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import type React from "react";
+
 import Footer from "@/components/footer";
 import Header from "@/components/header";
-import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import { ArrowRight } from "lucide-react";
-import { useTheme } from "next-themes";
-import React from "react";
+import { cn } from "@/lib/utils";
 
-export default function ({
+export default function MainLayout({
   children,
   modal,
 }: Readonly<{
   children: React.ReactNode;
   modal: React.ReactNode;
 }>) {
-  const { setTheme } = useTheme();
-
-  React.useEffect(() => {
-    setTheme("light");
-  }, [setTheme]);
+  const pathname = usePathname();
+  // Sulla home l'hero deve passare sotto la pillola dell'header; altrove serve
+  // lo spazio per non finirci sotto.
+  const isHome = pathname === "/";
 
   return (
     <div className="relative">
       <Header />
-      <main className="max-w-dvw overflow-x-hidden">{children}</main>
+      <main
+        className={cn(
+          "max-w-dvw overflow-x-hidden",
+          !isHome && "pt-24 sm:pt-28",
+        )}
+      >
+        {children}
+      </main>
       <Footer />
       {modal}
       <Toaster />

@@ -1,139 +1,72 @@
 "use client";
 
-import React from "react";
-import Image from "next/image";
+import { Menu } from "lucide-react";
+import {
+  motion,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+} from "motion/react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import React from "react";
 
-import logo from "@/assets/branding/logo.svg";
-import { Button } from "./ui/button";
-
-import { motion } from "motion/react";
-
+import { NavOverlay } from "@/components/nav-overlay";
+import {
+  NAV_BAR_INSET,
+  NAV_ICON_BUTTON_CLASS,
+  NavPillLogo,
+  navPillClass,
+} from "@/components/nav-pill";
+import { DURATION, EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { BOOKING_LINK, EVENTS_LINK, WHERE_WE_ARE_LINK } from "@/lib/links";
-import { getInfo } from "@/lib/info";
-import { ArrowRight } from "lucide-react";
 
-const routes: ReadonlyArray<{
-  name: string;
-  href: string;
-  disabled?: boolean;
-}> = [
-  { name: "Dove trovarci", href: WHERE_WE_ARE_LINK },
-  // { name: "Il Club", href: CLUB_LINK, disabled: true },
-  { name: "Tornei ed Eventi", href: EVENTS_LINK },
-];
+/**
+ * Pillola flottante, identica su ogni rotta.
+ *
+ * Sopra la foto dell'hero galleggia come vetro; sulle pagine chiare è
+ * bianco su bianco, e sono il bordo hairline e l'ombra lunga a staccarla dallo
+ * sfondo — non vanno tolti.
+ */
+export default function Header() {
+  const [scrolled, setScrolled] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
+  const shouldReduceMotion = useReducedMotion();
+  const { scrollY } = useScroll();
 
-interface HeaderProps {
-  hideNav?: boolean;
-  hideBackground?: boolean;
-}
-
-export default function Header({ hideNav, hideBackground }: HeaderProps) {
-  const pathname = usePathname();
-  const [currentPath, setCurrentPath] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (!pathname) {
-      setCurrentPath(null);
-      return;
-    }
-
-    const [cleanPath] = pathname.split("?");
-    setCurrentPath(cleanPath);
-  }, [pathname]);
-
-  const isHome = currentPath === "/";
+  useMotionValueEvent(scrollY, "change", (value) => {
+    setScrolled(value > 24);
+  });
 
   return (
-    <div
-      className={cn(
-        "relative w-dvw top-0 z-50",
-        isHome ? "pb-2" : "pb-5 sm:pb-2",
-        isHome ? "fixed" : "sticky",
-        "bg-transparent",
-      )}
-    >
-      {pathname === "/" && (
-        <div className="bg-accent text-accent-foreground py-2 sm:py-0 text-sm">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-4 min-h-9 sm:h-9">
-            <p>
-              <span className="font-medium">Il torneo è iniziato.</span> Vedi i
-              risultati in diretta.
-            </p>
-            <Link href={"/tournament/trofeo-san-sebastiano"}>
-              <Button size={"sm"} variant={"ghost"} className="h-max">
-                Vai al torneo
-                <ArrowRight />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
-      <div className="flex flex-col md:flex-row justify-center md:items-center sm:h-32 min-h-22 gap-3 md:px-16 lg:px-24 pt-6 lg:pt-0">
-        {!isHome && !hideBackground && (
-          <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-background via-background/95 to-background/0" />
-        )}
-        <div className="relative flex justify-between z-10 px-4 pb-3 md:pb-0 md:px-0">
-          <Link href={"/"} className="pl-2 md:pl-0">
-            <Image
-              src={logo}
-              alt="PadelSport Logo"
-              className="h-10 lg:h-12 w-auto"
-            />
-          </Link>
+    <>
+      {/* Sotto l'overlay: quando il menu è aperto è la sua pillola gemella a
+          restare visibile e cliccabile. */}
+      <header className={cn("fixed inset-x-0 top-0 z-40", NAV_BAR_INSET)}>
+        <motion.div
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: shouldReduceMotion ? 0.2 : DURATION.base,
+            delay: shouldReduceMotion ? 0 : 0.1,
+            ease: EASE,
+          }}
+          className={navPillClass(scrolled)}
+        >
+          <NavPillLogo />
 
-          <div className="flex md:hidden">
-            <Link href={getInfo("bookingUrl") ?? "#"}>
-              <Button
-                variant={"secondary"}
-                className={cn(
-                  "font-medium font-heading lg:px-4 rounded-full cursor-pointer transition-colors",
-                  currentPath === BOOKING_LINK && "bg-white/30",
-                )}
-              >
-                PRENOTA ORA
-              </Button>
-            </Link>
-          </div>
-        </div>
-        {!hideNav && (
-          <div className="relative z-10 md:justify-end md:flex-1 flex px-4 md:px-0">
-            <nav
-              aria-label="Link utili"
-              className="flex flex-1 md:flex-none border border-accent/20 bg-background/10 md:bg-foreground/30 backdrop-blur-sm md:bg-none rounded-full"
-            >
-              <motion.ul className="flex flex-1 md:flex-none" layout>
-                {routes.map((route) => {
-                  const isActive = currentPath === route.href;
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Apri il menu"
+            aria-expanded={open}
+            className={NAV_ICON_BUTTON_CLASS}
+          >
+            <Menu className="size-5" strokeWidth={1.5} />
+          </button>
+        </motion.div>
+      </header>
 
-                  return (
-                    <li key={route.href} className="flex-1">
-                      <Link
-                        href={route.disabled ? "#" : route.href}
-                        aria-current={isActive ? "page" : undefined}
-                        className="flex-1 flex"
-                      >
-                        <Button
-                          variant={"ghost"}
-                          className={cn(
-                            "flex-1 text-white hover:bg-white/20 hover:text-white font-medium lg:px-4 rounded-full cursor-pointer transition-colors",
-                            isActive && "bg-white/30",
-                          )}
-                          disabled={route.disabled}
-                        >
-                          {route.name}
-                        </Button>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </motion.ul>
-            </nav>
-          </div>
-        )}
-      </div>
-    </div>
+      <NavOverlay open={open} onOpenChange={setOpen} scrolled={scrolled} />
+    </>
   );
 }

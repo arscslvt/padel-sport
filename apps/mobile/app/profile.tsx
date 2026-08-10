@@ -1,4 +1,6 @@
 import { useAuth, useUser } from "@clerk/clerk-expo";
+import { api } from "@padel-sport/backend/convex/_generated/api";
+import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
@@ -22,7 +24,15 @@ export default function ProfileScreen() {
 	const router = useRouter();
 	const { user, isLoaded } = useUser();
 	const { signOut } = useAuth();
-	const { player, isLoading } = useCurrentPlayer();
+	const { player, isSignedIn, isLoading } = useCurrentPlayer();
+
+	// Gli amici sono l'unico dato reale tra le statistiche: il resto è ancora
+	// dimostrativo (lib/mock-profile.ts).
+	const friends = useQuery(
+		api.modules.friends.list.default,
+		isSignedIn ? {} : "skip",
+	);
+	const friendsCount = friends?.friends.length;
 
 	const profile = useMemo(
 		() => (user ? mockProfile(player?.id ?? user.id) : null),
@@ -122,8 +132,12 @@ export default function ProfileScreen() {
 					)}
 				</View>
 				<View style={{ flexDirection: "row", gap: 8 }}>
-					{player && <Pill label={`Livello ${formatLevel(player.level)}`} tinted />}
-					{profile && <Pill label={`#${profile.code}`} />}
+					{player && (
+						<Pill label={`Livello ${formatLevel(player.level)}`} tinted />
+					)}
+					{(player?.code ?? profile?.code) && (
+						<Pill label={`#${player?.code ?? profile?.code}`} />
+					)}
 				</View>
 				{memberSince && (
 					<ThemedText style={{ fontSize: 13, color: theme.textMuted }}>
@@ -157,7 +171,11 @@ export default function ProfileScreen() {
 						<ThemedText style={{ flex: 1, fontSize: 14 }}>
 							Completa il profilo giocatore per unirti alle partite
 						</ThemedText>
-						<IconSymbol name="chevron.right" size={16} color={theme.textMuted} />
+						<IconSymbol
+							name="chevron.right"
+							size={16}
+							color={theme.textMuted}
+						/>
 					</View>
 				</SmoothView>
 			)}
@@ -178,8 +196,9 @@ export default function ProfileScreen() {
 						/>
 						<StatCard
 							label="Amici"
-							value={String(profile.stats.friends)}
+							value={friendsCount === undefined ? "–" : String(friendsCount)}
 							icon="person.2.fill"
+							onPress={() => router.push("/friends")}
 						/>
 					</View>
 
@@ -250,10 +269,13 @@ function StatCard({
 	label,
 	value,
 	icon,
+	onPress,
 }: {
 	label: string;
 	value: string;
 	icon: string;
+	/** Se presente, la card diventa premibile e porta al dettaglio. */
+	onPress?: () => void;
 }) {
 	const theme = useTheme();
 
@@ -265,6 +287,7 @@ function StatCard({
 			borderColor={theme.border}
 			borderWidth={1}
 			style={{ flex: 1 }}
+			onPress={onPress}
 		>
 			<View style={{ padding: 14, gap: 8 }}>
 				<IconSymbol name={icon} size={18} color={theme.tint} />
@@ -318,11 +341,7 @@ function HistoryRow({ match }: { match: PlayedMatchMock }) {
 				</ThemedText>
 
 				<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-					<IconSymbol
-						name="person.2.fill"
-						size={13}
-						color={theme.textMuted}
-					/>
+					<IconSymbol name="person.2.fill" size={13} color={theme.textMuted} />
 					<ThemedText
 						style={{ fontSize: 13, color: theme.textMuted, flex: 1 }}
 						numberOfLines={1}

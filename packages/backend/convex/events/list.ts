@@ -2,6 +2,9 @@ import { paginationOptsValidator } from "convex/server";
 import { query } from "../_generated/server";
 import { v } from "convex/values";
 
+/**
+ * @deprecated /events legge da Sanity. Nessun client usa più questa query.
+ */
 export default query({
   args: {
     paginationOpts: paginationOptsValidator,

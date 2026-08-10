@@ -2,9 +2,10 @@
 
 import { MessageCircle, PhoneCall } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import LiveDot from "@/app/tournament/components/live-dot";
+import { Button } from "@/components/ui/button";
+import { TOURNAMENT_LINK } from "@/lib/links";
+import { cn } from "@/lib/utils";
 
 type TournamentFloatingCtaProps = {
   whatsappHref: string;
@@ -71,14 +72,14 @@ export default function TournamentFloatingCta({
             : "translate-y-6 opacity-0",
         )}
       >
-        <div className="pointer-events-auto rounded-2xl border border-white/20 bg-background/95 p-4 shadow-xl">
-          <p className="text-sm font-semibold uppercase tracking-wide text-white/75">
+        <div className="pointer-events-auto rounded-card border-border bg-background/95 border p-4 shadow-lg backdrop-blur-xl">
+          <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
             Segui il torneo
           </p>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-            <Button variant={"secondary"} asChild className="sm:flex-1">
+            <Button asChild size="pill" className="sm:flex-1">
               <a
-                href={"/tournament/trofeo-san-sebastiano"}
+                href={TOURNAMENT_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -90,17 +91,17 @@ export default function TournamentFloatingCta({
       </div>
 
       {isDocked && (
-        <div className="absolute inset-x-0 bottom-0 rounded-2xl border border-white/20 bg-background/95 p-4 shadow-xl">
-          <p className="text-sm font-semibold uppercase tracking-wide text-white/75">
+        <div className="rounded-card border-border bg-background absolute inset-x-0 bottom-0 border p-4 shadow-lg">
+          <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
             Come partecipare
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <Button asChild className="sm:flex-1">
+            <Button asChild size="pill" className="sm:flex-1">
               <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
                 <MessageCircle /> Scrivici su WhatsApp
               </a>
             </Button>
-            <Button asChild variant="secondary" className="sm:flex-1">
+            <Button asChild size="pill" variant="outline" className="sm:flex-1">
               <a href={phoneHref}>
                 <PhoneCall /> Chiamaci al cellulare
               </a>

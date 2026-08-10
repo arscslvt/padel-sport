@@ -40,8 +40,9 @@ export default function Header({
 		user?.primaryEmailAddress?.emailAddress ??
 		"Giocatore";
 	const avatarUrl = player?.avatarUrl ?? user?.imageUrl;
-	// Il codice giocatore non esiste ancora su Convex: derivato dall'utente
-	const code = user ? mockProfile(player?.id ?? user.id).code : null;
+	// Il codice arriva dal profilo giocatore; per chi non l'ha ancora ricevuto
+	// (profili creati prima dei codici) resta quello dimostrativo
+	const code = player?.code ?? (user ? mockProfile(user.id).code : null);
 
 	return (
 		<View
