@@ -13,9 +13,5 @@
     "dev:mobile:clean": "bun run --cwd apps/mobile dev:clean",
     "dev:backend": "bun run --cwd packages/backend dev",
     "build:web": "bun run --cwd apps/web build"
-  },
-  "dependencies": {
-    "@hugeicons/core-free-icons": "^4.2.3",
-    "@hugeicons/react": "^1.1.9"
   }
 }

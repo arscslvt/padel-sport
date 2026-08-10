@@ -4,10 +4,6 @@
   "workspaces": {
     "": {
       "name": "padel-sport",
-      "dependencies": {
-        "@hugeicons/core-free-icons": "^4.2.3",
-        "@hugeicons/react": "^1.1.9",
-      },
     },
     "apps/mobile": {
       "name": "padel-sport-app",
@@ -70,6 +66,8 @@
       "dependencies": {
         "@clerk/nextjs": "^7.2.7",
         "@hookform/resolvers": "^5.2.2",
+        "@hugeicons/core-free-icons": "^4.2.3",
+        "@hugeicons/react": "^1.1.9",
         "@padel-sport/backend": "workspace:*",
         "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-aspect-ratio": "^1.1.8",
