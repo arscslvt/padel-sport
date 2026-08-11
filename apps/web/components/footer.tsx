@@ -6,7 +6,7 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { ANCHORS } from "@/lib/anchors";
 import { getInfo } from "@/lib/info";
-import { EVENTS_LINK, WHERE_WE_ARE_LINK } from "@/lib/links";
+import { EVENTS_LINK, PRIVACY_LINK, WHERE_WE_ARE_LINK } from "@/lib/links";
 
 const routes: ReadonlyArray<{ name: string; href: string }> = [
   { name: "Dove trovarci", href: WHERE_WE_ARE_LINK },
@@ -15,15 +15,18 @@ const routes: ReadonlyArray<{ name: string; href: string }> = [
 
 export default function Footer() {
   return (
-    // `#contatti` è l'ancora del bottone "Contattaci" nell'hero.
+    // `#contacts` è l'ancora pubblica dei contatti: niente `scroll-mt`, come le
+    // altre sezioni bersaglio (vedi `anchorHref`).
     <footer
       id={ANCHORS.contacts}
-      className="border-border bg-background text-foreground max-w-dvw scroll-mt-24 border-t px-6 pt-14 pb-10 lg:px-12"
+      className="border-border bg-background text-foreground max-w-dvw border-t px-6 pt-14 pb-10 lg:px-12"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-12">
         <div className="flex flex-col gap-10 sm:flex-row sm:justify-between">
           <div className="flex flex-col gap-5">
-            <Logo className="text-foreground h-8 w-auto" />
+            {/* `self-start`: senza, l'SVG si stira per tutta la colonna flex e
+                il tracciato finisce centrato dentro il viewBox. */}
+            <Logo className="text-foreground h-8 w-auto self-start" />
             <div className="text-muted-foreground flex flex-col gap-0.5 text-sm">
               <span className="text-foreground font-medium">
                 {getInfo("name")}
@@ -108,7 +111,20 @@ export default function Footer() {
 
         <div className="border-border flex flex-col gap-3 border-t pt-6">
           <div className="text-muted-foreground flex flex-col items-center gap-3 text-xs sm:flex-row sm:justify-between">
-            <p>CF/P.IVA {getInfo("cf")}</p>
+            <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:gap-3">
+              <p>
+                CF {getInfo("cf")} — P.IVA {getInfo("piva")}
+              </p>
+              <span aria-hidden className="hidden sm:inline">
+                ·
+              </span>
+              <Link
+                href={PRIVACY_LINK}
+                className="hover:text-foreground transition-colors"
+              >
+                Privacy e trattamento dei dati
+              </Link>
+            </div>
             <Link
               href="https://salvatorearesco.com"
               target="_blank"

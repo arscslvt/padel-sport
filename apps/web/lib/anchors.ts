@@ -1,3 +1,5 @@
+type Anchor = "support" | "contacts" | "findPlayers" | "supportForm";
+
 /**
  * Ancore di pagina: gli id che compaiono negli URL come frammento.
  *
@@ -7,14 +9,28 @@
  * stessa stringa, e l'attributo `id` non è più un letterale — che è ciò che
  * `useUniqueElementIds` segnala.
  */
-export const ANCHORS = {
-  support: "supporto",
-  contacts: "contatti",
-  findPlayers: "trova-giocatori",
-  supportForm: "modulo-supporto",
+export const ANCHORS: {
+  [K in Anchor]: string;
+} = {
+  support: "support",
+  contacts: "contacts",
+  findPlayers: "find-players",
+  supportForm: "support-form",
 } as const;
 
-/** Frammento pronto per un `href`. */
+/**
+ * Frammento pronto per un `href`.
+ *
+ * Va su un `<a>` nativo, non su `next/link`: il router tratta come no-op una
+ * navigazione verso l'URL già corrente, quindi al secondo clic — con l'hash
+ * ormai in barra indirizzi — non scorrerebbe più nulla. Il browser invece
+ * riporta sempre al frammento, e lo fa in modo morbido perché
+ * `scroll-behavior: smooth` sta su `html` in globals.css.
+ *
+ * Le sezioni bersaglio non portano `scroll-mt-*`: il loro bordo superiore deve
+ * combaciare con quello della finestra. La pillola dell'header ci galleggia
+ * sopra senza coprire nulla, perché atterra sul padding alto della sezione.
+ */
 export function anchorHref(anchor: (typeof ANCHORS)[keyof typeof ANCHORS]) {
   return `#${anchor}` as const;
 }

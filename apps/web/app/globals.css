@@ -247,6 +247,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /*
+   * I link alle ancore (`/#support`) scorrono invece di saltare. Va su `html`
+   * perché l'elemento che scorre resta la viewport, anche con `overflow-x`
+   * nascosto sul body. Chi ha chiesto meno animazioni continua a saltare.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
   body {
     @apply bg-background text-foreground;
     @apply overflow-x-hidden;

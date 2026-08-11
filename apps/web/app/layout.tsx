@@ -115,6 +115,14 @@ export default function RootLayout({
       <html
         lang="en"
         suppressHydrationWarning
+        /*
+         * Opt-in con cui Next riconosce lo `scroll-behavior: smooth` dichiarato
+         * in globals.css. Senza, il router non lo sospende durante i cambi di
+         * rotta: il suo `scrollTop = 0` diventa un'animazione che il render
+         * della nuova pagina interrompe a metà, e si atterra sulla nuova rotta
+         * già scrollati di un centinaio di px.
+         */
+        data-scroll-behavior="smooth"
         className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${heading.variable}`}
       >
         <body className="font-sans antialiased">

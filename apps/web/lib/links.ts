@@ -4,6 +4,8 @@ export const WHERE_WE_ARE_LINK: Route = "/where";
 export const CLUB_LINK = "/club";
 export const EVENTS_LINK = "/events";
 export const BOOKING_LINK = "/book";
+/** Informativa privacy: raggiungibile dalla riga legale del footer. */
+export const PRIVACY_LINK: Route = "/privacy";
 /** Pagina statica del torneo: regolamento, formula e calendario. */
 export const TROFEO_LINK = "/trofeo-san-sebastiano" as Route;
 /** Tabellone con i risultati in diretta. */

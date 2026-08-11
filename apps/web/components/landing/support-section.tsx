@@ -40,7 +40,7 @@ export function SupportSection() {
 	return (
 		<section
 			id={ANCHORS.support}
-			className="tone-emerald scroll-mt-24 bg-emerald-950 px-6 py-16 sm:py-24 lg:px-12 lg:py-32"
+			className="tone-emerald bg-emerald-950 px-6 py-16 sm:py-24 lg:px-12 lg:py-32"
 		>
 			<div className="mx-auto max-w-6xl">
 				<Reveal>
