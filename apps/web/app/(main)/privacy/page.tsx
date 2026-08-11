@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { useId } from "react";
 
 import { CookiePreferencesButton } from "@/components/cookie-banner";
 import { Heading } from "@/components/ui/heading";
@@ -256,17 +257,18 @@ export default function PrivacyPage() {
 							interazioni con gli elementi (clic, invii di modulo, cambi di
 							pagina), i dati tecnici del browser e del dispositivo, l'indirizzo
 							IP — da cui Amplitude ricava la zona geografica approssimativa — e
-							un <Term>identificativo casuale</Term> salvato sul tuo dispositivo,
-							che serve a riconoscere le visite successive come la stessa
-							persona. Registra inoltre la <Term>sessione di navigazione</Term>:
-							una ricostruzione di quello che è successo a schermo (movimenti,
-							clic, scorrimento) che riguardiamo per capire dove il sito è
-							scomodo. I campi dei moduli sono mascherati nella registrazione:
-							quello che digiti in nome, email, telefono e matricola non compare
-							in chiaro. Non colleghiamo questi dati alla tua identità né li
-							incrociamo con le richieste che ci mandi. Base giuridica: il tuo{" "}
-							<Term>consenso</Term> (art. 6.1.a GDPR e art. 122 del Codice
-							privacy), che puoi revocare quando vuoi.
+							un <Term>identificativo casuale</Term> salvato sul tuo
+							dispositivo, che serve a riconoscere le visite successive come la
+							stessa persona. Registra inoltre la{" "}
+							<Term>sessione di navigazione</Term>: una ricostruzione di quello
+							che è successo a schermo (movimenti, clic, scorrimento) che
+							riguardiamo per capire dove il sito è scomodo. I campi dei moduli
+							sono mascherati nella registrazione: quello che digiti in nome,
+							email, telefono e matricola non compare in chiaro. Non colleghiamo
+							questi dati alla tua identità né li incrociamo con le richieste
+							che ci mandi. Base giuridica: il tuo <Term>consenso</Term> (art.
+							6.1.a GDPR e art. 122 del Codice privacy), che puoi revocare
+							quando vuoi.
 						</Block>
 					</div>
 				</Section>
@@ -386,11 +388,7 @@ export default function PrivacyPage() {
 					</p>
 				</Section>
 
-				<Section
-					number={8}
-					id="cookie"
-					title="Cookie e memoria del browser"
-				>
+				<Section number={8} id={useId()} title="Cookie e memoria del browser">
 					<p>
 						Il sito <Term>non usa cookie di profilazione</Term>, non ospita
 						pubblicità e non condivide dati con circuiti pubblicitari. Gli
@@ -459,9 +457,9 @@ export default function PrivacyPage() {
 					</p>
 					<p>
 						Puoi inoltre cancellare cookie e memoria locale in qualsiasi momento
-						dalle impostazioni del browser: perderesti la sessione di accesso, la
-						preferenza del tema e la scelta sui cookie, che torneremo quindi a
-						chiederti.
+						dalle impostazioni del browser: perderesti la sessione di accesso,
+						la preferenza del tema e la scelta sui cookie, che torneremo quindi
+						a chiederti.
 					</p>
 				</Section>
 
@@ -470,21 +468,22 @@ export default function PrivacyPage() {
 					title="Nessuna pubblicità, nessuna decisione automatica"
 				>
 					<p>
-						Le statistiche del punto 8, se le accetti, ci dicono come viene usato
-						il sito: quali pagine funzionano e dove ci si blocca. Le guardiamo in
-						forma aggregata e le usiamo solo per migliorare il sito.{" "}
+						Le statistiche del punto 8, se le accetti, ci dicono come viene
+						usato il sito: quali pagine funzionano e dove ci si blocca. Le
+						guardiamo in forma aggregata e le usiamo solo per migliorare il
+						sito.{" "}
 						<Term>
-							Non costruiamo profili pubblicitari, non vendiamo questi dati e non
-							li usiamo per mandarti messaggi mirati
+							Non costruiamo profili pubblicitari, non vendiamo questi dati e
+							non li usiamo per mandarti messaggi mirati
 						</Term>
-						, né li incrociamo con la tua identità di socio o con le richieste che
-						ci mandi dai moduli.
+						, né li incrociamo con la tua identità di socio o con le richieste
+						che ci mandi dai moduli.
 					</p>
 					<p>
-						Non prendiamo decisioni automatizzate che producano effetti giuridici
-						su di te e non usiamo i tuoi dati per addestrare sistemi di
-						intelligenza artificiale. Le richieste che arrivano dal sito le legge
-						e le lavora una persona della segreteria.
+						Non prendiamo decisioni automatizzate che producano effetti
+						giuridici su di te e non usiamo i tuoi dati per addestrare sistemi
+						di intelligenza artificiale. Le richieste che arrivano dal sito le
+						legge e le lavora una persona della segreteria.
 					</p>
 				</Section>
 

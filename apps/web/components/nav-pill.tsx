@@ -19,12 +19,27 @@ import { cn } from "@/lib/utils";
 export const NAV_BAR_INSET =
   "flex justify-center px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8";
 
+/**
+ * Il materiale della barra: vetro traslucido, bordo hairline, ombra lunga.
+ *
+ * Sta in una costante perché lo condivide anche la barra dell'evento imminente
+ * che le spunta da sotto: devono leggersi come lo stesso oggetto, e due copie
+ * della ricetta prima o poi divergono.
+ */
+export const PILL_SURFACE = cn(
+  "rounded-full bg-background/85 backdrop-blur-xl backdrop-saturate-150",
+  "border-foreground/[0.07] border",
+  "shadow-[0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-18px_rgb(0_0_0/0.45)]",
+);
+
+/** Larghezza comune a pillola e barra evento: restano incolonnate. */
+export const PILL_WIDTH = "w-full max-w-[min(100%,24rem)]";
+
 export function navPillClass(scrolled: boolean, className?: string) {
   return cn(
-    "flex w-full max-w-[min(100%,24rem)] items-center justify-between rounded-full",
-    "bg-background/85 backdrop-blur-xl backdrop-saturate-150",
-    "border-foreground/[0.07] border",
-    "shadow-[0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-18px_rgb(0_0_0/0.45)]",
+    PILL_SURFACE,
+    PILL_WIDTH,
+    "flex items-center justify-between",
     "transition-[height,padding] duration-300 ease-out",
     scrolled ? "h-12 pr-1.5 pl-4" : "h-14 pr-2 pl-5",
     className,
