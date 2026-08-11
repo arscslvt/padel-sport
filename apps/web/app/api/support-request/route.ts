@@ -6,6 +6,7 @@ import { Resend } from "resend";
 
 import { SupportRequestClubEmail } from "@/emails/support-request-club";
 import { SupportRequestCopyEmail } from "@/emails/support-request-copy";
+import { excerpt, sendNtfyAlert } from "@/lib/ntfy";
 import {
   formatSupportDate,
   SUPPORT_HOURS,
@@ -60,6 +61,26 @@ export async function POST(request: Request) {
       { status: 502 },
     );
   }
+
+  /*
+   * La richiesta è a database: da qui in poi nessun canale di notifica può
+   * far fallire la risposta. La push parte prima delle mail proprio perché
+   * serve a coprirle — se Resend è giù, il telefono suona lo stesso.
+   */
+  await sendNtfyAlert({
+    title: `Assistenza: ${values.name}`,
+    message: [
+      values.memberId ? `Socio ${values.memberId}` : null,
+      `Telefono: ${values.phone}`,
+      `Email: ${values.email}`,
+      "",
+      excerpt(values.message),
+    ]
+      .filter((line) => line !== null)
+      .join("\n"),
+    tags: ["support-request", "new"],
+    priority: "high",
+  });
 
   const receivedAtLabel = formatSupportDate(Date.now());
 

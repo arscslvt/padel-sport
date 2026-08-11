@@ -13,6 +13,7 @@ import {
   missingPlayersLabel,
   toMatchTimestamp,
 } from "@/lib/match-request";
+import { excerpt, sendNtfyAlert } from "@/lib/ntfy";
 
 const CLUB_INBOX =
   process.env.MATCH_REQUEST_INBOX ?? "supporto@asdpadelsport.com";
@@ -83,6 +84,26 @@ export async function POST(request: Request) {
     missingLabel: missingPlayersLabel(missingPlayers),
     notes: values.notes,
   };
+
+  /*
+   * La richiesta è a database: da qui in poi nessun canale di notifica può
+   * far fallire la risposta. La push parte prima delle mail proprio perché
+   * serve a coprirle — se Resend è giù, il telefono suona lo stesso.
+   */
+  await sendNtfyAlert({
+    title: `Richiesta giocatori: ${values.name}`,
+    message: [
+      `Cerca ${emailProps.missingLabel} per ${emailProps.matchDateLabel}.`,
+      `Livello: ${emailProps.levelLabel}`,
+      `Telefono: ${values.phone}`,
+      `Email: ${values.email}`,
+      values.notes ? `Note: ${excerpt(values.notes)}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    tags: ["match-request", "new"],
+    priority: "high",
+  });
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
