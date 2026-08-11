@@ -24,85 +24,84 @@ import { cn } from "@/lib/utils";
  * il suo `backdrop-blur` sfoca davvero la barra che le passa dietro.
  */
 export function ImminentEventBar({
-  event,
-  scrolled,
+	event,
+	scrolled,
 }: {
-  event: ImminentEvent;
-  scrolled: boolean;
+	event: ImminentEvent;
+	scrolled: boolean;
 }) {
-  const shouldReduceMotion = useReducedMotion();
-  // `formatEventDate` e non `formatCardDate`: dentro tre giorni l'ora è
-  // l'informazione che conta, e il formato compatto delle card la perde
-  // appena si esce da "Oggi"/"Domani".
-  const dateLabel = formatEventDate(event.dateStart, event.dateEnd);
+	const shouldReduceMotion = useReducedMotion();
+	// `formatEventDate` e non `formatCardDate`: dentro tre giorni l'ora è
+	// l'informazione che conta, e il formato compatto delle card la perde
+	// appena si esce da "Oggi"/"Domani".
+	const dateLabel = formatEventDate(event.dateStart, event.dateEnd);
 
-  const hidden = shouldReduceMotion
-    ? { opacity: 0 }
-    : { opacity: 0, y: -40, scale: 0.8, filter: "blur(6px)" };
+	const hidden = shouldReduceMotion
+		? { opacity: 0 }
+		: { opacity: 0, y: -40, scale: 0.8, filter: "blur(6px)" };
 
-  return (
-    <motion.div
-      initial={hidden}
-      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-      exit={hidden}
-      transition={{
-        duration: shouldReduceMotion ? 0.2 : DURATION.base,
-        ease: EASE,
-      }}
-      style={{ transformOrigin: "top center" }}
-      className={cn("pointer-events-auto", PILL_WIDTH)}
-    >
-      <Link
-        href={eventLink(event.slug)}
-        aria-label={`${event.title} — ${dateLabel}`}
-        className={cn(
-          PILL_SURFACE,
-          "flex w-full items-center gap-3",
-          "transition-[height,padding] duration-300 ease-out",
-          "focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none",
-          scrolled ? "h-10 pr-3 pl-1" : "h-12 pr-3.5 pl-1.5",
-        )}
-      >
-        {event.banner?.asset ? (
-          <SanityImage
-            image={event.banner}
-            alt=""
-            ratio={1}
-            sizes="40px"
-            sourceWidth={128}
-            className={cn(
-              "shrink-0 rounded-[0.7rem]",
-              scrolled ? "size-8" : "size-9",
-            )}
-          />
-        ) : (
-          <span
-            className={cn(
-              "bg-muted text-muted-foreground grid shrink-0 place-content-center rounded-[0.7rem]",
-              scrolled ? "size-8" : "size-9",
-            )}
-          >
-            <CalendarDays className="size-4" strokeWidth={1.5} />
-          </span>
-        )}
+	return (
+		<motion.div
+			initial={hidden}
+			animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+			exit={hidden}
+			transition={{
+				duration: shouldReduceMotion ? 0.2 : DURATION.base,
+				ease: EASE,
+			}}
+			style={{ transformOrigin: "top center" }}
+			className={cn("pointer-events-auto", PILL_WIDTH)}
+		>
+			<Link
+				href={eventLink(event.slug)}
+				aria-label={`${event.title} — ${dateLabel}`}
+				className={cn(
+					PILL_SURFACE,
+					"flex w-full items-center gap-2.5",
+					"transition-[height,padding] duration-300 ease-out",
+					"focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none",
+					scrolled ? "h-10 pr-3 pl-1" : "h-12 pr-3.5 pl-2",
+				)}
+			>
+				{event.banner?.asset ? (
+					<SanityImage
+						image={event.banner}
+						alt=""
+						sizes="40px"
+						sourceWidth={138}
+						className={cn(
+							"shrink-0 rounded-2xl transition-[width,height] duration-300 ease-out",
+							scrolled ? "w-9 h-7" : "w-12 h-8",
+						)}
+					/>
+				) : (
+					<span
+						className={cn(
+							"bg-muted text-muted-foreground grid shrink-0 place-content-center rounded-[0.7rem]",
+							scrolled ? "size-8" : "size-9",
+						)}
+					>
+						<CalendarDays className="size-4" strokeWidth={1.5} />
+					</span>
+				)}
 
-        {/* `min-w-0` è obbligatorio: senza, la colonna non si restringe sotto
+				{/* `min-w-0` è obbligatorio: senza, la colonna non si restringe sotto
             il titolo e il marquee non si accorge mai di essere in overflow. */}
-        <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
-          <MarqueeText
-            text={event.title}
-            className="text-[13px] leading-tight font-medium"
-          />
-          <span className="text-muted-foreground truncate text-[11px] leading-tight">
-            {dateLabel}
-          </span>
-        </span>
+				<span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+					<MarqueeText
+						text={event.title}
+						className="text-[13px] leading-tight font-medium"
+					/>
+					<span className="text-muted-foreground truncate text-[11px] leading-tight">
+						{dateLabel}
+					</span>
+				</span>
 
-        <ChevronRight
-          className="text-muted-foreground size-4 shrink-0"
-          strokeWidth={1.5}
-        />
-      </Link>
-    </motion.div>
-  );
+				<ChevronRight
+					className="text-muted-foreground size-4 shrink-0"
+					strokeWidth={1.5}
+				/>
+			</Link>
+		</motion.div>
+	);
 }
