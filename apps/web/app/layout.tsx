@@ -1,14 +1,16 @@
-import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/next";
 import { ClerkProvider } from "@clerk/nextjs";
-import Script from "next/script";
+import type { Metadata } from "next";
 import {
   Geist,
   Geist_Mono,
   Instrument_Serif,
   Unbounded,
 } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
+import { CookieBanner } from "@/components/cookie-banner";
+import { AmplitudeAnalytics } from "@/providers/amplitude.provider";
+import { ConsentProvider } from "@/providers/consent.provider";
 import Providers from "@/providers/provider";
 
 const geistSans = Geist({
@@ -126,8 +128,16 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${heading.variable}`}
       >
         <body className="font-sans antialiased">
-          <Providers>{children}</Providers>
-          <Analytics />
+          {/*
+           * Il consenso avvolge tutto: Amplitude legge il suo stato per
+           * decidere se partire, il footer e l'informativa per riaprire la
+           * scelta.
+           */}
+          <ConsentProvider>
+            <Providers>{children}</Providers>
+            <AmplitudeAnalytics />
+            <CookieBanner />
+          </ConsentProvider>
           <Script
             id="structured-data"
             type="application/ld+json"

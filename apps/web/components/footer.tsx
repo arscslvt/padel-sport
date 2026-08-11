@@ -2,6 +2,7 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { FaFacebookF, FaInstagram } from "react-icons/fa";
 
+import { CookiePreferencesButton } from "@/components/cookie-banner";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { ANCHORS } from "@/lib/anchors";
@@ -124,6 +125,10 @@ export default function Footer() {
               >
                 Privacy e trattamento dei dati
               </Link>
+              <span aria-hidden className="hidden sm:inline">
+                ·
+              </span>
+              <CookiePreferencesButton className="hover:text-foreground cursor-pointer transition-colors" />
             </div>
             <Link
               href="https://salvatorearesco.com"

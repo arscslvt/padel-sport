@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { CookiePreferencesButton } from "@/components/cookie-banner";
 import { Heading } from "@/components/ui/heading";
 import { getInfo } from "@/lib/info";
 
@@ -26,7 +27,7 @@ const PROCESSORS: ReadonlyArray<{
 	place: string;
 }> = [
 	{
-		name: "Vercel Inc.",
+		name: "Railway Corporation",
 		purpose: "Hosting del sito, consegna delle pagine e log tecnici di accesso",
 		place: "Stati Uniti",
 	},
@@ -60,6 +61,12 @@ const PROCESSORS: ReadonlyArray<{
 			"Gestione dei contenuti editoriali (eventi e tornei) e consegna delle relative immagini",
 		place: "Norvegia e Unione Europea",
 	},
+	{
+		name: "Amplitude, Inc.",
+		purpose:
+			"Statistiche di utilizzo del sito e registrazione delle sessioni di navigazione, attive solo se hai dato il consenso",
+		place: "Stati Uniti",
+	},
 ];
 
 /** Tempi di conservazione dichiarati dal club per ciascun tipo di dato. */
@@ -85,8 +92,12 @@ const RETENTION: ReadonlyArray<{ what: string; how: string }> = [
 		how: "Per tutta la durata del rapporto associativo o di collaborazione, e 12 mesi dalla sua cessazione",
 	},
 	{
-		what: "Log tecnici di accesso e statistiche aggregate",
+		what: "Log tecnici di accesso",
 		how: "Secondo le impostazioni del fornitore di hosting, comunque non oltre 12 mesi",
+	},
+	{
+		what: "Statistiche di utilizzo e registrazioni delle sessioni",
+		how: "Conservate da Amplitude secondo la configurazione del nostro piano; le registrazioni delle sessioni restano comunque per un periodo più breve degli eventi statistici. Revocando il consenso interrompi subito la raccolta e puoi chiederci la cancellazione di quanto già raccolto",
 	},
 ];
 
@@ -94,13 +105,16 @@ function Section({
 	number,
 	title,
 	children,
+	id,
 }: {
 	number: number;
 	title: string;
 	children: ReactNode;
+	/** Ancora citabile: il banner cookie rimanda qui. */
+	id?: string;
 }) {
 	return (
-		<section className="border-border border-t pt-8">
+		<section id={id} className="border-border scroll-mt-28 border-t pt-8">
 			{/* Il numero sta fuori dal titolo: dentro Instrument Serif le cifre
           appesantiscono la riga, e qui serve solo per citare la sezione. */}
 			<span className="text-muted-foreground/60 mb-2 block text-xs tabular-nums">
@@ -180,9 +194,11 @@ export default function PrivacyPage() {
 
 				<Section number={2} title="Che dati raccogliamo e perché">
 					<p>
-						Non c'è nessuna raccolta «di sfondo»: i dati arrivano solo da quello
-						che scrivi tu nei due moduli del sito, più i dati tecnici che
-						qualunque server registra quando visiti una pagina.
+						I dati arrivano da quello che scrivi tu nei due moduli del sito, più
+						i dati tecnici che qualunque server registra quando visiti una
+						pagina. C'è poi una sola raccolta «di sfondo», le statistiche di
+						utilizzo: non parte da sola, la attivi tu accettandola nel banner, e
+						si ferma appena la revochi.
 					</p>
 
 					<div className="flex flex-col gap-6 pt-2">
@@ -227,11 +243,30 @@ export default function PrivacyPage() {
 						<Block title="Navigazione del sito">
 							Come ogni server web, l'infrastruttura che ospita il sito registra
 							dati tecnici: indirizzo IP, tipo di browser e dispositivo, pagina
-							richiesta, data e ora. Raccogliamo inoltre statistiche di traffico{" "}
-							<Term>aggregate e senza cookie</Term>, che ci dicono quante visite
-							riceve una pagina ma non chi sei. Base giuridica: nostro legittimo
-							interesse alla sicurezza e al buon funzionamento del sito (art.
-							6.1.f GDPR).
+							richiesta, data e ora. Sono i <Term>log di servizio</Term>, che
+							servono a tenere il sito in piedi e a difenderlo dagli abusi: non
+							li usiamo per capire chi sei né per misurare il pubblico. Base
+							giuridica: nostro legittimo interesse alla sicurezza e al buon
+							funzionamento del sito (art. 6.1.f GDPR).
+						</Block>
+
+						<Block title="Statistiche di utilizzo (solo col tuo consenso)">
+							Se accetti nel banner, usiamo <Term>Amplitude</Term> per capire
+							come viene usato il sito. Raccoglie le pagine che apri e le
+							interazioni con gli elementi (clic, invii di modulo, cambi di
+							pagina), i dati tecnici del browser e del dispositivo, l'indirizzo
+							IP — da cui Amplitude ricava la zona geografica approssimativa — e
+							un <Term>identificativo casuale</Term> salvato sul tuo dispositivo,
+							che serve a riconoscere le visite successive come la stessa
+							persona. Registra inoltre la <Term>sessione di navigazione</Term>:
+							una ricostruzione di quello che è successo a schermo (movimenti,
+							clic, scorrimento) che riguardiamo per capire dove il sito è
+							scomodo. I campi dei moduli sono mascherati nella registrazione:
+							quello che digiti in nome, email, telefono e matricola non compare
+							in chiaro. Non colleghiamo questi dati alla tua identità né li
+							incrociamo con le richieste che ci mandi. Base giuridica: il tuo{" "}
+							<Term>consenso</Term> (art. 6.1.a GDPR e art. 122 del Codice
+							privacy), che puoi revocare quando vuoi.
 						</Block>
 					</div>
 				</Section>
@@ -257,7 +292,7 @@ export default function PrivacyPage() {
 					<ol className="flex list-decimal flex-col gap-2 pl-5">
 						<li>
 							i dati viaggiano cifrati (HTTPS) dal tuo browser al sito, ospitato
-							su Vercel;
+							su Railway;
 						</li>
 						<li>
 							vengono registrati nel nostro database su Convex, che resta la
@@ -351,12 +386,21 @@ export default function PrivacyPage() {
 					</p>
 				</Section>
 
-				<Section number={8} title="Cookie e memoria del browser">
+				<Section
+					number={8}
+					id="cookie"
+					title="Cookie e memoria del browser"
+				>
 					<p>
 						Il sito <Term>non usa cookie di profilazione</Term>, non ospita
-						pubblicità e non condivide dati con circuiti pubblicitari. Per
-						questo non trovi un banner di consenso: gli unici strumenti attivi
-						sono tecnici e necessari.
+						pubblicità e non condivide dati con circuiti pubblicitari. Gli
+						strumenti si dividono in due gruppi: quelli tecnici, che ci sono
+						sempre perché senza il sito non funziona, e quelli statistici, che
+						esistono solo se li accetti.
+					</p>
+
+					<p className="text-foreground font-medium">
+						Tecnici e necessari — nessun consenso richiesto
 					</p>
 					<ul className="flex list-disc flex-col gap-2 pl-5">
 						<li>
@@ -371,9 +415,9 @@ export default function PrivacyPage() {
 							tuo dispositivo.
 						</li>
 						<li>
-							<Term>Statistiche di traffico</Term>: raccolte in forma aggregata
-							dal fornitore di hosting, senza cookie e senza costruire un
-							profilo della persona.
+							<Term>La tua scelta sui cookie</Term>: salvata anch'essa nella
+							memoria locale, altrimenti dovremmo richiedertela a ogni pagina.
+							Non lascia mai il tuo dispositivo.
 						</li>
 						<li>
 							<Term>Caratteri tipografici</Term>: serviti dal nostro stesso
@@ -381,22 +425,66 @@ export default function PrivacyPage() {
 							scaricarli.
 						</li>
 					</ul>
+
+					<p className="text-foreground font-medium">
+						Statistici — solo dopo il tuo consenso
+					</p>
+					<ul className="flex list-disc flex-col gap-2 pl-5">
+						<li>
+							<Term>Amplitude</Term>: salva sul tuo dispositivo un
+							identificativo casuale del browser e della singola sessione, e li
+							usa per misurare le pagine viste, le interazioni e la
+							registrazione della navigazione descritta al punto 2. È un
+							fornitore terzo con sede negli Stati Uniti, quindi non rientra fra
+							le statistiche assimilabili ai cookie tecnici: per questo lo
+							chiediamo prima, e finché non accetti lo script non viene neppure
+							caricato.
+						</li>
+					</ul>
+
 					<p>
-						Puoi cancellare cookie e memoria locale in qualsiasi momento dalle
-						impostazioni del browser: perderesti solo la sessione di accesso e
-						la preferenza del tema.
+						Al primo accesso trovi un banner con due scelte di pari peso,{" "}
+						<Term>Accetta</Term> e <Term>Rifiuta</Term>: chiuderlo scorrendo o
+						continuando a navigare non vale come consenso, e senza una risposta
+						esplicita niente parte. Se rifiuti non te lo richiediamo per sei
+						mesi.
+					</p>
+					<p>
+						Puoi cambiare idea quando vuoi dal collegamento{" "}
+						<Term>Preferenze cookie</Term> in fondo a ogni pagina, oppure da
+						qui:
+					</p>
+					<p>
+						<CookiePreferencesButton className="text-foreground decoration-foreground/30 hover:decoration-foreground cursor-pointer underline underline-offset-2 transition-colors" />
+					</p>
+					<p>
+						Puoi inoltre cancellare cookie e memoria locale in qualsiasi momento
+						dalle impostazioni del browser: perderesti la sessione di accesso, la
+						preferenza del tema e la scelta sui cookie, che torneremo quindi a
+						chiederti.
 					</p>
 				</Section>
 
 				<Section
 					number={9}
-					title="Nessuna profilazione, nessuna decisione automatica"
+					title="Nessuna pubblicità, nessuna decisione automatica"
 				>
 					<p>
-						Non profiliamo le persone, non prendiamo decisioni automatizzate che
-						producano effetti giuridici su di te e non usiamo i tuoi dati per
-						addestrare sistemi di intelligenza artificiale. Le richieste che
-						arrivano dal sito le legge e le lavora una persona della segreteria.
+						Le statistiche del punto 8, se le accetti, ci dicono come viene usato
+						il sito: quali pagine funzionano e dove ci si blocca. Le guardiamo in
+						forma aggregata e le usiamo solo per migliorare il sito.{" "}
+						<Term>
+							Non costruiamo profili pubblicitari, non vendiamo questi dati e non
+							li usiamo per mandarti messaggi mirati
+						</Term>
+						, né li incrociamo con la tua identità di socio o con le richieste che
+						ci mandi dai moduli.
+					</p>
+					<p>
+						Non prendiamo decisioni automatizzate che producano effetti giuridici
+						su di te e non usiamo i tuoi dati per addestrare sistemi di
+						intelligenza artificiale. Le richieste che arrivano dal sito le legge
+						e le lavora una persona della segreteria.
 					</p>
 				</Section>
 
