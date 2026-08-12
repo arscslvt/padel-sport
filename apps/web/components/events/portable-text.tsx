@@ -2,8 +2,9 @@ import Link from "next/link";
 import type { PortableTextComponents } from "next-sanity";
 import { toPlainText } from "next-sanity";
 
+import { EventRsvpForm } from "@/components/events/rsvp-form";
 import { SanityImage } from "@/components/events/sanity-image";
-import type { EventContentImage } from "@/sanity/types";
+import type { EventContentImage, EventRsvpFormBlock } from "@/sanity/types";
 
 /** Il breakout dei media rispetto alla colonna di testo, come nel layout di riferimento. */
 const BREAKOUT =
@@ -24,53 +25,65 @@ function headingId(children: React.ReactNode, value: unknown) {
   return slugify(text) || undefined;
 }
 
-export const portableTextComponents: PortableTextComponents = {
-  types: {
-    contentImage: ({ value }: { value: EventContentImage }) => {
-      if (!value?.asset) return null;
+/**
+ * I componenti dipendono dallo slug dell'evento: il modulo di iscrizione deve
+ * sapere a quale articolo appartiene, e il blocco Portable Text da solo non lo
+ * dice. Da qui la factory al posto della costante.
+ */
+export function portableTextComponents(context: {
+  eventSlug: string;
+}): PortableTextComponents {
+  return {
+    types: {
+      rsvpForm: ({ value }: { value: EventRsvpFormBlock }) => (
+        <EventRsvpForm block={value} eventSlug={context.eventSlug} />
+      ),
+      contentImage: ({ value }: { value: EventContentImage }) => {
+        if (!value?.asset) return null;
 
-      return (
-        <figure className={BREAKOUT}>
-          <SanityImage
-            image={value}
-            sizes="(min-width: 1024px) 64rem, 100vw"
-            className="rounded-2xl"
-          />
-          {value.caption && (
-            <figcaption className="pt-3 text-center text-sm text-muted-foreground">
-              {value.caption}
-            </figcaption>
-          )}
-        </figure>
-      );
-    },
-  },
-  block: {
-    h2: ({ children, value }) => (
-      <h2 id={headingId(children, value)}>{children}</h2>
-    ),
-    h3: ({ children, value }) => (
-      <h3 id={headingId(children, value)}>{children}</h3>
-    ),
-    h4: ({ children, value }) => (
-      <h4 id={headingId(children, value)}>{children}</h4>
-    ),
-  },
-  marks: {
-    link: ({ children, value }) => {
-      const href: string = value?.href ?? "#";
-      const isExternal =
-        /^https?:\/\//.test(href) && !href.includes("asdpadelsport.com");
-
-      if (isExternal || value?.blank) {
         return (
-          <a href={href} target="_blank" rel="noopener noreferrer">
-            {children}
-          </a>
+          <figure className={BREAKOUT}>
+            <SanityImage
+              image={value}
+              sizes="(min-width: 1024px) 64rem, 100vw"
+              className="rounded-2xl"
+            />
+            {value.caption && (
+              <figcaption className="pt-3 text-center text-sm text-muted-foreground">
+                {value.caption}
+              </figcaption>
+            )}
+          </figure>
         );
-      }
-
-      return <Link href={href}>{children}</Link>;
+      },
     },
-  },
-};
+    block: {
+      h2: ({ children, value }) => (
+        <h2 id={headingId(children, value)}>{children}</h2>
+      ),
+      h3: ({ children, value }) => (
+        <h3 id={headingId(children, value)}>{children}</h3>
+      ),
+      h4: ({ children, value }) => (
+        <h4 id={headingId(children, value)}>{children}</h4>
+      ),
+    },
+    marks: {
+      link: ({ children, value }) => {
+        const href: string = value?.href ?? "#";
+        const isExternal =
+          /^https?:\/\//.test(href) && !href.includes("asdpadelsport.com");
+
+        if (isExternal || value?.blank) {
+          return (
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              {children}
+            </a>
+          );
+        }
+
+        return <Link href={href}>{children}</Link>;
+      },
+    },
+  };
+}

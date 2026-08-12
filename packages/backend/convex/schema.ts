@@ -1,5 +1,6 @@
 import { defineSchema } from "convex/server";
 import bookings from "./tables/bookings";
+import eventRsvps from "./tables/eventRsvps";
 import events from "./tables/events";
 import friendships from "./tables/friendships";
 import joinRequests from "./tables/joinRequests";
@@ -19,4 +20,5 @@ export default defineSchema({
   friendships,
   matchRequests,
   supportRequests,
+  eventRsvps,
 });

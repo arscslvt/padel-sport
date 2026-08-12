@@ -210,7 +210,7 @@ export default async function EventArticlePage({ params }: PageProps) {
             <div className="prose prose-event max-w-none">
               <PortableText
                 value={event.body}
-                components={portableTextComponents}
+                components={portableTextComponents({ eventSlug: event.slug })}
               />
             </div>
           </ArticleReveal>

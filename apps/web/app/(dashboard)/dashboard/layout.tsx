@@ -1,4 +1,4 @@
-import { LayoutDashboard, type LucideIcon } from "lucide-react";
+import { CalendarDays, LayoutDashboard, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
 import type { Viewport } from "next";
@@ -33,8 +33,10 @@ export const viewport: Viewport = {
 	viewportFit: "cover",
 };
 
-const routes: ReadonlyArray<{ name: string; href: string; icon: LucideIcon }> =
-	[{ name: "Riepilogo", href: "/dashboard", icon: LayoutDashboard }];
+const routes: ReadonlyArray<{ name: string; href: string; icon: LucideIcon }> = [
+	{ name: "Riepilogo", href: "/dashboard", icon: LayoutDashboard },
+	{ name: "Eventi", href: "/dashboard/events", icon: CalendarDays },
+];
 
 export default function DashboardLayout({
 	children,

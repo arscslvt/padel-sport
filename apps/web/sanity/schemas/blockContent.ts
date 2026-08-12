@@ -78,5 +78,8 @@ export const blockContent = defineType({
         }),
       ],
     }),
+    // Il modulo di iscrizione è un blocco come gli altri: chi scrive l'articolo
+    // decide se inserirlo e in che punto del testo.
+    defineArrayMember({ type: "rsvpForm" }),
   ],
 });
