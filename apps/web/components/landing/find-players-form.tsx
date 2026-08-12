@@ -1,10 +1,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format, parse, startOfDay } from "date-fns";
+import { it } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -15,6 +19,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -24,10 +33,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   LEVELS,
+  MATCH_TIME_SLOTS,
   type MatchRequestValues,
   MISSING_PLAYERS,
   matchRequestSchema,
 } from "@/lib/match-request";
+import { cn } from "@/lib/utils";
 
 /** Su superficie grigia i campi hanno bisogno di fondo pieno per non sparirci dentro. */
 const FIELD_CLASS = "bg-background border-border h-11 rounded-xl";
@@ -146,15 +157,50 @@ export function FindPlayersForm() {
           <FormField
             control={form.control}
             name="date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Data</FormLabel>
-                <FormControl>
-                  <Input type="date" className={FIELD_CLASS} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            render={({ field }) => {
+              const selected = field.value
+                ? parse(field.value, "yyyy-MM-dd", new Date())
+                : undefined;
+
+              return (
+                <FormItem>
+                  <FormLabel>Data</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            FIELD_CLASS,
+                            "w-full justify-start px-3 font-normal",
+                            !selected && "text-muted-foreground",
+                          )}
+                        >
+                          <CalendarIcon className="text-muted-foreground size-4" />
+                          {selected
+                            ? format(selected, "d MMMM yyyy", { locale: it })
+                            : "Scegli una data"}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        locale={it}
+                        selected={selected}
+                        onSelect={(next) =>
+                          field.onChange(next ? format(next, "yyyy-MM-dd") : "")
+                        }
+                        disabled={{ before: startOfDay(new Date()) }}
+                        autoFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
 
           <FormField
@@ -163,9 +209,20 @@ export function FindPlayersForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Orario</FormLabel>
-                <FormControl>
-                  <Input type="time" className={FIELD_CLASS} {...field} />
-                </FormControl>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className={`w-full ${FIELD_CLASS}`}>
+                      <SelectValue placeholder="Scegli un orario" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {MATCH_TIME_SLOTS.map((slot) => (
+                      <SelectItem key={slot} value={slot}>
+                        {slot}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
