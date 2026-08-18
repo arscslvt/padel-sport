@@ -30,6 +30,7 @@ export function ScheduleStep({
   dayIndex,
   time,
   loading,
+  noCourts,
   onSelectDay,
   onSelectTime,
 }: {
@@ -40,6 +41,8 @@ export function ScheduleStep({
   dayIndex: number | null;
   time: string | null;
   loading: boolean;
+  /** Nessun campo configurato: senza, la griglia si svuoterebbe in silenzio. */
+  noCourts?: boolean;
   onSelectDay: (index: number) => void;
   onSelectTime: (time: string) => void;
 }) {
@@ -72,7 +75,12 @@ export function ScheduleStep({
       <div className="mt-8">
         <SectionLabel>Orario di inizio</SectionLabel>
 
-        {dayIndex === null ? (
+        {noCourts ? (
+          <p className="text-muted-foreground text-sm">
+            Nessun campo è al momento disponibile alla prenotazione online.
+            Chiamaci: la struttura può prenotare per te.
+          </p>
+        ) : dayIndex === null ? (
           <p className="text-muted-foreground text-sm">
             Scegli prima il giorno.
           </p>

@@ -3,6 +3,7 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
 import { membersOf, requireCircleMember } from "../circles/lib";
+import { bookingSettings, isWithinOpeningHours } from "../settings/lib";
 import { addGuestToMatch } from "./guests";
 import { inviteToMatch } from "./invite";
 import {
@@ -10,6 +11,7 @@ import {
   LEVEL_MAX,
   LEVEL_MIN,
   levelLabel,
+  MATCH_DURATION_MINUTES,
   MAX_PLAYERS,
   normalizePhone,
   requirePlayer,
@@ -72,6 +74,30 @@ export default mutation({
     if (args.bookingDate % SLOT_INTERVAL_MS !== 0) {
       throw new Error(
         "L'orario deve essere selezionato a scaglioni di 30 minuti.",
+      );
+    }
+
+    // Gli orari di apertura sono configurabili dalla dashboard: fino a ieri il
+    // server accettava qualsiasi orario allineato ai 30 minuti, comprese le
+    // tre di notte.
+    const settings = await bookingSettings(ctx);
+
+    if (
+      !isWithinOpeningHours(
+        settings,
+        args.bookingDate,
+        MATCH_DURATION_MINUTES,
+      )
+    ) {
+      throw new Error("La struttura è chiusa nell'orario selezionato.");
+    }
+
+    const horizon =
+      Date.now() + settings.bookableDays * 24 * 60 * 60 * 1000;
+
+    if (args.bookingDate > horizon) {
+      throw new Error(
+        `Si può prenotare fino a ${settings.bookableDays} giorni in anticipo.`,
       );
     }
 

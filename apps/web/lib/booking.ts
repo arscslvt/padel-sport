@@ -1,24 +1,38 @@
 /**
- * Regole del flusso di prenotazione del sito: giorni prenotabili, slot orari e
- * durata della partita.
+ * Regole del flusso di prenotazione del sito.
  *
- * Sono le stesse dell'app (apps/mobile/lib/booking.ts) e del backend
- * (packages/backend/convex/modules/openMatches/lib.ts): se cambiano lì vanno
- * allineate anche qui.
+ * Durata della partita e passo degli slot restano costanti — sono la forma del
+ * gioco, non una scelta gestionale. Giorni prenotabili e fasce di apertura
+ * invece arrivano da Convex (`modules/settings`), dove li muove la struttura
+ * dalla dashboard: qui restano solo i valori di ripiego, usati finché la
+ * configurazione non è stata letta.
+ *
+ * Le stesse regole valgono per l'app (apps/mobile/lib/booking.ts), che però ha
+ * ancora le fasce cablate: finché non legge anche lei la configurazione, un
+ * orario cambiato qui va allineato là a mano.
  */
 
 export const SLOT_INTERVAL_MINUTES = 30;
 export const MATCH_DURATION_MINUTES = 90;
 export const MAX_PLAYERS = 4;
 
-/** Giorni selezionabili, oggi incluso. */
+/** Giorni selezionabili quando la configurazione non è ancora arrivata. */
 export const BOOKABLE_DAYS = 7;
 
-/** Finestre di apertura del club: la partita deve iniziare e finire dentro una. */
-const PLAY_WINDOWS = [
-  { start: "09:00", end: "12:30" },
-  { start: "14:30", end: "21:30" },
-] as const;
+export interface OpeningWindow {
+  /** `0` = domenica, come `Date#getDay`. */
+  weekday: number;
+  start: string;
+  end: string;
+}
+
+/** Orari storici del club: valgono finché nessuno li cambia in dashboard. */
+export const DEFAULT_WINDOWS: OpeningWindow[] = [0, 1, 2, 3, 4, 5, 6].flatMap(
+  (weekday) => [
+    { weekday, start: "09:00", end: "12:30" },
+    { weekday, start: "14:30", end: "21:30" },
+  ],
+);
 
 export const MATCH_DURATION_MS = MATCH_DURATION_MINUTES * 60 * 1000;
 
@@ -49,8 +63,11 @@ export interface BookingDay {
 }
 
 /** I giorni prenotabili a partire da oggi. */
-export function bookableDays(from: Date = new Date()): BookingDay[] {
-  return Array.from({ length: BOOKABLE_DAYS }, (_, offset) => {
+export function bookableDays(
+  days: number = BOOKABLE_DAYS,
+  from: Date = new Date(),
+): BookingDay[] {
+  return Array.from({ length: days }, (_, offset) => {
     const date = new Date(from);
     date.setDate(date.getDate() + offset);
     date.setHours(0, 0, 0, 0);
@@ -74,31 +91,45 @@ export interface TimeSlot {
   minutes: number;
 }
 
-/** Tutti gli orari di inizio della giornata, uno ogni 30 minuti. */
-export const DAILY_SLOTS: TimeSlot[] = PLAY_WINDOWS.flatMap((window) => {
-  const slots: TimeSlot[] = [];
-  const closing = toMinutes(window.end);
+/** Gli orari di inizio possibili in una giornata, viste le sue fasce. */
+export function dailySlots(
+  windows: readonly OpeningWindow[],
+  weekday: number,
+): TimeSlot[] {
+  return windows
+    .filter((window) => window.weekday === weekday)
+    .flatMap((window) => {
+      const slots: TimeSlot[] = [];
+      const closing = toMinutes(window.end);
 
-  for (
-    let minutes = toMinutes(window.start);
-    minutes + MATCH_DURATION_MINUTES <= closing;
-    minutes += SLOT_INTERVAL_MINUTES
-  ) {
-    slots.push({ time: toTime(minutes), minutes });
-  }
+      for (
+        let minutes = toMinutes(window.start);
+        minutes + MATCH_DURATION_MINUTES <= closing;
+        minutes += SLOT_INTERVAL_MINUTES
+      ) {
+        slots.push({ time: toTime(minutes), minutes });
+      }
 
-  return slots;
-});
+      return slots;
+    })
+    .sort((a, b) => a.minutes - b.minutes);
+}
 
 /**
  * Orari ancora selezionabili in un giorno: oggi escludiamo quelli già passati,
  * che il backend rifiuterebbe comunque.
  */
-export function availableSlots(day: Date, now: Date = new Date()): TimeSlot[] {
-  if (day.toDateString() !== now.toDateString()) return DAILY_SLOTS;
+export function availableSlots(
+  day: Date,
+  windows: readonly OpeningWindow[] = DEFAULT_WINDOWS,
+  now: Date = new Date(),
+): TimeSlot[] {
+  const slots = dailySlots(windows, day.getDay());
+
+  if (day.toDateString() !== now.toDateString()) return slots;
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  return DAILY_SLOTS.filter((slot) => slot.minutes > nowMinutes);
+  return slots.filter((slot) => slot.minutes > nowMinutes);
 }
 
 export interface SlotGroup {

@@ -1,5 +1,6 @@
 import { defineSchema } from "convex/server";
 import bookings from "./tables/bookings";
+import bookingSettings from "./tables/bookingSettings";
 import circleInvites from "./tables/circleInvites";
 import circleMembers from "./tables/circleMembers";
 import circles from "./tables/circles";
@@ -19,6 +20,7 @@ import supportRequests from "./tables/supportRequests";
 export default defineSchema({
   events,
   bookings,
+  bookingSettings,
   externalBookings,
   slots,
   players,

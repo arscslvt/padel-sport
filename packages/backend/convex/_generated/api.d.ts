@@ -68,6 +68,8 @@ import type * as modules_openMatches_players from "../modules/openMatches/player
 import type * as modules_openMatches_publish from "../modules/openMatches/publish.js";
 import type * as modules_openMatches_recipients from "../modules/openMatches/recipients.js";
 import type * as modules_openMatches_requests from "../modules/openMatches/requests.js";
+import type * as modules_settings_booking from "../modules/settings/booking.js";
+import type * as modules_settings_lib from "../modules/settings/lib.js";
 import type * as modules_supportRequests_create from "../modules/supportRequests/create.js";
 import type * as modules_supportRequests_markNotified from "../modules/supportRequests/markNotified.js";
 import type * as modules_tournaments_advancements from "../modules/tournaments/advancements.js";
@@ -80,6 +82,7 @@ import type * as modules_tournaments_matches_get from "../modules/tournaments/ma
 import type * as modules_tournaments_players_add from "../modules/tournaments/players/add.js";
 import type * as modules_tournaments_teams_get from "../modules/tournaments/teams/get.js";
 import type * as slots_listActive from "../slots/listActive.js";
+import type * as tables_bookingSettings from "../tables/bookingSettings.js";
 import type * as tables_bookings from "../tables/bookings.js";
 import type * as tables_circleInvites from "../tables/circleInvites.js";
 import type * as tables_circleMembers from "../tables/circleMembers.js";
@@ -166,6 +169,8 @@ declare const fullApi: ApiFromModules<{
   "modules/openMatches/publish": typeof modules_openMatches_publish;
   "modules/openMatches/recipients": typeof modules_openMatches_recipients;
   "modules/openMatches/requests": typeof modules_openMatches_requests;
+  "modules/settings/booking": typeof modules_settings_booking;
+  "modules/settings/lib": typeof modules_settings_lib;
   "modules/supportRequests/create": typeof modules_supportRequests_create;
   "modules/supportRequests/markNotified": typeof modules_supportRequests_markNotified;
   "modules/tournaments/advancements": typeof modules_tournaments_advancements;
@@ -178,6 +183,7 @@ declare const fullApi: ApiFromModules<{
   "modules/tournaments/players/add": typeof modules_tournaments_players_add;
   "modules/tournaments/teams/get": typeof modules_tournaments_teams_get;
   "slots/listActive": typeof slots_listActive;
+  "tables/bookingSettings": typeof tables_bookingSettings;
   "tables/bookings": typeof tables_bookings;
   "tables/circleInvites": typeof tables_circleInvites;
   "tables/circleMembers": typeof tables_circleMembers;

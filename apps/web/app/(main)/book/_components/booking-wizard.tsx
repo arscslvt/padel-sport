@@ -14,8 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import {
   availableSlots,
+  BOOKABLE_DAYS,
   bookableDays,
   combineDateAndTime,
+  DEFAULT_WINDOWS,
   overlappingBlocks,
   overlappingBookings,
 } from "@/lib/booking";
@@ -83,7 +85,15 @@ export function BookingWizard() {
     api.modules.openMatches.players.upsertProfile,
   );
 
-  const days = useMemo(() => bookableDays(), []);
+  // Giorni e fasce arrivano dalla configurazione della struttura: finché non è
+  // stata letta usiamo i valori storici, così la griglia non resta vuota.
+  const settings = useQuery(api.modules.settings.booking.get, {});
+  const windows = settings?.windows ?? DEFAULT_WINDOWS;
+
+  const days = useMemo(
+    () => bookableDays(settings?.bookableDays ?? BOOKABLE_DAYS),
+    [settings?.bookableDays],
+  );
 
   const range = useMemo(() => {
     const from = days[0].date.getTime();
@@ -136,7 +146,7 @@ export function BookingWizard() {
    */
   const slotsByDay = useMemo(() => {
     return days.map((day) => {
-      const slots = availableSlots(day.date);
+      const slots = availableSlots(day.date, windows);
       if (availabilityLoading) return slots;
 
       return slots.filter((slot) => {
@@ -153,7 +163,7 @@ export function BookingWizard() {
         return overlapping.length + blocked.length < courts.length;
       });
     });
-  }, [days, availability, courts, availabilityLoading]);
+  }, [days, windows, availability, courts, availabilityLoading]);
 
   // Il livello del profilo suggerisce la fascia, finché non la si tocca.
   const [levelTouched, setLevelTouched] = useState(false);
@@ -317,6 +327,7 @@ export function BookingWizard() {
             dayIndex={dayIndex < 0 ? null : dayIndex}
             time={values.time || null}
             loading={availabilityLoading}
+            noCourts={!availabilityLoading && courts.length === 0}
             onSelectDay={selectDay}
             onSelectTime={(time) =>
               form.setValue("time", time, { shouldValidate: true })
