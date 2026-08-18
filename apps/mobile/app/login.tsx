@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TextField } from "@/components/ui/text-field";
+import { Fonts } from "@/constants/fonts";
 
 // Necessario per completare le sessioni OAuth aperte nel browser di sistema.
 WebBrowser.maybeCompleteAuthSession();
@@ -45,9 +46,9 @@ const C = {
 };
 
 const FONT = {
-	regular: "GoogleSans17pt-Regular",
-	medium: "GoogleSans17pt-Medium",
-	semibold: "GoogleSans17pt-SemiBold",
+	regular: Fonts.regular,
+	medium: Fonts.medium,
+	semibold: Fonts.semiBold,
 };
 
 /** Card informative del carosello nella parte alta (onboarding). */

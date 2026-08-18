@@ -20,6 +20,7 @@ export const CANCEL_DEADLINE_MS = 2 * 60 * 60 * 1000;
 
 export type JoinMode = "direct" | "request";
 export type OpenMatchStatus = "open" | "full" | "cancelled";
+export type MatchVisibility = "public" | "circle";
 
 export interface PlayerView {
   id: Id<"players">;
@@ -38,11 +39,22 @@ export interface OpenMatchView {
   levelMax: number;
   joinMode: JoinMode;
   status: OpenMatchStatus;
+  visibility: MatchVisibility;
+  /** Valorizzato solo se la partita è nata dentro una cerchia. */
+  circle?: { id: Id<"circles">; name: string };
   maxPlayers: number;
   notes?: string;
   court?: string;
   creator: PlayerView;
   players: PlayerView[];
+}
+
+/**
+ * Visibilità effettiva di una partita: le partite create prima delle cerchie
+ * non hanno il campo, e per loro l'unico significato possibile è "pubblica".
+ */
+export function visibilityOf(match: Doc<"openMatches">): MatchVisibility {
+  return match.visibility ?? "public";
 }
 
 function overlaps(startA: number, endA: number, startB: number, endB: number) {
@@ -180,6 +192,8 @@ export async function toMatchView(
   const booking = await ctx.db.get(match.bookingId);
   const slot = booking ? await ctx.db.get(booking.slot) : null;
 
+  const circleDoc = match.circleId ? await ctx.db.get(match.circleId) : null;
+
   return {
     id: match._id,
     bookingId: match.bookingId,
@@ -188,12 +202,39 @@ export async function toMatchView(
     levelMax: match.levelMax,
     joinMode: match.joinMode,
     status: match.status,
+    visibility: visibilityOf(match),
+    circle: circleDoc ? { id: circleDoc._id, name: circleDoc.name } : undefined,
     maxPlayers: match.maxPlayers,
     notes: match.notes,
     court: slot?.name,
     creator,
     players,
   };
+}
+
+/**
+ * Annulla gli inviti a una partita ancora senza risposta.
+ * Usato quando la partita viene cancellata o quando il creatore la lascia.
+ */
+export async function cancelPendingMatchInvites(
+  ctx: MutationCtx,
+  matchId: Id<"openMatches">,
+): Promise<void> {
+  const invites = await ctx.db
+    .query("matchInvites")
+    .withIndex("by_match", (q) => q.eq("matchId", matchId))
+    .collect();
+
+  await Promise.all(
+    invites
+      .filter((invite) => invite.status === "pending")
+      .map((invite) =>
+        ctx.db.patch(invite._id, {
+          status: "cancelled",
+          respondedAt: Date.now(),
+        }),
+      ),
+  );
 }
 
 /**
@@ -222,7 +263,12 @@ export async function addPlayerToMatch(
     throw new Error("La partita è al completo.");
   }
 
-  if (player.level < match.levelMin || player.level > match.levelMax) {
+  // Dentro una cerchia il livello non filtra nessuno: sono partite fra amici,
+  // e il range serve solo se poi la partita viene aperta a tutti.
+  if (
+    visibilityOf(match) !== "circle" &&
+    (player.level < match.levelMin || player.level > match.levelMax)
+  ) {
     throw new Error(
       "Il tuo livello non rientra in quello richiesto dalla partita.",
     );
@@ -239,6 +285,21 @@ export async function addPlayerToMatch(
   if (booking && !booking.players.includes(player.name)) {
     await ctx.db.patch(match.bookingId, {
       players: [...booking.players, player.name],
+    });
+  }
+
+  // Se il giocatore era stato invitato, l'invito è ormai una risposta data
+  const invite = await ctx.db
+    .query("matchInvites")
+    .withIndex("by_match_player", (q) =>
+      q.eq("matchId", match._id).eq("playerId", player._id),
+    )
+    .unique();
+
+  if (invite && invite.status === "pending") {
+    await ctx.db.patch(invite._id, {
+      status: "accepted",
+      respondedAt: Date.now(),
     });
   }
 }

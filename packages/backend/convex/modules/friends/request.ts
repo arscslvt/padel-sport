@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { requirePlayer } from "../openMatches/lib";
-import { friendshipBetween } from "./lib";
+import { ensureFriendRequest } from "./lib";
 
 /**
  * Chiede l'amicizia a un altro giocatore.
@@ -24,32 +24,21 @@ export default mutation({
       throw new Error("Giocatore non trovato.");
     }
 
-    const existing = await friendshipBetween(ctx, player._id, playerId);
+    const outcome = await ensureFriendRequest(ctx, player._id, playerId);
 
-    if (existing?.status === "accepted") {
-      throw new Error("Siete già amici.");
+    // Qui, a differenza dell'invito a una cerchia, chiedere di nuovo è un
+    // errore dell'utente: la schermata mostrava già lo stato del legame.
+    if (!outcome.changed) {
+      throw new Error(
+        outcome.status === "friend"
+          ? "Siete già amici."
+          : "Hai già inviato una richiesta a questo giocatore.",
+      );
     }
 
-    if (existing?.status === "pending") {
-      if (existing.requesterId === player._id) {
-        throw new Error("Hai già inviato una richiesta a questo giocatore.");
-      }
-
-      await ctx.db.patch(existing._id, {
-        status: "accepted",
-        respondedAt: Date.now(),
-      });
-
-      return { status: "accepted" as const, friendshipId: existing._id };
-    }
-
-    const friendshipId = await ctx.db.insert("friendships", {
-      requesterId: player._id,
-      addresseeId: playerId,
-      status: "pending",
-      createdAt: Date.now(),
-    });
-
-    return { status: "pending" as const, friendshipId };
+    return {
+      status: outcome.status === "friend" ? ("accepted" as const) : ("pending" as const),
+      friendshipId: outcome.friendshipId,
+    };
   },
 });

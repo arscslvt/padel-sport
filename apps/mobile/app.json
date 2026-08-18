@@ -43,21 +43,6 @@
           }
         }
       ],
-      [
-        "expo-font",
-        {
-          "fonts": [
-            "./assets/fonts/Google_Sans/static/GoogleSans_17pt-Regular.ttf",
-            "./assets/fonts/Google_Sans/static/GoogleSans_17pt-Italic.ttf",
-            "./assets/fonts/Google_Sans/static/GoogleSans_17pt-Medium.ttf",
-            "./assets/fonts/Google_Sans/static/GoogleSans_17pt-MediumItalic.ttf",
-            "./assets/fonts/Google_Sans/static/GoogleSans_17pt-SemiBold.ttf",
-            "./assets/fonts/Google_Sans/static/GoogleSans_17pt-SemiBoldItalic.ttf",
-            "./assets/fonts/Google_Sans/static/GoogleSans_17pt-Bold.ttf",
-            "./assets/fonts/Google_Sans/static/GoogleSans_17pt-BoldItalic.ttf"
-          ]
-        }
-      ],
       "expo-image",
       [
         "expo-image-picker",

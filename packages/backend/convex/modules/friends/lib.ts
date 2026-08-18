@@ -1,5 +1,5 @@
 import type { Doc, Id } from "../../_generated/dataModel";
-import type { QueryCtx } from "../../_generated/server";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import type { PlayerView } from "../openMatches/lib";
 
 /**
@@ -79,4 +79,76 @@ export function otherSide(
   return friendship.requesterId === playerId
     ? friendship.addresseeId
     : friendship.requesterId;
+}
+
+export interface FriendRequestOutcome {
+  /** Rapporto fra i due dopo l'operazione. */
+  status: "friend" | "outgoing";
+  friendshipId: Id<"friendships">;
+  /** `false` se il legame era già in questo stato e non è stato toccato. */
+  changed: boolean;
+}
+
+/**
+ * Porta avanti il legame di amicizia da `from` verso `to` di un passo, senza
+ * mai lamentarsi: crea la richiesta se non c'è, e se l'altro aveva già chiesto
+ * per primo la accetta invece di aprirne una speculare.
+ *
+ * Il compito di decidere se uno stato immutato è un errore resta a chi chiama:
+ * l'aggiunta esplicita di un amico (friends/request.ts) lo segnala, l'invito a
+ * una cerchia (modules/circles/invite.ts) tira dritto.
+ */
+export async function ensureFriendRequest(
+  ctx: MutationCtx,
+  from: Id<"players">,
+  to: Id<"players">,
+): Promise<FriendRequestOutcome> {
+  const existing = await friendshipBetween(ctx, from, to);
+
+  if (existing?.status === "accepted") {
+    return { status: "friend", friendshipId: existing._id, changed: false };
+  }
+
+  if (existing?.status === "pending") {
+    if (existing.requesterId === from) {
+      return { status: "outgoing", friendshipId: existing._id, changed: false };
+    }
+
+    await ctx.db.patch(existing._id, {
+      status: "accepted",
+      respondedAt: Date.now(),
+    });
+
+    return { status: "friend", friendshipId: existing._id, changed: true };
+  }
+
+  const friendshipId = await ctx.db.insert("friendships", {
+    requesterId: from,
+    addresseeId: to,
+    status: "pending",
+    createdAt: Date.now(),
+  });
+
+  return { status: "outgoing", friendshipId, changed: true };
+}
+
+/**
+ * Sblocca l'amicizia ancora in sospeso fra i due, se c'è.
+ *
+ * Serve a chi accetta l'invito a una cerchia: dire di sì al gruppo vale anche
+ * come sì alla richiesta di amicizia partita insieme all'invito, altrimenti si
+ * resterebbe nella stessa cerchia senza essere amici.
+ */
+export async function acceptPendingFriendship(
+  ctx: MutationCtx,
+  a: Id<"players">,
+  b: Id<"players">,
+): Promise<void> {
+  const friendship = await friendshipBetween(ctx, a, b);
+  if (!friendship || friendship.status !== "pending") return;
+
+  await ctx.db.patch(friendship._id, {
+    status: "accepted",
+    respondedAt: Date.now(),
+  });
 }

@@ -8,6 +8,9 @@ import { getIdentityPlayer, toMatchView } from "./lib";
  * Esclude quelle create dall'utente loggato: le ritrova fra le sue
  * prenotazioni e non può unirsi a sé stesso. Con `includeOwn: true` vengono
  * incluse (es. per una vista riepilogativa).
+ *
+ * Le partite di cerchia restano fuori: si vedono solo dalla loro cerchia,
+ * finché il creatore non decide di aprirle a tutti.
  */
 export default query({
   args: { includeOwn: v.optional(v.boolean()) },
@@ -17,6 +20,7 @@ export default query({
       .withIndex("by_status_date", (q) =>
         q.eq("status", "open").gte("matchDate", Date.now()),
       )
+      .filter((q) => q.neq(q.field("visibility"), "circle"))
       .order("asc")
       .take(50);
 

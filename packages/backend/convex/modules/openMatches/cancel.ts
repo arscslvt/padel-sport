@@ -1,7 +1,11 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
-import { CANCEL_DEADLINE_MS, requirePlayer } from "./lib";
+import {
+  CANCEL_DEADLINE_MS,
+  cancelPendingMatchInvites,
+  requirePlayer,
+} from "./lib";
 
 /**
  * Elimina una partita creata dall'utente, annullando anche la prenotazione
@@ -55,6 +59,9 @@ export default mutation({
     for (const request of pendingRequests) {
       await ctx.db.patch(request._id, { status: "cancelled" });
     }
+
+    // Nemmeno gli inviti di cerchia: non c'è più niente da accettare
+    await cancelPendingMatchInvites(ctx, matchId);
 
     await ctx.scheduler.runAfter(
       0,

@@ -44,6 +44,17 @@ const MAPPING = {
 	trash: "delete",
 	"rectangle.portrait.and.arrow.right": "logout",
 	"questionmark.circle": "help-outline",
+	magnifyingglass: "search",
+	"person.3.fill": "groups",
+	"person.badge.plus": "person-add-alt",
+	"person.2.badge.plus": "group-add",
+	globe: "public",
+	"arrow.right.circle.fill": "arrow-circle-right",
+	"xmark.circle.fill": "cancel",
+	"circle.dashed": "radio-button-unchecked",
+	"checkmark.circle": "check-circle-outline",
+	"bubble.left.fill": "chat-bubble",
+	"calendar.badge.plus": "event-available",
 } as IconMapping;
 
 /**

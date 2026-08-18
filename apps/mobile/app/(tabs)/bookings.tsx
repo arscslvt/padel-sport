@@ -8,6 +8,7 @@ import SmoothView from "@/components/smooth-view";
 import TabScreen from "@/components/tab-screen";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Fonts } from "@/constants/fonts";
 import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -27,11 +28,8 @@ export default function BookingsScreen() {
 	return (
 		<TabScreen>
 			<View style={{ flex: 1, paddingTop: top + 54 }}>
-				<View style={{ paddingHorizontal: 16, marginTop: 24, flex: 1 }}>
-					<View>
-						<ThemedText type="title">Prenotazioni</ThemedText>
-					</View>
-
+				{/* Il titolo "Prenotazioni" sta nell'header (components/tab-screen.tsx) */}
+				<View style={{ paddingHorizontal: 16, marginTop: 8, flex: 1 }}>
 					{loading ? (
 						<ActivityIndicator style={{ marginTop: 38 }} />
 					) : !isSignedIn || bookings.length === 0 ? (
@@ -81,7 +79,7 @@ export default function BookingsScreen() {
 									style={{
 										fontSize: 18,
 										lineHeight: 24,
-										fontWeight: "500",
+										fontFamily: Fonts.medium,
 										color: theme.tintForeground,
 									}}
 								>

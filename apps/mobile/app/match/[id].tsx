@@ -15,8 +15,10 @@ import { Avatar } from "@/components/open-match-card";
 import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
+import { NestedOption, SelectChip } from "@/components/ui/choice";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import Pill from "@/components/ui/pill";
+import { Fonts } from "@/constants/fonts";
 import { usePlayerGate } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 import { CANCEL_DEADLINE_MINUTES } from "@/lib/booking";
@@ -26,9 +28,11 @@ import {
 	formatLevelRange,
 	formatMatchDay,
 	formatMatchTime,
+	type JoinMode,
 	joinModeMeta,
 	type PlayerView,
 } from "@/lib/format";
+import { LEVEL_RANGES } from "@/lib/levels";
 
 /**
  * Dettaglio di una partita aperta, presentato come sheet
@@ -45,8 +49,15 @@ export default function OpenMatchDetail() {
 	const sendRequest = useMutation(api.modules.openMatches.requests.request);
 	const cancelMatch = useMutation(api.modules.openMatches.cancel.default);
 	const leaveMatch = useMutation(api.modules.openMatches.leave.default);
+	const respondInvite = useMutation(api.modules.openMatches.invites.respond);
+	const publishMatch = useMutation(api.modules.openMatches.publish.default);
 	const { gate } = usePlayerGate();
 	const [submitting, setSubmitting] = useState(false);
+	// Il passaggio "cerchia → aperta" si apre in pagina: uno sheet dentro uno
+	// sheet su iOS è un incastro che vale la pena evitare.
+	const [publishing, setPublishing] = useState(false);
+	const [publishLevel, setPublishLevel] = useState(LEVEL_RANGES.length - 1);
+	const [publishJoinMode, setPublishJoinMode] = useState<JoinMode>("direct");
 
 	if (match === undefined) {
 		return (
@@ -72,6 +83,7 @@ export default function OpenMatchDetail() {
 	const emptySlots = Array.from({ length: Math.max(0, freeSlots) });
 	const isDirect = match.joinMode === "direct";
 	const { viewer } = match;
+	const isCircleMatch = match.visibility === "circle";
 
 	const handleJoin = () =>
 		gate(async () => {
@@ -165,6 +177,42 @@ export default function OpenMatchDetail() {
 			],
 		);
 
+	const handleDeclineInvite = () => {
+		const inviteId = viewer.inviteId;
+		if (!inviteId) return;
+
+		Alert.alert(
+			"Rifiutare l'invito?",
+			"Sparisce dai tuoi inviti. Finché resta un posto libero potrai comunque unirti dalla cerchia.",
+			[
+				{ text: "Annulla", style: "cancel" },
+				{
+					text: "Rifiuta",
+					style: "destructive",
+					onPress: () =>
+						runAction(
+							() => respondInvite({ inviteId, accept: false }),
+							"Invito rifiutato.",
+						),
+				},
+			],
+		);
+	};
+
+	const handlePublish = () => {
+		const range = LEVEL_RANGES[publishLevel];
+		runAction(
+			() =>
+				publishMatch({
+					matchId,
+					levelMin: range.min,
+					levelMax: range.max,
+					joinMode: publishJoinMode,
+				}),
+			"La partita è ora visibile a tutti: chi era già dentro resta al suo posto.",
+		);
+	};
+
 	// Stato della CTA in base al viewer
 	const cta = (() => {
 		if (viewer.isMember) {
@@ -176,11 +224,25 @@ export default function OpenMatchDetail() {
 		if (match.status === "cancelled") {
 			return { label: "Partita annullata", icon: "xmark", disabled: true };
 		}
+		// Fuori dalla cerchia non c'è nulla da fare: la partita è privata
+		if (isCircleMatch && !viewer.isCircleMember) {
+			return { label: "Riservata alla cerchia", icon: "lock.fill", disabled: true };
+		}
 		if (viewer.requestStatus === "pending") {
 			return { label: "Richiesta inviata", icon: "envelope.fill", disabled: true };
 		}
 		if (viewer.levelOk === false) {
 			return { label: "Livello non adatto", icon: "xmark", disabled: true };
+		}
+		if (isCircleMatch) {
+			return {
+				label:
+					viewer.inviteStatus === "pending"
+						? "Accetta l'invito"
+						: "Unisciti alla partita",
+				icon: "checkmark.circle.fill",
+				disabled: false,
+			};
 		}
 		return isDirect
 			? { label: "Unisciti alla partita", icon: "bolt.fill", disabled: false }
@@ -195,11 +257,20 @@ export default function OpenMatchDetail() {
 			{/* Intestazione */}
 			<View style={{ flexDirection: "row", alignItems: "flex-start" }}>
 				<View style={{ flex: 1, gap: 8 }}>
-					<Pill
-						label={joinModeMeta[match.joinMode].label}
-						icon={joinModeMeta[match.joinMode].icon}
-						tinted={isDirect}
-					/>
+					<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+						{isCircleMatch && match.circle ? (
+							<Pill label={match.circle.name} icon="person.3.fill" tinted />
+						) : (
+							<Pill
+								label={joinModeMeta[match.joinMode].label}
+								icon={joinModeMeta[match.joinMode].icon}
+								tinted={isDirect}
+							/>
+						)}
+						{!isCircleMatch && match.circle && (
+							<Pill label={`Da "${match.circle.name}"` } icon="person.3.fill" />
+						)}
+					</View>
 					<ThemedText type="title">
 						{formatMatchDay(match.matchDate)}, {formatMatchTime(match.matchDate)}
 					</ThemedText>
@@ -271,6 +342,18 @@ export default function OpenMatchDetail() {
 				<PendingRequests matchId={matchId} />
 			)}
 
+			{/* Chi è stato invitato dalla cerchia e come ha risposto */}
+			{match.invitees.length > 0 && (
+				<View style={{ gap: 10 }}>
+					<SectionLabel>Invitati dalla cerchia</SectionLabel>
+					<View style={{ gap: 8 }}>
+						{match.invitees.map((invitee) => (
+							<InviteeRow key={invitee.inviteId} invitee={invitee} />
+						))}
+					</View>
+				</View>
+			)}
+
 			{/* Note */}
 			{match.notes && (
 				<View style={{ gap: 10 }}>
@@ -322,7 +405,7 @@ export default function OpenMatchDetail() {
 						<ThemedText
 							style={{
 								fontSize: 17,
-								fontWeight: "600",
+								fontFamily: Fonts.semiBold,
 								color: cta.disabled ? theme.textMuted : theme.tintForeground,
 							}}
 						>
@@ -331,6 +414,112 @@ export default function OpenMatchDetail() {
 					</>
 				)}
 			</SmoothView>
+
+			{/* Chi è stato invitato può anche dire di no */}
+			{viewer.inviteStatus === "pending" && !viewer.isMember && (
+				<Button
+					label="Rifiuta l'invito"
+					icon="xmark"
+					iconPosition="leading"
+					variant="secondary"
+					height={50}
+					style={{ marginTop: -8 }}
+					disabled={submitting}
+					onPress={handleDeclineInvite}
+				/>
+			)}
+
+			{/* Da cerchia ad aperta: la via d'uscita quando non si arriva a quattro */}
+			{viewer.isCreator &&
+				isCircleMatch &&
+				match.status === "open" &&
+				freeSlots > 0 &&
+				match.matchDate > Date.now() && (
+					<View style={{ gap: 12, marginTop: -8 }}>
+						{publishing ? (
+							<>
+								<View style={{ gap: 2 }}>
+									<SectionLabel>Apri la partita a tutti</SectionLabel>
+									<ThemedText
+										style={{
+											fontSize: 13,
+											lineHeight: 18,
+											color: theme.textMuted,
+										}}
+									>
+										{match.players.length}{" "}
+										{match.players.length === 1
+											? "giocatore resta"
+											: "giocatori restano"}{" "}
+										in partita. Scegli chi può prendere i {freeSlots} posti
+										liberi.
+									</ThemedText>
+								</View>
+
+								<View
+									style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+								>
+									{LEVEL_RANGES.map((range, index) => (
+										<SelectChip
+											key={range.label}
+											label={`${range.label} · ${formatLevelRange(range.min, range.max)}`}
+											selected={publishLevel === index}
+											onPress={() => setPublishLevel(index)}
+										/>
+									))}
+								</View>
+
+								<View style={{ gap: 8 }}>
+									{(Object.keys(joinModeMeta) as JoinMode[]).map((mode) => (
+										<NestedOption
+											key={mode}
+											icon={joinModeMeta[mode].icon}
+											title={joinModeMeta[mode].label}
+											description={joinModeMeta[mode].description}
+											selected={publishJoinMode === mode}
+											onPress={() => setPublishJoinMode(mode)}
+										/>
+									))}
+								</View>
+
+								<View style={{ flexDirection: "row", gap: 10 }}>
+									<Button
+										label="Annulla"
+										variant="secondary"
+										height={50}
+										style={{ flex: 1 }}
+										onPress={() => setPublishing(false)}
+									/>
+									<Button
+										label="Apri a tutti"
+										icon="globe"
+										iconPosition="leading"
+										height={50}
+										style={{ flex: 1 }}
+										loading={submitting}
+										onPress={handlePublish}
+									/>
+								</View>
+							</>
+						) : (
+							<>
+								<Button
+									label="Rendi la partita aperta"
+									icon="globe"
+									iconPosition="leading"
+									variant="secondary"
+									height={50}
+									disabled={submitting}
+									onPress={() => setPublishing(true)}
+								/>
+								<ActionHint>
+									Mancano {freeSlots} giocatori: aprendola la vedranno tutti, e
+									chi è già dentro resta al suo posto.
+								</ActionHint>
+							</>
+						)}
+					</View>
+				)}
 
 			{/* Azioni di chi è già in partita: eliminarla o uscirne */}
 			{showActions && (
@@ -378,6 +567,41 @@ export default function OpenMatchDetail() {
 				</View>
 			)}
 		</ScrollView>
+	);
+}
+
+/** Come ha risposto un invitato della cerchia: verde entrato, grigio in attesa. */
+function InviteeRow({
+	invitee,
+}: {
+	invitee: {
+		player: PlayerView;
+		status: "pending" | "accepted" | "declined" | "cancelled";
+	};
+}) {
+	const meta = {
+		accepted: { label: "In partita", icon: "checkmark.circle.fill", tinted: true },
+		pending: { label: "In attesa", icon: "clock.fill", tinted: false },
+		declined: { label: "Ha rifiutato", icon: "xmark", tinted: false },
+		cancelled: { label: "Annullato", icon: "xmark", tinted: false },
+	}[invitee.status];
+
+	return (
+		<View
+			style={{
+				flexDirection: "row",
+				alignItems: "center",
+				gap: 10,
+				paddingVertical: 4,
+				opacity: invitee.status === "accepted" ? 1 : 0.75,
+			}}
+		>
+			<Avatar url={invitee.player.avatarUrl} size={32} />
+			<ThemedText style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>
+				{invitee.player.name}
+			</ThemedText>
+			<Pill label={meta.label} icon={meta.icon} tinted={meta.tinted} />
+		</View>
 	);
 }
 
@@ -443,7 +667,7 @@ function PendingRequests({ matchId }: { matchId: Id<"openMatches"> }) {
 						>
 							<Avatar url={request.player.avatarUrl} size={38} />
 							<View style={{ flex: 1 }}>
-								<ThemedText style={{ fontSize: 15, fontWeight: "600" }}>
+								<ThemedText style={{ fontSize: 15, fontFamily: Fonts.semiBold }}>
 									{request.player.name}
 								</ThemedText>
 								<ThemedText
@@ -492,7 +716,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 		<ThemedText
 			style={{
 				fontSize: 14,
-				fontWeight: "600",
+				fontFamily: Fonts.semiBold,
 				color: theme.textMuted,
 				textTransform: "uppercase",
 				letterSpacing: 0.4,
@@ -521,7 +745,7 @@ function InfoBox({ label, value }: { label: string; value: string }) {
 				>
 					{label}
 				</ThemedText>
-				<ThemedText style={{ fontSize: 18, lineHeight: 24, fontWeight: "700" }}>
+				<ThemedText style={{ fontSize: 18, lineHeight: 24, fontFamily: Fonts.bold }}>
 					{value}
 				</ThemedText>
 			</View>
@@ -556,7 +780,7 @@ function PlayerRow({
 			>
 				<Avatar url={player.avatarUrl} size={38} />
 				<View style={{ flex: 1 }}>
-					<ThemedText style={{ fontSize: 15, fontWeight: "600" }}>
+					<ThemedText style={{ fontSize: 15, fontFamily: Fonts.semiBold }}>
 						{player.name}
 					</ThemedText>
 					{highlight && (

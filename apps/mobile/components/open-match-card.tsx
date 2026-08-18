@@ -4,6 +4,7 @@ import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import Pill from "@/components/ui/pill";
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 import {
 	formatLevelRange,
@@ -49,7 +50,7 @@ export default function OpenMatchCard({
 					<Avatar url={creator?.avatarUrl} size={42} />
 					<View style={{ flex: 1 }}>
 						<ThemedText
-							style={{ fontSize: 16, fontWeight: "600", lineHeight: 22 }}
+							style={{ fontSize: 16, fontFamily: Fonts.semiBold, lineHeight: 22 }}
 							numberOfLines={1}
 						>
 							{creator?.name ?? "Giocatore"}
@@ -61,11 +62,17 @@ export default function OpenMatchCard({
 							cerca {freeSlots === 1 ? "1 compagno" : `${freeSlots} compagni`}
 						</ThemedText>
 					</View>
-					<Pill
-						label={joinModeMeta[match.joinMode].label}
-						icon={joinModeMeta[match.joinMode].icon}
-						tinted={match.joinMode === "direct"}
-					/>
+					{/* Dentro una cerchia la modalità d'accesso non dice nulla di
+					    utile — si entra e basta — mentre il nome del gruppo sì */}
+					{match.visibility === "circle" && match.circle ? (
+						<Pill label={match.circle.name} icon="person.3.fill" tinted />
+					) : (
+						<Pill
+							label={joinModeMeta[match.joinMode].label}
+							icon={joinModeMeta[match.joinMode].icon}
+							tinted={match.joinMode === "direct"}
+						/>
+					)}
 				</View>
 
 				{/* Data e campo */}

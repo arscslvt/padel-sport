@@ -16,6 +16,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Hint } from "@/components/ui/choice";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TextField } from "@/components/ui/text-field";
+import { Fonts } from "@/constants/fonts";
 import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 import { convexErrorMessage } from "@/lib/format";
@@ -186,7 +187,7 @@ function RelationAction({
 					<ThemedText
 						style={{
 							fontSize: 14,
-							fontWeight: "600",
+							fontFamily: Fonts.semiBold,
 							color: theme.tintForeground,
 						}}
 					>

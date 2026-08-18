@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
-import { addPlayerToMatch, requirePlayer } from "./lib";
+import { membershipOf } from "../circles/lib";
+import { addPlayerToMatch, requirePlayer, visibilityOf } from "./lib";
 
 /** Unisciti subito a una partita aperta in modalità "direct". */
 export default mutation({
@@ -18,6 +19,15 @@ export default mutation({
       throw new Error(
         "Questa partita richiede l'approvazione del creatore: invia una richiesta.",
       );
+    }
+
+    // Le partite di cerchia hanno joinMode "direct", ma quel "direct" vale
+    // solo per chi è nella cerchia: da fuori non ci si entra.
+    if (visibilityOf(match) === "circle" && match.circleId) {
+      const membership = await membershipOf(ctx, match.circleId, player._id);
+      if (!membership) {
+        throw new Error("Questa partita è riservata ai membri della cerchia.");
+      }
     }
 
     await addPlayerToMatch(ctx, match, player);

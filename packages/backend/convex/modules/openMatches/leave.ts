@@ -84,6 +84,22 @@ export default mutation({
       }
     }
 
+    // Stessa cosa per l'invito di cerchia che lo aveva fatto entrare: da qui
+    // in poi la partita è di nuovo qualcosa a cui deve scegliere di unirsi.
+    const invite = await ctx.db
+      .query("matchInvites")
+      .withIndex("by_match_player", (q) =>
+        q.eq("matchId", matchId).eq("playerId", player._id),
+      )
+      .unique();
+
+    if (invite && invite.status === "accepted") {
+      await ctx.db.patch(invite._id, {
+        status: "cancelled",
+        respondedAt: Date.now(),
+      });
+    }
+
     return { newCreatorId: isCreator ? heir : null };
   },
 });

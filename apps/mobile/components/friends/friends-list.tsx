@@ -3,29 +3,26 @@ import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import {
-	ActivityIndicator,
-	Alert,
-	Pressable,
-	ScrollView,
-	View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ActivityIndicator, Alert, View } from "react-native";
 import PlayerRow from "@/components/friends/player-row";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
-import { SectionLabel, selectionFeedback } from "@/components/ui/choice";
+import { SectionLabel } from "@/components/ui/choice";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import RowAction from "@/components/ui/row-action";
 import { TextField } from "@/components/ui/text-field";
+import { Fonts } from "@/constants/fonts";
 import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 import { convexErrorMessage } from "@/lib/format";
 
-/** Elenco degli amici, con le richieste ancora in sospeso in cima. */
-export default function FriendsScreen() {
+/**
+ * Elenco degli amici, con le richieste ancora in sospeso in cima.
+ * È il contenuto della sezione "Amici" della tab (app/(tabs)/friends.tsx).
+ */
+export default function FriendsList() {
 	const theme = useTheme();
 	const router = useRouter();
-	const insets = useSafeAreaInsets();
 	const { isSignedIn, player } = useCurrentPlayer();
 
 	const data = useQuery(
@@ -41,7 +38,7 @@ export default function FriendsScreen() {
 	const loading = isSignedIn && data === undefined;
 
 	// La ricerca qui filtra solo gli amici già in elenco: per trovarne di nuovi
-	// si passa dalla schermata di aggiunta.
+	// si passa dal pulsante con la lente della tab bar.
 	const friends = useMemo(() => {
 		const all = data?.friends ?? [];
 		const needle = term.trim().toLowerCase();
@@ -80,11 +77,7 @@ export default function FriendsScreen() {
 		);
 
 	if (loading) {
-		return (
-			<View style={{ flex: 1, backgroundColor: theme.background }}>
-				<ActivityIndicator style={{ marginTop: 48 }} />
-			</View>
-		);
+		return <ActivityIndicator style={{ marginTop: 48 }} />;
 	}
 
 	const incoming = data?.incoming ?? [];
@@ -92,15 +85,7 @@ export default function FriendsScreen() {
 	const hasFriends = (data?.friends.length ?? 0) > 0;
 
 	return (
-		<ScrollView
-			style={{ flex: 1, backgroundColor: theme.background }}
-			contentContainerStyle={{
-				padding: 20,
-				paddingBottom: insets.bottom + 32,
-				gap: 24,
-			}}
-			keyboardShouldPersistTaps="handled"
-		>
+		<View style={{ gap: 24 }}>
 			{/* Il proprio codice sta in cima: è quello che si detta agli amici */}
 			{player?.code && (
 				<View
@@ -118,7 +103,7 @@ export default function FriendsScreen() {
 						Il tuo codice giocatore
 					</ThemedText>
 					<ThemedText
-						style={{ fontSize: 16, fontWeight: "600", letterSpacing: 1 }}
+						style={{ fontSize: 16, fontFamily: Fonts.semiBold, letterSpacing: 1 }}
 					>
 						#{player.code}
 					</ThemedText>
@@ -134,7 +119,7 @@ export default function FriendsScreen() {
 							player={request.player}
 							action={
 								<View style={{ flexDirection: "row", gap: 8 }}>
-									<CircleAction
+									<RowAction
 										icon="checkmark.circle.fill"
 										label={`Accetta ${request.player.name}`}
 										tinted
@@ -148,7 +133,7 @@ export default function FriendsScreen() {
 											)
 										}
 									/>
-									<CircleAction
+									<RowAction
 										icon="xmark"
 										label={`Rifiuta ${request.player.name}`}
 										busy={busyId === request.friendshipId}
@@ -222,7 +207,7 @@ export default function FriendsScreen() {
 							key={friend.id}
 							player={friend}
 							action={
-								<CircleAction
+								<RowAction
 									icon="trash"
 									label={`Rimuovi ${friend.name}`}
 									danger
@@ -243,7 +228,7 @@ export default function FriendsScreen() {
 							key={request.friendshipId}
 							player={request.player}
 							action={
-								<CircleAction
+								<RowAction
 									icon="xmark"
 									label={`Annulla la richiesta a ${request.player.name}`}
 									busy={busyId === request.player.id}
@@ -258,58 +243,6 @@ export default function FriendsScreen() {
 					))}
 				</View>
 			)}
-		</ScrollView>
-	);
-}
-
-/** Pulsante tondo compatto usato in coda alle righe. */
-function CircleAction({
-	icon,
-	label,
-	onPress,
-	busy,
-	tinted,
-	danger,
-}: {
-	icon: string;
-	label: string;
-	onPress: () => void;
-	busy?: boolean;
-	tinted?: boolean;
-	danger?: boolean;
-}) {
-	const theme = useTheme();
-	const foreground = tinted
-		? theme.tintForeground
-		: danger
-			? theme.danger
-			: theme.textMuted;
-
-	return (
-		<Pressable
-			onPress={() => {
-				selectionFeedback();
-				onPress();
-			}}
-			disabled={busy}
-			hitSlop={6}
-			accessibilityRole="button"
-			accessibilityLabel={label}
-			style={({ pressed }) => ({
-				width: 36,
-				height: 36,
-				borderRadius: 999,
-				alignItems: "center",
-				justifyContent: "center",
-				backgroundColor: tinted ? theme.tint : theme.muted,
-				opacity: pressed || busy ? 0.6 : 1,
-			})}
-		>
-			{busy ? (
-				<ActivityIndicator size="small" color={foreground} />
-			) : (
-				<IconSymbol name={icon} size={16} color={foreground} />
-			)}
-		</Pressable>
+		</View>
 	);
 }

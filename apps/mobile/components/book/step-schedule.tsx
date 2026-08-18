@@ -7,6 +7,7 @@ import {
 	SelectChip,
 	selectionFeedback,
 } from "@/components/ui/choice";
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 import {
 	type BookingDay,
@@ -156,7 +157,7 @@ function DayCard({
 				style={{
 					fontSize: 20,
 					lineHeight: 26,
-					fontWeight: "600",
+					fontFamily: Fonts.semiBold,
 					color: foreground,
 				}}
 			>

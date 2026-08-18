@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { Platform, Pressable } from "react-native";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function RootStack() {
@@ -63,7 +64,7 @@ export default function RootStack() {
 						title: "Profilo",
 						headerBackButtonDisplayMode: "minimal",
 						headerTintColor: theme.text,
-						headerTitleStyle: { color: theme.text },
+						headerTitleStyle: { color: theme.text, fontFamily: Fonts.semiBold },
 						headerStyle: { backgroundColor: theme.background },
 						// Niente linea/ombra sotto la testata
 						headerShadowVisible: false,
@@ -79,31 +80,31 @@ export default function RootStack() {
 						),
 					}}
 				/>
-				{/* Amici: pagina con la lista e sheet per aggiungerne di nuovi */}
+				{/* La lista amici vive nella tab (app/(tabs)/friends.tsx): qui resta
+				    solo lo sheet di ricerca, che apre il pulsante con la lente */}
 				<Stack.Screen
-					name="friends/index"
+					name="friends/add"
+					options={{ ...sheetOptions, sheetAllowedDetents: [0.85, 1] }}
+				/>
+				{/* Cerchie: la pagina di dettaglio è un push, il resto sono sheet */}
+				<Stack.Screen
+					name="circles/[id]/index"
 					options={{
 						headerShown: true,
-						title: "Amici",
+						title: "Cerchia",
 						headerBackButtonDisplayMode: "minimal",
 						headerTintColor: theme.text,
-						headerTitleStyle: { color: theme.text },
+						headerTitleStyle: { color: theme.text, fontFamily: Fonts.semiBold },
 						headerStyle: { backgroundColor: theme.background },
 						headerShadowVisible: false,
-						headerRight: () => (
-							<Pressable
-								onPress={() => router.push("/friends/add")}
-								hitSlop={10}
-								accessibilityRole="button"
-								accessibilityLabel="Aggiungi un amico"
-							>
-								<IconSymbol name="plus" size={20} color={theme.text} />
-							</Pressable>
-						),
 					}}
 				/>
 				<Stack.Screen
-					name="friends/add"
+					name="circles/new"
+					options={{ ...sheetOptions, sheetAllowedDetents: [0.85, 1] }}
+				/>
+				<Stack.Screen
+					name="circles/[id]/invite"
 					options={{ ...sheetOptions, sheetAllowedDetents: [0.85, 1] }}
 				/>
 				<Stack.Screen

@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { Avatar } from "@/components/open-match-card";
 import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 import { formatLevel, type PlayerView } from "@/lib/format";
 
@@ -44,7 +45,7 @@ export default function PlayerRow({
 
 				<View style={{ flex: 1, gap: 2 }}>
 					<ThemedText
-						style={{ fontSize: 16, fontWeight: "600" }}
+						style={{ fontSize: 16, fontFamily: Fonts.semiBold }}
 						numberOfLines={1}
 					>
 						{player.name}

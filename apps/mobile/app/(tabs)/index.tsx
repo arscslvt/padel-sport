@@ -8,6 +8,7 @@ import KpiCard from "@/components/kpi-card";
 import OpenMatchCard from "@/components/open-match-card";
 import TabScreen from "@/components/tab-screen";
 import { ThemedText } from "@/components/themed-text";
+import { Fonts } from "@/constants/fonts";
 import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTabBarInset } from "@/hooks/use-tab-bar-inset";
 import { useTheme } from "@/hooks/use-theme";
@@ -23,6 +24,12 @@ export default function TabsIndex() {
 	const { player, isSignedIn } = useCurrentPlayer();
 	const myBookings = useQuery(
 		api.modules.openMatches.my.default,
+		isSignedIn ? {} : "skip",
+	);
+	// Gli inviti alle partite di cerchia non compaiono fra le partite aperte:
+	// senza questo blocco si vedrebbero solo entrando nella cerchia.
+	const matchInvites = useQuery(
+		api.modules.openMatches.invites.listMine,
 		isSignedIn ? {} : "skip",
 	);
 
@@ -62,7 +69,7 @@ export default function TabsIndex() {
 							<ThemedText
 								style={{
 									fontSize: 32,
-									fontWeight: "700",
+									fontFamily: Fonts.bold,
 									lineHeight: 32,
 									color: theme.textTinted,
 								}}
@@ -80,7 +87,7 @@ export default function TabsIndex() {
 							<ThemedText
 								style={{
 									fontSize: 32,
-									fontWeight: "700",
+									fontFamily: Fonts.bold,
 									lineHeight: 32,
 									color: theme.textTinted,
 								}}
@@ -113,12 +120,44 @@ export default function TabsIndex() {
 					</View>
 				)}
 
+				{/* Inviti dalle cerchie: in cima, sono l'unica cosa che aspetta
+				    una risposta */}
+				{matchInvites !== undefined && matchInvites.length > 0 && (
+					<View style={{ paddingHorizontal: 16, marginTop: 24, gap: 14 }}>
+						<View style={{ gap: 2 }}>
+							<ThemedText type="title">Inviti dalle cerchie</ThemedText>
+							<ThemedText
+								type="subtitle"
+								style={{ fontSize: 15, lineHeight: 22, fontFamily: Fonts.regular }}
+							>
+								{matchInvites.length === 1
+									? "Una partita ti aspetta"
+									: `${matchInvites.length} partite ti aspettano`}
+							</ThemedText>
+						</View>
+
+						{matchInvites.map((invite) => (
+							<OpenMatchCard
+								key={invite.inviteId}
+								match={invite.match}
+								myLevel={player?.level}
+								onPress={() =>
+									router.push({
+										pathname: "/match/[id]",
+										params: { id: invite.match.id },
+									})
+								}
+							/>
+						))}
+					</View>
+				)}
+
 				<View style={{ paddingHorizontal: 16, marginTop: 24, gap: 14 }}>
 					<View style={{ gap: 2 }}>
 						<ThemedText type="title">Partite aperte</ThemedText>
 						<ThemedText
 							type="subtitle"
-							style={{ fontSize: 15, lineHeight: 22, fontWeight: 400 }}
+							style={{ fontSize: 15, lineHeight: 22, fontFamily: Fonts.regular }}
 						>
 							Giocatori che cercano compagni di gioco
 						</ThemedText>

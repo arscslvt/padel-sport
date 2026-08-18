@@ -1,6 +1,7 @@
 import { View, type ViewStyle, type StyleProp } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 
 interface PillProps {
@@ -39,7 +40,7 @@ export default function Pill({ label, icon, tinted, style }: PillProps) {
 				style={{
 					fontSize: 13,
 					lineHeight: 17,
-					fontWeight: "500",
+					fontFamily: Fonts.medium,
 					color: foreground,
 				}}
 			>

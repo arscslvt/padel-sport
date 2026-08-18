@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
+import { membersOf, requireCircleMember } from "../circles/lib";
 import {
   findAvailableSlot,
   LEVEL_MAX,
@@ -13,15 +15,26 @@ import {
 
 /**
  * Crea una prenotazione dall'app mobile: occupa un campo reale
- * (stessa tabella e stessa logica di disponibilità del web) e,
- * se `open` è true, pubblica la partita tra quelle aperte.
+ * (stessa tabella e stessa logica di disponibilità del web) e, a seconda
+ * della visibilità, ci costruisce sopra una partita.
+ *
+ * - `private`: solo la prenotazione, nessuna partita da riempire.
+ * - `public`: la partita finisce fra quelle aperte a tutti.
+ * - `circle`: la partita è riservata ai membri di `circleId`, che ricevono
+ *   tutti un invito. Se non si riempie, il creatore può poi aprirla a tutti
+ *   tenendo chi è già entrato (modules/openMatches/publish.ts).
  */
 export default mutation({
   args: {
     bookingDate: v.number(),
     levelMin: v.number(),
     levelMax: v.number(),
-    open: v.boolean(),
+    visibility: v.union(
+      v.literal("private"),
+      v.literal("public"),
+      v.literal("circle"),
+    ),
+    circleId: v.optional(v.id("circles")),
     joinMode: v.optional(v.union(v.literal("direct"), v.literal("request"))),
     notes: v.optional(v.string()),
   },
@@ -46,9 +59,26 @@ export default mutation({
       throw new Error("Il livello richiesto non è valido.");
     }
 
-    if (args.open && !args.joinMode) {
+    if (args.visibility === "public" && !args.joinMode) {
       throw new Error(
         "Scegli come far entrare gli altri giocatori nella partita.",
+      );
+    }
+
+    if (args.visibility === "circle" && !args.circleId) {
+      throw new Error("Scegli la cerchia in cui creare la partita.");
+    }
+
+    // Restringe il tipo per il resto dell'handler: da qui in poi `circleId`
+    // c'è se e solo se la partita è di cerchia.
+    const circleId = args.visibility === "circle" ? args.circleId : undefined;
+
+    // Solo chi è nella cerchia può organizzarci dentro una partita
+    let circleMemberIds: Id<"players">[] = [];
+    if (circleId) {
+      await requireCircleMember(ctx, circleId, player._id);
+      circleMemberIds = (await membersOf(ctx, circleId)).map(
+        (row) => row.playerId,
       );
     }
 
@@ -89,7 +119,7 @@ export default mutation({
     });
 
     let matchId = null;
-    if (args.open) {
+    if (args.visibility !== "private") {
       matchId = await ctx.db.insert("openMatches", {
         bookingId,
         creatorId: player._id,
@@ -98,12 +128,39 @@ export default mutation({
         matchDate: args.bookingDate,
         levelMin: args.levelMin,
         levelMax: args.levelMax,
-        joinMode: args.joinMode ?? "direct",
+        // Nella cerchia si entra senza chiedere: sono già tutti invitati
+        joinMode: circleId ? "direct" : (args.joinMode ?? "direct"),
         status: "open",
+        visibility: circleId ? "circle" : "public",
+        circleId,
         notes,
         createdAt: Date.now(),
       });
     }
+
+    // Ogni membro della cerchia riceve l'invito, tranne chi la sta creando
+    if (matchId && circleId) {
+      await Promise.all(
+        circleMemberIds
+          .filter((playerId) => playerId !== player._id)
+          .map((playerId) =>
+            ctx.db.insert("matchInvites", {
+              matchId,
+              circleId,
+              playerId,
+              status: "pending",
+              createdAt: Date.now(),
+            }),
+          ),
+      );
+    }
+
+    const visibilityNote =
+      args.visibility === "public"
+        ? " (partita aperta)"
+        : args.visibility === "circle"
+          ? " (partita di cerchia)"
+          : "";
 
     await ctx.scheduler.runAfter(
       0,
@@ -112,7 +169,7 @@ export default mutation({
         title: "Nuova prenotazione dall'app",
         message: `${player.name} ha prenotato per il ${new Date(
           args.bookingDate,
-        ).toLocaleString("it-IT")}${args.open ? " (partita aperta)" : ""}.`,
+        ).toLocaleString("it-IT")}${visibilityNote}.`,
         tags: ["booking", "new", "mobile"],
       },
     );

@@ -1,5 +1,6 @@
 import { StyleSheet, Text, type TextProps } from "react-native";
 
+import { Fonts } from "@/constants/fonts";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
 export type ThemedTextProps = TextProps & {
@@ -28,7 +29,7 @@ export function ThemedText({
 	return (
 		<Text
 			style={[
-				{ color, fontFamily: "GoogleSans17pt-Regular" },
+				{ color, fontFamily: Fonts.regular },
 				type === "default" ? { ...styles.default } : undefined,
 				type === "title" ? { ...styles.title } : undefined,
 				type === "defaultSemiBold" ? styles.defaultSemiBold : undefined,
@@ -41,35 +42,35 @@ export function ThemedText({
 	);
 }
 
+/**
+ * Il peso arriva dal file caricato, non da `fontWeight`: con i tagli statici
+ * iOS sceglie la faccia dal nome, e un `fontWeight` che non corrisponde al
+ * file finirebbe per far sintetizzare al sistema un finto grassetto.
+ */
 const styles = StyleSheet.create({
 	default: {
 		fontSize: 16,
 		lineHeight: 24,
-		fontFamily: "GoogleSans17pt-Regular",
-		fontWeight: "400",
+		fontFamily: Fonts.regular,
 	},
 	defaultSemiBold: {
 		fontSize: 16,
 		lineHeight: 24,
-		fontFamily: "GoogleSans17pt-Bold",
-		fontWeight: "500",
+		fontFamily: Fonts.semiBold,
 	},
 	title: {
 		fontSize: 26,
-		fontFamily: "GoogleSans17pt-Bold",
 		lineHeight: 32,
-		fontWeight: "600",
+		fontFamily: Fonts.bold,
 	},
 	subtitle: {
 		fontSize: 16,
-		fontFamily: "GoogleSans17pt-SemiBold",
-		fontWeight: "500",
+		fontFamily: Fonts.semiBold,
 	},
 	link: {
 		lineHeight: 30,
 		fontSize: 16,
-		fontFamily: "GoogleSans17pt-Regular",
+		fontFamily: Fonts.regular,
 		color: "#0a7ea4",
-		fontWeight: "400",
 	},
 });

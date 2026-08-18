@@ -1,6 +1,7 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
-import { useMutation } from "convex/react";
-import { useRouter } from "expo-router";
+import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import {
 	Alert,
@@ -82,15 +83,25 @@ interface BookingDraft {
 }
 
 /**
- * Flusso di prenotazione / creazione di una partita aperta, presentato come
- * sheet (modal nativo su iOS, drawer su Android) e diviso in quattro passi:
+ * Flusso di prenotazione / creazione di una partita, presentato come sheet
+ * (modal nativo su iOS, drawer su Android) e diviso in quattro passi:
  * livello, data e orario, giocatori, riepilogo.
+ *
+ * Con il parametro `circleId` la partita nasce dentro una cerchia: il passo
+ * dei giocatori non chiede più aperta o privata, perché è già deciso, e tutti
+ * i membri riceveranno l'invito.
  */
 export default function BookMatch() {
 	const theme = useTheme();
 	const router = useRouter();
 	const { player, gate } = usePlayerGate();
 	const createBooking = useMutation(api.modules.openMatches.create.default);
+
+	const { circleId } = useLocalSearchParams<{ circleId?: Id<"circles"> }>();
+	const circle = useQuery(
+		api.modules.circles.get.default,
+		circleId ? { circleId } : "skip",
+	);
 
 	const scrollRef = useRef<ScrollView>(null);
 	const [submitting, setSubmitting] = useState(false);
@@ -170,22 +181,34 @@ export default function BookMatch() {
 
 			setSubmitting(true);
 			try {
+				const visibility = circleId
+					? ("circle" as const)
+					: draft.keepOpen
+						? ("public" as const)
+						: ("private" as const);
+
 				const { code } = await createBooking({
 					bookingDate: combineDateAndTime(day.date, time),
 					levelMin: range.min,
 					levelMax: range.max,
-					open: draft.keepOpen,
-					joinMode: draft.keepOpen ? draft.joinMode : undefined,
+					visibility,
+					circleId,
+					joinMode: visibility === "public" ? draft.joinMode : undefined,
 					notes: draft.notes.trim() || undefined,
 				});
+
+				const outcome =
+					visibility === "circle"
+						? `Gli altri membri di "${circle?.name ?? "la cerchia"}" hanno ricevuto l'invito.`
+						: visibility === "public"
+							? "La partita è visibile tra quelle aperte."
+							: "Partita privata.";
 
 				Alert.alert(
 					"Prenotazione confermata 🎾",
 					[
 						`${formatDayLong(day.date)}, ${formatSlotRange(time)}`,
-						draft.keepOpen
-							? "La partita è visibile tra quelle aperte."
-							: "Partita privata.",
+						outcome,
 						`Codice prenotazione: ${code}`,
 					].join("\n"),
 					[{ text: "OK", onPress: () => router.back() }],
@@ -285,6 +308,8 @@ export default function BookMatch() {
 						player={player}
 						keepOpen={draft.keepOpen}
 						joinMode={draft.joinMode}
+						circleName={circleId ? (circle?.name ?? "Cerchia") : undefined}
+						circleMembers={circle?.members}
 						onKeepOpenChange={(keepOpen) => patch({ keepOpen })}
 						onJoinModeChange={(joinMode) => patch({ joinMode })}
 					/>
@@ -296,6 +321,7 @@ export default function BookMatch() {
 						time={draft.time}
 						keepOpen={draft.keepOpen}
 						joinMode={draft.joinMode}
+						circleName={circleId ? (circle?.name ?? "Cerchia") : undefined}
 						notes={draft.notes}
 						onNotesChange={(notes) => patch({ notes })}
 						onEdit={goTo}

@@ -7,6 +7,7 @@ import {
 	View,
 	type ViewStyle,
 } from "react-native";
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 
 type TextFieldProps = TextInputProps & {
@@ -72,5 +73,6 @@ const styles = StyleSheet.create({
 	input: {
 		padding: 16,
 		fontSize: 16,
+		fontFamily: Fonts.regular,
 	},
 });

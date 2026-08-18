@@ -33,6 +33,8 @@ type Props = {
 	// interaction
 	onPress?: () => void;
 	disabled?: boolean;
+	/** Etichetta per lo screen reader quando il contenuto è solo un'icona. */
+	accessibilityLabel?: string;
 
 	// visuals
 	shadow?: boolean;
@@ -48,6 +50,7 @@ export default function SmoothView({
 	borderWidth = 1,
 	onPress,
 	disabled,
+	accessibilityLabel,
 	shadow = true,
 }: Props) {
 	const theme = useTheme();
@@ -142,6 +145,8 @@ export default function SmoothView({
 				onLayout={onLayout}
 				style={[baseStyle, animatedStyle]}
 				hitSlop={8}
+				accessibilityRole="button"
+				accessibilityLabel={accessibilityLabel}
 			>
 				{inner}
 			</AnimatedPressable>

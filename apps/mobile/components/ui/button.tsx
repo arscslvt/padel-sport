@@ -8,6 +8,7 @@ import {
 import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 
 type IconName = ComponentProps<typeof IconSymbol>["name"];
@@ -98,6 +99,6 @@ const styles = StyleSheet.create({
 	},
 	label: {
 		fontSize: 17,
-		fontWeight: "600",
+		fontFamily: Fonts.semiBold,
 	},
 });

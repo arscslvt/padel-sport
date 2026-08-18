@@ -1,3 +1,4 @@
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 import React, { Children, createContext, useContext, useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -186,7 +187,7 @@ export function TabsItem({
 					style={[
 						{
 							fontSize: 16,
-							fontWeight: "500",
+							fontFamily: Fonts.medium,
 						},
 						animatedTextStyle,
 					]}

@@ -1,5 +1,6 @@
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import Animated, {
 	interpolateColor,
@@ -9,7 +10,14 @@ import Animated, {
 	withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { bookAction, routes, type TabRoute } from "@/constants/routes";
+import {
+	actionForRoute,
+	bookAction,
+	routes,
+	type TabAction,
+	type TabRoute,
+} from "@/constants/routes";
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 import SmoothView from "./smooth-view";
 import { IconSymbol } from "./ui/icon-symbol";
@@ -37,6 +45,7 @@ export function BottomTab({ state, navigation }: BottomTabProps) {
 	);
 
 	const activeIndex = state.index;
+	const action = actionForRoute(state.routes[activeIndex]?.name);
 
 	const animatedIndicatorStyle = useAnimatedStyle(() => {
 		return {
@@ -108,8 +117,9 @@ export function BottomTab({ state, navigation }: BottomTabProps) {
 				))}
 			</SmoothView>
 
-			{/* Azione staccata: apre lo sheet di prenotazione, non è una tab.
-			    Stesso materiale della barra, icona nel colore d'accento */}
+			{/* Azione staccata: apre uno sheet, non è una tab. Stesso materiale
+			    della barra, icona nel colore d'accento. Cosa apra dipende dalla
+			    tab attiva (constants/routes.tsx) */}
 			<SmoothView
 				radius={100}
 				smoothing={1.6}
@@ -122,10 +132,48 @@ export function BottomTab({ state, navigation }: BottomTabProps) {
 					alignItems: "center",
 					justifyContent: "center",
 				}}
-				onPress={() => router.push(bookAction.href)}
+				onPress={() => router.push(action.href)}
+				accessibilityLabel={action.title}
 			>
-				<IconSymbol name={bookAction.icon} size={28} color={theme.tint} />
+				<DetachedActionIcon action={action} />
 			</SmoothView>
+		</View>
+	);
+}
+
+/**
+ * Icona dell'azione staccata, in dissolvenza incrociata quando si passa a una
+ * tab che ne cambia il significato.
+ *
+ * L'icona dell'azione specifica viene ricordata anche dopo che si è tornati
+ * alla predefinita: senza, uscendo dalla tab Amici la lente sparirebbe di
+ * scatto invece di sfumare via.
+ */
+function DetachedActionIcon({ action }: { action: TabAction }) {
+	const theme = useTheme();
+	const isOverride = action.href !== bookAction.href;
+
+	const [overrideIcon, setOverrideIcon] = useState(action.icon);
+
+	useEffect(() => {
+		if (isOverride) setOverrideIcon(action.icon);
+	}, [isOverride, action.icon]);
+
+	const progress = useDerivedValue(() => withTiming(isOverride ? 1 : 0));
+
+	const defaultStyle = useAnimatedStyle(() => ({
+		opacity: 1 - progress.value,
+	}));
+	const overrideStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
+
+	return (
+		<View style={{ width: 28, height: 28, alignItems: "center", justifyContent: "center" }}>
+			<Animated.View style={[{ position: "absolute" }, defaultStyle]}>
+				<IconSymbol name={bookAction.icon} size={28} color={theme.tint} />
+			</Animated.View>
+			<Animated.View style={[{ position: "absolute" }, overrideStyle]}>
+				<IconSymbol name={overrideIcon} size={28} color={theme.tint} />
+			</Animated.View>
 		</View>
 	);
 }
@@ -213,7 +261,7 @@ export function BottomTabItem({
 					numberOfLines={1}
 					style={[
 						{
-							fontWeight: "500",
+							fontFamily: Fonts.medium,
 							fontSize: 12,
 						},
 						animatedTextStyle,

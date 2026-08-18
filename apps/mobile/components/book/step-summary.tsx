@@ -5,6 +5,7 @@ import { ThemedText } from "@/components/themed-text";
 import { SectionLabel } from "@/components/ui/choice";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TextField } from "@/components/ui/text-field";
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 import {
 	type BookingDay,
@@ -27,6 +28,7 @@ export default function StepSummary({
 	time,
 	keepOpen,
 	joinMode,
+	circleName,
 	notes,
 	onNotesChange,
 	onEdit,
@@ -36,6 +38,8 @@ export default function StepSummary({
 	time: string;
 	keepOpen: boolean;
 	joinMode: JoinMode;
+	/** Valorizzato quando la partita nasce dentro una cerchia. */
+	circleName?: string;
 	notes: string;
 	onNotesChange: (notes: string) => void;
 	/** Torna al passo indicato per modificare la scelta. */
@@ -76,12 +80,20 @@ export default function StepSummary({
 					/>
 					<Divider />
 					<SummaryRow
-						icon={keepOpen ? "person.2.fill" : "lock.fill"}
+						icon={
+							circleName
+								? "person.3.fill"
+								: keepOpen
+									? "person.2.fill"
+									: "lock.fill"
+						}
 						label={`Giocatori 1/${MAX_PLAYERS}`}
 						value={
-							keepOpen
-								? `Partita aperta · ${joinModeMeta[joinMode].label}`
-								: "Partita privata"
+							circleName
+								? `Cerchia · ${circleName}`
+								: keepOpen
+									? `Partita aperta · ${joinModeMeta[joinMode].label}`
+									: "Partita privata"
 						}
 						onPress={() => onEdit(2)}
 					/>
@@ -147,7 +159,7 @@ function SummaryRow({
 				<ThemedText style={{ fontSize: 13, color: theme.textMuted }}>
 					{label}
 				</ThemedText>
-				<ThemedText style={{ fontSize: 16, fontWeight: "600" }}>
+				<ThemedText style={{ fontSize: 16, fontFamily: Fonts.semiBold }}>
 					{value}
 				</ThemedText>
 			</View>

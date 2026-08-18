@@ -9,6 +9,7 @@ import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import Pill from "@/components/ui/pill";
+import { Fonts } from "@/constants/fonts";
 import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 import { formatLevel, formatMatchDay, formatMonthYear } from "@/lib/format";
@@ -97,7 +98,7 @@ export default function ProfileScreen() {
 					<ThemedText
 						style={{
 							fontSize: 16,
-							fontWeight: "600",
+							fontFamily: Fonts.semiBold,
 							color: theme.tintForeground,
 						}}
 					>
@@ -122,7 +123,7 @@ export default function ProfileScreen() {
 			<View style={{ alignItems: "center", gap: 12 }}>
 				<Avatar url={player?.avatarUrl ?? user?.imageUrl} size={96} />
 				<View style={{ alignItems: "center", gap: 4 }}>
-					<ThemedText style={{ fontSize: 22, fontWeight: "700" }}>
+					<ThemedText style={{ fontSize: 22, fontFamily: Fonts.bold }}>
 						{displayName}
 					</ThemedText>
 					{email && (
@@ -198,7 +199,9 @@ export default function ProfileScreen() {
 							label="Amici"
 							value={friendsCount === undefined ? "–" : String(friendsCount)}
 							icon="person.2.fill"
-							onPress={() => router.push("/friends")}
+							// Gli amici sono una tab: si torna lì invece di impilare
+							// un'altra copia della stessa schermata sopra il profilo
+							onPress={() => router.navigate("/friends")}
 						/>
 					</View>
 
@@ -256,7 +259,7 @@ export default function ProfileScreen() {
 						gap: 8,
 					}}
 				>
-					<ThemedText style={{ fontSize: 16, fontWeight: "600" }}>
+					<ThemedText style={{ fontSize: 16, fontFamily: Fonts.semiBold }}>
 						Esci
 					</ThemedText>
 				</View>
@@ -292,7 +295,7 @@ function StatCard({
 			<View style={{ padding: 14, gap: 8 }}>
 				<IconSymbol name={icon} size={18} color={theme.tint} />
 				<ThemedText
-					style={{ fontSize: 24, fontWeight: "700", color: theme.textTinted }}
+					style={{ fontSize: 24, fontFamily: Fonts.bold, color: theme.textTinted }}
 				>
 					{value}
 				</ThemedText>
@@ -330,7 +333,7 @@ function HistoryRow({ match }: { match: PlayedMatchMock }) {
 						gap: 8,
 					}}
 				>
-					<ThemedText style={{ fontSize: 15, fontWeight: "600" }}>
+					<ThemedText style={{ fontSize: 15, fontFamily: Fonts.semiBold }}>
 						{formatMatchDay(match.date)}
 					</ThemedText>
 					<Pill label={won ? "Vittoria" : "Sconfitta"} tinted={won} />

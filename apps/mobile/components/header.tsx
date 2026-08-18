@@ -10,18 +10,27 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/open-match-card";
+import { ThemedText } from "@/components/themed-text";
+import Crossfade from "@/components/ui/crossfade";
 import Pill from "@/components/ui/pill";
 import ProgressiveBlur from "@/components/ui/progressive-blur";
+import { Fonts } from "@/constants/fonts";
 import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 import { mockProfile } from "@/lib/mock-profile";
 
 type HeaderProps = {
 	withSafeAreaInsets?: boolean;
+	/**
+	 * Titolo della schermata, al posto del logo. Con `null` (la Home) resta il
+	 * logo dell'attività.
+	 */
+	title?: string | null;
 };
 
 export default function Header({
 	withSafeAreaInsets = true,
+	title = null,
 	...props
 }: HeaderProps) {
 	const { top } = useSafeAreaInsets();
@@ -33,12 +42,15 @@ export default function Header({
 
 	// Il profilo giocatore Convex ha la precedenza (nome scelto in app),
 	// con fallback sui dati dell'account Clerk
-	const displayName =
+	const fullName =
 		player?.name ??
 		user?.firstName ??
 		user?.fullName ??
 		user?.primaryEmailAddress?.emailAddress ??
 		"Giocatore";
+	// Solo il nome di battesimo: accanto al titolo della schermata lo spazio è
+	// poco, e il cognome non aggiunge nulla a chi sta guardando il proprio profilo
+	const displayName = fullName.trim().split(/\s+/)[0];
 	const avatarUrl = player?.avatarUrl ?? user?.imageUrl;
 	// Il codice arriva dal profilo giocatore; per chi non l'ha ancora ricevuto
 	// (profili creati prima dei codici) resta quello dimostrativo
@@ -50,16 +62,28 @@ export default function Header({
 			{...props}
 		>
 			<ProgressiveBlur />
-			<View style={{ ...styles.leading, paddingLeft: 14 }}>
-				<Image
-					source={
-						colorScheme === "dark"
-							? require("@/assets/branding/logotype-dark.svg")
-							: require("@/assets/branding/logotype.svg")
-					}
-					style={{ width: 68, height: 38, objectFit: "contain" }}
-				/>
-			</View>
+			{/* Logo o titolo occupano lo stesso posto e si sostituiscono in
+			    dissolvenza: la chiave distingue il logo dai singoli titoli, così
+			    anche il passaggio da un titolo all'altro è una transizione */}
+			<Crossfade
+				itemKey={title ? `title:${title}` : "brand"}
+				style={styles.leading}
+			>
+				{title ? (
+					<ThemedText type="title" numberOfLines={1}>
+						{title}
+					</ThemedText>
+				) : (
+					<Image
+						source={
+							colorScheme === "dark"
+								? require("@/assets/branding/logotype-dark.svg")
+								: require("@/assets/branding/logotype.svg")
+						}
+						style={{ width: 68, height: 38, objectFit: "contain" }}
+					/>
+				)}
+			</Crossfade>
 
 			{isSignedIn ? (
 				<Pressable
@@ -73,12 +97,12 @@ export default function Header({
 					onPress={() => router.push("/profile")}
 				>
 					<View style={{ flexDirection: "column", alignItems: "flex-end" }}>
-						<Text style={{ fontWeight: "600", color: theme.text }}>
+						<Text style={{ fontFamily: Fonts.semiBold, color: theme.text }}>
 							{displayName}
 						</Text>
 						{code && (
 							<Text
-								style={{ fontWeight: "600", color: `${theme.textMuted}90` }}
+								style={{ fontFamily: Fonts.semiBold, color: `${theme.textMuted}90` }}
 							>
 								#<Text style={{ color: theme.text, opacity: 0.7 }}>{code}</Text>
 							</Text>
@@ -116,10 +140,13 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingBottom: 8,
 	},
+	/**
+	 * Colonna e non riga: `Crossfade` centra i suoi strati verticalmente con
+	 * `justifyContent`, e il contenuto resta allineato a sinistra.
+	 */
 	leading: {
-		flexDirection: "row",
 		flex: 1,
-		alignItems: "center",
+		paddingLeft: 14,
 	},
 	avatarButton: {
 		borderRadius: 9999,

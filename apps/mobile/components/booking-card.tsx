@@ -4,6 +4,7 @@ import type { MyBookingView } from "@padel-sport/backend/convex/modules/openMatc
 import { useMutation } from "convex/react";
 import { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 import { CANCEL_DEADLINE_MINUTES } from "@/lib/booking";
 import { convexErrorMessage, formatMatchDate } from "@/lib/format";
@@ -82,7 +83,7 @@ export default function BookingCard({ booking, onPress }: BookingCardProps) {
 						justifyContent: "space-between",
 					}}
 				>
-					<ThemedText style={{ fontSize: 16, fontWeight: "600" }}>
+					<ThemedText style={{ fontSize: 16, fontFamily: Fonts.semiBold }}>
 						{formatMatchDate(booking.bookingDate)}
 					</ThemedText>
 

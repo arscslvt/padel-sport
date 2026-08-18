@@ -4,6 +4,7 @@ import { Pressable, View } from "react-native";
 import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 
 type IconName = ComponentProps<typeof IconSymbol>["name"];
@@ -45,7 +46,7 @@ export function SectionLabel({ children }: { children: string }) {
 		<ThemedText
 			style={{
 				fontSize: 13,
-				fontWeight: "600",
+				fontFamily: Fonts.semiBold,
 				color: theme.textMuted,
 				textTransform: "uppercase",
 				letterSpacing: 0.4,
@@ -127,7 +128,7 @@ export function SelectChip({
 				style={{
 					fontSize: 15,
 					lineHeight: 18,
-					fontWeight: "500",
+					fontFamily: Fonts.medium,
 					color: selected ? theme.tintForeground : theme.text,
 				}}
 			>
@@ -218,7 +219,7 @@ export function ChoiceCard({
 								style={{
 									fontSize: 14,
 									lineHeight: 18,
-									fontWeight: "600",
+									fontFamily: Fonts.semiBold,
 									color: selected ? theme.tintForeground : theme.text,
 								}}
 							>
@@ -246,7 +247,7 @@ export function ChoiceCard({
 					)}
 
 					<View style={{ flex: 1, gap: 2 }}>
-						<ThemedText style={{ fontSize: 16, fontWeight: "600" }}>
+						<ThemedText style={{ fontSize: 16, fontFamily: Fonts.semiBold }}>
 							{title}
 						</ThemedText>
 						{description && (
@@ -347,7 +348,7 @@ export function NestedOption({
 				/>
 			)}
 			<View style={{ flex: 1, gap: 1 }}>
-				<ThemedText style={{ fontSize: 15, fontWeight: "600" }}>
+				<ThemedText style={{ fontSize: 15, fontFamily: Fonts.semiBold }}>
 					{title}
 				</ThemedText>
 				{description && (

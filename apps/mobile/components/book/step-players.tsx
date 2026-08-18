@@ -13,26 +13,83 @@ import { MAX_PLAYERS } from "@/lib/booking";
 import { type JoinMode, joinModeMeta, type PlayerView } from "@/lib/format";
 
 /**
- * Terzo passo: la squadra. Gli inviti diretti non sono ancora supportati dal
- * backend, quindi la scelta effettiva è tra partita aperta (visibile a chi
- * cerca compagni) e partita privata.
+ * Terzo passo: la squadra.
+ *
+ * Con una cerchia scelta non c'è nulla da decidere — la partita è di quel
+ * gruppo e l'invito parte a tutti — quindi al posto della scelta compare il
+ * riepilogo di cosa sta per succedere. Altrimenti si sceglie fra partita
+ * aperta (visibile a chi cerca compagni) e partita privata.
  */
 export default function StepPlayers({
 	player,
 	keepOpen,
 	joinMode,
+	circleName,
+	circleMembers,
 	onKeepOpenChange,
 	onJoinModeChange,
 }: {
 	player: PlayerView | null;
 	keepOpen: boolean;
 	joinMode: JoinMode;
+	/** Valorizzato quando si sta creando una partita dentro una cerchia. */
+	circleName?: string;
+	circleMembers?: PlayerView[];
 	onKeepOpenChange: (keepOpen: boolean) => void;
 	onJoinModeChange: (mode: JoinMode) => void;
 }) {
 	// L'unico giocatore certo è chi prenota: gli altri posti restano da riempire
 	const freeSlots = MAX_PLAYERS - 1;
 	const inviteSlots = Array.from({ length: freeSlots }, (_, index) => index);
+
+	if (circleName) {
+		const invitees = (circleMembers ?? []).filter(
+			(member) => member.id !== player?.id,
+		);
+
+		return (
+			<View style={{ gap: 22 }}>
+				<View style={{ gap: 12 }}>
+					<SectionLabel>Partita della cerchia</SectionLabel>
+					<ChoiceCard
+						icon="person.3.fill"
+						title={circleName}
+						description={
+							invitees.length > 0
+								? `${invitees.length} ${invitees.length === 1 ? "giocatore riceverà" : "giocatori riceveranno"} l'invito. I primi ${freeSlots} che rispondono entrano.`
+								: "Sei l'unico membro: invita qualcuno nella cerchia, oppure apri la partita a tutti più avanti."
+						}
+						selected
+						onPress={() => {}}
+					/>
+				</View>
+
+				{invitees.length > 0 && (
+					<View style={{ gap: 12 }}>
+						<SectionLabel>{`Chi riceve l'invito (${invitees.length})`}</SectionLabel>
+						<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+							{invitees.map((member) => (
+								<View
+									key={member.id}
+									style={{ alignItems: "center", gap: 6, width: 56 }}
+								>
+									<Avatar url={member.avatarUrl} size={56} />
+									<ThemedText style={{ fontSize: 12 }} numberOfLines={1}>
+										{member.name.split(" ")[0]}
+									</ThemedText>
+								</View>
+							))}
+						</View>
+					</View>
+				)}
+
+				<Hint icon="globe">
+					Se non arrivate a {MAX_PLAYERS}, potrai aprire la partita a tutti
+					tenendo chi è già entrato.
+				</Hint>
+			</View>
+		);
+	}
 
 	return (
 		<View style={{ gap: 22 }}>
@@ -47,9 +104,9 @@ export default function StepPlayers({
 						<InviteSlot key={slot} />
 					))}
 				</View>
-				<Hint icon="person.crop.circle.badge.plus">
-					Gli inviti diretti ai tuoi compagni arriveranno con un prossimo
-					aggiornamento.
+				<Hint icon="person.3.fill">
+					Per invitare direttamente i tuoi compagni crea una cerchia dalla
+					scheda Amici.
 				</Hint>
 			</View>
 
@@ -89,7 +146,7 @@ export default function StepPlayers({
 	);
 }
 
-/** Posto libero in squadra: segnaposto finché gli inviti non sono disponibili. */
+/** Posto libero in squadra: fuori da una cerchia non si invita nessuno. */
 function InviteSlot() {
 	const theme = useTheme();
 
@@ -97,8 +154,8 @@ function InviteSlot() {
 		<Pressable
 			onPress={() =>
 				Alert.alert(
-					"Inviti in arrivo",
-					"Presto potrai invitare i tuoi compagni dall'app. Per ora lascia la partita aperta: chi cerca una partita del tuo livello potrà unirsi.",
+					"Come si invita",
+					"Gli inviti diretti passano dalle cerchie: creane una dalla scheda Amici e le partite di quel gruppo arriveranno a tutti i membri. Altrimenti lascia la partita aperta.",
 				)
 			}
 			style={{ alignItems: "center", gap: 6 }}
