@@ -171,35 +171,6 @@
 }
 
 /*
- * Ponte per le pagine non ancora ridisegnate (/book, /trofeo-san-sebastiano):
- * ripristina la vecchia palette teal su cui è tarato il loro markup, che usa
- * `text-white` ed emerald letterali.
- */
-.tone-legacy {
-  --background: oklch(0.22512 0.04207 176.091);
-  --foreground: oklch(1 0 0);
-  --surface: oklch(0.262 0.051 172.552);
-  --surface-foreground: oklch(1 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #12cc9b;
-  --primary-foreground: #04382b;
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.262 0.051 172.552);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.95 0.052 163.051);
-  --accent-foreground: oklch(0.262 0.051 172.552);
-  --border: oklch(0.378 0.077 168.94);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  background-color: var(--background);
-  color: var(--foreground);
-}
-
-/*
  * Tema neutro: /tournament (forcedTheme) e /management (ThemeSetter).
  * Ridichiara ogni token, quindi resta isolato dalla palette di :root.
  */

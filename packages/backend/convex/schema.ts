@@ -4,6 +4,7 @@ import circleInvites from "./tables/circleInvites";
 import circleMembers from "./tables/circleMembers";
 import circles from "./tables/circles";
 import eventRsvps from "./tables/eventRsvps";
+import externalBookings from "./tables/externalBookings";
 import events from "./tables/events";
 import friendships from "./tables/friendships";
 import joinRequests from "./tables/joinRequests";
@@ -18,6 +19,7 @@ import supportRequests from "./tables/supportRequests";
 export default defineSchema({
   events,
   bookings,
+  externalBookings,
   slots,
   players,
   openMatches,

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 /** Data dell'ultima revisione dei contenuti di questa pagina. */
-const LAST_UPDATE = "11 agosto 2026";
+const LAST_UPDATE = "18 agosto 2026";
 
 /**
  * Fornitori che trattano dati per conto del club (art. 28 GDPR).
@@ -35,7 +35,7 @@ const PROCESSORS: ReadonlyArray<{
 	{
 		name: "Convex, Inc.",
 		purpose:
-			"Database in cui sono registrate le richieste di giocatori e di assistenza inviate dai moduli",
+			"Database in cui sono registrate le prenotazioni dei campi fatte dal sito e le richieste di giocatori e di assistenza inviate dai moduli",
 		place: "Stati Uniti",
 	},
 	{
@@ -47,7 +47,7 @@ const PROCESSORS: ReadonlyArray<{
 	{
 		name: "SumUp",
 		purpose:
-			"Piattaforma esterna su cui si prenotano i campi, raggiunta dal pulsante «Prenota una partita»",
+			"Piattaforma esterna su cui prenotano i campi le persone senza un account del club",
 		place: "Unione Europea e Regno Unito",
 	},
 	{
@@ -86,7 +86,7 @@ const RETENTION: ReadonlyArray<{ what: string; how: string }> = [
 	},
 	{
 		what: "Prenotazioni dei campi",
-		how: "Restano nel gestionale SumUp per il tempo necessario a gestire presenze e incassi, e comunque per i termini previsti dagli obblighi contabili",
+		how: "Le prenotazioni fatte dal sito restano nel nostro database per il tempo necessario a gestire presenze e incassi, e comunque per i termini previsti dagli obblighi contabili; quelle fatte senza account restano nel gestionale SumUp, con gli stessi criteri",
 	},
 	{
 		what: "Account dell'area riservata",
@@ -223,9 +223,22 @@ export default function PrivacyPage() {
 						</Block>
 
 						<Block title="Prenotazione di un campo">
-							La prenotazione <Term>non avviene su questo sito</Term>: il
-							pulsante «Prenota una partita» ti porta sulla piattaforma esterna
-							SumUp, dove inserisci i tuoi dati (nome, contatti, orario e
+							Se hai un account del club, la prenotazione avviene{" "}
+							<Term>su questo sito</Term>: confermi la tua identità con un
+							codice che ti mandiamo via email e ci lasci il numero di telefono,
+							il giorno e l'orario, il livello della partita, i nomi dei
+							compagni di gioco e — se vuoi che ricevano anche loro il codice
+							d'ingresso — le loro email. Questi dati finiscono nel nostro
+							database e li vede la segreteria, che gestisce i campi e, quando
+							la squadra è incompleta, cerca i giocatori mancanti. Base
+							giuridica: esecuzione del servizio che ci chiedi (art. 6.1.b
+							GDPR). Se comunichi il nome o l'email di un altro giocatore, ti
+							chiediamo di averlo avvisato.
+						</Block>
+
+						<Block title="Prenotazione senza account">
+							Chi non ha un account viene portato sulla piattaforma esterna
+							SumUp, dove inserisce i propri dati (nome, contatti, orario e
 							l'eventuale pagamento). Quei dati non passano dal nostro sito e
 							non finiscono nel nostro database: li tratta SumUp, che li mette a
 							disposizione della segreteria per gestire i campi. Sulla sua

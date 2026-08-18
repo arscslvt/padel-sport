@@ -1,5 +1,6 @@
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
+import { externalBlocksBetween } from "../courtCalendar/lib";
 
 export const SLOT_INTERVAL_MINUTES = 30;
 export const MATCH_DURATION_MINUTES = 90;
@@ -87,6 +88,12 @@ function overlaps(startA: number, endA: number, startB: number, endB: number) {
  * Stessa logica di disponibilità di bookings/create.ts (flusso web, invariato),
  * con in più l'esclusione delle prenotazioni cancellate: se cambia lì,
  * va allineata anche qui.
+ *
+ * Conta anche le occupazioni che non nascono da noi (modules/courtCalendar):
+ * chi prenota su SumUp occupa un campo vero, e questo è il punto in cui sia il
+ * sito sia l'app chiedono «ce n'è uno libero?». Con un calendario SumUp solo
+ * non sappiamo *quale* campo sia occupato, quindi ogni appuntamento esterno
+ * toglie un posto dal totale: prudente, e nel dubbio si rifiuta.
  */
 export async function findAvailableSlot(
   ctx: QueryCtx,
@@ -107,7 +114,7 @@ export async function findAvailableSlot(
 
   const bookingEnd = bookingDate + MATCH_DURATION_MS;
 
-  const selectedSlot = activeSlots.find((slot) => {
+  const freeSlots = activeSlots.filter((slot) => {
     return !possibleOverlaps.some((existingBooking) => {
       if (existingBooking.status === "cancelled") {
         return false;
@@ -124,7 +131,17 @@ export async function findAvailableSlot(
     });
   });
 
-  return selectedSlot ?? null;
+  const externalBlocks = await externalBlocksBetween(
+    ctx,
+    bookingDate,
+    bookingEnd,
+  );
+
+  if (freeSlots.length - externalBlocks.length <= 0) {
+    return null;
+  }
+
+  return freeSlots[0];
 }
 
 /** Mappa un range numerico di livello sul livello testuale delle prenotazioni web. */
@@ -511,4 +528,25 @@ export async function addPlayerToMatch(
     await syncBookingPlayers(ctx, updated);
   }
   await syncMatchStatus(ctx, match._id);
+}
+
+/**
+ * Normalizza un numero di telefono italiano: via gli spazi, prefisso `+39` se
+ * chi scrive lo dà per scontato. Condivisa dai due flussi che raccolgono un
+ * recapito, il modulo web storico e la prenotazione dal sito.
+ */
+export function normalizePhone(phone: string): string {
+  const trimmed = phone.trim();
+  if (!trimmed) {
+    throw new Error("Il numero di telefono è obbligatorio.");
+  }
+
+  const compact = trimmed.replace(/\s+/g, "");
+  const withCountryCode = compact.startsWith("+") ? compact : `+39${compact}`;
+
+  if (!/^\+?[0-9]{8,15}$/.test(withCountryCode)) {
+    throw new Error("Inserisci un numero di telefono valido.");
+  }
+
+  return withCountryCode;
 }

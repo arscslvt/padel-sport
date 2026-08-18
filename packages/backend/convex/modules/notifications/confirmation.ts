@@ -22,6 +22,14 @@ export const sendConfirmationWithWhatsapp = internalAction({
           "Can't send WhatsApp confirmation: booking code not found.",
         );
       }
+      // Le prenotazioni nate nell'app non raccolgono il recapito: senza, il
+      // messaggio partirebbe verso `whatsapp:undefined` a ogni tentativo. La
+      // conferma è comunque già andata via mail.
+      if (!booking.phone) {
+        throw new Error(
+          "Can't send WhatsApp confirmation: booking has no phone number.",
+        );
+      }
     } catch (error) {
       console.error(error);
       return;
@@ -32,6 +40,14 @@ export const sendConfirmationWithWhatsapp = internalAction({
       "dd/MM/yyyy 'alle' HH:mm",
     );
 
+    /**
+     * Le variabili del template approvato su Twilio, in ordine.
+     *
+     * La terza è il codice, e il template ci costruisce sopra l'URL del
+     * pulsante (`/booking/{{3}}`): il link non va passato a parte. È il motivo
+     * per cui quella pagina si chiama `/booking/[code]` e non altro — se un
+     * giorno cambia il percorso, il template su Twilio va rifatto e riapprovato.
+     */
     const vars = {
       "1": booking.bookedBy,
       "2": humanDate,
@@ -48,12 +64,12 @@ export const sendConfirmationWithWhatsapp = internalAction({
     await client.messages.create({
       from: `whatsapp:${process.env.TWILIO_PHONE_SENDER}`, // o numero business
       to: `whatsapp:${booking.phone}`, // numero del cliente
-      contentSid: "HX59dcd979ad55c221765b52157430c98b", // ID template Twilio
-      contentVariables: JSON.stringify({
-        "1": booking.bookedBy,
-        "2": humanDate,
-        "3": booking.code,
-      }),
+      // Sostituibile senza rilascio: cambiando il template su Twilio basta
+      // aggiornare la variabile d'ambiente.
+      contentSid:
+        process.env.TWILIO_BOOKING_TEMPLATE_SID ??
+        "HX59dcd979ad55c221765b52157430c98b",
+      contentVariables: JSON.stringify(vars),
     });
 
     await ctx.runMutation(internal.bookings.update.notificationStatus, {

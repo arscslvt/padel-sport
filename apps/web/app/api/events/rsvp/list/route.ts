@@ -3,6 +3,7 @@ import { api } from "@padel-sport/backend/convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import { NextResponse } from "next/server";
 
+import { convexSessionToken } from "@/lib/convex-token";
 import { isStaffMember } from "@/lib/staff";
 
 /**
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Parametri mancanti." }, { status: 400 });
   }
 
-  const { userId, getToken } = await auth();
+  const { userId } = await auth();
 
   if (!userId) {
     return NextResponse.json(
@@ -50,9 +51,9 @@ export async function GET(request: Request) {
     );
   }
 
-  // `convex` è il template JWT configurato su Clerk, lo stesso che usa
-  // `ConvexProviderWithClerk` nel browser (vedi convex/auth.config.ts).
-  const token = await getToken({ template: "convex" });
+  // Stessa scelta che fa il browser fra token di sessione e template JWT
+  // (vedi lib/convex-token.ts e convex/auth.config.ts).
+  const token = await convexSessionToken();
 
   if (!token) {
     return NextResponse.json(

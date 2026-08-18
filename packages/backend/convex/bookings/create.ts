@@ -1,5 +1,6 @@
 import { internal } from "../_generated/api";
 import { action, internalMutation, mutation } from "../_generated/server";
+import { normalizePhone } from "../modules/openMatches/lib";
 import { bookingNewSchema } from "../types/bookings/booking.new.type";
 import { sendAlert } from "../utils/notification_client";
 
@@ -64,20 +65,7 @@ export default mutation({
       throw new Error("Il nome del prenotante e obbligatorio.");
     }
 
-    if (!phone) {
-      throw new Error("Il numero di telefono e obbligatorio.");
-    }
-
-    const normalizedPhone = phone.replace(/\s+/g, "");
-    const defaultCountryCode = "+39";
-
-    const phoneWithCountryCode = normalizedPhone.startsWith("+")
-      ? normalizedPhone
-      : defaultCountryCode + normalizedPhone;
-
-    if (!/^\+?[0-9]{8,15}$/.test(phoneWithCountryCode)) {
-      throw new Error("Inserisci un numero di telefono valido.");
-    }
+    const phoneWithCountryCode = normalizePhone(phone);
 
     if (booking.bookingDate <= Date.now()) {
       throw new Error("La data e l'ora devono essere nel futuro.");

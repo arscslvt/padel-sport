@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { getInfo } from "@/lib/info";
 import {
   EVENTS_LINK,
+  MY_BOOKINGS_LINK,
   SHOW_TOURNAMENT_BANNER,
   TROFEO_LINK,
   WHERE_WE_ARE_LINK,
@@ -30,6 +31,7 @@ const routes: ReadonlyArray<{ name: string; href: string }> = [
   { name: "Home", href: "/" },
   { name: "Dove trovarci", href: WHERE_WE_ARE_LINK },
   { name: "Tornei ed Eventi", href: EVENTS_LINK },
+  { name: "Le tue prenotazioni", href: MY_BOOKINGS_LINK },
 ];
 
 interface NavOverlayProps {

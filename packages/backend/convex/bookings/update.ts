@@ -43,6 +43,15 @@ export const accept = mutation({
       status: "accepted_on_site_payment",
     });
 
+    // La mail parte sempre: porta il QR d'ingresso, e senza quello il cliente
+    // non ha modo di sapere che è stato accettato. Il WhatsApp invece resta a
+    // discrezione di chi accetta, quindi non può essere l'unico canale.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.modules.notifications.bookingMail.default,
+      { bookingId, kind: "accepted" },
+    );
+
     if (withNotification) {
       if (booking.notificationStatus !== "sent_with_whatsapp")
         await ctx.scheduler.runAfter(

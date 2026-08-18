@@ -11,6 +11,18 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        // Le prime prenotazioni hanno ricevuto QR e mail con il vecchio
+        // indirizzo italiano: quei codici sono già in giro e devono continuare
+        // ad aprirsi.
+        source: "/prenotazione/:code",
+        destination: "/booking/:code",
+        permanent: false,
+      },
+    ];
+  },
   experimental: {
     optimizePackageImports: [
       "lucide-react",
@@ -18,15 +30,6 @@ const nextConfig: NextConfig = {
       "date-fns",
       "@radix-ui/react-icons",
     ],
-  },
-  async redirects() {
-    return [
-      {
-        source: "/book",
-        destination: "https://www.sumupbookings.com/a-s-d-padel-sport-melilli",
-        permanent: false,
-      },
-    ];
   },
 };
 

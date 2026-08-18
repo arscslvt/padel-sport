@@ -11,6 +11,7 @@ import {
   LEVEL_MIN,
   levelLabel,
   MAX_PLAYERS,
+  normalizePhone,
   requirePlayer,
   SLOT_INTERVAL_MS,
 } from "./lib";
@@ -52,6 +53,14 @@ export default mutation({
       ),
     ),
     notes: v.optional(v.string()),
+    /**
+     * Recapito del prenotante: lo raccoglie il sito, dove la squadra si
+     * compone di soli nomi e il club ha bisogno di poter richiamare.
+     * Senza, la conferma WhatsApp non ha un destinatario.
+     */
+    phone: v.optional(v.string()),
+    /** Da dove arriva la prenotazione: cambia solo l'avviso allo staff. */
+    origin: v.optional(v.union(v.literal("app"), v.literal("web"))),
   },
   handler: async (ctx, args) => {
     const player = await requirePlayer(ctx);
@@ -73,6 +82,8 @@ export default mutation({
     ) {
       throw new Error("Il livello richiesto non è valido.");
     }
+
+    const phone = args.phone ? normalizePhone(args.phone) : undefined;
 
     if (args.visibility === "public" && !args.joinMode) {
       throw new Error(
@@ -131,6 +142,7 @@ export default mutation({
 
     const bookingId = await ctx.db.insert("bookings", {
       bookedBy: player.name,
+      phone,
       players: [player.name],
       bookingDate: args.bookingDate,
       level: levelLabel(args.levelMin, args.levelMax),
@@ -204,15 +216,28 @@ export default mutation({
           ? " (partita di cerchia)"
           : " (partita privata)";
 
+    // Il campo è nostro anche agli occhi di SumUp solo quando l'evento è sul
+    // calendario condiviso: senza, quell'orario resterebbe prenotabile di là.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.modules.courtCalendar.push.default,
+      { bookingId },
+    );
+
+    const origin = args.origin ?? "app";
+
     await ctx.scheduler.runAfter(
       0,
       internal.modules.notifications.alert.default,
       {
-        title: "Nuova prenotazione dall'app",
+        title:
+          origin === "web"
+            ? "Nuova prenotazione dal sito"
+            : "Nuova prenotazione dall'app",
         message: `${player.name} ha prenotato per il ${new Date(
           args.bookingDate,
         ).toLocaleString("it-IT")}${visibilityNote}.`,
-        tags: ["booking", "new", "mobile"],
+        tags: ["booking", "new", origin === "web" ? "web" : "mobile"],
       },
     );
 

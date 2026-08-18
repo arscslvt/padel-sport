@@ -7,7 +7,12 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { ANCHORS } from "@/lib/anchors";
 import { getInfo } from "@/lib/info";
-import { EVENTS_LINK, PRIVACY_LINK, WHERE_WE_ARE_LINK } from "@/lib/links";
+import {
+  EVENTS_LINK,
+  MY_BOOKINGS_LINK,
+  PRIVACY_LINK,
+  WHERE_WE_ARE_LINK,
+} from "@/lib/links";
 
 const routes: ReadonlyArray<{ name: string; href: string }> = [
   { name: "Dove trovarci", href: WHERE_WE_ARE_LINK },
@@ -68,6 +73,14 @@ export default function Footer() {
                   >
                     Prenota una partita
                   </a>
+                </li>
+                <li>
+                  <Link
+                    href={MY_BOOKINGS_LINK}
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Le tue prenotazioni
+                  </Link>
                 </li>
               </ul>
             </nav>

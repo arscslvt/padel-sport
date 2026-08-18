@@ -37,6 +37,11 @@ const bookings = defineTable({
   code: v.optional(v.string()),
   /** Giocatore dell'app mobile che ha creato la prenotazione (assente per il web) */
   createdByPlayer: v.optional(v.id("players")),
+  /**
+   * Evento corrispondente sul calendario condiviso con SumUp: è così che una
+   * prenotazione fatta da noi diventa un orario occupato anche là.
+   */
+  externalEventId: v.optional(v.string()),
 })
   .index("by_booking_date", ["bookingDate"])
   .index("by_created_at", ["createdAt"])

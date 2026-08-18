@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import Script from "next/script";
 import { PortableText } from "next-sanity";
 
-import { AddToCalendar } from "@/components/events/add-to-calendar";
+import { AddToCalendar } from "@/components/add-to-calendar";
 import { ArticleReveal } from "@/components/events/article-reveal";
 import { portableTextComponents } from "@/components/events/portable-text";
 import { SanityImage } from "@/components/events/sanity-image";

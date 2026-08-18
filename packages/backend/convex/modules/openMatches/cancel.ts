@@ -65,6 +65,19 @@ export default mutation({
 
     await ctx.scheduler.runAfter(
       0,
+      internal.modules.courtCalendar.push.remove,
+      { bookingId: match.bookingId },
+    );
+
+    // Chi annulla lo sa già, ma i compagni che erano in squadra no.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.modules.notifications.bookingMail.default,
+      { bookingId: match.bookingId, kind: "cancelled_by_player" },
+    );
+
+    await ctx.scheduler.runAfter(
+      0,
       internal.modules.notifications.alert.default,
       {
         title: "Partita eliminata dall'app",
