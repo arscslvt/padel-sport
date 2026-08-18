@@ -10,17 +10,16 @@ import { TrackHomePageView } from "@/providers/amplitude.provider";
 export const revalidate = 300;
 
 export default function Home() {
-  return (
-    <>
-      <TrackHomePageView />
-      <Hero />
-      <FeatureCards />
-      <FindPlayersSection />
-      {/* In Suspense: la latenza di Sanity non deve ritardare l'LCP dell'hero. */}
-      <Suspense fallback={null}>
-        <UpcomingEventsSection />
-      </Suspense>
-      <SupportSection />
-    </>
-  );
+	return (
+		<>
+			<TrackHomePageView />
+			<Hero />
+			<FeatureCards />
+			<FindPlayersSection />
+			<Suspense fallback={null}>
+				<UpcomingEventsSection />
+			</Suspense>
+			<SupportSection />
+		</>
+	);
 }
