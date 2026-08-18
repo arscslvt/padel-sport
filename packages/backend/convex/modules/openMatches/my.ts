@@ -1,5 +1,10 @@
 import { query } from "../../_generated/server";
-import { getIdentityPlayer, MATCH_DURATION_MS } from "./lib";
+import {
+  getIdentityPlayer,
+  MATCH_DURATION_MS,
+  type MatchVisibility,
+  visibilityOf,
+} from "./lib";
 
 export interface MyBookingView {
   bookingId: string;
@@ -8,7 +13,8 @@ export interface MyBookingView {
   court?: string;
   code?: string;
   playerNames: string[];
-  open: boolean;
+  /** `null` per le prenotazioni web, che non hanno una partita dietro. */
+  visibility: MatchVisibility | null;
   isCreator: boolean;
   cancelled: boolean;
 }
@@ -56,7 +62,7 @@ export default query({
         court: slot?.name,
         code: booking.code,
         playerNames: booking.players,
-        open: true,
+        visibility: visibilityOf(match),
         isCreator: match.creatorId === player._id,
         cancelled: booking.status === "cancelled",
       });
@@ -73,7 +79,7 @@ export default query({
         court: slot?.name,
         code: booking.code,
         playerNames: booking.players,
-        open: false,
+        visibility: null,
         isCreator: true,
         cancelled: booking.status === "cancelled",
       });

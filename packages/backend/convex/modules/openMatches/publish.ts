@@ -4,12 +4,13 @@ import { mutation } from "../../_generated/server";
 import { LEVEL_MAX, LEVEL_MIN, requirePlayer, visibilityOf } from "./lib";
 
 /**
- * Apre a tutti una partita nata dentro una cerchia.
+ * Apre a tutti una partita privata o di cerchia.
  *
- * È la via d'uscita quando la cerchia non basta a fare quattro: chi è già
- * entrato resta al suo posto e i posti liberi diventano visibili nell'elenco
- * delle partite aperte. Qui il creatore sceglie finalmente il livello e la
- * modalità d'accesso, che dentro la cerchia non filtravano nessuno.
+ * È la via d'uscita quando la cerchia o gli invitati non bastano a fare
+ * quattro: chi è già entrato resta al suo posto, ospiti e inviti compresi, e i
+ * posti ancora liberi diventano visibili nell'elenco delle partite aperte. Qui
+ * il creatore sceglie finalmente il livello e la modalità d'accesso, che prima
+ * non filtravano nessuno.
  *
  * `circleId` non viene cancellato: la partita continua a raccontare da dove
  * arriva, e gli inviti ancora in sospeso restano validi.
@@ -33,7 +34,7 @@ export default mutation({
       throw new Error("Solo chi ha creato la partita può renderla aperta.");
     }
 
-    if (visibilityOf(match) !== "circle") {
+    if (visibilityOf(match) === "public") {
       throw new Error("Questa partita è già aperta a tutti.");
     }
 
@@ -80,7 +81,7 @@ export default mutation({
       0,
       internal.modules.notifications.alert.default,
       {
-        title: "Partita di cerchia aperta a tutti",
+        title: "Partita aperta a tutti",
         message: `${player.name} ha reso aperta la partita del ${new Date(
           match.matchDate,
         ).toLocaleString("it-IT")}: mancano ${

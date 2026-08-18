@@ -46,6 +46,8 @@ import type * as modules_notifications_confirmation from "../modules/notificatio
 import type * as modules_openMatches_cancel from "../modules/openMatches/cancel.js";
 import type * as modules_openMatches_create from "../modules/openMatches/create.js";
 import type * as modules_openMatches_get from "../modules/openMatches/get.js";
+import type * as modules_openMatches_guests from "../modules/openMatches/guests.js";
+import type * as modules_openMatches_invite from "../modules/openMatches/invite.js";
 import type * as modules_openMatches_invites from "../modules/openMatches/invites.js";
 import type * as modules_openMatches_join from "../modules/openMatches/join.js";
 import type * as modules_openMatches_leave from "../modules/openMatches/leave.js";
@@ -76,6 +78,7 @@ import type * as tables_events from "../tables/events.js";
 import type * as tables_friendships from "../tables/friendships.js";
 import type * as tables_joinRequests from "../tables/joinRequests.js";
 import type * as tables_links from "../tables/links.js";
+import type * as tables_matchGuests from "../tables/matchGuests.js";
 import type * as tables_matchInvites from "../tables/matchInvites.js";
 import type * as tables_matchRequests from "../tables/matchRequests.js";
 import type * as tables_openMatches from "../tables/openMatches.js";
@@ -129,6 +132,8 @@ declare const fullApi: ApiFromModules<{
   "modules/openMatches/cancel": typeof modules_openMatches_cancel;
   "modules/openMatches/create": typeof modules_openMatches_create;
   "modules/openMatches/get": typeof modules_openMatches_get;
+  "modules/openMatches/guests": typeof modules_openMatches_guests;
+  "modules/openMatches/invite": typeof modules_openMatches_invite;
   "modules/openMatches/invites": typeof modules_openMatches_invites;
   "modules/openMatches/join": typeof modules_openMatches_join;
   "modules/openMatches/leave": typeof modules_openMatches_leave;
@@ -159,6 +164,7 @@ declare const fullApi: ApiFromModules<{
   "tables/friendships": typeof tables_friendships;
   "tables/joinRequests": typeof tables_joinRequests;
   "tables/links": typeof tables_links;
+  "tables/matchGuests": typeof tables_matchGuests;
   "tables/matchInvites": typeof tables_matchInvites;
   "tables/matchRequests": typeof tables_matchRequests;
   "tables/openMatches": typeof tables_openMatches;

@@ -1,6 +1,11 @@
 import { v } from "convex/values";
 import { mutation } from "../../_generated/server";
-import { requirePlayer } from "./lib";
+import {
+  playerInviteFor,
+  requirePlayer,
+  syncBookingPlayers,
+  syncMatchStatus,
+} from "./lib";
 
 /**
  * Esce da una partita a cui ci si era uniti.
@@ -48,27 +53,26 @@ export default mutation({
       ? playerIds[Math.floor(Math.random() * playerIds.length)]
       : match.creatorId;
 
-    await ctx.db.patch(match._id, {
-      playerIds,
-      creatorId: heir,
-      status: playerIds.length >= match.maxPlayers ? "full" : "open",
-    });
+    await ctx.db.patch(match._id, { playerIds, creatorId: heir });
 
-    const booking = await ctx.db.get(match.bookingId);
-    if (booking) {
-      const players = booking.players.filter((name) => name !== player.name);
-
-      if (isCreator) {
-        const newCreator = await ctx.db.get(heir);
+    if (isCreator) {
+      const newCreator = await ctx.db.get(heir);
+      const booking = await ctx.db.get(match.bookingId);
+      if (booking) {
         await ctx.db.patch(match.bookingId, {
-          players,
           bookedBy: newCreator?.name ?? booking.bookedBy,
           createdByPlayer: heir,
         });
-      } else {
-        await ctx.db.patch(match.bookingId, { players });
       }
     }
+
+    // I nomi sulla prenotazione e lo stato della partita li ricalcolano gli
+    // helper: sono la stessa somma che vale per ingressi, ospiti e inviti.
+    const updated = await ctx.db.get(match._id);
+    if (updated) {
+      await syncBookingPlayers(ctx, updated);
+    }
+    await syncMatchStatus(ctx, match._id);
 
     // La richiesta accettata non vale più: se cambia idea ne servirà una nuova
     const requests = await ctx.db
@@ -86,12 +90,7 @@ export default mutation({
 
     // Stessa cosa per l'invito di cerchia che lo aveva fatto entrare: da qui
     // in poi la partita è di nuovo qualcosa a cui deve scegliere di unirsi.
-    const invite = await ctx.db
-      .query("matchInvites")
-      .withIndex("by_match_player", (q) =>
-        q.eq("matchId", matchId).eq("playerId", player._id),
-      )
-      .unique();
+    const invite = await playerInviteFor(ctx, matchId, player._id);
 
     if (invite && invite.status === "accepted") {
       await ctx.db.patch(invite._id, {

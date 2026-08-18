@@ -1,183 +1,151 @@
-import { Alert, Pressable, View } from "react-native";
-import { Avatar } from "@/components/open-match-card";
-import { ThemedText } from "@/components/themed-text";
+import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
+import { View } from "react-native";
+import SquadPicker, {
+	type GuestDraft,
+	type SquadSeat,
+} from "@/components/match/squad-picker";
 import {
 	ChoiceCard,
 	Hint,
 	NestedOption,
 	SectionLabel,
 } from "@/components/ui/choice";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { useTheme } from "@/hooks/use-theme";
 import { MAX_PLAYERS } from "@/lib/booking";
 import { type JoinMode, joinModeMeta, type PlayerView } from "@/lib/format";
 
+/** Visibilità scelte dall'utente qui: la cerchia arriva dal contesto, non da una scelta. */
+export type BookVisibility = "public" | "private";
+
 /**
- * Terzo passo: la squadra.
+ * Terzo passo: chi gioca.
  *
- * Con una cerchia scelta non c'è nulla da decidere — la partita è di quel
- * gruppo e l'invito parte a tutti — quindi al posto della scelta compare il
- * riepilogo di cosa sta per succedere. Altrimenti si sceglie fra partita
- * aperta (visibile a chi cerca compagni) e partita privata.
+ * Due decisioni distinte, nell'ordine in cui contano: chi può vedere la
+ * partita, e con chi la si gioca. La squadra si compone allo stesso modo in
+ * tutti e tre i casi — anche in una partita aperta si può già chiamare
+ * qualcuno — quindi il picker sta fuori dalla scelta di visibilità.
+ *
+ * Si può anche non indicare nessuno: per la struttura vale come "vengo con
+ * altri tre".
  */
 export default function StepPlayers({
 	player,
-	keepOpen,
+	visibility,
 	joinMode,
+	invited,
+	guests,
 	circleName,
 	circleMembers,
-	onKeepOpenChange,
+	onVisibilityChange,
 	onJoinModeChange,
+	onInvite,
+	onRemoveInvited,
+	onAddGuest,
+	onRemoveGuest,
 }: {
 	player: PlayerView | null;
-	keepOpen: boolean;
+	visibility: BookVisibility;
 	joinMode: JoinMode;
+	invited: PlayerView[];
+	guests: GuestDraft[];
 	/** Valorizzato quando si sta creando una partita dentro una cerchia. */
 	circleName?: string;
 	circleMembers?: PlayerView[];
-	onKeepOpenChange: (keepOpen: boolean) => void;
+	onVisibilityChange: (visibility: BookVisibility) => void;
 	onJoinModeChange: (mode: JoinMode) => void;
+	onInvite: (player: PlayerView) => void;
+	onRemoveInvited: (playerId: Id<"players">) => void;
+	onAddGuest: (guest: GuestDraft) => void;
+	onRemoveGuest: (index: number) => void;
 }) {
-	// L'unico giocatore certo è chi prenota: gli altri posti restano da riempire
-	const freeSlots = MAX_PLAYERS - 1;
-	const inviteSlots = Array.from({ length: freeSlots }, (_, index) => index);
+	const seats: SquadSeat[] = [
+		{
+			key: "me",
+			name: player?.name ?? "Tu",
+			avatarUrl: player?.avatarUrl,
+			detail: "Organizzi tu",
+		},
+		...invited.map((invitee) => ({
+			key: invitee.id,
+			name: invitee.name,
+			avatarUrl: invitee.avatarUrl,
+			detail: "Riceverà l'invito",
+			onRemove: () => onRemoveInvited(invitee.id),
+		})),
+		...guests.map((guest, index) => ({
+			key: `guest-${index}-${guest.name}`,
+			name: guest.name,
+			detail: guest.email ? "Senza app · invito via mail" : "Senza app",
+			onRemove: () => onRemoveGuest(index),
+		})),
+	];
 
-	if (circleName) {
-		const invitees = (circleMembers ?? []).filter(
-			(member) => member.id !== player?.id,
-		);
+	const excludeIds = [
+		...(player ? [player.id] : []),
+		...invited.map((invitee) => invitee.id),
+	];
 
-		return (
-			<View style={{ gap: 22 }}>
+	return (
+		<View style={{ gap: 22 }}>
+			{circleName ? (
 				<View style={{ gap: 12 }}>
 					<SectionLabel>Partita della cerchia</SectionLabel>
 					<ChoiceCard
 						icon="person.3.fill"
 						title={circleName}
-						description={
-							invitees.length > 0
-								? `${invitees.length} ${invitees.length === 1 ? "giocatore riceverà" : "giocatori riceveranno"} l'invito. I primi ${freeSlots} che rispondono entrano.`
-								: "Sei l'unico membro: invita qualcuno nella cerchia, oppure apri la partita a tutti più avanti."
-						}
+						description={`${Math.max(0, (circleMembers?.length ?? 1) - 1)} membri riceveranno l'invito. I posti liberi restano loro finché non arrivate a ${MAX_PLAYERS}.`}
 						selected
 						onPress={() => {}}
 					/>
 				</View>
+			) : (
+				<View style={{ gap: 12 }}>
+					<SectionLabel>Chi può vedere la partita</SectionLabel>
 
-				{invitees.length > 0 && (
-					<View style={{ gap: 12 }}>
-						<SectionLabel>{`Chi riceve l'invito (${invitees.length})`}</SectionLabel>
-						<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-							{invitees.map((member) => (
-								<View
-									key={member.id}
-									style={{ alignItems: "center", gap: 6, width: 56 }}
-								>
-									<Avatar url={member.avatarUrl} size={56} />
-									<ThemedText style={{ fontSize: 12 }} numberOfLines={1}>
-										{member.name.split(" ")[0]}
-									</ThemedText>
-								</View>
+					<ChoiceCard
+						icon="person.2.fill"
+						title="Aperta a tutti"
+						description="Compare fra le partite aperte: chi cerca compagni del tuo livello può unirsi ai posti rimasti."
+						selected={visibility === "public"}
+						onPress={() => onVisibilityChange("public")}
+					>
+						<View style={{ gap: 8 }}>
+							{(Object.keys(joinModeMeta) as JoinMode[]).map((mode) => (
+								<NestedOption
+									key={mode}
+									icon={joinModeMeta[mode].icon}
+									title={joinModeMeta[mode].label}
+									description={joinModeMeta[mode].description}
+									selected={joinMode === mode}
+									onPress={() => onJoinModeChange(mode)}
+								/>
 							))}
 						</View>
-					</View>
-				)}
+					</ChoiceCard>
 
-				<Hint icon="globe">
-					Se non arrivate a {MAX_PLAYERS}, potrai aprire la partita a tutti
-					tenendo chi è già entrato.
-				</Hint>
-			</View>
-		);
-	}
-
-	return (
-		<View style={{ gap: 22 }}>
-			<View style={{ gap: 12 }}>
-				<SectionLabel>{`La squadra (1/${MAX_PLAYERS})`}</SectionLabel>
-				<View style={{ flexDirection: "row", gap: 12 }}>
-					<View style={{ alignItems: "center", gap: 6 }}>
-						<Avatar url={player?.avatarUrl} size={56} />
-						<ThemedText style={{ fontSize: 12 }}>Tu</ThemedText>
-					</View>
-					{inviteSlots.map((slot) => (
-						<InviteSlot key={slot} />
-					))}
+					<ChoiceCard
+						icon="lock.fill"
+						title="Privata"
+						description="La vedono solo le persone che inviti tu. Se poi manca qualcuno potrai aprirla a tutti."
+						selected={visibility === "private"}
+						onPress={() => onVisibilityChange("private")}
+					/>
 				</View>
-				<Hint icon="person.3.fill">
-					Per invitare direttamente i tuoi compagni crea una cerchia dalla
-					scheda Amici.
+			)}
+
+			<SquadPicker
+				seats={seats}
+				freeSeats={Math.max(0, MAX_PLAYERS - seats.length)}
+				excludeIds={excludeIds}
+				onAddPlayer={onInvite}
+				onAddGuest={onAddGuest}
+			/>
+
+			{seats.length === 1 && (
+				<Hint icon="person.2.fill">
+					Puoi anche non indicare nessuno: per la struttura vale come «vengo con
+					altri tre».
 				</Hint>
-			</View>
-
-			<View style={{ gap: 12 }}>
-				<SectionLabel>Chi può unirsi</SectionLabel>
-
-				<ChoiceCard
-					icon="person.2.fill"
-					title="Lascia la partita aperta"
-					description={`Mancano ${freeSlots} giocatori: la partita è visibile a chi ne cerca una del tuo livello.`}
-					selected={keepOpen}
-					onPress={() => onKeepOpenChange(true)}
-				>
-					<View style={{ gap: 8 }}>
-						{(Object.keys(joinModeMeta) as JoinMode[]).map((mode) => (
-							<NestedOption
-								key={mode}
-								icon={joinModeMeta[mode].icon}
-								title={joinModeMeta[mode].label}
-								description={joinModeMeta[mode].description}
-								selected={joinMode === mode}
-								onPress={() => onJoinModeChange(mode)}
-							/>
-						))}
-					</View>
-				</ChoiceCard>
-
-				<ChoiceCard
-					icon="lock.fill"
-					title="Partita privata"
-					description="Il campo è prenotato a tuo nome e non compare tra le partite aperte."
-					selected={!keepOpen}
-					onPress={() => onKeepOpenChange(false)}
-				/>
-			</View>
+			)}
 		</View>
-	);
-}
-
-/** Posto libero in squadra: fuori da una cerchia non si invita nessuno. */
-function InviteSlot() {
-	const theme = useTheme();
-
-	return (
-		<Pressable
-			onPress={() =>
-				Alert.alert(
-					"Come si invita",
-					"Gli inviti diretti passano dalle cerchie: creane una dalla scheda Amici e le partite di quel gruppo arriveranno a tutti i membri. Altrimenti lascia la partita aperta.",
-				)
-			}
-			style={{ alignItems: "center", gap: 6 }}
-		>
-			<View
-				style={{
-					width: 56,
-					height: 56,
-					borderRadius: 999,
-					borderWidth: 1,
-					borderStyle: "dashed",
-					borderColor: theme.border,
-					backgroundColor: theme.muted,
-					alignItems: "center",
-					justifyContent: "center",
-				}}
-			>
-				<IconSymbol name="plus" size={18} color={theme.textMuted} />
-			</View>
-			<ThemedText style={{ fontSize: 12, color: theme.textMuted }}>
-				Invita
-			</ThemedText>
-		</Pressable>
 	);
 }

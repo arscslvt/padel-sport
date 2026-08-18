@@ -19,6 +19,19 @@ import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 import { mockProfile } from "@/lib/mock-profile";
 
+/**
+ * Anello attorno all'avatar: il diametro esterno, lo spazio fra bordo e
+ * immagine, e ciò che resta per l'immagine.
+ *
+ * La misura dell'immagine si ricava e non si scrive a mano: fissandola a
+ * occhio, il bordo e lo spazio interno se ne mangiano una parte e l'avatar
+ * finisce spinto in un angolo invece di stare al centro dell'anello.
+ */
+const RING_SIZE = 52;
+const RING_BORDER = 1;
+const RING_GAP = 3;
+const AVATAR_SIZE = RING_SIZE - 2 * (RING_BORDER + RING_GAP);
+
 type HeaderProps = {
 	withSafeAreaInsets?: boolean;
 	/**
@@ -113,11 +126,11 @@ export default function Header({
 						<View
 							style={{
 								...styles.avatarImageContainer,
-								borderWidth: 1,
+								borderWidth: RING_BORDER,
 								borderColor: theme.border,
 							}}
 						>
-							<Avatar url={avatarUrl} size={46} borderWidth={0} />
+							<Avatar url={avatarUrl} size={AVATAR_SIZE} borderWidth={0} />
 						</View>
 					</View>
 				</Pressable>
@@ -151,8 +164,8 @@ const styles = StyleSheet.create({
 	avatarButton: {
 		borderRadius: 9999,
 		overflow: "hidden",
-		width: 52,
-		height: 52,
+		width: RING_SIZE,
+		height: RING_SIZE,
 		marginLeft: 12,
 	},
 	avatarImageContainer: {
@@ -160,6 +173,10 @@ const styles = StyleSheet.create({
 		height: "100%",
 		borderRadius: 9999,
 		overflow: "hidden",
-		padding: 3,
+		padding: RING_GAP,
+		// L'immagine è già misurata per stare esatta, ma centrarla evita che un
+		// domani un pixel di scarto la sposti in un angolo invece di distribuirlo
+		alignItems: "center",
+		justifyContent: "center",
 	},
 });

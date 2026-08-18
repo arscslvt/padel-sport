@@ -11,6 +11,7 @@ import {
 	ScrollView,
 	View,
 } from "react-native";
+import SquadPicker from "@/components/match/squad-picker";
 import { Avatar } from "@/components/open-match-card";
 import SmoothView from "@/components/smooth-view";
 import { ThemedText } from "@/components/themed-text";
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { NestedOption, SelectChip } from "@/components/ui/choice";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import Pill from "@/components/ui/pill";
+import RowAction from "@/components/ui/row-action";
 import { Fonts } from "@/constants/fonts";
 import { usePlayerGate } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
@@ -51,6 +53,9 @@ export default function OpenMatchDetail() {
 	const leaveMatch = useMutation(api.modules.openMatches.leave.default);
 	const respondInvite = useMutation(api.modules.openMatches.invites.respond);
 	const publishMatch = useMutation(api.modules.openMatches.publish.default);
+	const invitePlayers = useMutation(api.modules.openMatches.invite.default);
+	const addGuest = useMutation(api.modules.openMatches.guests.add);
+	const removeGuest = useMutation(api.modules.openMatches.guests.remove);
 	const { gate } = usePlayerGate();
 	const [submitting, setSubmitting] = useState(false);
 	// Il passaggio "cerchia → aperta" si apre in pagina: uno sheet dentro uno
@@ -58,6 +63,8 @@ export default function OpenMatchDetail() {
 	const [publishing, setPublishing] = useState(false);
 	const [publishLevel, setPublishLevel] = useState(LEVEL_RANGES.length - 1);
 	const [publishJoinMode, setPublishJoinMode] = useState<JoinMode>("direct");
+	// Anche la composizione della squadra sta in pagina, per lo stesso motivo
+	const [seatBusy, setSeatBusy] = useState<string | null>(null);
 
 	if (match === undefined) {
 		return (
@@ -79,17 +86,29 @@ export default function OpenMatchDetail() {
 	}
 
 	const creator = match.creator;
-	const freeSlots = match.maxPlayers - match.players.length;
+	// Non basta più contare i giocatori: ospiti e inviti in attesa tengono il
+	// posto, e il conto arriva già fatto dal backend (openMatches/lib.ts).
+	const freeSlots = match.freeSeats;
 	const emptySlots = Array.from({ length: Math.max(0, freeSlots) });
 	const isDirect = match.joinMode === "direct";
 	const { viewer } = match;
 	const isCircleMatch = match.visibility === "circle";
+	const isPrivateMatch = match.visibility === "private";
 
 	const handleJoin = () =>
 		gate(async () => {
 			setSubmitting(true);
 			try {
-				if (isDirect) {
+				// Con un invito in mano non si chiede il permesso: si accetta e si
+				// entra. È anche l'unica via dentro una partita privata.
+				if (viewer.inviteId && viewer.inviteStatus === "pending") {
+					await respondInvite({ inviteId: viewer.inviteId, accept: true });
+					Alert.alert(
+						"Sei in partita! 🎾",
+						`Ci vediamo in campo con ${creator.name}.`,
+						[{ text: "OK", onPress: () => router.back() }],
+					);
+				} else if (isDirect) {
 					await join({ matchId });
 					Alert.alert(
 						"Sei in partita! 🎾",
@@ -177,6 +196,20 @@ export default function OpenMatchDetail() {
 			],
 		);
 
+	/**
+	 * Come ci si entra, detto com'è davvero.
+	 *
+	 * Fuori dalle partite aperte `joinMode` è sempre `direct`, ma non perché
+	 * chiunque possa unirsi: è che chi è stato invitato non deve chiedere il
+	 * permesso. Usare qui la descrizione della modalità d'accesso direbbe il
+	 * contrario di quello che succede.
+	 */
+	const accessDescription = isPrivateMatch
+		? "Si partecipa solo su invito: la partita non compare fra quelle aperte."
+		: isCircleMatch
+			? `Possono unirsi i membri della cerchia${match.circle ? ` "${match.circle.name}"` : ""}, senza chiedere il permesso.`
+			: joinModeMeta[match.joinMode].description;
+
 	const handleDeclineInvite = () => {
 		const inviteId = viewer.inviteId;
 		if (!inviteId) return;
@@ -197,6 +230,18 @@ export default function OpenMatchDetail() {
 				},
 			],
 		);
+	};
+
+	/** Le azioni sulla squadra restano in pagina: non c'è nulla da confermare. */
+	const runSeatAction = async (key: string, action: () => Promise<unknown>) => {
+		setSeatBusy(key);
+		try {
+			await action();
+		} catch (err) {
+			Alert.alert("Ops", convexErrorMessage(err));
+		} finally {
+			setSeatBusy(null);
+		}
 	};
 
 	const handlePublish = () => {
@@ -224,9 +269,13 @@ export default function OpenMatchDetail() {
 		if (match.status === "cancelled") {
 			return { label: "Partita annullata", icon: "xmark", disabled: true };
 		}
-		// Fuori dalla cerchia non c'è nulla da fare: la partita è privata
+		// Fuori dalla cerchia non c'è nulla da fare: la partita non è per te
 		if (isCircleMatch && !viewer.isCircleMember) {
 			return { label: "Riservata alla cerchia", icon: "lock.fill", disabled: true };
+		}
+		// Nella privata si entra solo con un invito in mano
+		if (isPrivateMatch && viewer.inviteStatus !== "pending") {
+			return { label: "Solo su invito", icon: "lock.fill", disabled: true };
 		}
 		if (viewer.requestStatus === "pending") {
 			return { label: "Richiesta inviata", icon: "envelope.fill", disabled: true };
@@ -234,7 +283,7 @@ export default function OpenMatchDetail() {
 		if (viewer.levelOk === false) {
 			return { label: "Livello non adatto", icon: "xmark", disabled: true };
 		}
-		if (isCircleMatch) {
+		if (isCircleMatch || isPrivateMatch) {
 			return {
 				label:
 					viewer.inviteStatus === "pending"
@@ -260,6 +309,8 @@ export default function OpenMatchDetail() {
 					<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
 						{isCircleMatch && match.circle ? (
 							<Pill label={match.circle.name} icon="person.3.fill" tinted />
+						) : isPrivateMatch ? (
+							<Pill label="Partita privata" icon="lock.fill" tinted />
 						) : (
 							<Pill
 								label={joinModeMeta[match.joinMode].label}
@@ -305,7 +356,11 @@ export default function OpenMatchDetail() {
 			{/* Info principali */}
 			<View style={{ flexDirection: "row", gap: 10 }}>
 				<InfoBox
-					label="Livello richiesto"
+					label={
+						match.visibility === "public"
+							? "Livello richiesto"
+							: "Livello indicativo"
+					}
 					value={formatLevelRange(match.levelMin, match.levelMax)}
 				/>
 				<InfoBox
@@ -342,10 +397,49 @@ export default function OpenMatchDetail() {
 				<PendingRequests matchId={matchId} />
 			)}
 
-			{/* Chi è stato invitato dalla cerchia e come ha risposto */}
+			{/* Giocatori senza app: ci sono, ma non hanno nulla da accettare */}
+			{match.guests.length > 0 && (
+				<View style={{ gap: 10 }}>
+					<SectionLabel>Senza app</SectionLabel>
+					<View style={{ gap: 8 }}>
+						{match.guests.map((guest) => (
+							<View
+								key={guest.id}
+								style={{
+									flexDirection: "row",
+									alignItems: "center",
+									gap: 10,
+									paddingVertical: 4,
+								}}
+							>
+								<Avatar size={32} />
+								<ThemedText style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>
+									{guest.name}
+								</ThemedText>
+								{viewer.isCreator ? (
+									<RowAction
+										icon="xmark"
+										label={`Togli ${guest.name}`}
+										busy={seatBusy === guest.id}
+										onPress={() =>
+											runSeatAction(guest.id, () =>
+												removeGuest({ guestId: guest.id }),
+											)
+										}
+									/>
+								) : (
+									<Pill label="Ospite" />
+								)}
+							</View>
+						))}
+					</View>
+				</View>
+			)}
+
+			{/* Chi è stato invitato e come ha risposto */}
 			{match.invitees.length > 0 && (
 				<View style={{ gap: 10 }}>
-					<SectionLabel>Invitati dalla cerchia</SectionLabel>
+					<SectionLabel>Invitati</SectionLabel>
 					<View style={{ gap: 8 }}>
 						{match.invitees.map((invitee) => (
 							<InviteeRow key={invitee.inviteId} invitee={invitee} />
@@ -353,6 +447,32 @@ export default function OpenMatchDetail() {
 					</View>
 				</View>
 			)}
+
+			{/* Il creatore può completare la squadra anche dopo aver prenotato.
+			    La squadra è già elencata qui sopra, quindi il picker mostra solo
+			    il pannello di aggiunta */}
+			{viewer.isCreator &&
+				match.status !== "cancelled" &&
+				match.matchDate > Date.now() &&
+				match.freeSeats > 0 && (
+					<SquadPicker
+						showSeats={false}
+						seats={[]}
+						freeSeats={match.freeSeats}
+						excludeIds={match.players.map((entry) => entry.id)}
+						busy={seatBusy === "squad"}
+						onAddPlayer={(picked) =>
+							runSeatAction("squad", () =>
+								invitePlayers({ matchId, playerIds: [picked.id] }),
+							)
+						}
+						onAddGuest={(guest) =>
+							runSeatAction("squad", () =>
+								addGuest({ matchId, name: guest.name, email: guest.email }),
+							)
+						}
+					/>
+				)}
 
 			{/* Note */}
 			{match.notes && (
@@ -375,7 +495,7 @@ export default function OpenMatchDetail() {
 			<ThemedText
 				style={{ fontSize: 13, lineHeight: 18, color: theme.textMuted }}
 			>
-				{joinModeMeta[match.joinMode].description}
+				{accessDescription}
 			</ThemedText>
 
 			{/* CTA */}
@@ -431,7 +551,7 @@ export default function OpenMatchDetail() {
 
 			{/* Da cerchia ad aperta: la via d'uscita quando non si arriva a quattro */}
 			{viewer.isCreator &&
-				isCircleMatch &&
+				(isCircleMatch || isPrivateMatch) &&
 				match.status === "open" &&
 				freeSlots > 0 &&
 				match.matchDate > Date.now() && (

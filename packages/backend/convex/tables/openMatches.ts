@@ -9,17 +9,26 @@ const openMatchStatus = v.union(
   v.literal("cancelled"),
 );
 
-const matchVisibility = v.union(v.literal("public"), v.literal("circle"));
+const matchVisibility = v.union(
+  v.literal("public"),
+  v.literal("circle"),
+  v.literal("private"),
+);
 
 /**
  * Partita aperta: strato di matchmaking sopra una prenotazione reale.
  * La prenotazione collegata occupa il campo; qui vivono i giocatori,
  * il livello richiesto e la modalità di accesso.
  *
- * Con `visibility: "circle"` la partita è riservata ai membri di `circleId`
- * e resta fuori dall'elenco delle aperte. Entrambi i campi sono opzionali
- * perché le partite create prima delle cerchie non li hanno: l'assenza di
- * `visibility` vale come `"public"`. Il creatore può poi aprirla a tutti
+ * Ogni prenotazione fatta dall'app ha la sua partita, qualunque sia la
+ * visibilità: `private` è solo una partita che non compare agli altri e in cui
+ * si entra unicamente su invito, non l'assenza di una partita. È ciò che le fa
+ * condividere dettaglio, cancellazione, uscita e inviti con tutte le altre.
+ *
+ * Con `visibility: "circle"` la partita è riservata ai membri di `circleId`.
+ * Entrambi i campi sono opzionali perché le partite create prima delle cerchie
+ * non li hanno: l'assenza di `visibility` vale come `"public"`. Da privata o da
+ * cerchia il creatore può poi aprirla a tutti
  * (modules/openMatches/publish.ts) tenendo chi è già entrato; `circleId`
  * resta lì a dire da dove è nata.
  */

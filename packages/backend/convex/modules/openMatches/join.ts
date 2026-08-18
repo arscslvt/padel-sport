@@ -21,6 +21,12 @@ export default mutation({
       );
     }
 
+    // Nella privata non si entra di propria iniziativa: il posto lo dà il
+    // creatore invitando, e l'invito si accetta da modules/openMatches/invites.
+    if (visibilityOf(match) === "private") {
+      throw new Error("A questa partita si partecipa solo su invito.");
+    }
+
     // Le partite di cerchia hanno joinMode "direct", ma quel "direct" vale
     // solo per chi è nella cerchia: da fuori non ci si entra.
     if (visibilityOf(match) === "circle" && match.circleId) {

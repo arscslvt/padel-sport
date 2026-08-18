@@ -20,7 +20,8 @@ export const CANCEL_DEADLINE_MS = 2 * 60 * 60 * 1000;
 
 export type JoinMode = "direct" | "request";
 export type OpenMatchStatus = "open" | "full" | "cancelled";
-export type MatchVisibility = "public" | "circle";
+export type MatchVisibility = "public" | "circle" | "private";
+export type MatchInviteKind = "direct" | "circle";
 
 export interface PlayerView {
   id: Id<"players">;
@@ -29,6 +30,12 @@ export interface PlayerView {
   avatarUrl?: string;
   /** Codice pubblico con cui il giocatore è cercabile dagli amici. */
   code?: string;
+}
+
+export interface GuestView {
+  id: Id<"matchGuests">;
+  name: string;
+  hasEmail: boolean;
 }
 
 export interface OpenMatchView {
@@ -43,6 +50,12 @@ export interface OpenMatchView {
   /** Valorizzato solo se la partita è nata dentro una cerchia. */
   circle?: { id: Id<"circles">; name: string };
   maxPlayers: number;
+  /** Giocatori senza app, aggiunti a mano da chi organizza. */
+  guests: GuestView[];
+  /** Posti tenuti da inviti nominali ancora senza risposta. */
+  reservedSeats: number;
+  /** Posti davvero liberi: `maxPlayers` meno giocatori, ospiti e posti tenuti. */
+  freeSeats: number;
   notes?: string;
   court?: string;
   creator: PlayerView;
@@ -55,6 +68,14 @@ export interface OpenMatchView {
  */
 export function visibilityOf(match: Doc<"openMatches">): MatchVisibility {
   return match.visibility ?? "public";
+}
+
+/**
+ * Tipo di invito: le righe create prima degli inviti nominali non hanno il
+ * campo, ed erano tutte diffusioni a una cerchia.
+ */
+export function inviteKindOf(invite: Doc<"matchInvites">): MatchInviteKind {
+  return invite.kind ?? "circle";
 }
 
 function overlaps(startA: number, endA: number, startB: number, endB: number) {
@@ -177,6 +198,186 @@ export function toPlayerView(player: Doc<"players">): PlayerView {
   };
 }
 
+/** Ospiti della partita, in ordine di inserimento. */
+export async function guestsOf(
+  ctx: QueryCtx,
+  matchId: Id<"openMatches">,
+): Promise<Doc<"matchGuests">[]> {
+  return await ctx.db
+    .query("matchGuests")
+    .withIndex("by_match", (q) => q.eq("matchId", matchId))
+    .collect();
+}
+
+/** Inviti di una partita, di qualunque tipo e stato. */
+export async function invitesOf(
+  ctx: QueryCtx,
+  matchId: Id<"openMatches">,
+): Promise<Doc<"matchInvites">[]> {
+  return await ctx.db
+    .query("matchInvites")
+    .withIndex("by_match", (q) => q.eq("matchId", matchId))
+    .collect();
+}
+
+/**
+ * Quanto "vale" un invito quando ce n'è più d'uno per la stessa persona:
+ * pending batte tutto (è quello a cui deve rispondere), poi accepted, e in
+ * fondo le risposte ormai chiuse.
+ */
+function inviteRank(invite: Doc<"matchInvites">): number {
+  switch (invite.status) {
+    case "pending":
+      return 3;
+    case "accepted":
+      return 2;
+    case "declined":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * L'invito che riguarda un giocatore in una partita.
+ *
+ * Normalmente ce n'è uno solo — reinvitare qualcuno riusa la sua riga
+ * (modules/openMatches/invite.ts) — ma le righe nate prima di quella regola
+ * possono essere più d'una: qui si sceglie quella che conta invece di
+ * pretendere che sia unica e schiantarsi.
+ */
+export async function playerInviteFor(
+  ctx: QueryCtx,
+  matchId: Id<"openMatches">,
+  playerId: Id<"players">,
+): Promise<Doc<"matchInvites"> | null> {
+  const invites = await ctx.db
+    .query("matchInvites")
+    .withIndex("by_match_player", (q) =>
+      q.eq("matchId", matchId).eq("playerId", playerId),
+    )
+    .collect();
+
+  return bestInvitePerPlayer(invites)[0] ?? null;
+}
+
+/**
+ * Un invito per persona, tenendo quello che conta.
+ * Serve agli elenchi, che altrimenti mostrerebbero due volte chi ha una riga
+ * vecchia oltre a quella valida.
+ */
+export function bestInvitePerPlayer(
+  invites: Doc<"matchInvites">[],
+): Doc<"matchInvites">[] {
+  const best = new Map<Id<"players">, Doc<"matchInvites">>();
+
+  for (const invite of invites) {
+    const current = best.get(invite.playerId);
+    const wins =
+      !current ||
+      inviteRank(invite) > inviteRank(current) ||
+      (inviteRank(invite) === inviteRank(current) &&
+        invite.createdAt > current.createdAt);
+
+    if (wins) best.set(invite.playerId, invite);
+  }
+
+  return [...best.values()];
+}
+
+export interface MatchOccupancy {
+  players: number;
+  guests: number;
+  /** Inviti nominali in sospeso: tengono il posto (tables/matchInvites.ts). */
+  reserved: number;
+  total: number;
+  free: number;
+}
+
+/**
+ * Quanti dei quattro posti sono presi.
+ *
+ * Non basta contare `playerIds`: un ospite senza app occupa il campo come
+ * chiunque altro, e un invito nominale tiene il posto per chi non ha ancora
+ * risposto, così nessuno glielo soffia. Gli inviti di cerchia invece non
+ * contano: sono una diffusione, non una prenotazione del posto.
+ *
+ * È l'unico punto in cui questa somma va scritta: chiunque debba sapere se
+ * c'è spazio passa da qui.
+ */
+export async function occupancyOf(
+  ctx: QueryCtx,
+  match: Doc<"openMatches">,
+): Promise<MatchOccupancy> {
+  const [guests, invites] = await Promise.all([
+    guestsOf(ctx, match._id),
+    invitesOf(ctx, match._id),
+  ]);
+
+  // Una persona tiene un posto solo, anche se ha più di una riga di invito
+  const reserved = bestInvitePerPlayer(invites).filter(
+    (invite) => invite.status === "pending" && inviteKindOf(invite) === "direct",
+  ).length;
+
+  const players = match.playerIds.length;
+  const total = players + guests.length + reserved;
+
+  return {
+    players,
+    guests: guests.length,
+    reserved,
+    total,
+    free: Math.max(0, match.maxPlayers - total),
+  };
+}
+
+/**
+ * Riallinea `status` all'occupazione reale.
+ *
+ * Va chiamata da ogni punto che sposta un posto — ingresso, uscita, invito,
+ * rifiuto, ospite aggiunto o tolto — altrimenti lo stato racconta una cosa e
+ * i posti un'altra. Le partite cancellate restano tali.
+ */
+export async function syncMatchStatus(
+  ctx: MutationCtx,
+  matchId: Id<"openMatches">,
+): Promise<void> {
+  const match = await ctx.db.get(matchId);
+  if (!match || match.status === "cancelled") return;
+
+  const { total } = await occupancyOf(ctx, match);
+  const status = total >= match.maxPlayers ? "full" : "open";
+
+  if (status !== match.status) {
+    await ctx.db.patch(matchId, { status });
+  }
+}
+
+/**
+ * Riscrive i nomi sulla prenotazione con la squadra vera: chi è in partita più
+ * gli ospiti. È quello che la struttura legge dalla dashboard web, dove i
+ * giocatori sono semplici stringhe e non esistono profili.
+ */
+export async function syncBookingPlayers(
+  ctx: MutationCtx,
+  match: Doc<"openMatches">,
+): Promise<void> {
+  const booking = await ctx.db.get(match.bookingId);
+  if (!booking) return;
+
+  const playerDocs = await Promise.all(
+    match.playerIds.map((id) => ctx.db.get(id)),
+  );
+  const guests = await guestsOf(ctx, match._id);
+
+  const names = [
+    ...playerDocs.filter((doc) => doc !== null).map((doc) => doc.name),
+    ...guests.map((guest) => guest.name),
+  ];
+
+  await ctx.db.patch(match.bookingId, { players: names });
+}
+
 /** Arricchisce una partita con giocatori e nome del campo. */
 export async function toMatchView(
   ctx: QueryCtx,
@@ -194,6 +395,9 @@ export async function toMatchView(
 
   const circleDoc = match.circleId ? await ctx.db.get(match.circleId) : null;
 
+  const guests = await guestsOf(ctx, match._id);
+  const occupancy = await occupancyOf(ctx, match);
+
   return {
     id: match._id,
     bookingId: match.bookingId,
@@ -205,6 +409,13 @@ export async function toMatchView(
     visibility: visibilityOf(match),
     circle: circleDoc ? { id: circleDoc._id, name: circleDoc.name } : undefined,
     maxPlayers: match.maxPlayers,
+    guests: guests.map((guest) => ({
+      id: guest._id,
+      name: guest.name,
+      hasEmail: !!guest.email,
+    })),
+    reservedSeats: occupancy.reserved,
+    freeSeats: occupancy.free,
     notes: match.notes,
     court: slot?.name,
     creator,
@@ -259,14 +470,23 @@ export async function addPlayerToMatch(
     throw new Error("Sei già in questa partita.");
   }
 
-  if (match.playerIds.length >= match.maxPlayers) {
+  // L'invito in sospeso di chi sta entrando tiene un posto che è già suo:
+  // senza scalarlo si troverebbe la partita piena per colpa di sé stesso.
+  const invite = await playerInviteFor(ctx, match._id, player._id);
+
+  const holdsOwnSeat =
+    invite?.status === "pending" && inviteKindOf(invite) === "direct";
+
+  const { total } = await occupancyOf(ctx, match);
+  if (total - (holdsOwnSeat ? 1 : 0) >= match.maxPlayers) {
     throw new Error("La partita è al completo.");
   }
 
-  // Dentro una cerchia il livello non filtra nessuno: sono partite fra amici,
-  // e il range serve solo se poi la partita viene aperta a tutti.
+  // Fuori dalle partite aperte il livello non filtra nessuno: in una cerchia o
+  // fra invitati si gioca con chi si è scelto, e il range torna a contare solo
+  // se poi la partita viene aperta a tutti.
   if (
-    visibilityOf(match) !== "circle" &&
+    visibilityOf(match) === "public" &&
     (player.level < match.levelMin || player.level > match.levelMax)
   ) {
     throw new Error(
@@ -274,32 +494,21 @@ export async function addPlayerToMatch(
     );
   }
 
-  const playerIds = [...match.playerIds, player._id];
-
   await ctx.db.patch(match._id, {
-    playerIds,
-    status: playerIds.length >= match.maxPlayers ? "full" : "open",
+    playerIds: [...match.playerIds, player._id],
   });
 
-  const booking = await ctx.db.get(match.bookingId);
-  if (booking && !booking.players.includes(player.name)) {
-    await ctx.db.patch(match.bookingId, {
-      players: [...booking.players, player.name],
-    });
-  }
-
-  // Se il giocatore era stato invitato, l'invito è ormai una risposta data
-  const invite = await ctx.db
-    .query("matchInvites")
-    .withIndex("by_match_player", (q) =>
-      q.eq("matchId", match._id).eq("playerId", player._id),
-    )
-    .unique();
-
+  // L'invito, se c'era, è ormai una risposta data
   if (invite && invite.status === "pending") {
     await ctx.db.patch(invite._id, {
       status: "accepted",
       respondedAt: Date.now(),
     });
   }
+
+  const updated = await ctx.db.get(match._id);
+  if (updated) {
+    await syncBookingPlayers(ctx, updated);
+  }
+  await syncMatchStatus(ctx, match._id);
 }

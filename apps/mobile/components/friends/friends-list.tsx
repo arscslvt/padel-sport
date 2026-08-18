@@ -8,10 +8,8 @@ import PlayerRow from "@/components/friends/player-row";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
 import { SectionLabel } from "@/components/ui/choice";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import RowAction from "@/components/ui/row-action";
 import { TextField } from "@/components/ui/text-field";
-import { Fonts } from "@/constants/fonts";
 import { useCurrentPlayer } from "@/hooks/use-current-player";
 import { useTheme } from "@/hooks/use-theme";
 import { convexErrorMessage } from "@/lib/format";
@@ -23,7 +21,7 @@ import { convexErrorMessage } from "@/lib/format";
 export default function FriendsList() {
 	const theme = useTheme();
 	const router = useRouter();
-	const { isSignedIn, player } = useCurrentPlayer();
+	const { isSignedIn } = useCurrentPlayer();
 
 	const data = useQuery(
 		api.modules.friends.list.default,
@@ -86,30 +84,6 @@ export default function FriendsList() {
 
 	return (
 		<View style={{ gap: 24 }}>
-			{/* Il proprio codice sta in cima: è quello che si detta agli amici */}
-			{player?.code && (
-				<View
-					style={{
-						flexDirection: "row",
-						alignItems: "center",
-						gap: 10,
-						padding: 14,
-						borderRadius: 16,
-						backgroundColor: theme.muted,
-					}}
-				>
-					<IconSymbol name="person.fill" size={16} color={theme.textMuted} />
-					<ThemedText style={{ fontSize: 14, color: theme.textMuted, flex: 1 }}>
-						Il tuo codice giocatore
-					</ThemedText>
-					<ThemedText
-						style={{ fontSize: 16, fontFamily: Fonts.semiBold, letterSpacing: 1 }}
-					>
-						#{player.code}
-					</ThemedText>
-				</View>
-			)}
-
 			{incoming.length > 0 && (
 				<View style={{ gap: 10 }}>
 					<SectionLabel>{`Richieste ricevute (${incoming.length})`}</SectionLabel>

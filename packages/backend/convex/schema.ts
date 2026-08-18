@@ -7,6 +7,7 @@ import eventRsvps from "./tables/eventRsvps";
 import events from "./tables/events";
 import friendships from "./tables/friendships";
 import joinRequests from "./tables/joinRequests";
+import matchGuests from "./tables/matchGuests";
 import matchInvites from "./tables/matchInvites";
 import matchRequests from "./tables/matchRequests";
 import openMatches from "./tables/openMatches";
@@ -29,4 +30,5 @@ export default defineSchema({
   circleMembers,
   circleInvites,
   matchInvites,
+  matchGuests,
 });

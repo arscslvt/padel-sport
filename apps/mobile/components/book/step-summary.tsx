@@ -26,8 +26,9 @@ export default function StepSummary({
 	level,
 	day,
 	time,
-	keepOpen,
+	visibility,
 	joinMode,
+	squadSize,
 	circleName,
 	notes,
 	onNotesChange,
@@ -36,8 +37,10 @@ export default function StepSummary({
 	level: LevelRange;
 	day: BookingDay;
 	time: string;
-	keepOpen: boolean;
+	visibility: "public" | "private";
 	joinMode: JoinMode;
+	/** Creatore, invitati e ospiti già messi in squadra. */
+	squadSize: number;
 	/** Valorizzato quando la partita nasce dentro una cerchia. */
 	circleName?: string;
 	notes: string;
@@ -83,15 +86,15 @@ export default function StepSummary({
 						icon={
 							circleName
 								? "person.3.fill"
-								: keepOpen
+								: visibility === "public"
 									? "person.2.fill"
 									: "lock.fill"
 						}
-						label={`Giocatori 1/${MAX_PLAYERS}`}
+						label={`Giocatori ${squadSize}/${MAX_PLAYERS}`}
 						value={
 							circleName
 								? `Cerchia · ${circleName}`
-								: keepOpen
+								: visibility === "public"
 									? `Partita aperta · ${joinModeMeta[joinMode].label}`
 									: "Partita privata"
 						}

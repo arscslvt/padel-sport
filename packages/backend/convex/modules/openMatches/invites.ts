@@ -6,18 +6,20 @@ import {
   getIdentityPlayer,
   type OpenMatchView,
   requirePlayer,
+  syncMatchStatus,
   toMatchView,
 } from "./lib";
 
 export interface MatchInviteView {
   inviteId: Id<"matchInvites">;
   match: OpenMatchView;
-  circleName: string;
+  /** Presente solo se l'invito arriva da una cerchia. */
+  circleName?: string;
   createdAt: number;
 }
 
 /**
- * Risponde all'invito a una partita di cerchia.
+ * Risponde a un invito a una partita.
  *
  * Accettare equivale a unirsi: l'invito è già un'approvazione, quindi non
  * passa dalle richieste di partecipazione. È `addPlayerToMatch` a segnare poi
@@ -50,6 +52,8 @@ export const respond = mutation({
         status: "declined",
         respondedAt: Date.now(),
       });
+      // Un invito nominale teneva un posto: rifiutando torna libero
+      await syncMatchStatus(ctx, invite.matchId);
       return { status: "declined" as const };
     }
 
@@ -69,8 +73,9 @@ export const respond = mutation({
 });
 
 /**
- * Inviti a partite di cerchia ancora senza risposta, dal più imminente.
- * Gli inviti a partite ormai passate o cancellate non vengono mostrati.
+ * Inviti ancora senza risposta, dal più imminente: sia quelli nominali sia
+ * quelli arrivati da una cerchia. Gli inviti a partite ormai passate o
+ * cancellate non vengono mostrati.
  */
 export const listMine = query({
   args: {},
@@ -93,13 +98,13 @@ export const listMine = query({
       if (match.status === "cancelled") continue;
       if (match.matchDate <= Date.now()) continue;
 
-      const circle = await ctx.db.get(invite.circleId);
-      if (!circle) continue;
+      // La cerchia può essere stata sciolta: l'invito resta comunque valido
+      const circle = invite.circleId ? await ctx.db.get(invite.circleId) : null;
 
       views.push({
         inviteId: invite._id,
         match: await toMatchView(ctx, match),
-        circleName: circle.name,
+        circleName: circle?.name,
         createdAt: invite.createdAt,
       });
     }

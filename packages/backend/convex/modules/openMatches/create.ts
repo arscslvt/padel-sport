@@ -3,6 +3,8 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
 import { membersOf, requireCircleMember } from "../circles/lib";
+import { addGuestToMatch } from "./guests";
+import { inviteToMatch } from "./invite";
 import {
   findAvailableSlot,
   LEVEL_MAX,
@@ -15,14 +17,19 @@ import {
 
 /**
  * Crea una prenotazione dall'app mobile: occupa un campo reale
- * (stessa tabella e stessa logica di disponibilità del web) e, a seconda
- * della visibilità, ci costruisce sopra una partita.
+ * (stessa tabella e stessa logica di disponibilità del web) e ci costruisce
+ * sopra una partita, sempre — cambia solo chi la vede.
  *
- * - `private`: solo la prenotazione, nessuna partita da riempire.
+ * - `private`: la vedono solo gli invitati, e si entra solo su invito.
  * - `public`: la partita finisce fra quelle aperte a tutti.
- * - `circle`: la partita è riservata ai membri di `circleId`, che ricevono
- *   tutti un invito. Se non si riempie, il creatore può poi aprirla a tutti
- *   tenendo chi è già entrato (modules/openMatches/publish.ts).
+ * - `circle`: è riservata ai membri di `circleId`, che ricevono tutti un
+ *   invito.
+ *
+ * In tutti e tre i casi si può comporre la squadra fin da subito, con
+ * giocatori dell'app da invitare e nomi di chi l'app non ce l'ha. Si può
+ * anche non indicare nessuno: per la struttura vale come "vengo con altri
+ * tre". Se poi la partita non si riempie, da privata o da cerchia il creatore
+ * può aprirla a tutti (modules/openMatches/publish.ts).
  */
 export default mutation({
   args: {
@@ -36,6 +43,14 @@ export default mutation({
     ),
     circleId: v.optional(v.id("circles")),
     joinMode: v.optional(v.union(v.literal("direct"), v.literal("request"))),
+    /** Giocatori dell'app da invitare: ognuno tiene un posto in attesa. */
+    invitePlayerIds: v.optional(v.array(v.id("players"))),
+    /** Giocatori senza app: solo un nome, e la mail se la si vuole lasciare. */
+    guests: v.optional(
+      v.array(
+        v.object({ name: v.string(), email: v.optional(v.string()) }),
+      ),
+    ),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -67,6 +82,17 @@ export default mutation({
 
     if (args.visibility === "circle" && !args.circleId) {
       throw new Error("Scegli la cerchia in cui creare la partita.");
+    }
+
+    const invitePlayerIds = args.invitePlayerIds ?? [];
+    const guests = args.guests ?? [];
+
+    // Il conto si fa prima di scrivere: creatore + invitati + ospiti. Occupare
+    // il campo per poi scoprire che la squadra non ci sta sarebbe peggio.
+    if (1 + invitePlayerIds.length + guests.length > MAX_PLAYERS) {
+      throw new Error(
+        `In campo si sta in ${MAX_PLAYERS}: togli qualcuno dalla squadra.`,
+      );
     }
 
     // Restringe il tipo per il resto dell'handler: da qui in poi `circleId`
@@ -118,36 +144,52 @@ export default mutation({
       createdByPlayer: player._id,
     });
 
-    let matchId = null;
-    if (args.visibility !== "private") {
-      matchId = await ctx.db.insert("openMatches", {
-        bookingId,
-        creatorId: player._id,
-        playerIds: [player._id],
-        maxPlayers: MAX_PLAYERS,
-        matchDate: args.bookingDate,
-        levelMin: args.levelMin,
-        levelMax: args.levelMax,
-        // Nella cerchia si entra senza chiedere: sono già tutti invitati
-        joinMode: circleId ? "direct" : (args.joinMode ?? "direct"),
-        status: "open",
-        visibility: circleId ? "circle" : "public",
-        circleId,
-        notes,
-        createdAt: Date.now(),
-      });
+    const matchId = await ctx.db.insert("openMatches", {
+      bookingId,
+      creatorId: player._id,
+      playerIds: [player._id],
+      maxPlayers: MAX_PLAYERS,
+      matchDate: args.bookingDate,
+      levelMin: args.levelMin,
+      levelMax: args.levelMax,
+      // Fuori dalle partite aperte non si chiede il permesso: chi è stato
+      // invitato è già approvato.
+      joinMode: args.visibility === "public" ? (args.joinMode ?? "direct") : "direct",
+      status: "open",
+      visibility: args.visibility,
+      circleId,
+      notes,
+      createdAt: Date.now(),
+    });
+
+    const match = await ctx.db.get(matchId);
+    if (!match) {
+      throw new Error("Si è verificato un errore. Riprova a prenotare.");
     }
 
-    // Ogni membro della cerchia riceve l'invito, tranne chi la sta creando
-    if (matchId && circleId) {
+    // Gli invitati per nome tengono il posto, gli ospiti lo occupano davvero:
+    // in entrambi i casi la logica sta nei rispettivi moduli e non qui.
+    if (invitePlayerIds.length > 0) {
+      await inviteToMatch(ctx, match, invitePlayerIds);
+    }
+
+    for (const guest of guests) {
+      await addGuestToMatch(ctx, match, player._id, guest);
+    }
+
+    // Ogni membro della cerchia riceve l'invito, tranne chi la sta creando.
+    // Questi non tengono il posto: una cerchia può avere venti persone.
+    if (circleId) {
       await Promise.all(
         circleMemberIds
           .filter((playerId) => playerId !== player._id)
+          .filter((playerId) => !invitePlayerIds.includes(playerId))
           .map((playerId) =>
             ctx.db.insert("matchInvites", {
               matchId,
               circleId,
               playerId,
+              kind: "circle",
               status: "pending",
               createdAt: Date.now(),
             }),
@@ -160,7 +202,7 @@ export default mutation({
         ? " (partita aperta)"
         : args.visibility === "circle"
           ? " (partita di cerchia)"
-          : "";
+          : " (partita privata)";
 
     await ctx.scheduler.runAfter(
       0,

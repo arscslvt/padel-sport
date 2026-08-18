@@ -107,10 +107,7 @@ export default function SmoothView({
 	const inner = (
 		<>
 			{layout.w > 0 && layout.h > 0 && path && (
-				<Canvas
-					style={[StyleSheet.absoluteFill, { zIndex: -1 }]}
-					pointerEvents="none"
-				>
+				<Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
 					<Group clip={path}>
 						<Path path={path} color={backgroundColor} />
 						{borderColor && borderWidth > 0 && (
@@ -153,10 +150,12 @@ export default function SmoothView({
 		);
 	}
 
+	// Niente Pressable qui: intercetterebbe i tocchi dei figli (la BottomTab ha
+	// i suoi bottoni dentro una SmoothView non premibile).
 	return (
-		<View onLayout={onLayout} style={StyleSheet.flatten(baseStyle)}>
+		<Animated.View onLayout={onLayout} style={[baseStyle, animatedStyle]}>
 			{inner}
-		</View>
+		</Animated.View>
 	);
 }
 

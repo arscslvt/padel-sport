@@ -82,7 +82,9 @@ export function Button({
 				<>
 					{leading}
 					{iconPosition === "leading" && iconEl}
-					<ThemedText style={[styles.label, { color: fg }]}>{label}</ThemedText>
+					<ThemedText numberOfLines={1} style={[styles.label, { color: fg }]}>
+						{label}
+					</ThemedText>
 					{iconPosition === "trailing" && iconEl}
 				</>
 			)}
@@ -96,6 +98,9 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		gap: 8,
+		// Serve ai bottoni che si stringono sul contenuto (es. gli stati vuoti):
+		// a tutta larghezza è ininfluente, l'etichetta è comunque centrata.
+		paddingHorizontal: 18,
 	},
 	label: {
 		fontSize: 17,

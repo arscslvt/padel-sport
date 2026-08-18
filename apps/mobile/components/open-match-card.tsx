@@ -62,10 +62,13 @@ export default function OpenMatchCard({
 							cerca {freeSlots === 1 ? "1 compagno" : `${freeSlots} compagni`}
 						</ThemedText>
 					</View>
-					{/* Dentro una cerchia la modalità d'accesso non dice nulla di
-					    utile — si entra e basta — mentre il nome del gruppo sì */}
+					{/* Fuori dalle partite aperte la modalità d'accesso non dice nulla
+					    di utile — è sempre "diretto" perché gli invitati non devono
+					    chiedere — mentre da dove arriva l'invito sì */}
 					{match.visibility === "circle" && match.circle ? (
 						<Pill label={match.circle.name} icon="person.3.fill" tinted />
+					) : match.visibility === "private" ? (
+						<Pill label="Privata" icon="lock.fill" tinted />
 					) : (
 						<Pill
 							label={joinModeMeta[match.joinMode].label}

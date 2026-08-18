@@ -16,7 +16,9 @@ import Animated, {
 	withTiming,
 } from "react-native-reanimated";
 import StepLevel from "@/components/book/step-level";
-import StepPlayers from "@/components/book/step-players";
+import StepPlayers, {
+	type BookVisibility,
+} from "@/components/book/step-players";
 import StepSchedule from "@/components/book/step-schedule";
 import StepSummary from "@/components/book/step-summary";
 import SheetLayout from "@/components/sheet-layout";
@@ -33,7 +35,12 @@ import {
 	formatDayLong,
 	formatSlotRange,
 } from "@/lib/booking";
-import { convexErrorMessage, type JoinMode } from "@/lib/format";
+import type { GuestDraft } from "@/components/match/squad-picker";
+import {
+	convexErrorMessage,
+	type JoinMode,
+	type PlayerView,
+} from "@/lib/format";
 import { findLevelRangeIndex, LEVEL_RANGES } from "@/lib/levels";
 
 /** I passi del flusso, nell'ordine in cui vengono presentati. */
@@ -77,8 +84,12 @@ interface BookingDraft {
 	levelIndex: number | null;
 	dayIndex: number | null;
 	time: string | null;
-	keepOpen: boolean;
+	visibility: BookVisibility;
 	joinMode: JoinMode;
+	/** Giocatori dell'app da invitare: riceveranno l'invito alla conferma. */
+	invited: PlayerView[];
+	/** Giocatori senza app, per ora solo nomi in una bozza locale. */
+	guests: GuestDraft[];
 	notes: string;
 }
 
@@ -110,8 +121,10 @@ export default function BookMatch() {
 		levelIndex: null,
 		dayIndex: null,
 		time: null,
-		keepOpen: true,
+		visibility: "public",
 		joinMode: "direct",
+		invited: [],
+		guests: [],
 		notes: "",
 	});
 
@@ -181,11 +194,7 @@ export default function BookMatch() {
 
 			setSubmitting(true);
 			try {
-				const visibility = circleId
-					? ("circle" as const)
-					: draft.keepOpen
-						? ("public" as const)
-						: ("private" as const);
+				const visibility = circleId ? ("circle" as const) : draft.visibility;
 
 				const { code } = await createBooking({
 					bookingDate: combineDateAndTime(day.date, time),
@@ -194,23 +203,34 @@ export default function BookMatch() {
 					visibility,
 					circleId,
 					joinMode: visibility === "public" ? draft.joinMode : undefined,
+					invitePlayerIds: draft.invited.map((invitee) => invitee.id),
+					guests: draft.guests,
 					notes: draft.notes.trim() || undefined,
 				});
 
+				const invitedCount = draft.invited.length;
 				const outcome =
 					visibility === "circle"
 						? `Gli altri membri di "${circle?.name ?? "la cerchia"}" hanno ricevuto l'invito.`
 						: visibility === "public"
 							? "La partita è visibile tra quelle aperte."
-							: "Partita privata.";
+							: "Partita privata: la vedono solo le persone che inviti.";
+
+				const invitedNote =
+					invitedCount > 0
+						? `${invitedCount} ${invitedCount === 1 ? "invito inviato" : "inviti inviati"}.`
+						: null;
 
 				Alert.alert(
 					"Prenotazione confermata 🎾",
 					[
 						`${formatDayLong(day.date)}, ${formatSlotRange(time)}`,
 						outcome,
+						invitedNote,
 						`Codice prenotazione: ${code}`,
-					].join("\n"),
+					]
+						.filter(Boolean)
+						.join("\n"),
 					[{ text: "OK", onPress: () => router.back() }],
 				);
 			} catch (err) {
@@ -306,12 +326,32 @@ export default function BookMatch() {
 				{step === 2 && (
 					<StepPlayers
 						player={player}
-						keepOpen={draft.keepOpen}
+						visibility={draft.visibility}
 						joinMode={draft.joinMode}
+						invited={draft.invited}
+						guests={draft.guests}
 						circleName={circleId ? (circle?.name ?? "Cerchia") : undefined}
 						circleMembers={circle?.members}
-						onKeepOpenChange={(keepOpen) => patch({ keepOpen })}
+						onVisibilityChange={(visibility) => patch({ visibility })}
 						onJoinModeChange={(joinMode) => patch({ joinMode })}
+						onInvite={(invitee) =>
+							patch({
+								invited: draft.invited.some((entry) => entry.id === invitee.id)
+									? draft.invited
+									: [...draft.invited, invitee],
+							})
+						}
+						onRemoveInvited={(playerId) =>
+							patch({
+								invited: draft.invited.filter((entry) => entry.id !== playerId),
+							})
+						}
+						onAddGuest={(guest) => patch({ guests: [...draft.guests, guest] })}
+						onRemoveGuest={(index) =>
+							patch({
+								guests: draft.guests.filter((_, entry) => entry !== index),
+							})
+						}
 					/>
 				)}
 				{step === 3 && draft.time && (
@@ -319,8 +359,9 @@ export default function BookMatch() {
 						level={LEVEL_RANGES[levelIndex]}
 						day={days[dayIndex]}
 						time={draft.time}
-						keepOpen={draft.keepOpen}
+						visibility={draft.visibility}
 						joinMode={draft.joinMode}
+						squadSize={1 + draft.invited.length + draft.guests.length}
 						circleName={circleId ? (circle?.name ?? "Cerchia") : undefined}
 						notes={draft.notes}
 						onNotesChange={(notes) => patch({ notes })}

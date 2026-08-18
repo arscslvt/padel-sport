@@ -95,6 +95,8 @@ export default function BookingsScreen() {
 									<BookingCard
 										key={booking.bookingId}
 										booking={booking}
+										// Le prenotazioni fatte dal web non hanno una partita
+										// dietro, e per quelle non c'è un dettaglio da aprire
 										onPress={
 											matchId
 												? () =>
