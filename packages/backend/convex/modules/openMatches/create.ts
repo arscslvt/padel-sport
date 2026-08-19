@@ -148,6 +148,23 @@ export default mutation({
       );
     }
 
+    // La squadra al completo, quando il club la pretende: un campo tenuto da
+    // una persona sola è un campo che la struttura deve riempire a mano.
+    //
+    // Vale solo per le partite private, le uniche che nessun altro può
+    // completare: una pubblica o di cerchia nasce apposta con i posti liberi, e
+    // questo controllo la renderebbe impossibile. Spento di default
+    // (modules/settings/lib.ts).
+    if (
+      settings.fullSquadRequired &&
+      args.visibility === "private" &&
+      1 + invitePlayerIds.length + guests.length < MAX_PLAYERS
+    ) {
+      throw new Error(
+        `Per prenotare servono tutti e ${MAX_PLAYERS} i giocatori: indica anche gli altri.`,
+      );
+    }
+
     // Restringe il tipo per il resto dell'handler: da qui in poi `circleId`
     // c'è se e solo se la partita è di cerchia.
     const circleId = args.visibility === "circle" ? args.circleId : undefined;

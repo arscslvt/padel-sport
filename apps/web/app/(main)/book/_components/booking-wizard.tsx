@@ -91,6 +91,11 @@ export function BookingWizard() {
   const settings = useQuery(api.modules.settings.booking.get, {});
   const windows = settings?.windows ?? DEFAULT_WINDOWS;
 
+  // Il club può pretendere la squadra al completo: finché la configurazione
+  // non è arrivata restiamo sul comportamento storico (si prenota anche da
+  // soli), tanto la parola definitiva è del server.
+  const fullSquadRequired = settings?.fullSquadRequired ?? false;
+
   const days = useMemo(
     () => bookableDays(settings?.bookableDays ?? BOOKABLE_DAYS),
     [settings?.bookableDays],
@@ -249,6 +254,20 @@ export function BookingWizard() {
     if (step === 3) {
       const ok = await form.trigger("partners");
       if (!ok) return;
+
+      // Squadra al completo, quando la struttura la pretende. Il controllo
+      // vero è in Convex (modules/openMatches/create.ts): qui si evita solo di
+      // farsi tutto il wizard per sentirselo dire alla conferma.
+      if (fullSquadRequired && partners.length < PARTNER_SLOTS) {
+        for (const [row, partner] of values.partners.entries()) {
+          if (partner.name.trim().length > 0) continue;
+
+          form.setError(`partners.${row}.name`, {
+            message: "Serve anche il nome di questo giocatore.",
+          });
+        }
+        return;
+      }
     }
 
     if (step === 4) {
@@ -366,6 +385,7 @@ export function BookingWizard() {
             control={form.control}
             bookerName={bookerName}
             filledCount={partners.length}
+            requireFull={fullSquadRequired}
           />
         )}
 

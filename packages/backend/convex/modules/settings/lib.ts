@@ -21,6 +21,8 @@ export interface BookingSettings {
   bookableDays: number;
   /** La prenotazione online richiede la tessera in corso (modules/clients). */
   membershipRequired: boolean;
+  /** La partita privata va prenotata con tutti e quattro i giocatori. */
+  fullSquadRequired: boolean;
 }
 
 const DEFAULT_DAY_WINDOWS = [
@@ -35,6 +37,9 @@ export const DEFAULT_SETTINGS: BookingSettings = {
   bookableDays: 7,
   // Spento: il controllo sulla tessera va acceso quando l'anagrafica è pronta.
   membershipRequired: false,
+  // Spento: finché il club non lo chiede, si prenota anche in due e la squadra
+  // la completa la struttura.
+  fullSquadRequired: false,
 };
 
 export async function bookingSettings(ctx: QueryCtx): Promise<BookingSettings> {
@@ -48,6 +53,7 @@ export async function bookingSettings(ctx: QueryCtx): Promise<BookingSettings> {
     windows: row.windows,
     bookableDays: row.bookableDays,
     membershipRequired: row.membershipRequired ?? false,
+    fullSquadRequired: row.fullSquadRequired ?? false,
   };
 }
 

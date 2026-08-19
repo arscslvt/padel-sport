@@ -32,6 +32,16 @@ const bookingSettings = defineTable({
    * perché la riga di configurazione può essere più vecchia di questo campo.
    */
   membershipRequired: v.optional(v.boolean()),
+  /**
+   * La prenotazione deve arrivare con la squadra al completo: quattro nomi,
+   * non uno solo con la promessa di trovare gli altri.
+   *
+   * Riguarda le partite private, le uniche che nessun altro può riempire.
+   * Quelle pubbliche e di cerchia nascono apposta con i posti liberi, e questa
+   * spunta non le tocca. Opzionale come sopra: la riga può essere più vecchia
+   * del campo.
+   */
+  fullSquadRequired: v.optional(v.boolean()),
   updatedAt: v.float64(),
 });
 

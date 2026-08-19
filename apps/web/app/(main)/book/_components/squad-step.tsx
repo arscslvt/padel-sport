@@ -19,7 +19,9 @@ import { PARTNER_ROWS } from "@/lib/booking-form";
  *
  * Il nome è obbligatorio per ogni giocatore che si indica, la mail no: serve
  * solo a mandargli il QR della prenotazione. Le righe si possono lasciare
- * vuote — è il caso in cui il club completa la squadra.
+ * vuote — è il caso in cui il club completa la squadra — a meno che la
+ * struttura non pretenda la squadra al completo (`requireFull`, dalle
+ * impostazioni della dashboard): allora vanno riempite tutte.
  */
 export function SquadStep({
   step,
@@ -27,12 +29,15 @@ export function SquadStep({
   control,
   bookerName,
   filledCount,
+  requireFull,
 }: {
   step: number;
   totalSteps: number;
   control: Control<BookingFormValues>;
   bookerName: string;
   filledCount: number;
+  /** La struttura accetta solo prenotazioni con tutti e quattro i giocatori. */
+  requireFull: boolean;
 }) {
   const squadSize = 1 + filledCount;
   const missing = MAX_PLAYERS - squadSize;
@@ -43,7 +48,11 @@ export function SquadStep({
         step={step}
         total={totalSteps}
         title="Con chi giochi?"
-        subtitle="Il nome serve a noi, la mail serve a loro: ci mandiamo il QR della prenotazione."
+        subtitle={
+          requireFull
+            ? `Servono i nomi di tutti e ${MAX_PLAYERS}. La mail è facoltativa: serve a mandare loro il QR della prenotazione.`
+            : "Il nome serve a noi, la mail serve a loro: ci mandiamo il QR della prenotazione."
+        }
       />
 
       <div className="border-border mb-4 flex items-center justify-between rounded-2xl border px-4 py-3">
@@ -67,7 +76,10 @@ export function SquadStep({
               name={`partners.${row}.name`}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Giocatore {row + 2}</FormLabel>
+                  <FormLabel>
+                    Giocatore {row + 2}
+                    {requireFull ? "" : " (facoltativo)"}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       autoComplete="off"
@@ -106,15 +118,21 @@ export function SquadStep({
       </div>
 
       <Hint>
-        {missing > 0
-          ? `${
-              missing === MAX_PLAYERS - 1
-                ? "Puoi anche non indicare nessuno"
-                : missing === 1
-                  ? "Manca un giocatore"
-                  : `Mancano ${missing} giocatori`
-            }: prenoti lo stesso e ci pensiamo noi a cercare chi gioca al tuo livello.`
-          : "Siete al completo: la prenotazione è definitiva, non serve altro da parte nostra."}
+        {missing === 0
+          ? "Siete al completo: la prenotazione è definitiva, non serve altro da parte nostra."
+          : requireFull
+            ? `Il campo si prenota solo in ${MAX_PLAYERS}: ${
+                missing === 1
+                  ? "manca ancora un giocatore"
+                  : `mancano ancora ${missing} giocatori`
+              }.`
+            : `${
+                missing === MAX_PLAYERS - 1
+                  ? "Puoi anche non indicare nessuno"
+                  : missing === 1
+                    ? "Manca un giocatore"
+                    : `Mancano ${missing} giocatori`
+              }: prenoti lo stesso e ci pensiamo noi a cercare chi gioca al tuo livello.`}
       </Hint>
 
       <p className="text-muted-foreground mt-3 text-xs">

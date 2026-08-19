@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import type { OpeningWindow } from "@/lib/booking";
+import { MAX_PLAYERS, type OpeningWindow } from "@/lib/booking";
 
 /**
  * Configurazione della prenotazione online.
@@ -69,6 +69,7 @@ export function BookingSettings() {
   const [windows, setWindows] = useState<OpeningWindow[]>([]);
   const [bookableDays, setBookableDays] = useState(7);
   const [membershipRequired, setMembershipRequired] = useState(false);
+  const [fullSquadRequired, setFullSquadRequired] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // La configurazione arriva dopo il primo render: la copiamo in locale una
@@ -79,6 +80,7 @@ export function BookingSettings() {
     setWindows(settings.windows);
     setBookableDays(settings.bookableDays);
     setMembershipRequired(settings.membershipRequired);
+    setFullSquadRequired(settings.fullSquadRequired);
     setLoaded(true);
   }, [settings, loaded]);
 
@@ -106,22 +108,27 @@ export function BookingSettings() {
       const response = await fetch("/api/dashboard/booking-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ windows, bookableDays, membershipRequired }),
+        body: JSON.stringify({
+          windows,
+          bookableDays,
+          membershipRequired,
+          fullSquadRequired,
+        }),
       });
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        toast.error("Orari non salvati", {
+        toast.error("Impostazioni non salvate", {
           description: payload?.error ?? "Riprova fra poco.",
         });
         return;
       }
 
-      toast.success("Orari aggiornati", {
-        description: "Il sito propone già le nuove fasce.",
+      toast.success("Impostazioni aggiornate", {
+        description: "Sito e app seguono già le nuove regole.",
       });
     } catch {
-      toast.error("Orari non salvati", {
+      toast.error("Impostazioni non salvate", {
         description: "Controlla la connessione e riprova.",
       });
     } finally {
@@ -254,6 +261,41 @@ export function BookingSettings() {
 
       <section className="space-y-4">
         <div>
+          <h2 className="text-lg font-semibold">Composizione della squadra</h2>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Con quanti giocatori si può tenere un campo.
+          </p>
+        </div>
+
+        <label
+          htmlFor="fullSquadRequired"
+          className="flex max-w-2xl cursor-pointer items-start gap-3 rounded-lg border p-3.5"
+        >
+          <Checkbox
+            id="fullSquadRequired"
+            checked={fullSquadRequired}
+            onCheckedChange={(checked) =>
+              setFullSquadRequired(Boolean(checked))
+            }
+            className="mt-0.5"
+          />
+          <span>
+            <span className="block text-sm font-medium">
+              Servono tutti e {MAX_PLAYERS} i giocatori per prenotare
+            </span>
+            <span className="block text-sm text-muted-foreground">
+              Chi prenota dal sito deve indicare gli altri {MAX_PLAYERS - 1}{" "}
+              giocatori: niente più campi tenuti da una persona sola, in attesa
+              che li completiate voi. Vale anche per le partite private create
+              dall'app; quelle aperte e di cerchia nascono apposta con i posti
+              liberi e restano come sono.
+            </span>
+          </span>
+        </label>
+      </section>
+
+      <section className="space-y-4">
+        <div>
           <h2 className="text-lg font-semibold">Giorni e orari</h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Le fasce in cui si accettano prenotazioni. Una partita dura un'ora e
@@ -335,11 +377,17 @@ export function BookingSettings() {
             );
           })}
         </div>
-
-        <Button type="button" onClick={() => void save()} disabled={saving}>
-          {saving ? "Salvataggio…" : "Salva orari"}
-        </Button>
       </section>
+
+      <div className="flex items-center gap-3 border-t pt-6">
+        <Button type="button" onClick={() => void save()} disabled={saving}>
+          {saving ? "Salvataggio…" : "Salva impostazioni"}
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          Le spunte e le fasce si salvano insieme. I campi, invece, valgono
+          subito.
+        </p>
+      </div>
     </div>
   );
 }

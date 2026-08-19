@@ -50,8 +50,12 @@ export const update = mutation({
     windows: v.array(windowValidator),
     bookableDays: v.number(),
     membershipRequired: v.optional(v.boolean()),
+    fullSquadRequired: v.optional(v.boolean()),
   },
-  handler: async (ctx, { secret, windows, bookableDays, membershipRequired }) => {
+  handler: async (
+    ctx,
+    { secret, windows, bookableDays, membershipRequired, fullSquadRequired },
+  ) => {
     assertServer(secret);
 
     if (bookableDays < 1 || bookableDays > 60) {
@@ -81,6 +85,7 @@ export const update = mutation({
         windows,
         bookableDays,
         membershipRequired: membershipRequired ?? existing.membershipRequired,
+        fullSquadRequired: fullSquadRequired ?? existing.fullSquadRequired,
         updatedAt: Date.now(),
       });
       return existing._id;
@@ -90,6 +95,7 @@ export const update = mutation({
       windows,
       bookableDays,
       membershipRequired: membershipRequired ?? false,
+      fullSquadRequired: fullSquadRequired ?? false,
       updatedAt: Date.now(),
     });
   },
