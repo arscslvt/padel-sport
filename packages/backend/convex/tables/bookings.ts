@@ -42,6 +42,16 @@ const bookings = defineTable({
    * prenotazione fatta da noi diventa un orario occupato anche là.
    */
   externalEventId: v.optional(v.string()),
+  /**
+   * L'altra prenotazione con cui questa condivide il campo.
+   *
+   * Due gruppi da due che avevano preso due campi diversi alla stessa ora sono
+   * quattro giocatori e un campo solo: la struttura li unisce dalla dashboard
+   * (bookings/merge.ts) e il secondo campo torna prenotabile. Le prenotazioni
+   * restano due — ognuna con il suo codice, il suo QR e il suo prenotante —
+   * e puntano l'una all'altra: il legame è reciproco, non ha un verso.
+   */
+  mergedWith: v.optional(v.id("bookings")),
 })
   .index("by_booking_date", ["bookingDate"])
   .index("by_created_at", ["createdAt"])

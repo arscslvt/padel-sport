@@ -7,7 +7,7 @@ import { formatClubDateTime } from "../../utils/clubTime";
 
 /**
  * Le mail che seguono una prenotazione dopo che è stata creata: la conferma
- * della struttura e le disdette.
+ * della struttura, l'unione con un altro gruppo e le disdette.
  *
  * Partono dal sito (là vivono Resend e i modelli), ma i destinatari stanno
  * qui: l'indirizzo degli ospiti non esce da nessuna query pubblica, e non
@@ -21,10 +21,15 @@ import { formatClubDateTime } from "../../utils/clubTime";
 
 /**
  * Cosa è successo alla prenotazione. Il QR viaggia solo con `accepted`: è
- * quello a dire al cliente che il campo è suo per davvero.
+ * quello a dire al cliente che il campo è suo per davvero — ed è la ragione per
+ * cui `merged` è una mail a parte e non lo porta. Sapere con chi si gioca e
+ * avere il campo confermato sono due notizie diverse, e arrivano in due momenti
+ * diversi: la struttura unisce quando trova la coppia giusta, conferma quando
+ * decide di incassare.
  */
 const notificationKind = v.union(
   v.literal("accepted"),
+  v.literal("merged"),
   v.literal("cancelled_by_club"),
   v.literal("cancelled_by_player"),
 );
@@ -55,6 +60,13 @@ export const payload = internalQuery({
       ? await ctx.db.get(booking.createdByPlayer)
       : null;
 
+    // Il gruppo con cui si divide il campo, quando la struttura ha unito due
+    // prenotazioni. Senza, la mail di conferma direbbe «mancano due giocatori»
+    // a un campo che è pieno.
+    const partner = booking.mergedWith
+      ? await ctx.db.get(booking.mergedWith)
+      : null;
+
     return {
       code: booking.code,
       start: booking.bookingDate,
@@ -62,6 +74,11 @@ export const payload = internalQuery({
       court: slot?.name,
       bookedBy: booking.bookedBy,
       players: booking.players,
+      accepted: booking.status === "accepted_on_site_payment",
+      partner:
+        partner && partner.status !== "cancelled"
+          ? { bookedBy: partner.bookedBy, players: partner.players }
+          : undefined,
       bookerClerkUserId: creator?.clerkUserId,
       guests: guests
         .filter((guest) => guest.email)
@@ -123,7 +140,9 @@ export default internalAction({
         title:
           kind === "accepted"
             ? "Conferma non comunicata"
-            : "Disdetta non comunicata",
+            : kind === "merged"
+              ? "Unione dei campi non comunicata"
+              : "Disdetta non comunicata",
         message: `${data.bookedBy}, ${formatClubDateTime(
           data.start,
         )}: avvisare a mano.`,

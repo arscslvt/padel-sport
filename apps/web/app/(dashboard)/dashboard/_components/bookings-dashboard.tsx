@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@padel-sport/backend/convex/_generated/api";
+import type { Doc, Id } from "@padel-sport/backend/convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -14,15 +16,15 @@ import {
   Search,
   ShieldCheck,
   Trash,
+  Unlink,
   Users,
   UsersRound,
   X,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
+import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -31,23 +33,14 @@ import {
   CardTitle,
 } from "@/app/(dashboard)/_components/card";
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/app/(dashboard)/_components/tabs";
-import { api } from "@padel-sport/backend/convex/_generated/api";
-import type { Doc, Id } from "@padel-sport/backend/convex/_generated/dataModel";
-import { cn } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,10 +49,20 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FaWhatsapp } from "react-icons/fa";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { mergeablePairs, mergedPartnerOf } from "@/lib/booking-merge";
+import { cn } from "@/lib/utils";
 import { Input } from "../../_components/input";
-import { AnimatePresence, motion } from "motion/react";
-import { Checkbox } from "@/components/ui/checkbox";
+import MergePairs from "./merge-pairs";
+
 // import { minimal, organic } from "@/.web-kits";
 // import { usePatch } from "@web-kits/audio/react";
 
@@ -131,10 +134,13 @@ function DashboardSkeleton() {
 
 function BookingCard({
   booking,
+  partner,
   isUpdating,
   onAccept,
 }: {
   booking: Booking;
+  /** L'altro gruppo, quando la struttura ha unito due prenotazioni parziali. */
+  partner?: Booking;
   isUpdating: boolean;
   onAccept: (
     bookingId: Id<"bookings">,
@@ -145,6 +151,40 @@ function BookingCard({
   const deleteBooking = useMutation(api.bookings.delete.default);
 
   const [withNotification, setWithNotification] = useState(true);
+  const [splitting, setSplitting] = useState(false);
+
+  /** Rimette i due gruppi su due campi distinti, se ce n'è uno libero. */
+  const handleSplit = async () => {
+    setSplitting(true);
+    try {
+      const response = await fetch("/api/dashboard/bookings/merge", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking._id }),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        toast.error("Campi non separati", {
+          description: payload?.error ?? "Riprova fra poco.",
+        });
+        return;
+      }
+
+      toast.success("Campi separati", {
+        description: payload?.court
+          ? `La seconda prenotazione è passata su ${payload.court}.`
+          : "Le due prenotazioni tornano su campi distinti.",
+      });
+    } catch {
+      toast.error("Campi non separati", {
+        description: "Controlla la connessione e riprova.",
+      });
+    } finally {
+      setSplitting(false);
+    }
+  };
 
   const handleBooking = async () => {
     toast.dismiss();
@@ -276,6 +316,13 @@ function BookingCard({
             <h3 className="text-base font-semibold">{booking.bookedBy}</h3>
             <BookingStatusBadge status={booking.status} />
             <Badge variant="outline">{levelLabels[booking.level]}</Badge>
+            {booking.mergedWith && (
+              <Badge className="border-blue-200 bg-blue-50 text-blue-900">
+                <Users className="size-3.5" />
+                Campo condiviso
+                {partner ? ` con ${partner.bookedBy}` : ""}
+              </Badge>
+            )}
           </div>
 
           <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
@@ -316,6 +363,18 @@ function BookingCard({
                       <span>WhatsApp</span>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
+                  {booking.mergedWith && (
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Campo condiviso</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onSelect={() => void handleSplit()}
+                        disabled={splitting}
+                      >
+                        <Unlink className="size-4" />
+                        <span>Separa le prenotazioni</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -425,6 +484,8 @@ export default function BookingsDashboard() {
   const bookings = useQuery(api.bookings.list.default, {
     includePast: false,
   });
+  // I nomi dei campi servono a dire *quale* si libera unendo due prenotazioni.
+  const courts = useQuery(api.modules.settings.booking.courts, {});
   const acceptBooking = useMutation(api.bookings.update.accept);
   const [updatingId, setUpdatingId] = useState<Id<"bookings"> | null>(null);
 
@@ -446,6 +507,9 @@ export default function BookingsDashboard() {
       ),
     [bookings],
   );
+
+  // Le coppie che chiuderebbero un campo: due gruppi parziali alla stessa ora.
+  const pairs = useMemo(() => mergeablePairs(bookings ?? []), [bookings]);
 
   const nextBooking = acceptedBookings?.[0] ?? null;
 
@@ -492,7 +556,11 @@ export default function BookingsDashboard() {
           {nextBooking && (
             <CardContent className="text-sm text-muted-foreground">
               <div className="font-medium text-foreground flex flex-wrap gap-2">
-                {nextBooking.bookForAll ? (
+                {nextBooking.mergedWith ? (
+                  <Badge className="border-blue-200 bg-blue-50 text-blue-900">
+                    <Users className="size-4" /> Campo condiviso
+                  </Badge>
+                ) : nextBooking.bookForAll ? (
                   <Badge variant={"outline"} className="bg-amber-50">
                     Prenotazione completa
                   </Badge>
@@ -508,7 +576,9 @@ export default function BookingsDashboard() {
                   per {nextBooking.players.length} giocatori
                 </Badge>
               </div>
-              {nextBooking && !nextBooking?.bookForAll && (
+              {/* Il campo già completato non ha più bisogno dell'avviso: i
+                  giocatori mancanti li ha trovati l'unione. */}
+              {!nextBooking.bookForAll && !nextBooking.mergedWith && (
                 <div className="mt-2 bg-amber-50 border border-amber-200 rounded-md p-2 text-xs text-amber-800/90">
                   Il cliente non ha prenotato per tutti i giocatori, assicurati
                   di trovare altri clienti interessati a giocare in quello slot
@@ -562,6 +632,9 @@ export default function BookingsDashboard() {
           <TabsList className="w-full md:w-max">
             <TabsTrigger value="pending">
               In attesa ({pendingBookings.length})
+            </TabsTrigger>
+            <TabsTrigger value="merge">
+              Da completare ({pairs.length})
             </TabsTrigger>
             <TabsTrigger value="all">Tutte ({bookings.length})</TabsTrigger>
             <Button
@@ -631,12 +704,30 @@ export default function BookingsDashboard() {
                 <BookingCard
                   key={booking._id}
                   booking={booking}
+                  partner={mergedPartnerOf(booking, bookings)}
                   isUpdating={updatingId === booking._id}
                   onAccept={handleAccept}
                 />
               ))}
             </div>
           )}
+        </TabsContent>
+        <TabsContent value="merge">
+          <div className="mb-4">
+            <h4 className="text-lg font-medium">Campi da completare</h4>
+            <p className="text-sm text-muted-foreground">
+              Chi prenota può farlo anche senza essere in quattro: qui trovi due
+              gruppi della stessa ora che insieme riempiono un campo, e unendoli
+              l'altro torna prenotabile. In cima quelli dello stesso livello.
+            </p>
+          </div>
+          <MergePairs
+            bookings={bookings}
+            courts={(courts ?? []).map((court) => ({
+              id: court.id,
+              name: court.name,
+            }))}
+          />
         </TabsContent>
         <TabsContent value="all">
           <div className="mb-4">
@@ -666,6 +757,7 @@ export default function BookingsDashboard() {
                 <BookingCard
                   key={booking._id}
                   booking={booking}
+                  partner={mergedPartnerOf(booking, bookings)}
                   isUpdating={updatingId === booking._id}
                   onAccept={handleAccept}
                 />

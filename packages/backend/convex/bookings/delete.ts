@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { mutation } from "../_generated/server";
+import { releaseMerge } from "./lib";
 
 export default mutation({
   args: {
@@ -11,6 +12,10 @@ export default mutation({
     if (!user) {
       throw new Error("Unauthorized");
     }
+
+    // Prima di annullare: se il campo era condiviso, l'altro gruppo resta e
+    // va rimesso su un campo tutto suo (bookings/lib.ts).
+    await releaseMerge(ctx, bookingId);
 
     await ctx.db.patch(bookingId, {
       status: "cancelled",

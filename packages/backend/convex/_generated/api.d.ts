@@ -13,8 +13,10 @@ import type * as bookings_create from "../bookings/create.js";
 import type * as bookings_delete from "../bookings/delete.js";
 import type * as bookings_get from "../bookings/get.js";
 import type * as bookings_getByCode from "../bookings/getByCode.js";
+import type * as bookings_lib from "../bookings/lib.js";
 import type * as bookings_list from "../bookings/list.js";
 import type * as bookings_listRange from "../bookings/listRange.js";
+import type * as bookings_merge from "../bookings/merge.js";
 import type * as bookings_mine from "../bookings/mine.js";
 import type * as bookings_update from "../bookings/update.js";
 import type * as crons from "../crons.js";
@@ -100,7 +102,9 @@ import type * as tables_openMatches from "../tables/openMatches.js";
 import type * as tables_players from "../tables/players.js";
 import type * as tables_slots from "../tables/slots.js";
 import type * as tables_supportRequests from "../tables/supportRequests.js";
+import type * as utils_clubTime from "../utils/clubTime.js";
 import type * as utils_notification_client from "../utils/notification_client.js";
+import type * as utils_serverSecret from "../utils/serverSecret.js";
 
 import type {
   ApiFromModules,
@@ -114,8 +118,10 @@ declare const fullApi: ApiFromModules<{
   "bookings/delete": typeof bookings_delete;
   "bookings/get": typeof bookings_get;
   "bookings/getByCode": typeof bookings_getByCode;
+  "bookings/lib": typeof bookings_lib;
   "bookings/list": typeof bookings_list;
   "bookings/listRange": typeof bookings_listRange;
+  "bookings/merge": typeof bookings_merge;
   "bookings/mine": typeof bookings_mine;
   "bookings/update": typeof bookings_update;
   crons: typeof crons;
@@ -201,7 +207,9 @@ declare const fullApi: ApiFromModules<{
   "tables/players": typeof tables_players;
   "tables/slots": typeof tables_slots;
   "tables/supportRequests": typeof tables_supportRequests;
+  "utils/clubTime": typeof utils_clubTime;
   "utils/notification_client": typeof utils_notification_client;
+  "utils/serverSecret": typeof utils_serverSecret;
 }>;
 
 /**

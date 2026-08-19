@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { BookingAcceptedEmail } from "@/emails/booking-accepted";
 import { BookingCancelledEmail } from "@/emails/booking-cancelled";
+import { BookingMergedEmail } from "@/emails/booking-merged";
 import { formatClubDay, formatClubSlotRange, MAX_PLAYERS } from "@/lib/booking";
 import { bookingQrPngUrl, bookingUrl, SITE_URL } from "@/lib/booking-links";
 import { bookingQrPng } from "@/lib/booking-qr";
@@ -38,8 +39,14 @@ const payloadSchema = z.object({
   players: z.array(z.string()),
   bookerClerkUserId: z.string().optional(),
   guests: z.array(z.object({ name: z.string(), email: z.email() })),
+  /** Il gruppo con cui si divide il campo, quando la struttura ha unito due prenotazioni. */
+  partner: z
+    .object({ bookedBy: z.string(), players: z.array(z.string()) })
+    .optional(),
+  accepted: z.boolean().optional(),
   kind: z.union([
     z.literal("accepted"),
+    z.literal("merged"),
     z.literal("cancelled_by_club"),
     z.literal("cancelled_by_player"),
   ]),
@@ -101,6 +108,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Codice mancante." }, { status: 400 });
   }
 
+  // L'unione senza l'altro gruppo non è una notizia: può succedere se quello
+  // ha disdetto nel frattempo. Meglio nessuna mail che una mail sbagliata.
+  if (booking.kind === "merged" && !booking.partner) {
+    console.warn("Unione senza l'altra prenotazione: mail non inviata.");
+    return NextResponse.json({ notified: 0 });
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.error("RESEND_API_KEY non configurata: disdetta non comunicata.");
@@ -109,6 +123,10 @@ export async function POST(request: Request) {
 
   const dayLabel = formatClubDay(booking.start);
   const timeLabel = formatClubSlotRange(booking.start);
+
+  // A campo unito la squadra è la somma dei due gruppi: contare solo i propri
+  // giocatori direbbe «mancano due» a un campo pieno.
+  const team = [...booking.players, ...(booking.partner?.players ?? [])];
 
   try {
     const resend = new Resend(apiKey);
@@ -131,8 +149,8 @@ export async function POST(request: Request) {
                 dayLabel,
                 timeLabel,
                 court: booking.court,
-                players: booking.players,
-                missing: Math.max(0, MAX_PLAYERS - booking.players.length),
+                players: team,
+                missing: Math.max(0, MAX_PLAYERS - team.length),
                 code: booking.code as string,
                 qrUrl: bookingQrPngUrl(booking.code as string),
                 bookingUrl: bookingUrl(booking.code as string),
@@ -146,6 +164,32 @@ export async function POST(request: Request) {
                 ),
               },
             ],
+          };
+        }
+
+        if (booking.kind === "merged" && booking.partner) {
+          return {
+            from: FROM,
+            to: [recipient.email],
+            replyTo: CLUB_INBOX,
+            subject: `Campo completo: ${dayLabel}, ${timeLabel}`,
+            html: await render(
+              BookingMergedEmail({
+                recipientName: recipient.name,
+                isBooker: recipient.isBooker,
+                bookedBy: booking.bookedBy,
+                dayLabel,
+                timeLabel,
+                court: booking.court,
+                players: booking.players,
+                partnerBookedBy: booking.partner.bookedBy,
+                partnerPlayers: booking.partner.players,
+                accepted: booking.accepted ?? false,
+                bookingUrl: booking.code
+                  ? bookingUrl(booking.code)
+                  : `${SITE_URL}${BOOKING_LINK}`,
+              }),
+            ),
           };
         }
 

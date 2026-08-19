@@ -18,6 +18,7 @@ import {
   bookableDays,
   combineDateAndTime,
   DEFAULT_WINDOWS,
+  occupiedCourts,
   overlappingBlocks,
   overlappingBookings,
 } from "@/lib/booking";
@@ -160,7 +161,9 @@ export function BookingWizard() {
         // sappiamo che uno è occupato.
         const blocked = overlappingBlocks(availability.blocks, start);
 
-        return overlapping.length + blocked.length < courts.length;
+        // Si contano i campi, non le prenotazioni: due gruppi uniti dalla
+        // struttura ne occupano uno in due.
+        return occupiedCourts(overlapping) + blocked.length < courts.length;
       });
     });
   }, [days, windows, availability, courts, availabilityLoading]);

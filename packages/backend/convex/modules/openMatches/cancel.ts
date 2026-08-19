@@ -6,6 +6,7 @@ import {
   cancelPendingMatchInvites,
   requirePlayer,
 } from "./lib";
+import { releaseMerge } from "../../bookings/lib";
 import { formatClubDateTime } from "../../utils/clubTime";
 
 /**
@@ -45,6 +46,10 @@ export default mutation({
         "Puoi eliminare la partita fino a 2 ore prima dell'inizio. Contatta la struttura.",
       );
     }
+
+    // Il campo poteva essere condiviso con un altro gruppo: quello resta, e
+    // ha bisogno di riprendersi un campo intero (bookings/lib.ts).
+    await releaseMerge(ctx, match.bookingId);
 
     await ctx.db.patch(match._id, { status: "cancelled" });
     await ctx.db.patch(match.bookingId, { status: "cancelled" });

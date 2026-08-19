@@ -186,6 +186,18 @@ export function overlappingBookings(
 }
 
 /**
+ * Quanti campi tolgono davvero queste prenotazioni.
+ *
+ * Non è il loro numero: quando la struttura unisce due gruppi parziali sullo
+ * stesso campo (bookings/merge.ts) restano due prenotazioni, ma il campo
+ * occupato è uno solo — e l'altro deve tornare offerto qui, altrimenti
+ * l'unione libera un campo che nessuno può più prenotare.
+ */
+export function occupiedCourts(overlapping: readonly CourtBusy[]): number {
+  return new Set(overlapping.map((booking) => booking.slot)).size;
+}
+
+/**
  * Occupazioni che non nascono da noi: gli appuntamenti presi su SumUp, che
  * arrivano dal calendario condiviso con i loro orari di inizio e fine.
  *

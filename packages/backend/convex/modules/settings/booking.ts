@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "../../_generated/server";
+import { assertServer } from "../../utils/serverSecret";
 import { bookingSettings, DEFAULT_SETTINGS } from "./lib";
 
 /**
@@ -20,14 +21,6 @@ const windowValidator = v.object({
 });
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):(00|30)$/;
-
-function assertServer(secret: string) {
-  const expected = process.env.BOOKING_WEBHOOK_SECRET;
-
-  if (!expected || secret !== expected) {
-    throw new Error("Operazione non consentita.");
-  }
-}
 
 export const get = query({
   args: {},

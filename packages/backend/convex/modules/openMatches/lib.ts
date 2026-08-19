@@ -312,20 +312,17 @@ export interface MatchOccupancy {
 }
 
 /**
- * Quanti dei quattro posti sono presi.
+ * I posti presi da questa partita e basta.
  *
- * Non basta contare `playerIds`: un ospite senza app occupa il campo come
- * chiunque altro, e un invito nominale tiene il posto per chi non ha ancora
- * risposto, così nessuno glielo soffia. Gli inviti di cerchia invece non
- * contano: sono una diffusione, non una prenotazione del posto.
- *
- * È l'unico punto in cui questa somma va scritta: chiunque debba sapere se
- * c'è spazio passa da qui.
+ * Non conta solo `playerIds`: un ospite senza app occupa il campo come chiunque
+ * altro, e un invito nominale tiene il posto per chi non ha ancora risposto,
+ * così nessuno glielo soffia. Gli inviti di cerchia invece non contano: sono
+ * una diffusione, non una prenotazione del posto.
  */
-export async function occupancyOf(
+async function ownOccupancy(
   ctx: QueryCtx,
   match: Doc<"openMatches">,
-): Promise<MatchOccupancy> {
+): Promise<{ players: number; guests: number; reserved: number }> {
   const [guests, invites] = await Promise.all([
     guestsOf(ctx, match._id),
     invitesOf(ctx, match._id),
@@ -336,13 +333,59 @@ export async function occupancyOf(
     (invite) => invite.status === "pending" && inviteKindOf(invite) === "direct",
   ).length;
 
-  const players = match.playerIds.length;
-  const total = players + guests.length + reserved;
+  return { players: match.playerIds.length, guests: guests.length, reserved };
+}
+
+/** La partita che sta sull'altra prenotazione, quando il campo è condiviso. */
+async function mergedPartnerMatch(
+  ctx: QueryCtx,
+  match: Doc<"openMatches">,
+): Promise<Doc<"openMatches"> | null> {
+  const booking = await ctx.db.get(match.bookingId);
+  if (!booking?.mergedWith) return null;
+
+  const partnerBooking = await ctx.db.get(booking.mergedWith);
+  if (!partnerBooking || partnerBooking.status === "cancelled") return null;
+
+  return await ctx.db
+    .query("openMatches")
+    .withIndex("by_booking", (q) => q.eq("bookingId", partnerBooking._id))
+    .first();
+}
+
+/**
+ * Quanti dei quattro posti sono presi.
+ *
+ * È l'unico punto in cui questa somma va scritta: chiunque debba sapere se
+ * c'è spazio passa da qui.
+ *
+ * Quando la struttura ha unito due prenotazioni sullo stesso campo
+ * (tables/bookings.ts, `mergedWith`) i posti sono quattro **in due**, non
+ * quattro a testa: senza sommare anche l'altro gruppo, due partite da due
+ * vedrebbero due posti liberi ciascuna e dall'app si finirebbe in cinque su un
+ * campo solo. La discesa è di un livello e mai ricorsiva — il legame è una
+ * coppia, non una catena.
+ */
+export async function occupancyOf(
+  ctx: QueryCtx,
+  match: Doc<"openMatches">,
+): Promise<MatchOccupancy> {
+  const own = await ownOccupancy(ctx, match);
+
+  const partner = await mergedPartnerMatch(ctx, match);
+  const shared = partner ? await ownOccupancy(ctx, partner) : null;
+
+  const players = own.players;
+  const total =
+    own.players +
+    own.guests +
+    own.reserved +
+    (shared ? shared.players + shared.guests + shared.reserved : 0);
 
   return {
     players,
-    guests: guests.length,
-    reserved,
+    guests: own.guests,
+    reserved: own.reserved,
     total,
     free: Math.max(0, match.maxPlayers - total),
   };
