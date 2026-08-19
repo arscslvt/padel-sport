@@ -45,7 +45,8 @@ import {
   type OptionalFieldsValue,
   optionalPayload,
 } from "./optional-fields";
-import type { ClientDetail, Gender } from "./types";
+import { ResidenceFields, residencePayload } from "./residence-fields";
+import type { ClientDetail, Gender, Residence } from "./types";
 
 /**
  * La scheda del cliente: anagrafica a sinistra, tessera a destra.
@@ -101,6 +102,7 @@ export function ClientSheet({
   const [phone, setPhone] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [gender, setGender] = useState<Gender | undefined>();
+  const [residence, setResidence] = useState<Residence>({});
   const [optional, setOptional] = useState<OptionalFieldsValue>(EMPTY_OPTIONAL);
 
   // Tessera
@@ -133,6 +135,7 @@ export function ClientSheet({
         setPhone(detail.phone ?? "");
         setBirthDate(toDateInput(detail.birthDate));
         setGender(detail.gender);
+        setResidence(detail.residence ?? {});
         setOptional({
           taxCode: detail.taxCode ?? "",
           health: detail.health ?? {},
@@ -328,6 +331,7 @@ export function ClientSheet({
           phone: phone.trim() || undefined,
           birthDate: fromDateInput(birthDate),
           gender,
+          residence: residencePayload(residence),
           ...optionalPayload(optional),
         }),
       });
@@ -499,6 +503,12 @@ export function ClientSheet({
                       onChange={(event) => setEmail(event.target.value)}
                     />
                   </div>
+                  <ResidenceFields
+                    value={residence}
+                    onChange={setResidence}
+                    idPrefix="sheet"
+                  />
+
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="sheet-gender">Sesso</Label>
                     <Select

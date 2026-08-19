@@ -8,6 +8,7 @@ import {
   consents as consentsValidator,
   gender,
   health as healthValidator,
+  residence as residenceValidator,
 } from "../../tables/players";
 import { displayName } from "./lib";
 
@@ -33,8 +34,28 @@ const profileFields = {
   gender: v.optional(gender),
   level: v.optional(v.float64()),
   taxCode: v.optional(v.string()),
+  residence: v.optional(residenceValidator),
   health: v.optional(healthValidator),
 };
+
+/** Ripulisce l'indirizzo: un oggetto con tre stringhe vuote non è un indirizzo. */
+function cleanResidence(
+  value: { address?: string; city?: string; postalCode?: string } | undefined,
+) {
+  if (!value) return undefined;
+
+  const address = value.address?.trim() || undefined;
+  const city = value.city?.trim() || undefined;
+  const postalCode = value.postalCode?.trim() || undefined;
+
+  if (postalCode && !/^\d{5}$/.test(postalCode)) {
+    throw new Error("Il CAP deve essere di cinque cifre.");
+  }
+
+  if (!address && !city && !postalCode) return undefined;
+
+  return { address, city, postalCode };
+}
 
 /** Ripulisce il blocco sanitario: i campi vuoti non vanno conservati. */
 function cleanHealth(
@@ -107,6 +128,7 @@ export const create = mutation({
     gender: v.optional(gender),
     level: v.optional(v.float64()),
     taxCode: v.optional(v.string()),
+    residence: v.optional(residenceValidator),
     health: v.optional(healthValidator),
     clubNotes: v.optional(v.string()),
   },
@@ -134,6 +156,7 @@ export const create = mutation({
       gender: fields.gender,
       level: fields.level ?? DEFAULT_LEVEL,
       taxCode: clean(fields.taxCode)?.toUpperCase(),
+      residence: cleanResidence(fields.residence),
       health: cleanHealth(fields.health),
       clubNotes: clean(fields.clubNotes),
       code: await generatePlayerCode(ctx),
@@ -246,8 +269,11 @@ export const update = mutation({
       gender: fields.gender ?? player.gender,
       level: fields.level ?? player.level,
       taxCode: clean(fields.taxCode)?.toUpperCase() ?? player.taxCode,
-      // Il blocco sanitario si sostituisce intero: svuotare un campo dev'essere
-      // possibile, e con il `??` non lo sarebbe mai.
+      // Indirizzo e blocco sanitario si sostituiscono interi: svuotare un campo
+      // dev'essere possibile, e con il `??` non lo sarebbe mai.
+      residence: fields.residence
+        ? cleanResidence(fields.residence)
+        : player.residence,
       health: fields.health ? cleanHealth(fields.health) : player.health,
       clubNotes:
         fields.clubNotes !== undefined
@@ -350,6 +376,7 @@ export const complete = mutation({
     level: v.float64(),
     consents: consentsValidator,
     taxCode: v.optional(v.string()),
+    residence: v.optional(residenceValidator),
     health: v.optional(healthValidator),
     avatarUrl: v.optional(v.string()),
   },
@@ -392,6 +419,9 @@ export const complete = mutation({
       level: args.level,
       consents: args.consents,
       taxCode: clean(args.taxCode)?.toUpperCase() ?? player.taxCode,
+      residence: args.residence
+        ? cleanResidence(args.residence)
+        : player.residence,
       health: args.health ? cleanHealth(args.health) : player.health,
       clerkUserId: args.clerkUserId,
       avatarUrl: args.avatarUrl ?? player.avatarUrl,

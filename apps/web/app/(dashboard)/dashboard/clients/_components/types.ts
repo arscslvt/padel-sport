@@ -66,6 +66,13 @@ export interface Client {
   membershipState: MembershipState;
 }
 
+/** Dove abita il socio: si scrive e si corregge tutto insieme. */
+export interface Residence {
+  address?: string;
+  city?: string;
+  postalCode?: string;
+}
+
 /** Dati sanitari: categoria particolare, si vedono solo aprendo una scheda. */
 export interface Health {
   allergies?: string;
@@ -76,6 +83,7 @@ export interface Health {
 export interface ClientDetail extends Omit<Client, "membership"> {
   memberships: Membership[];
   taxCode?: string;
+  residence?: Residence;
   health?: Health;
   /** Note interne dello staff: non escono mai verso il cliente. */
   clubNotes?: string;

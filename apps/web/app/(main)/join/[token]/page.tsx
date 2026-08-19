@@ -109,6 +109,7 @@ export default async function JoinPage({
           gender={invite.profile?.gender}
           level={invite.profile?.level}
           taxCode={invite.profile?.taxCode}
+          residence={invite.profile?.residence}
           health={invite.profile?.health}
         />
       </div>

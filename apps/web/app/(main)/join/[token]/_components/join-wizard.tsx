@@ -10,6 +10,11 @@ import {
   type OptionalFieldsValue,
   optionalPayload,
 } from "@/app/(dashboard)/dashboard/clients/_components/optional-fields";
+import {
+  ResidenceFields,
+  residencePayload,
+} from "@/app/(dashboard)/dashboard/clients/_components/residence-fields";
+import type { Residence } from "@/app/(dashboard)/dashboard/clients/_components/types";
 import { CodeFields, useEmailCode } from "@/components/booking/email-code";
 import {
   Chip,
@@ -80,6 +85,7 @@ export function JoinWizard({
   gender: knownGender,
   level: knownLevel,
   taxCode: knownTaxCode,
+  residence: knownResidence,
   health: knownHealth,
 }: {
   token: string;
@@ -91,6 +97,7 @@ export function JoinWizard({
   gender?: Gender;
   level?: number;
   taxCode?: string;
+  residence?: Residence;
   health?: { allergies?: string; conditions?: string; disability?: string };
 }) {
   const { isLoaded, isSignedIn } = useAuth();
@@ -112,6 +119,7 @@ export function JoinWizard({
   const [levelIndex, setLevelIndex] = useState(
     findLevelRangeIndex(knownLevel ?? null),
   );
+  const [residence, setResidence] = useState<Residence>(knownResidence ?? {});
   const [optional, setOptional] = useState<OptionalFieldsValue>({
     ...EMPTY_OPTIONAL,
     taxCode: knownTaxCode ?? "",
@@ -187,6 +195,7 @@ export function JoinWizard({
           gender,
           level: LEVEL_RANGES[levelIndex].level,
           consents,
+          residence: residencePayload(residence),
           ...optionalPayload({ ...optional, clubNotes: undefined }),
         }),
       });
@@ -346,6 +355,14 @@ export function JoinWizard({
             onChange={(event) => setBirthDate(event.target.value)}
           />
         </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <ResidenceFields
+          value={residence}
+          onChange={setResidence}
+          idPrefix="join"
+        />
       </div>
 
       <div className="mt-8">

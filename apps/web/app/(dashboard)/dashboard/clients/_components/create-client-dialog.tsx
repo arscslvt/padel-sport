@@ -31,7 +31,8 @@ import {
   type OptionalFieldsValue,
   optionalPayload,
 } from "./optional-fields";
-import type { Gender } from "./types";
+import { ResidenceFields, residencePayload } from "./residence-fields";
+import type { Gender, Residence } from "./types";
 
 /**
  * La scheda di un cliente nuovo, compilata allo sportello.
@@ -62,6 +63,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
   const [birthDate, setBirthDate] = useState("");
   const [gender, setGender] = useState<Gender | undefined>();
   const [levelIndex, setLevelIndex] = useState(1);
+  const [residence, setResidence] = useState<Residence>({});
   const [optional, setOptional] = useState<OptionalFieldsValue>(EMPTY_OPTIONAL);
 
   const reset = () => {
@@ -72,6 +74,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
     setBirthDate("");
     setGender(undefined);
     setLevelIndex(1);
+    setResidence({});
     setOptional(EMPTY_OPTIONAL);
   };
 
@@ -91,6 +94,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
             : undefined,
           gender,
           level: LEVEL_RANGES[levelIndex].level,
+          residence: residencePayload(residence),
           ...optionalPayload(optional),
         }),
       });
@@ -196,6 +200,12 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
               onChange={(event) => setBirthDate(event.target.value)}
             />
           </div>
+          <ResidenceFields
+            value={residence}
+            onChange={setResidence}
+            idPrefix="new"
+          />
+
           <div className="space-y-1.5">
             <Label htmlFor="new-gender">Sesso</Label>
             <Select

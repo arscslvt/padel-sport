@@ -25,6 +25,19 @@ const consents = v.object({
 });
 
 /**
+ * Dove abita il socio: serve al tesseramento e alle ricevute.
+ *
+ * Un oggetto e non tre campi sparsi perché un indirizzo si scrive e si corregge
+ * tutto insieme — via, città e CAP separati non vogliono dire niente.
+ */
+const residence = v.object({
+  address: v.optional(v.string()),
+  city: v.optional(v.string()),
+  /** CAP italiano: cinque cifre. */
+  postalCode: v.optional(v.string()),
+});
+
+/**
  * Quel che il club deve sapere per far scendere in campo qualcuno in sicurezza.
  *
  * Sono **dati sanitari**: categoria particolare, non anagrafica. Stanno in un
@@ -85,6 +98,7 @@ const players = defineTable({
   birthDate: v.optional(v.float64()),
   gender: v.optional(gender),
   consents: v.optional(consents),
+  residence: v.optional(residence),
   /** Codice fiscale: serve al tesseramento e alle ricevute. */
   taxCode: v.optional(v.string()),
   health: v.optional(health),
@@ -104,4 +118,4 @@ const players = defineTable({
   .searchIndex("by_name", { searchField: "name" });
 
 export default players;
-export { consents, gender, health };
+export { consents, gender, health, residence };

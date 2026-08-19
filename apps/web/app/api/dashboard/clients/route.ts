@@ -126,6 +126,18 @@ const createSchema = z.object({
   gender: z.enum(["f", "m", "other", "unspecified"]).optional(),
   level: z.number().min(1).max(5).optional(),
   taxCode: z.string().trim().max(16).optional(),
+  residence: z
+    .object({
+      address: z.string().trim().max(120).optional(),
+      city: z.string().trim().max(80).optional(),
+      postalCode: z
+        .string()
+        .trim()
+        .regex(/^\d{5}$/, "Il CAP deve essere di cinque cifre.")
+        .optional()
+        .or(z.literal("")),
+    })
+    .optional(),
   health: z
     .object({
       allergies: z.string().trim().max(500).optional(),

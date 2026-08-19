@@ -64,6 +64,7 @@ export const byToken = query({
             gender: player.gender,
             level: player.level,
             taxCode: player.taxCode,
+            residence: player.residence,
             // Solo i suoi: le note del club le scrive lo staff per sé, e chi
             // attiva l'account leggerebbe un giudizio scritto per altri.
             health: player.health,

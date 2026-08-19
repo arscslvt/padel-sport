@@ -132,6 +132,7 @@ export const detail = query({
       // Solo in scheda: codice fiscale, dati sanitari e note interne non hanno
       // niente da fare in un elenco che si scorre a video davanti al banco.
       taxCode: player.taxCode,
+      residence: player.residence,
       health: player.health,
       clubNotes: player.clubNotes,
       membershipState: state,
