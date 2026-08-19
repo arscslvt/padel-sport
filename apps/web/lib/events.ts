@@ -1,12 +1,22 @@
+import { TZDate } from "@date-fns/tz";
 import * as date from "date-fns";
 import { it } from "date-fns/locale";
 
+import { CLUB_TIME_ZONE } from "@/lib/booking";
 import type { EventCardData } from "@/sanity/types";
 
 const locale = { locale: it };
 
+/**
+ * Le date di Sanity sono istanti assoluti (ISO con la Z) e vanno letti sempre
+ * con l'orologio del club: senza `TZDate` `format` userebbe il fuso di chi
+ * renderizza, e su Vercel — che gira in UTC — un evento delle 21:00 finiva in
+ * pagina «alle 19:00». Vale anche per `isToday`/`isSameDay`: date-fns propaga
+ * il fuso del primo argomento, quindi "Oggi" è oggi a Melilli.
+ */
 function toDate(value: string | number | Date) {
-  return value instanceof Date ? value : new Date(value);
+  const instant = value instanceof Date ? value : new Date(value);
+  return new TZDate(instant, CLUB_TIME_ZONE);
 }
 
 /**
