@@ -1,7 +1,10 @@
 "use client";
 
+import { Check, Pencil } from "lucide-react";
+import { useState } from "react";
 import type { Control } from "react-hook-form";
 import { FIELD_CLASS, StepHeader } from "@/components/booking/wizard-ui";
+import { Button } from "@/components/ui/button";
 import {
   FormControl,
   FormDescription,
@@ -24,6 +27,11 @@ import type { BookingFormValues } from "@/lib/booking-form";
  * Il nome compare solo a chi non ha ancora un profilo giocatore: per tutti gli
  * altri la prenotazione porta il nome già salvato, e un campo modificabile che
  * non modifica niente sarebbe una bugia.
+ *
+ * Quando il club ha già un recapito lo **propone** invece di scriverlo nel
+ * campo: un numero che compare da solo in un modulo si conferma senza
+ * guardarlo, e se nel frattempo è cambiato la telefonata va a vuoto proprio nel
+ * momento in cui serviva — quando manca un giocatore o il campo si sposta.
  */
 export function ContactStep({
   step,
@@ -32,6 +40,8 @@ export function ContactStep({
   askName,
   bookerName,
   email,
+  knownPhone,
+  onUseKnownPhone,
 }: {
   step: number;
   totalSteps: number;
@@ -39,7 +49,14 @@ export function ContactStep({
   askName: boolean;
   bookerName: string;
   email?: string;
+  /** Il recapito già registrato, se il club ne ha uno. */
+  knownPhone?: string;
+  onUseKnownPhone: () => void;
 }) {
+  // Scrivere un altro numero è una scelta esplicita: da lì il riquadro non
+  // ricompare da solo, o si riscriverebbe sopra a quello appena digitato.
+  const [editing, setEditing] = useState(false);
+
   return (
     <div>
       <StepHeader
@@ -88,20 +105,71 @@ export function ContactStep({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Telefono</FormLabel>
-              <FormControl>
-                <Input
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="Es. 333 123 4567"
-                  className={FIELD_CLASS}
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                Se manca il prefisso usiamo +39.
-              </FormDescription>
-              <FormMessage />
+
+              {!editing && knownPhone && field.value === knownPhone ? (
+                <>
+                  <div className="border-border rounded-2xl border px-4 py-3">
+                    <div className="flex items-start gap-2.5">
+                      <Check className="mt-0.5 size-4 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm">{knownPhone}</p>
+                        <p className="text-muted-foreground text-xs">
+                          È il numero che risulta al club: lo usiamo per questa
+                          prenotazione.
+                        </p>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="button"
+                      size="pill"
+                      variant="outline"
+                      className="mt-3"
+                      onClick={() => {
+                        field.onChange("");
+                        setEditing(true);
+                      }}
+                    >
+                      <Pencil className="size-4" />
+                      Usane un altro
+                    </Button>
+                  </div>
+                  <FormMessage />
+                </>
+              ) : (
+                <>
+                  <FormControl>
+                    <Input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder="Es. 333 123 4567"
+                      className={FIELD_CLASS}
+                      autoFocus={editing}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Se manca il prefisso usiamo +39.
+                    {knownPhone && (
+                      <>
+                        {" "}
+                        <button
+                          type="button"
+                          className="hover:text-foreground underline underline-offset-4"
+                          onClick={() => {
+                            onUseKnownPhone();
+                            setEditing(false);
+                          }}
+                        >
+                          Torna a {knownPhone}
+                        </button>
+                      </>
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </>
+              )}
             </FormItem>
           )}
         />

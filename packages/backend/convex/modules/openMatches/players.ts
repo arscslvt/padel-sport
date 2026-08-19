@@ -12,12 +12,20 @@ import {
  * Profilo giocatore dell'utente autenticato.
  * Restituisce null se non autenticato o se il profilo non è ancora stato creato
  * (l'app mostra l'onboarding in quel caso).
+ *
+ * Il telefono si aggiunge **qui e non in `toPlayerView`**: quella funzione
+ * descrive anche gli altri giocatori di una partita, e il numero di casa altrui
+ * non è cosa che si mette in un elenco. Questo è il proprio profilo, e serve
+ * alla prenotazione dal sito per proporre il recapito già registrato invece di
+ * farlo riscrivere.
  */
 export const me = query({
   args: {},
   handler: async (ctx) => {
     const player = await getIdentityPlayer(ctx);
-    return player ? toPlayerView(player) : null;
+    if (!player) return null;
+
+    return { ...toPlayerView(player), phone: player.phone };
   },
 });
 

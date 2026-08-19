@@ -14,7 +14,12 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/app/(dashboard)/_components/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,6 +76,25 @@ const CONSENT_LABELS = {
 
 /** Dodici mesi: la durata dell'iscrizione, come la calcola il server. */
 const MEMBERSHIP_MS = 365 * 24 * 60 * 60 * 1000;
+
+/** Stati della tessera che meritano l'attenzione dello staff. */
+const NEEDS_ATTENTION = new Set(["unpaid", "expired", "none"]);
+
+/**
+ * Il pallino sulla linguetta.
+ *
+ * Con tre schede il rischio è che lo staff apra solo la prima e non sappia che
+ * altrove c'è qualcosa da fare — una tessera da incassare, un invito mai
+ * partito. Il pallino lo dice senza costringere a cliccare in giro.
+ */
+function AttentionDot() {
+  return (
+    <span
+      aria-hidden
+      className="ml-1.5 size-1.5 shrink-0 rounded-full bg-amber-500"
+    />
+  );
+}
 
 function toDateInput(timestamp?: number): string {
   return timestamp ? new Date(timestamp).toISOString().slice(0, 10) : "";
@@ -456,10 +480,25 @@ export function ClientSheet({
               </div>
             </SheetHeader>
 
-            <div className="space-y-8 px-4 pb-8">
-              <section className="space-y-4">
-                <h3 className="text-sm font-semibold">Anagrafica</h3>
+            <Tabs defaultValue="profile" className="px-4 pb-8">
+              <TabsList className="w-full">
+                <TabsTrigger value="profile" className="flex-1">
+                  Anagrafica
+                  {client.missingFields.length > 0 && <AttentionDot />}
+                </TabsTrigger>
+                <TabsTrigger value="account" className="flex-1">
+                  Account
+                  {client.account.state !== "active" && <AttentionDot />}
+                </TabsTrigger>
+                <TabsTrigger value="membership" className="flex-1">
+                  Iscrizione
+                  {NEEDS_ATTENTION.has(client.membershipState) && (
+                    <AttentionDot />
+                  )}
+                </TabsTrigger>
+              </TabsList>
 
+              <TabsContent value="profile" className="space-y-4 pt-4">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="sheet-firstName">Nome</Label>
@@ -561,11 +600,28 @@ export function ClientSheet({
                   )}
                   Salva anagrafica
                 </Button>
-              </section>
 
-              <section className="space-y-3 border-t pt-6">
-                <h3 className="text-sm font-semibold">Account</h3>
+                {client.account.state === "none" && (
+                  <div className="border-t pt-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={confirmRemove}
+                      disabled={saving}
+                    >
+                      <Trash2 className="size-4" />
+                      Elimina questa scheda
+                    </Button>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      Possibile finché la persona non ha un account né
+                      prenotazioni alle spalle.
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
 
+              <TabsContent value="account" className="space-y-3 pt-4">
                 {client.account.state === "none" && (
                   <>
                     <p className="text-muted-foreground text-sm leading-relaxed">
@@ -650,11 +706,11 @@ export function ClientSheet({
                     </div>
                   </div>
                 )}
-              </section>
+              </TabsContent>
 
-              <section className="space-y-4 border-t pt-6">
+              <TabsContent value="membership" className="space-y-4 pt-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">Iscrizione al club</h3>
+                  <h3 className="text-sm font-semibold">Tessera annuale</h3>
                   {client.consents && (
                     <div className="flex gap-1.5">
                       {Object.entries(CONSENT_LABELS).map(([key, label]) =>
@@ -783,25 +839,6 @@ export function ClientSheet({
                   </p>
                 </div>
 
-                {client.account.state === "none" && (
-                  <div className="border-t pt-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={confirmRemove}
-                      disabled={saving}
-                    >
-                      <Trash2 className="size-4" />
-                      Elimina questa scheda
-                    </Button>
-                    <p className="text-muted-foreground mt-1 text-xs">
-                      Possibile finché la persona non ha un account né
-                      prenotazioni alle spalle.
-                    </p>
-                  </div>
-                )}
-
                 {client.memberships.length > 1 && (
                   <div>
                     <p className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
@@ -832,8 +869,8 @@ export function ClientSheet({
                     </ul>
                   </div>
                 )}
-              </section>
-            </div>
+              </TabsContent>
+            </Tabs>
           </>
         )}
       </SheetContent>

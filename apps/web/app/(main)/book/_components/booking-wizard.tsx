@@ -175,17 +175,25 @@ export function BookingWizard() {
     form.setValue("levelIndex", findLevelRangeIndex(player.level));
   }, [player, levelTouched, form]);
 
-  // Nome e telefono arrivano da Clerk quando ci sono: chi prenota non deve
-  // riscrivere quello che il club ha già.
+  /**
+   * Il recapito che il club ha già: prima quello della scheda cliente, poi
+   * quello dell'account.
+   */
+  const knownPhone = player?.phone ?? user?.primaryPhoneNumber?.phoneNumber;
+
+  // Nome e telefono arrivano da quello che il club sa già: chi prenota non
+  // deve riscriverli. Il telefono però non sparisce dentro un campo — il passo
+  // lo mostra e chiede conferma (contact-step.tsx), perché un numero vecchio
+  // manda a vuoto la telefonata proprio quando serviva.
   useEffect(() => {
     if (!user) return;
     if (!form.getValues("name")) {
       form.setValue("name", player?.name ?? user.fullName ?? "");
     }
-    if (!form.getValues("phone") && user.primaryPhoneNumber?.phoneNumber) {
-      form.setValue("phone", user.primaryPhoneNumber.phoneNumber);
+    if (!form.getValues("phone") && knownPhone) {
+      form.setValue("phone", knownPhone);
     }
-  }, [user, player, form]);
+  }, [user, player, knownPhone, form]);
 
   // Se lo slot scelto sparisce mentre si compila, meglio dirlo subito.
   useEffect(() => {
@@ -369,6 +377,10 @@ export function BookingWizard() {
             askName={askName}
             bookerName={bookerName}
             email={email}
+            knownPhone={knownPhone}
+            onUseKnownPhone={() => {
+              if (knownPhone) form.setValue("phone", knownPhone);
+            }}
           />
         )}
 
