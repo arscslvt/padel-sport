@@ -44,14 +44,22 @@ export async function staffGate(): Promise<StaffGate> {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   const secret = process.env.BOOKING_WEBHOOK_SECRET;
 
+  // Dire *quale* manca: con due nomi in un messaggio solo si finisce a
+  // controllarle entrambe, e su Vercel una variabile può esserci per Preview e
+  // non per Production.
+  const missing = [
+    convexUrl ? null : "NEXT_PUBLIC_CONVEX_URL",
+    secret ? null : "BOOKING_WEBHOOK_SECRET",
+  ].filter(Boolean);
+
   if (!convexUrl || !secret) {
-    console.error(
-      "NEXT_PUBLIC_CONVEX_URL o BOOKING_WEBHOOK_SECRET non configurate.",
-    );
+    console.error(`Variabili non configurate: ${missing.join(", ")}.`);
     return {
       ok: false,
       response: NextResponse.json(
-        { error: "Configurazione del server incompleta." },
+        {
+          error: `Configurazione del server incompleta: manca ${missing.join(" e ")}.`,
+        },
         { status: 500 },
       ),
     };

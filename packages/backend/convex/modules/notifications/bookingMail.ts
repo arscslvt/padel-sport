@@ -86,8 +86,13 @@ export default internalAction({
     const secret = process.env.BOOKING_WEBHOOK_SECRET;
 
     if (!siteUrl || !secret) {
+      const missing = [
+        siteUrl ? null : "SITE_URL",
+        secret ? null : "BOOKING_WEBHOOK_SECRET",
+      ].filter(Boolean);
+
       console.warn(
-        "Mail della prenotazione non inviata: SITE_URL o BOOKING_WEBHOOK_SECRET non configurate.",
+        `Mail della prenotazione non inviata: manca ${missing.join(" e ")} sul deployment Convex.`,
       );
       return;
     }
