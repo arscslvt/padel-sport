@@ -1,12 +1,12 @@
 "use client";
 
 import { api } from "@padel-sport/backend/convex/_generated/api";
-import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { format, formatDistanceToNow } from "date-fns";
 import { it } from "date-fns/locale";
 import { CalendarClock, CalendarOff, Trash, UserPlus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -124,6 +124,11 @@ function ListSkeleton() {
   );
 }
 
+/** Una riga dell'elenco iscritti, così come la restituisce Convex. */
+type RsvpEntry = FunctionReturnType<
+  typeof api.modules.eventRsvps.list.default
+>[number];
+
 export default function Participations({
   events,
 }: {
@@ -146,14 +151,65 @@ export default function Participations({
       : "skip",
   );
 
-  const entries = useQuery(
-    api.modules.eventRsvps.list.default,
-    selected
-      ? { eventId: selected.eventId, blockKey: selected.blockKey }
-      : "skip",
-  );
+  /**
+   * Nomi e indirizzi degli iscritti arrivano da una route staff, non da
+   * `useQuery`: sono dati di persone, e il deployment Convex ha un URL
+   * pubblico. Il conteggio qui sopra resta in diretta perché sono soli numeri,
+   * già pubblici sulla pagina dell'evento.
+   */
+  const [entries, setEntries] = useState<RsvpEntry[] | undefined>(undefined);
 
-  const cancelRsvp = useMutation(api.modules.eventRsvps.cancel.byStaff);
+  const loadEntries = useCallback(async () => {
+    if (!selected) {
+      setEntries([]);
+      return;
+    }
+
+    setEntries(undefined);
+
+    try {
+      const response = await fetch(
+        `/api/dashboard/events/rsvps?eventId=${encodeURIComponent(selected.eventId)}&key=${encodeURIComponent(selected.blockKey)}`,
+      );
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        toast.error("Iscrizioni non caricate", {
+          description: payload?.error ?? "Riprova fra poco.",
+        });
+        setEntries([]);
+        return;
+      }
+
+      setEntries(payload.entries ?? []);
+    } catch {
+      toast.error("Iscrizioni non caricate", {
+        description: "Controlla la connessione e riprova.",
+      });
+      setEntries([]);
+    }
+  }, [selected]);
+
+  useEffect(() => {
+    void loadEntries();
+  }, [loadEntries]);
+
+  const cancelRsvp = async (id: string) => {
+    const response = await fetch("/api/dashboard/events/rsvps", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new Error(
+        payload?.error ?? "Non riesco ad annullare l'iscrizione.",
+      );
+    }
+
+    await loadEntries();
+  };
 
   const countOf = (form: FormRow) =>
     counts?.find(
@@ -205,7 +261,7 @@ export default function Participations({
               variant="destructive"
               className="flex-1"
               onClick={() =>
-                cancelRsvp({ id: entry.id as Id<"eventRsvps"> })
+                cancelRsvp(entry.id)
                   .then(() => {
                     toast.dismiss();
                     toast.success("Iscrizione annullata", {

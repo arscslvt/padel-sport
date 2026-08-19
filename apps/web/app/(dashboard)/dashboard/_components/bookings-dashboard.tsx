@@ -2,7 +2,7 @@
 
 import { api } from "@padel-sport/backend/convex/_generated/api";
 import type { Doc, Id } from "@padel-sport/backend/convex/_generated/dataModel";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import {
@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 import {
@@ -137,6 +137,7 @@ function BookingCard({
   partner,
   isUpdating,
   onAccept,
+  onChanged,
 }: {
   booking: Booking;
   /** L'altro gruppo, quando la struttura ha unito due prenotazioni parziali. */
@@ -146,11 +147,32 @@ function BookingCard({
     bookingId: Id<"bookings">,
     withNotification: boolean,
   ) => Promise<void>;
+  /** Ricarica l'agenda: senza reattività, l'elenco va richiesto di nuovo. */
+  onChanged: () => void;
 }) {
   const totalAmount = booking.pricePerPlayer * booking.players.length;
-  const deleteBooking = useMutation(api.bookings.delete.default);
 
   const [withNotification, setWithNotification] = useState(true);
+
+  /**
+   * Annullare è un atto della struttura: passa dalla route che verifica la
+   * sessione staff, non da una mutation che il browser potrebbe chiamare da
+   * solo (app/api/dashboard/bookings).
+   */
+  const deleteBooking = async () => {
+    const response = await fetch("/api/dashboard/bookings", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookingId: booking._id }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.error ?? "Non riesco ad annullare.");
+    }
+
+    onChanged();
+  };
   const [splitting, setSplitting] = useState(false);
 
   /** Rimette i due gruppi su due campi distinti, se ce n'è uno libero. */
@@ -268,19 +290,27 @@ function BookingCard({
             </Button>
             <Button
               onClick={() =>
-                deleteBooking({ bookingId: booking._id }).then(() => {
-                  toast.dismiss();
-                  toast.success("Prenotazione cancellata", {
-                    description: (
-                      <>
-                        <span className="font-semibold">
-                          {booking.bookedBy}
-                        </span>{" "}
-                        è stato avvisato della cancellazione della prenotazione.
-                      </>
-                    ),
-                  });
-                })
+                deleteBooking()
+                  .then(() => {
+                    toast.dismiss();
+                    toast.success("Prenotazione cancellata", {
+                      description: (
+                        <>
+                          <span className="font-semibold">
+                            {booking.bookedBy}
+                          </span>{" "}
+                          è stato avvisato della cancellazione della
+                          prenotazione.
+                        </>
+                      ),
+                    });
+                  })
+                  .catch((error: Error) => {
+                    toast.dismiss();
+                    toast.error("Prenotazione non cancellata", {
+                      description: error.message,
+                    });
+                  })
               }
               variant="destructive"
               className="flex-1"
@@ -481,12 +511,42 @@ function BookingCard({
 }
 
 export default function BookingsDashboard() {
-  const bookings = useQuery(api.bookings.list.default, {
-    includePast: false,
-  });
+  /**
+   * L'agenda arriva da una route, non da `useQuery`: contiene nomi e telefoni
+   * dei clienti, e il deployment Convex ha un URL pubblico. Si perde
+   * l'aggiornamento in tempo reale — l'elenco si ricarica dopo ogni azione —
+   * che per un'agenda è un prezzo basso.
+   */
+  const [bookings, setBookings] = useState<Booking[] | undefined>(undefined);
+
+  const load = useCallback(async () => {
+    try {
+      const response = await fetch("/api/dashboard/bookings");
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        toast.error("Prenotazioni non caricate", {
+          description: payload?.error ?? "Riprova fra poco.",
+        });
+        setBookings([]);
+        return;
+      }
+
+      setBookings(payload.bookings ?? []);
+    } catch {
+      toast.error("Prenotazioni non caricate", {
+        description: "Controlla la connessione e riprova.",
+      });
+      setBookings([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   // I nomi dei campi servono a dire *quale* si libera unendo due prenotazioni.
   const courts = useQuery(api.modules.settings.booking.courts, {});
-  const acceptBooking = useMutation(api.bookings.update.accept);
   const [updatingId, setUpdatingId] = useState<Id<"bookings"> | null>(null);
 
   const [showSearch, setShowSearch] = useState(false);
@@ -519,7 +579,19 @@ export default function BookingsDashboard() {
   ) => {
     try {
       setUpdatingId(bookingId);
-      await acceptBooking({ bookingId, withNotification });
+
+      const response = await fetch("/api/dashboard/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId, withNotification }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error ?? "Non riesco ad accettare.");
+      }
+
+      await load();
     } catch (error) {
       toast.error("Operazione non completata", {
         description:
@@ -707,6 +779,7 @@ export default function BookingsDashboard() {
                   partner={mergedPartnerOf(booking, bookings)}
                   isUpdating={updatingId === booking._id}
                   onAccept={handleAccept}
+                  onChanged={() => void load()}
                 />
               ))}
             </div>
@@ -722,6 +795,7 @@ export default function BookingsDashboard() {
             </p>
           </div>
           <MergePairs
+            onMerged={() => void load()}
             bookings={bookings}
             courts={(courts ?? []).map((court) => ({
               id: court.id,
@@ -760,6 +834,7 @@ export default function BookingsDashboard() {
                   partner={mergedPartnerOf(booking, bookings)}
                   isUpdating={updatingId === booking._id}
                   onAccept={handleAccept}
+                  onChanged={() => void load()}
                 />
               ))}
             </div>

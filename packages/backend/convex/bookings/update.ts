@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, mutation } from "../_generated/server";
 import { notificationStatus as notification } from "../tables/bookings";
 import { api, internal } from "../_generated/api";
+import { assertServer } from "../utils/serverSecret";
 
 export const notificationStatus = internalMutation({
   args: {
@@ -21,12 +22,22 @@ export const notificationStatus = internalMutation({
   },
 });
 
+/**
+ * Accetta una prenotazione: la conferma al cliente e gli manda il QR.
+ *
+ * È un atto della struttura, non del cliente, e va protetto come tale: finché
+ * questa mutation è stata pubblica chiunque conoscesse l'URL del deployment
+ * poteva confermare prenotazioni al posto dello staff, mail compresa.
+ */
 export const accept = mutation({
   args: {
+    secret: v.string(),
     bookingId: v.id("bookings"),
     withNotification: v.optional(v.boolean()),
   },
-  handler: async (ctx, { bookingId, withNotification = true }) => {
+  handler: async (ctx, { secret, bookingId, withNotification = true }) => {
+    assertServer(secret);
+
     const booking = await ctx.runQuery(api.bookings.get.getById, {
       bookingId,
     });

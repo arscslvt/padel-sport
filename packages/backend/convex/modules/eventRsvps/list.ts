@@ -1,24 +1,23 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
+import { assertServer } from "../../utils/serverSecret";
 
 /**
  * Elenco completo delle iscrizioni a un modulo, dati personali inclusi.
  *
- * A differenza delle altre query pubbliche del backend, questa pretende
- * un'identità: l'URL del deployment è nel bundle del sito, quindi senza
- * controllo chiunque potrebbe scaricarsi gli indirizzi email degli iscritti.
- * Il filtro «solo staff» sta un livello sopra, nella route che la chiama.
+ * Protetta dal segreto condiviso, non dalla semplice presenza di una sessione:
+ * l'URL del deployment è nel bundle del sito, e «essere loggati» lo è anche un
+ * cliente qualunque — che non ha titolo per leggere le email degli iscritti a
+ * un evento. Il controllo su chi è staff sta nella route che chiama.
  */
 export default query({
   args: {
+    secret: v.string(),
     eventId: v.string(),
     blockKey: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Serve un accesso per leggere le iscrizioni.");
-    }
+    assertServer(args.secret);
 
     const entries = await ctx.db
       .query("eventRsvps")

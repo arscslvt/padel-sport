@@ -139,9 +139,12 @@ function PairCard({
 export default function MergePairs({
   bookings,
   courts,
+  onMerged,
 }: {
   bookings: readonly Booking[];
   courts: { id: string; name: string }[];
+  /** L'agenda non è più reattiva: dopo un'unione va richiesta di nuovo. */
+  onMerged: () => void;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -172,6 +175,8 @@ export default function MergePairs({
       toast.success("Campo completato", {
         description: `${pair.keep.bookedBy} e ${pair.move.bookedBy} giocheranno insieme. Le mail sono partite e il campo liberato torna prenotabile.`,
       });
+
+      onMerged();
     } catch {
       toast.error("Prenotazioni non unite", {
         description: "Controlla la connessione e riprova.",

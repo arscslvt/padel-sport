@@ -1,17 +1,23 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { mutation } from "../_generated/server";
+import { assertServer } from "../utils/serverSecret";
 import { releaseMerge } from "./lib";
 
+/**
+ * Annulla una prenotazione dalla dashboard, avvisando il cliente.
+ *
+ * Prima bastava essere autenticati: un cliente qualunque poteva cancellare la
+ * partita di un altro, mail di disdetta compresa. Ora è riservata alla
+ * struttura, come l'accettazione.
+ */
 export default mutation({
   args: {
+    secret: v.string(),
     bookingId: v.id("bookings"),
   },
-  handler: async (ctx, { bookingId }) => {
-    const user = await ctx.auth.getUserIdentity();
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+  handler: async (ctx, { secret, bookingId }) => {
+    assertServer(secret);
 
     // Prima di annullare: se il campo era condiviso, l'altro gruppo resta e
     // va rimesso su un campo tutto suo (bookings/lib.ts).

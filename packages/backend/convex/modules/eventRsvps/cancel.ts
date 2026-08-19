@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
+import { assertServer } from "../../utils/serverSecret";
 
 /** Quel che serve a chi annulla per capire cosa ha annullato, e al club per saperlo. */
 function snapshot(rsvp: Doc<"eventRsvps">, alreadyCancelled: boolean) {
@@ -66,13 +67,13 @@ export default mutation({
  */
 export const byStaff = mutation({
   args: {
+    secret: v.string(),
     id: v.id("eventRsvps"),
   },
-  handler: async (ctx, { id }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Serve un accesso per annullare un'iscrizione.");
-    }
+  handler: async (ctx, { secret, id }) => {
+    // Annullare l'iscrizione di qualcun altro è un atto della struttura:
+    // «essere loggati» lo è anche il cliente al quale la si sta cancellando.
+    assertServer(secret);
 
     const rsvp = await ctx.db.get(id);
     if (!rsvp) {

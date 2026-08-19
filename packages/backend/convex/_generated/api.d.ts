@@ -9,13 +9,11 @@
  */
 
 import type * as bookings_availability from "../bookings/availability.js";
-import type * as bookings_create from "../bookings/create.js";
 import type * as bookings_delete from "../bookings/delete.js";
 import type * as bookings_get from "../bookings/get.js";
 import type * as bookings_getByCode from "../bookings/getByCode.js";
 import type * as bookings_lib from "../bookings/lib.js";
 import type * as bookings_list from "../bookings/list.js";
-import type * as bookings_listRange from "../bookings/listRange.js";
 import type * as bookings_merge from "../bookings/merge.js";
 import type * as bookings_mine from "../bookings/mine.js";
 import type * as bookings_update from "../bookings/update.js";
@@ -121,13 +119,11 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "bookings/availability": typeof bookings_availability;
-  "bookings/create": typeof bookings_create;
   "bookings/delete": typeof bookings_delete;
   "bookings/get": typeof bookings_get;
   "bookings/getByCode": typeof bookings_getByCode;
   "bookings/lib": typeof bookings_lib;
   "bookings/list": typeof bookings_list;
-  "bookings/listRange": typeof bookings_listRange;
   "bookings/merge": typeof bookings_merge;
   "bookings/mine": typeof bookings_mine;
   "bookings/update": typeof bookings_update;
