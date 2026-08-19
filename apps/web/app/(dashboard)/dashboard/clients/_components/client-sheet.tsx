@@ -101,6 +101,7 @@ export function ClientSheet({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [birthPlace, setBirthPlace] = useState("");
   const [gender, setGender] = useState<Gender | undefined>();
   const [residence, setResidence] = useState<Residence>({});
   const [optional, setOptional] = useState<OptionalFieldsValue>(EMPTY_OPTIONAL);
@@ -134,6 +135,7 @@ export function ClientSheet({
         setEmail(detail.email ?? "");
         setPhone(detail.phone ?? "");
         setBirthDate(toDateInput(detail.birthDate));
+        setBirthPlace(detail.birthPlace ?? "");
         setGender(detail.gender);
         setResidence(detail.residence ?? {});
         setOptional({
@@ -330,6 +332,7 @@ export function ClientSheet({
           email: email.trim().toLowerCase() || undefined,
           phone: phone.trim() || undefined,
           birthDate: fromDateInput(birthDate),
+          birthPlace: birthPlace.trim() || undefined,
           gender,
           residence: residencePayload(residence),
           ...optionalPayload(optional),
@@ -503,6 +506,15 @@ export function ClientSheet({
                       onChange={(event) => setEmail(event.target.value)}
                     />
                   </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sheet-birthPlace">Luogo di nascita</Label>
+                    <Input
+                      id="sheet-birthPlace"
+                      value={birthPlace}
+                      onChange={(event) => setBirthPlace(event.target.value)}
+                    />
+                  </div>
+
                   <ResidenceFields
                     value={residence}
                     onChange={setResidence}

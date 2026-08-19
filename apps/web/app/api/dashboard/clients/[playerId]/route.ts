@@ -14,6 +14,7 @@ const patchSchema = z.object({
   lastName: z.string().trim().min(2).max(60).optional(),
   phone: z.string().trim().max(30).optional(),
   birthDate: z.number().optional(),
+  birthPlace: z.string().trim().max(80).optional(),
   gender: z.enum(["f", "m", "other", "unspecified"]).optional(),
   level: z.number().min(1).max(5).optional(),
   taxCode: z.string().trim().max(16).optional(),

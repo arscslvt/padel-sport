@@ -96,6 +96,8 @@ const players = defineTable({
   email: v.optional(v.string()),
   phone: v.optional(v.string()),
   birthDate: v.optional(v.float64()),
+  /** Comune di nascita: insieme alla data serve al codice fiscale e al tesseramento. */
+  birthPlace: v.optional(v.string()),
   gender: v.optional(gender),
   consents: v.optional(consents),
   residence: v.optional(residence),

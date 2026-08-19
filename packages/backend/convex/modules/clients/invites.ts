@@ -61,6 +61,7 @@ export const byToken = query({
             lastName: player.lastName ?? invite.lastName,
             phone: player.phone,
             birthDate: player.birthDate,
+            birthPlace: player.birthPlace,
             gender: player.gender,
             level: player.level,
             taxCode: player.taxCode,

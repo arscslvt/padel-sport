@@ -22,6 +22,7 @@ const bodySchema = z.object({
   lastName: z.string().trim().min(2).max(60),
   phone: z.string().trim().min(6).max(30),
   birthDate: z.number(),
+  birthPlace: z.string().trim().max(80).optional(),
   gender: z.enum(["f", "m", "other", "unspecified"]),
   level: z.number().min(1).max(5),
   consents: z.object({

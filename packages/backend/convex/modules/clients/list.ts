@@ -31,6 +31,7 @@ function toRow(player: Doc<"players">) {
     email: player.email,
     phone: player.phone,
     birthDate: player.birthDate,
+    birthPlace: player.birthPlace,
     gender: player.gender,
     avatarUrl: player.avatarUrl,
     level: player.level,

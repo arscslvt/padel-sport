@@ -106,6 +106,7 @@ export default async function JoinPage({
           lastName={invite.profile?.lastName ?? invite.lastName}
           phone={invite.profile?.phone}
           birthDate={invite.profile?.birthDate}
+          birthPlace={invite.profile?.birthPlace}
           gender={invite.profile?.gender}
           level={invite.profile?.level}
           taxCode={invite.profile?.taxCode}

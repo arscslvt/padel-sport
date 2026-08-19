@@ -49,6 +49,7 @@ export interface Client {
   email?: string;
   phone?: string;
   birthDate?: number;
+  birthPlace?: string;
   gender?: Gender;
   avatarUrl?: string;
   level: number;

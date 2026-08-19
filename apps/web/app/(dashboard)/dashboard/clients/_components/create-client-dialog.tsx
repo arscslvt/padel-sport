@@ -61,6 +61,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [birthPlace, setBirthPlace] = useState("");
   const [gender, setGender] = useState<Gender | undefined>();
   const [levelIndex, setLevelIndex] = useState(1);
   const [residence, setResidence] = useState<Residence>({});
@@ -72,6 +73,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
     setEmail("");
     setPhone("");
     setBirthDate("");
+    setBirthPlace("");
     setGender(undefined);
     setLevelIndex(1);
     setResidence({});
@@ -92,6 +94,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
           birthDate: birthDate
             ? new Date(`${birthDate}T12:00:00`).getTime()
             : undefined,
+          birthPlace: birthPlace.trim() || undefined,
           gender,
           level: LEVEL_RANGES[levelIndex].level,
           residence: residencePayload(residence),
@@ -200,6 +203,16 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
               onChange={(event) => setBirthDate(event.target.value)}
             />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-birthPlace">Luogo di nascita</Label>
+            <Input
+              id="new-birthPlace"
+              placeholder="Siracusa"
+              value={birthPlace}
+              onChange={(event) => setBirthPlace(event.target.value)}
+            />
+          </div>
+
           <ResidenceFields
             value={residence}
             onChange={setResidence}

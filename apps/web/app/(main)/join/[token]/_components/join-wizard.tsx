@@ -82,6 +82,7 @@ export function JoinWizard({
   lastName: knownLastName,
   phone: knownPhone,
   birthDate: knownBirthDate,
+  birthPlace: knownBirthPlace,
   gender: knownGender,
   level: knownLevel,
   taxCode: knownTaxCode,
@@ -94,6 +95,7 @@ export function JoinWizard({
   lastName: string;
   phone?: string;
   birthDate?: number;
+  birthPlace?: string;
   gender?: Gender;
   level?: number;
   taxCode?: string;
@@ -115,6 +117,7 @@ export function JoinWizard({
   const [birthDate, setBirthDate] = useState(
     knownBirthDate ? new Date(knownBirthDate).toISOString().slice(0, 10) : "",
   );
+  const [birthPlace, setBirthPlace] = useState(knownBirthPlace ?? "");
   const [gender, setGender] = useState<Gender | null>(knownGender ?? null);
   const [levelIndex, setLevelIndex] = useState(
     findLevelRangeIndex(knownLevel ?? null),
@@ -192,6 +195,7 @@ export function JoinWizard({
           lastName: lastName.trim(),
           phone: phone.trim(),
           birthDate: new Date(`${birthDate}T12:00:00`).getTime(),
+          birthPlace: birthPlace.trim() || undefined,
           gender,
           level: LEVEL_RANGES[levelIndex].level,
           consents,
@@ -358,6 +362,17 @@ export function JoinWizard({
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="birthPlace">Luogo di nascita</Label>
+          <Input
+            id="birthPlace"
+            className={FIELD_CLASS}
+            placeholder="Siracusa"
+            value={birthPlace}
+            onChange={(event) => setBirthPlace(event.target.value)}
+          />
+        </div>
+
         <ResidenceFields
           value={residence}
           onChange={setResidence}
