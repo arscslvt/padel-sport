@@ -3,6 +3,7 @@ import { action, internalMutation, mutation } from "../_generated/server";
 import { normalizePhone } from "../modules/openMatches/lib";
 import { bookingNewSchema } from "../types/bookings/booking.new.type";
 import { sendAlert } from "../utils/notification_client";
+import { formatClubDateTime } from "../utils/clubTime";
 
 const SLOT_INTERVAL_MINUTES = 30;
 const MATCH_DURATION_MINUTES = 90;
@@ -158,9 +159,9 @@ export default mutation({
       internal.modules.notifications.alert.default,
       {
         title: "Nuova prenotazione",
-        message: `Nuova prenotazione da ${bookedBy} per il ${new Date(
+        message: `Nuova prenotazione da ${bookedBy} per il ${formatClubDateTime(
           booking.bookingDate,
-        ).toLocaleString("it-IT")}.`,
+        )}.`,
         tags: ["booking", "new"],
       },
     );

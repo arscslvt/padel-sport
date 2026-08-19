@@ -2,12 +2,8 @@
 
 import { JWT } from "google-auth-library";
 
-import {
-  CLUB_TIME_ZONE,
-  type ExternalBlock,
-  SOURCE_PROPERTY,
-  SOURCE_VALUE,
-} from "./lib";
+import { CLUB_TIME_ZONE } from "../../utils/clubTime";
+import { type ExternalBlock, SOURCE_PROPERTY, SOURCE_VALUE } from "./lib";
 
 /**
  * Strato sottile sopra l'API Calendar di Google: quel tanto che serve a

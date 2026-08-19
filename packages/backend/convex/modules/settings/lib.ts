@@ -1,5 +1,6 @@
 import type { Doc } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
+import { CLUB_TIME_ZONE } from "../../utils/clubTime";
 
 /**
  * Le regole di apertura, con i valori di partenza.
@@ -8,8 +9,6 @@ import type { QueryCtx } from "../../_generated/server";
  * stavano cablati nel codice: finché nessuno tocca la configurazione, il
  * comportamento è identico a prima.
  */
-
-export const CLUB_TIME_ZONE = "Europe/Rome";
 
 export interface OpeningWindow {
   weekday: number;

@@ -17,6 +17,7 @@ import {
   requirePlayer,
   SLOT_INTERVAL_MS,
 } from "./lib";
+import { formatClubDateTime } from "../../utils/clubTime";
 
 /**
  * Crea una prenotazione dall'app mobile: occupa un campo reale
@@ -260,9 +261,9 @@ export default mutation({
           origin === "web"
             ? "Nuova prenotazione dal sito"
             : "Nuova prenotazione dall'app",
-        message: `${player.name} ha prenotato per il ${new Date(
+        message: `${player.name} ha prenotato per il ${formatClubDateTime(
           args.bookingDate,
-        ).toLocaleString("it-IT")}${visibilityNote}.`,
+        )}${visibilityNote}.`,
         tags: ["booking", "new", origin === "web" ? "web" : "mobile"],
       },
     );

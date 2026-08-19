@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalAction, internalQuery } from "../../_generated/server";
 import { MATCH_DURATION_MS } from "../openMatches/lib";
+import { formatClubDateTime } from "../../utils/clubTime";
 
 /**
  * Le mail che seguono una prenotazione dopo che è stata creata: la conferma
@@ -123,8 +124,8 @@ export default internalAction({
           kind === "accepted"
             ? "Conferma non comunicata"
             : "Disdetta non comunicata",
-        message: `${data.bookedBy}, ${new Date(data.start).toLocaleString(
-          "it-IT",
+        message: `${data.bookedBy}, ${formatClubDateTime(
+          data.start,
         )}: avvisare a mano.`,
         tags: ["booking", kind, "error"],
         priority: "high",

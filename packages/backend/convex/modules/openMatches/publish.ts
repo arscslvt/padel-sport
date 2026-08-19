@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
 import { LEVEL_MAX, LEVEL_MIN, requirePlayer, visibilityOf } from "./lib";
+import { formatClubDateTime } from "../../utils/clubTime";
 
 /**
  * Apre a tutti una partita privata o di cerchia.
@@ -82,11 +83,9 @@ export default mutation({
       internal.modules.notifications.alert.default,
       {
         title: "Partita aperta a tutti",
-        message: `${player.name} ha reso aperta la partita del ${new Date(
+        message: `${player.name} ha reso aperta la partita del ${formatClubDateTime(
           match.matchDate,
-        ).toLocaleString("it-IT")}: mancano ${
-          match.maxPlayers - match.playerIds.length
-        } giocatori.`,
+        )}: mancano ${match.maxPlayers - match.playerIds.length} giocatori.`,
         tags: ["match", "open"],
       },
     );

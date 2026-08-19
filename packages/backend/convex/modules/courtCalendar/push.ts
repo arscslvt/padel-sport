@@ -5,6 +5,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
 import { calendarConfig, deleteBooking, insertBooking } from "./client";
+import { formatClubDateTime } from "../../utils/clubTime";
 
 /**
  * Porta le nostre prenotazioni sul calendario condiviso, così che SumUp le
@@ -55,8 +56,8 @@ export default internalAction({
 
       await ctx.runAction(internal.modules.notifications.alert.default, {
         title: "Prenotazione non sincronizzata con SumUp",
-        message: `${booking.bookedBy}, ${new Date(booking.start).toLocaleString(
-          "it-IT",
+        message: `${booking.bookedBy}, ${formatClubDateTime(
+          booking.start,
         )}: bloccare l'orario su SumUp a mano.`,
         tags: ["booking", "calendar", "error"],
         priority: "high",

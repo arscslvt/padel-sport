@@ -23,9 +23,6 @@ export const SYNC_WINDOW_DAYS = 14;
 export const SOURCE_PROPERTY = "padelSource";
 export const SOURCE_VALUE = "convex";
 
-/** Fuso della struttura: gli eventi «tutto il giorno» arrivano senza orario. */
-export const CLUB_TIME_ZONE = "Europe/Rome";
-
 export interface ExternalBlock {
   externalId: string;
   start: number;

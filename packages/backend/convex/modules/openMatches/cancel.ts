@@ -6,6 +6,7 @@ import {
   cancelPendingMatchInvites,
   requirePlayer,
 } from "./lib";
+import { formatClubDateTime } from "../../utils/clubTime";
 
 /**
  * Elimina una partita creata dall'utente, annullando anche la prenotazione
@@ -81,9 +82,9 @@ export default mutation({
       internal.modules.notifications.alert.default,
       {
         title: "Partita eliminata dall'app",
-        message: `${player.name} ha eliminato la partita del ${new Date(
+        message: `${player.name} ha eliminato la partita del ${formatClubDateTime(
           match.matchDate,
-        ).toLocaleString("it-IT")}: il campo torna disponibile.`,
+        )}: il campo torna disponibile.`,
         tags: ["booking", "cancelled", "mobile"],
       },
     );

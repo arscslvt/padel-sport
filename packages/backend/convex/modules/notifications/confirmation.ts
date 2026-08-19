@@ -4,7 +4,7 @@ import { api, internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
 import { getMessagingClient } from "../../utils/notification_client";
 import { v } from "convex/values";
-import { format } from "date-fns";
+import { formatClubDateTime } from "../../utils/clubTime";
 
 export const sendConfirmationWithWhatsapp = internalAction({
   args: {
@@ -35,10 +35,10 @@ export const sendConfirmationWithWhatsapp = internalAction({
       return;
     }
 
-    const humanDate = format(
-      new Date(booking.bookingDate),
-      "dd/MM/yyyy 'alle' HH:mm",
-    );
+    // Nell'ora del club, non in quella del server: le funzioni Convex girano
+    // su UTC, e finché questa riga usava il fuso di sistema il messaggio
+    // annunciava le 13:00 per una partita delle 15:00.
+    const humanDate = formatClubDateTime(booking.bookingDate, " alle ");
 
     /**
      * Le variabili del template approvato su Twilio, in ordine.

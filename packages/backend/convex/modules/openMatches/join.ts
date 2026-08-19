@@ -3,6 +3,7 @@ import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
 import { membershipOf } from "../circles/lib";
 import { addPlayerToMatch, requirePlayer, visibilityOf } from "./lib";
+import { formatClubDateTime } from "../../utils/clubTime";
 
 /** Unisciti subito a una partita aperta in modalità "direct". */
 export default mutation({
@@ -43,9 +44,9 @@ export default mutation({
       internal.modules.notifications.alert.default,
       {
         title: "Nuovo giocatore in partita",
-        message: `${player.name} si è unito alla partita del ${new Date(
+        message: `${player.name} si è unito alla partita del ${formatClubDateTime(
           match.matchDate,
-        ).toLocaleString("it-IT")}.`,
+        )}.`,
         tags: ["match", "join"],
       },
     );

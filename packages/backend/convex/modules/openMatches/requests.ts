@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation, query } from "../../_generated/server";
 import { addPlayerToMatch, requirePlayer, toPlayerView } from "./lib";
+import { formatClubDateTime } from "../../utils/clubTime";
 
 /** Invia una richiesta di partecipazione a una partita in modalità "request". */
 export const request = mutation({
@@ -55,9 +56,9 @@ export const request = mutation({
       internal.modules.notifications.alert.default,
       {
         title: "Richiesta di partecipazione",
-        message: `${player.name} chiede di unirsi alla partita del ${new Date(
+        message: `${player.name} chiede di unirsi alla partita del ${formatClubDateTime(
           match.matchDate,
-        ).toLocaleString("it-IT")}.`,
+        )}.`,
         tags: ["match", "request"],
       },
     );
