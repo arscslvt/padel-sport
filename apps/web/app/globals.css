@@ -240,8 +240,9 @@
  * presente accanto a loro, a garantire il contrasto del testo.
  */
 @supports not (
-  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
-) {
+    (backdrop-filter: blur(1px)) or
+    (-webkit-backdrop-filter: blur(1px))
+  ) {
   [data-slot="progressive-blur"] {
     display: none;
   }
@@ -306,4 +307,18 @@
 .prose-event :not(pre) > code::before,
 .prose-event :not(pre) > code::after {
   content: none;
+}
+
+/**
+ * I toast restano cliccabili sopra un dialog o uno sheet.
+ *
+ * Radix, finché un layer modale è aperto, spegne i puntatori su tutto il
+ * `body` e li riaccende solo dentro il proprio contenuto. I toast però vivono
+ * in un portal a parte: ereditavano lo spegnimento, e un avviso con dei tasti
+ * — «Elimina questa scheda?», «Conferma prenotazione» — si vedeva ma non si
+ * poteva premere. Fuori dai modali non cambia niente: è il comportamento che
+ * avrebbero comunque.
+ */
+[data-sonner-toaster] {
+  pointer-events: auto;
 }

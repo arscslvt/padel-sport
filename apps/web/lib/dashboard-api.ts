@@ -16,7 +16,13 @@ import { isStaffMember } from "@/lib/staff";
  */
 export type StaffGate =
   | { ok: false; response: NextResponse }
-  | { ok: true; convex: ConvexHttpClient; secret: string };
+  | {
+      ok: true;
+      convex: ConvexHttpClient;
+      secret: string;
+      /** Chi dello staff sta chiedendo: serve a firmare quello che fa. */
+      userId: string;
+    };
 
 export async function staffGate(): Promise<StaffGate> {
   const { userId } = await auth();
@@ -65,5 +71,5 @@ export async function staffGate(): Promise<StaffGate> {
     };
   }
 
-  return { ok: true, convex: new ConvexHttpClient(convexUrl), secret };
+  return { ok: true, convex: new ConvexHttpClient(convexUrl), secret, userId };
 }

@@ -24,6 +24,14 @@ const bookingSettings = defineTable({
   ),
   /** Quanti giorni in avanti si può prenotare, oggi incluso. */
   bookableDays: v.float64(),
+  /**
+   * Prenotare online richiede la tessera del club in corso e pagata.
+   *
+   * Nasce spento e va acceso dal club: acceso su un'anagrafica ancora vuota
+   * rifiuterebbe tutti, perché nessuno risulterebbe iscritto. È opzionale
+   * perché la riga di configurazione può essere più vecchia di questo campo.
+   */
+  membershipRequired: v.optional(v.boolean()),
   updatedAt: v.float64(),
 });
 

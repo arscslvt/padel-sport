@@ -19,6 +19,8 @@ export interface OpeningWindow {
 export interface BookingSettings {
   windows: OpeningWindow[];
   bookableDays: number;
+  /** La prenotazione online richiede la tessera in corso (modules/clients). */
+  membershipRequired: boolean;
 }
 
 const DEFAULT_DAY_WINDOWS = [
@@ -31,6 +33,8 @@ export const DEFAULT_SETTINGS: BookingSettings = {
     DEFAULT_DAY_WINDOWS.map((window) => ({ weekday, ...window })),
   ),
   bookableDays: 7,
+  // Spento: il controllo sulla tessera va acceso quando l'anagrafica è pronta.
+  membershipRequired: false,
 };
 
 export async function bookingSettings(ctx: QueryCtx): Promise<BookingSettings> {
@@ -40,7 +44,11 @@ export async function bookingSettings(ctx: QueryCtx): Promise<BookingSettings> {
 
   if (!row) return DEFAULT_SETTINGS;
 
-  return { windows: row.windows, bookableDays: row.bookableDays };
+  return {
+    windows: row.windows,
+    bookableDays: row.bookableDays,
+    membershipRequired: row.membershipRequired ?? false,
+  };
 }
 
 export function toMinutes(time: string): number {

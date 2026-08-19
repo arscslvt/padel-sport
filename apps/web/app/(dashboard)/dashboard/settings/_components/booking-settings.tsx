@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import type { OpeningWindow } from "@/lib/booking";
@@ -67,6 +68,7 @@ export function BookingSettings() {
 
   const [windows, setWindows] = useState<OpeningWindow[]>([]);
   const [bookableDays, setBookableDays] = useState(7);
+  const [membershipRequired, setMembershipRequired] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // La configurazione arriva dopo il primo render: la copiamo in locale una
@@ -76,6 +78,7 @@ export function BookingSettings() {
     if (loaded || !settings) return;
     setWindows(settings.windows);
     setBookableDays(settings.bookableDays);
+    setMembershipRequired(settings.membershipRequired);
     setLoaded(true);
   }, [settings, loaded]);
 
@@ -103,7 +106,7 @@ export function BookingSettings() {
       const response = await fetch("/api/dashboard/booking-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ windows, bookableDays }),
+        body: JSON.stringify({ windows, bookableDays, membershipRequired }),
       });
       const payload = await response.json().catch(() => null);
 
@@ -205,6 +208,47 @@ export function BookingSettings() {
                 : `${activeCourts} ${activeCourts === 1 ? "campo prenotabile" : "campi prenotabili"} in contemporanea.`}
             </p>
           </div>
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">Iscrizione al club</h2>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Chi può prenotare online.
+          </p>
+        </div>
+
+        <label
+          htmlFor="membershipRequired"
+          className="flex max-w-2xl cursor-pointer items-start gap-3 rounded-lg border p-3.5"
+        >
+          <Checkbox
+            id="membershipRequired"
+            checked={membershipRequired}
+            onCheckedChange={(checked) =>
+              setMembershipRequired(Boolean(checked))
+            }
+            className="mt-0.5"
+          />
+          <span>
+            <span className="block text-sm font-medium">
+              Serve la tessera in corso per prenotare
+            </span>
+            <span className="block text-sm text-muted-foreground">
+              Sito e app rifiutano la prenotazione a chi non ha l'iscrizione
+              valida e pagata. Accendilo solo quando l'anagrafica è pronta: con
+              i clienti ancora da inserire, si troverebbero tutti bloccati.
+            </span>
+          </span>
+        </label>
+
+        {membershipRequired && (
+          <p className="max-w-2xl rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            Controlla in <strong>Clienti</strong> quante tessere risultano da
+            pagare o scadute: quelle persone non riusciranno più a prenotare
+            online finché non le rinnovi.
+          </p>
         )}
       </section>
 

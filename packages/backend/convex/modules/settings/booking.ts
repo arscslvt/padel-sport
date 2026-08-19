@@ -49,8 +49,9 @@ export const update = mutation({
     secret: v.string(),
     windows: v.array(windowValidator),
     bookableDays: v.number(),
+    membershipRequired: v.optional(v.boolean()),
   },
-  handler: async (ctx, { secret, windows, bookableDays }) => {
+  handler: async (ctx, { secret, windows, bookableDays, membershipRequired }) => {
     assertServer(secret);
 
     if (bookableDays < 1 || bookableDays > 60) {
@@ -79,6 +80,7 @@ export const update = mutation({
       await ctx.db.patch(existing._id, {
         windows,
         bookableDays,
+        membershipRequired: membershipRequired ?? existing.membershipRequired,
         updatedAt: Date.now(),
       });
       return existing._id;
@@ -87,6 +89,7 @@ export const update = mutation({
     return await ctx.db.insert("bookingSettings", {
       windows,
       bookableDays,
+      membershipRequired: membershipRequired ?? false,
       updatedAt: Date.now(),
     });
   },

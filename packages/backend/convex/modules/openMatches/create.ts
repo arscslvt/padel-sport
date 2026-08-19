@@ -3,6 +3,7 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
 import { membersOf, requireCircleMember } from "../circles/lib";
+import { isMembershipValid, membershipStatus } from "../clients/lib";
 import { bookingSettings, isWithinOpeningHours } from "../settings/lib";
 import { addGuestToMatch } from "./guests";
 import { inviteToMatch } from "./invite";
@@ -100,6 +101,20 @@ export default mutation({
       throw new Error(
         `Si può prenotare fino a ${settings.bookableDays} giorni in anticipo.`,
       );
+    }
+
+    // La tessera del club, quando il club la pretende. È l'unico punto da cui
+    // passano sia il sito sia l'app, quindi il controllo si scrive qui e vale
+    // per entrambi. Spento di default: acceso su un'anagrafica vuota
+    // rifiuterebbe chiunque (modules/settings/lib.ts).
+    if (settings.membershipRequired) {
+      const { state } = await membershipStatus(ctx, player._id);
+
+      if (!isMembershipValid(state)) {
+        throw new Error(
+          "Per prenotare online serve l'iscrizione al club in corso. Passa in struttura per rinnovarla.",
+        );
+      }
     }
 
     if (

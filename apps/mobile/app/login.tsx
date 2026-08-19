@@ -1,4 +1,4 @@
-import { useSignIn, useSignUp, useSSO } from "@clerk/clerk-expo";
+import { useSignIn, useSSO } from "@clerk/clerk-expo";
 import * as AuthSession from "expo-auth-session";
 import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import {
 	Alert,
 	Dimensions,
+	Linking,
 	KeyboardAvoidingView,
 	Platform,
 	Pressable,
@@ -24,6 +25,9 @@ import { Fonts } from "@/constants/fonts";
 
 // Necessario per completare le sessioni OAuth aperte nel browser di sistema.
 WebBrowser.maybeCompleteAuthSession();
+
+/** Il numero della struttura: è da lì che si ottiene un invito. */
+const CLUB_PHONE = "+39 320 175 5897";
 
 /** Palette del design Figma: schermata brandizzata ad aspetto fisso
  *  (hero verde + card bianca), indipendente dal tema chiaro/scuro. */
@@ -76,12 +80,11 @@ const CARD_W = Math.min(300, Math.round(SCREEN_W * 0.74));
 export default function LoginScreen() {
 	const insets = useSafeAreaInsets();
 	const { signIn, setActive: setActiveSignIn, isLoaded } = useSignIn();
-	const { signUp, setActive: setActiveSignUp } = useSignUp();
 	const { startSSOFlow } = useSSO();
 	const emailRef = useRef<TextInput>(null);
 
-	const [step, setStep] = useState<"email" | "code">("email");
-	const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
+	const [step, setStep] = useState<"email" | "code" | "invite">("email");
+
 	const [email, setEmail] = useState("");
 	const [code, setCode] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -110,7 +113,7 @@ export default function LoginScreen() {
 	};
 
 	const handleSendCode = async () => {
-		if (!isLoaded || !signIn || !signUp) return;
+		if (!isLoaded || !signIn) return;
 		const trimmed = email.trim().toLowerCase();
 		if (!trimmed) {
 			setError("Inserisci la tua email.");
@@ -121,22 +124,14 @@ export default function LoginScreen() {
 		setError(null);
 		try {
 			await signIn.create({ identifier: trimmed, strategy: "email_code" });
-			setMode("signIn");
 			setStep("code");
 		} catch (err) {
 			const e = err as { errors?: { code?: string }[] };
+			// Mail sconosciuta: al club si entra su invito, quindi qui non si
+			// registra più nessuno. Prima l'app apriva un account da sola, e
+			// l'iscrizione "solo su invito" restava un'intenzione.
 			if (e.errors?.[0]?.code === "form_identifier_not_found") {
-				// Account nuovo: registrazione con verifica email
-				try {
-					await signUp.create({ emailAddress: trimmed });
-					await signUp.prepareEmailAddressVerification({
-						strategy: "email_code",
-					});
-					setMode("signUp");
-					setStep("code");
-				} catch (signUpErr) {
-					setError(clerkError(signUpErr));
-				}
+				setStep("invite");
 			} else {
 				setError(clerkError(err));
 			}
@@ -146,7 +141,7 @@ export default function LoginScreen() {
 	};
 
 	const handleVerifyCode = async () => {
-		if (!signIn || !signUp) return;
+		if (!signIn) return;
 		if (!code.trim()) {
 			setError("Inserisci il codice ricevuto via email.");
 			return;
@@ -155,24 +150,14 @@ export default function LoginScreen() {
 		setLoading(true);
 		setError(null);
 		try {
-			if (mode === "signIn") {
-				const result = await signIn.attemptFirstFactor({
-					strategy: "email_code",
-					code: code.trim(),
-				});
-				if (result.status === "complete") {
-					// Il gate reagisce a isSignedIn e mostra l'app: nessuna navigazione manuale.
-					await setActiveSignIn({ session: result.createdSessionId });
-					return;
-				}
-			} else {
-				const result = await signUp.attemptEmailAddressVerification({
-					code: code.trim(),
-				});
-				if (result.status === "complete") {
-					await setActiveSignUp({ session: result.createdSessionId });
-					return;
-				}
+			const result = await signIn.attemptFirstFactor({
+				strategy: "email_code",
+				code: code.trim(),
+			});
+			if (result.status === "complete") {
+				// Il gate reagisce a isSignedIn e mostra l'app: nessuna navigazione manuale.
+				await setActiveSignIn({ session: result.createdSessionId });
+				return;
 			}
 			setError("Verifica non completata. Riprova.");
 		} catch (err) {
@@ -210,11 +195,16 @@ export default function LoginScreen() {
 	};
 
 	const handleSignUpHint = () => {
-		// La registrazione è automatica: basta inserire l'email e ricevere il codice.
+		// Al club si entra su invito: non c'è niente da spiegare su come
+		// registrarsi, perché non si può. Si spiega come farsi invitare.
 		setError(null);
-		setMode("signIn");
-		setStep("email");
-		emailRef.current?.focus();
+		setStep("invite");
+	};
+
+	const handleCallClub = () => {
+		Linking.openURL(`tel:${CLUB_PHONE.replace(/\s/g, "")}`).catch(() => {
+			Alert.alert("Chiamaci", CLUB_PHONE);
+		});
 	};
 
 	return (
@@ -269,16 +259,20 @@ export default function LoginScreen() {
 						<Text style={styles.eyebrow}>
 							{step === "email"
 								? "Pronto a scendere in campo?"
-								: `Codice inviato a ${email.trim().toLowerCase()}`}
+								: step === "invite"
+									? "Al club si entra su invito"
+									: `Codice inviato a ${email.trim().toLowerCase()}`}
 						</Text>
 						<Text style={styles.title}>
 							{step === "email"
 								? "Accedi alla tua area personale"
-								: "Inserisci il codice"}
+								: step === "invite"
+									? "Fatti invitare dal club"
+									: "Inserisci il codice"}
 						</Text>
 					</View>
 
-					{step === "email" ? (
+					{step === "email" && (
 						<>
 							<TextField
 								ref={emailRef}
@@ -353,11 +347,13 @@ export default function LoginScreen() {
 								style={styles.signupRow}
 							>
 								<Text style={styles.signupText}>Non hai un account?</Text>
-								<Text style={styles.signupLink}>Ti spiego cosa fare</Text>
+								<Text style={styles.signupLink}>Come si entra</Text>
 								<IconSymbol name="arrow.right" size={16} color={C.emerald700} />
 							</Pressable>
 						</>
-					) : (
+					)}
+
+					{step === "code" && (
 						<>
 							<TextField
 								value={code}
@@ -398,6 +394,38 @@ export default function LoginScreen() {
 							>
 								<Text style={styles.signupLink}>
 									Email sbagliata? Torna indietro
+								</Text>
+							</Pressable>
+						</>
+					)}
+
+					{step === "invite" && (
+						<>
+							<Text style={styles.inviteBody}>
+								L'account del club non si crea da soli: te lo apriamo noi. Chiama
+								la struttura o passa a trovarci, lasci nome e indirizzo email e
+								ricevi subito l'invito per completare l'iscrizione — poi entri
+								da qui, sempre con un codice via mail.
+							</Text>
+
+							<Button
+								label="Chiama il club"
+								icon="phone.fill"
+								onPress={handleCallClub}
+								backgroundColor={C.emerald950}
+								textColor={C.emerald50}
+							/>
+
+							<Pressable
+								onPress={() => {
+									setError(null);
+									setStep("email");
+								}}
+								hitSlop={8}
+								style={styles.signupRow}
+							>
+								<Text style={styles.signupLink}>
+									Hai già un account? Torna indietro
 								</Text>
 							</Pressable>
 						</>
@@ -534,6 +562,12 @@ const styles = StyleSheet.create({
 		color: C.emerald700,
 		fontFamily: FONT.medium,
 		fontSize: 15,
+	},
+	inviteBody: {
+		fontFamily: FONT.regular,
+		fontSize: 14,
+		lineHeight: 21,
+		color: C.n500,
 	},
 	error: {
 		color: C.danger,

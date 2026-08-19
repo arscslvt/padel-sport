@@ -6,6 +6,20 @@ import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Un clic su un toast non è un clic «fuori».
+ *
+ * I toast stanno in un portal fuori dal contenuto del modale, quindi Radix li
+ * considera esterni e chiuderebbe tutto al primo tasto premuto — proprio
+ * mentre l'utente sta rispondendo a una domanda che il modale gli ha fatto.
+ */
+function isToastEvent(event: { target: EventTarget | null }): boolean {
+  const target = event.target
+  return (
+    target instanceof Element && Boolean(target.closest("[data-sonner-toaster]"))
+  )
+}
+
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
@@ -72,6 +86,14 @@ function SheetContent({
           className
         )}
         {...props}
+        onPointerDownOutside={(event) => {
+          if (isToastEvent(event.detail.originalEvent)) event.preventDefault()
+          props.onPointerDownOutside?.(event)
+        }}
+        onInteractOutside={(event) => {
+          if (isToastEvent(event.detail.originalEvent)) event.preventDefault()
+          props.onInteractOutside?.(event)
+        }}
       >
         {children}
         {showCloseButton && (
