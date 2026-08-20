@@ -121,38 +121,38 @@ export default function TournamentManagementPage() {
         <TabsList className="sticky top-20 z-30 mb-6 grid h-auto w-full grid-cols-3 gap-1 border bg-background/90 p-1.5 shadow-sm backdrop-blur-xl md:relative md:top-0 md:w-fit xl:sticky xl:top-24 xl:mb-0 xl:flex xl:w-full xl:flex-col xl:items-stretch xl:gap-1 xl:rounded-2xl xl:p-2">
           <TabsTrigger
             value="matches"
-            className="gap-2 px-3 py-2.5 xl:h-auto xl:flex-none xl:justify-start xl:py-3"
+            className="gap-2 px-3 py-2.5 xl:h-auto xl:flex-none xl:justify-start xl:py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md group/tab"
           >
             <Gamepad2 className="size-4" />
             <span className="text-left">
               <span className="hidden sm:block">Partite</span>
               <span className="sm:hidden">Match</span>
-              <span className="mt-0.5 hidden text-[11px] font-normal text-muted-foreground xl:block">
+              <span className="mt-0.5 hidden text-[11px] font-normal text-muted-foreground xl:block group-data-[state=active]/tab:text-primary-foreground/80">
                 Risultati e orari
               </span>
             </span>
           </TabsTrigger>
           <TabsTrigger
             value="advancements"
-            className="gap-2 px-3 py-2.5 xl:h-auto xl:flex-none xl:justify-start xl:py-3"
+            className="gap-2 px-3 py-2.5 xl:h-auto xl:flex-none xl:justify-start xl:py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md group/tab"
           >
             <Trophy className="size-4" />
             <span className="text-left">
               <span className="block">Fasi finali</span>
-              <span className="mt-0.5 hidden text-[11px] font-normal text-muted-foreground xl:block">
+              <span className="mt-0.5 hidden text-[11px] font-normal text-muted-foreground xl:block group-data-[state=active]/tab:text-primary-foreground/80">
                 Tabellone e qualifiche
               </span>
             </span>
           </TabsTrigger>
           <TabsTrigger
             value="settings"
-            className="gap-2 px-3 py-2.5 xl:h-auto xl:flex-none xl:justify-start xl:py-3"
+            className="gap-2 px-3 py-2.5 xl:h-auto xl:flex-none xl:justify-start xl:py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md group/tab"
           >
             <Settings2 className="size-4" />
             <span className="text-left">
               <span className="hidden sm:block">Comunicazioni</span>
               <span className="sm:hidden">Avvisi</span>
-              <span className="mt-0.5 hidden text-[11px] font-normal text-muted-foreground xl:block">
+              <span className="mt-0.5 hidden text-[11px] font-normal text-muted-foreground xl:block group-data-[state=active]/tab:text-primary-foreground/80">
                 Avvisi al pubblico
               </span>
             </span>

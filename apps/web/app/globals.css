@@ -75,7 +75,7 @@
   --n-950: oklch(0.145 0 0);
 
   /* Token semantici. */
-  --background: var(--n-0);
+  --background: var(--n-50);
   --foreground: var(--n-950);
   --surface: var(--n-100);
   --surface-foreground: var(--n-950);

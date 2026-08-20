@@ -341,20 +341,26 @@ export default function StageAdvancementPanel({
         onValueChange={(value) => setMode(value as "smart" | "manual")}
       >
         <TabsList className="mb-4 grid h-auto w-full grid-cols-2 gap-1 border bg-background/90 p-1.5 shadow-sm backdrop-blur-xl">
-          <TabsTrigger value="smart" className="gap-2 px-3 py-2.5">
+          <TabsTrigger
+            value="smart"
+            className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md group/tab"
+          >
             <Settings2 className="size-4" />
             <span className="text-left">
               <span className="block">Smart</span>
-              <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
+              <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground group-data-[state=active]/tab:text-primary-foreground/80">
                 Seeding automatico
               </span>
             </span>
           </TabsTrigger>
-          <TabsTrigger value="manual" className="gap-2 px-3 py-2.5">
+          <TabsTrigger
+            value="manual"
+            className="gap-2 px-3 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md group/tab"
+          >
             <Shuffle className="size-4" />
             <span className="text-left">
               <span className="block">Manuale</span>
-              <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
+              <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground group-data-[state=active]/tab:text-primary-foreground/80">
                 Coppie scelte a mano
               </span>
             </span>
