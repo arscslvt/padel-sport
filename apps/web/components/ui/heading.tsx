@@ -15,8 +15,12 @@ import { cn } from "@/lib/utils";
 const headingVariants = cva("font-display text-balance tracking-[-0.02em]", {
   variants: {
     size: {
-      /** Titolo dell'hero, il più grande della scala. */
-      hero: "text-[clamp(2.25rem,4.2vw,4rem)] leading-[1.02]",
+      /**
+       * Titolo dell'hero, il più grande della scala. Su mobile la `vw` da sola
+       * lo lascerebbe minuto: sotto `sm` vale una misura fissa più generosa,
+       * da lì in su riprende la scala fluida.
+       */
+      hero: "text-[2.75rem] leading-[1.02] sm:text-[clamp(2.25rem,4.2vw,4rem)]",
       /** Titolo di pagina (h1 di /events, /where, torneo…). */
       page: "text-4xl leading-[1.05] md:text-5xl lg:text-6xl",
       /** Titolo di sezione dentro una pagina. */

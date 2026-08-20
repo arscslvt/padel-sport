@@ -5,8 +5,16 @@ import { ArticleReveal } from "@/components/events/article-reveal";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { ProgressiveBlur } from "@/components/ui/progressive-blur";
+import { Typewriter } from "@/components/ui/typewriter";
 import { ANCHORS, anchorHref } from "@/lib/anchors";
 import { getInfo } from "@/lib/info";
+
+/**
+ * I due segmenti del titolo, con il `<br>` che vive fra l'uno e l'altro: da lg
+ * l'interruzione esplicita tiene la frase su due righe, sotto lg è lo spazio
+ * iniziale del secondo segmento a fare da punto di a capo.
+ */
+const TITLE = ["Il tuo prossimo match", " inizia qui."];
 
 export function Hero() {
 	return (
@@ -48,16 +56,17 @@ export function Hero() {
               rende i `ch` inaffidabili. Da lg l'interruzione è esplicita, così
               il titolo sta esattamente su due righe. */}
 					<div className="max-w-76 sm:max-w-104 lg:max-w-none">
-						<ArticleReveal>
-							<Heading as="h1" size="hero">
-								Mettersi in gioco non è
-								<br className="hidden lg:block" /> mai stato così bello
-							</Heading>
-						</ArticleReveal>
+						<Heading as="h1" size="hero" aria-label={TITLE.join("")}>
+							<Typewriter
+								segments={TITLE}
+								breakClassName="hidden lg:block"
+								delay={0.3}
+							/>
+						</Heading>
 						<ArticleReveal delay={0.08}>
-							<p className="text-foreground/75 mt-4 max-w-96 text-[15px] leading-relaxed sm:text-base">
-								Dal principiante al pro: da noi trovi avversari, community e
-								tanto divertimento.
+							<p className="text-foreground/75 mt-4 max-w-102 text-[15px] leading-relaxed sm:text-base">
+								Campi, community e tutto il divertimento del padel. Che tu sia
+								alla prima partita o non riesca più a smettere.
 							</p>
 						</ArticleReveal>
 					</div>
