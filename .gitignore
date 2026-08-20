@@ -3,7 +3,6 @@ node_modules/
 *.log
 *.tsbuildinfo
 
-# env files
+# env files — inclusi gli .env.example: le variabili si documentano fuori dal repo
 .env
 .env.*
-!.env.example
