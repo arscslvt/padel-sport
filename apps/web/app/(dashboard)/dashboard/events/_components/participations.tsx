@@ -5,7 +5,13 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { format, formatDistanceToNow } from "date-fns";
 import { it } from "date-fns/locale";
-import { CalendarClock, CalendarOff, Trash, UserPlus } from "lucide-react";
+import {
+  CalendarClock,
+  CalendarOff,
+  MailX,
+  Trash,
+  UserPlus,
+} from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -427,6 +433,16 @@ export default function Participations({
                             >
                               {entry.email}
                             </a>
+                            {entry.unsubscribedAt && (
+                              <Badge
+                                variant="outline"
+                                className="ml-2 font-normal"
+                                title="Non riceve le comunicazioni dell'evento. L'iscrizione resta valida."
+                              >
+                                <MailX className="size-3" />
+                                Disiscritto
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell>
                             {entry.seats}

@@ -2,7 +2,11 @@ import { v } from "convex/values";
 import { query } from "../../_generated/server";
 
 /**
- * L'iscrizione dietro un link di annullamento, per la pagina di conferma.
+ * L'iscrizione dietro un token, per le pagine di conferma.
+ *
+ * La usano sia l'annullamento sia la disiscrizione dalle comunicazioni: il
+ * token è lo stesso, e a entrambe serve la stessa cosa — far riconoscere
+ * l'iscrizione a chi ha aperto il link.
  *
  * Pubblica come la mutation gemella — il token fa da credenziale — ma
  * restituisce il minimo che serve a far riconoscere l'iscrizione a chi ha
@@ -30,6 +34,7 @@ export default query({
       eventTitle: rsvp.eventTitle,
       createdAt: rsvp.createdAt,
       cancelledAt: rsvp.cancelledAt,
+      unsubscribedAt: rsvp.unsubscribedAt,
     };
   },
 });

@@ -37,6 +37,8 @@ export default query({
         seats: entry.guests + 1,
         createdAt: entry.createdAt,
         notifiedAt: entry.notifiedAt,
+        /** Ha chiesto di non ricevere comunicazioni: la dashboard lo segnala */
+        unsubscribedAt: entry.unsubscribedAt,
       }));
   },
 });

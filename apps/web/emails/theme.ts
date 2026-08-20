@@ -125,3 +125,72 @@ export const link = {
   color: color.foreground,
   textDecoration: "underline",
 } as const;
+
+/**
+ * Larghezza utile della colonna di testo: 560px di contenitore meno i 32px di
+ * padding per lato. È la misura a cui vanno chieste le immagini al CDN di
+ * Sanity, e quella da scrivere nell'attributo `width` — la posta non deduce
+ * niente dal CSS.
+ */
+export const CONTENT_WIDTH = 496;
+
+/** Sottotitolo dentro il corpo di una comunicazione: sotto `heading`, sopra il testo. */
+export const subheading = {
+  color: color.foreground,
+  fontSize: "17px",
+  fontWeight: 600,
+  lineHeight: "1.35",
+  margin: "24px 0 8px",
+} as const;
+
+/** Didascalia sotto un'immagine. */
+export const caption = {
+  color: color.mutedForeground,
+  fontSize: "13px",
+  lineHeight: "1.5",
+  margin: "8px 0 0",
+  textAlign: "center",
+} as const;
+
+/**
+ * Elenchi puntati e numerati.
+ *
+ * Margini e padding sono espliciti perché Outlook non applica i valori
+ * predefiniti del browser: senza questi, l'elenco esce appiccicato al bordo
+ * sinistro e senza aria fra una riga e l'altra.
+ */
+export const list = {
+  color: color.mutedForeground,
+  fontSize: "15px",
+  lineHeight: "1.6",
+  margin: "0 0 16px",
+  paddingLeft: "22px",
+} as const;
+
+export const listItem = {
+  margin: "0 0 6px",
+} as const;
+
+/** Cornice dell'immagine nel corpo: la posta non conosce `figure`. */
+export const figure = {
+  margin: "8px 0 24px",
+} as const;
+
+export const image = {
+  borderRadius: "14px",
+  display: "block",
+  height: "auto",
+  maxWidth: "100%",
+  width: "100%",
+} as const;
+
+/** Citazione: rientro e filetto, senza il pannello grigio dei dettagli. */
+export const quote = {
+  borderLeft: `3px solid ${color.border}`,
+  color: color.foreground,
+  fontSize: "15px",
+  fontStyle: "italic",
+  lineHeight: "1.6",
+  margin: "0 0 16px",
+  padding: "2px 0 2px 16px",
+} as const;

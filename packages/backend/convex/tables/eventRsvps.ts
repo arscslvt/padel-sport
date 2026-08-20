@@ -40,6 +40,17 @@ const eventRsvps = defineTable({
    */
   cancelToken: v.string(),
   cancelledAt: v.optional(v.float64()),
+  /**
+   * Ha chiesto di non ricevere altre comunicazioni su questo evento.
+   *
+   * Non è `status: "cancelled"`: chi si disiscrive resta iscritto e il posto
+   * resta occupato — ha smesso di volere le mail, non di venire. Confondere le
+   * due cose vorrebbe dire liberare il posto di qualcuno che si presenta.
+   *
+   * Facoltativo perché nasce dopo le righe già in tabella: assente vale
+   * «iscritto alle comunicazioni», che è il comportamento di prima.
+   */
+  unsubscribedAt: v.optional(v.float64()),
   /** Esito dell'invio delle mail: l'iscrizione resta valida anche se fallisce */
   notifiedAt: v.optional(v.float64()),
   createdAt: v.float64(),

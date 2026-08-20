@@ -9,12 +9,12 @@ import { getInfo } from "@/lib/info";
 export const metadata: Metadata = {
 	title: "Privacy e trattamento dei dati",
 	description:
-		"Come A.S.D. Padel Sport Melilli raccoglie, usa e conserva i dati personali inseriti sul sito: richieste di giocatori, assistenza, prenotazioni e navigazione.",
+		"Come A.S.D. Padel Sport Melilli raccoglie, usa e conserva i dati personali inseriti sul sito: richieste di giocatori, assistenza, prenotazioni, iscrizioni agli eventi e navigazione.",
 	alternates: { canonical: "https://www.asdpadelsport.com/privacy" },
 };
 
 /** Data dell'ultima revisione dei contenuti di questa pagina. */
-const LAST_UPDATE = "18 agosto 2026";
+const LAST_UPDATE = "20 agosto 2026";
 
 /**
  * Fornitori che trattano dati per conto del club (art. 28 GDPR).
@@ -35,13 +35,13 @@ const PROCESSORS: ReadonlyArray<{
 	{
 		name: "Convex, Inc.",
 		purpose:
-			"Database in cui sono registrate le prenotazioni dei campi fatte dal sito e le richieste di giocatori e di assistenza inviate dai moduli",
+			"Database in cui sono registrate le prenotazioni dei campi fatte dal sito, le iscrizioni agli eventi e le richieste di giocatori e di assistenza inviate dai moduli",
 		place: "Stati Uniti",
 	},
 	{
 		name: "Resend (Plus Five Five, Inc.)",
 		purpose:
-			"Invio delle email: la notifica alla segreteria e la copia della richiesta a chi la manda",
+			"Invio delle email: la notifica alla segreteria, la copia della richiesta a chi la manda e le comunicazioni della segreteria a chi si è iscritto a un evento",
 		place: "Stati Uniti",
 	},
 	{
@@ -79,6 +79,10 @@ const RETENTION: ReadonlyArray<{ what: string; how: string }> = [
 	{
 		what: "Richieste di assistenza",
 		how: "24 mesi dalla chiusura della richiesta",
+	},
+	{
+		what: "Iscrizioni agli eventi",
+		how: "12 mesi dalla data dell'evento, insieme allo storico delle comunicazioni inviate a chi vi si era iscritto",
 	},
 	{
 		what: "Email scambiate con la segreteria",
@@ -195,7 +199,7 @@ export default function PrivacyPage() {
 
 				<Section number={2} title="Che dati raccogliamo e perché">
 					<p>
-						I dati arrivano da quello che scrivi tu nei due moduli del sito, più
+						I dati arrivano da quello che scrivi tu nei moduli del sito, più
 						i dati tecnici che qualunque server registra quando visiti una
 						pagina. C'è poi una sola raccolta «di sfondo», le statistiche di
 						utilizzo: non parte da sola, la attivi tu accettandola nel banner, e
@@ -220,6 +224,20 @@ export default function PrivacyPage() {
 							sul canale che preferisci. Base giuridica: riscontro a una tua
 							richiesta e nostro legittimo interesse a gestire le relazioni con
 							soci e visitatori (artt. 6.1.b e 6.1.f GDPR).
+						</Block>
+
+						<Block title="Iscrizione a un evento">
+							Gli articoli degli eventi possono ospitare un{" "}
+							<Term>modulo di iscrizione</Term>: raccoglie il tuo{" "}
+							<Term>nome</Term>, la tua <Term>email</Term> e quante persone porti
+							con te. Servono a tenere il conto dei posti e a ricontattarti su{" "}
+							<em>quell'evento</em>: la conferma, gli eventuali cambi di orario o
+							di programma, gli avvisi dell'ultimo momento. Base giuridica:
+							esecuzione dell'iscrizione che ci chiedi (art. 6.1.b GDPR). In fondo
+							a ogni mail trovi due strade distinte:{" "}
+							<Term>annullare l'iscrizione</Term>, che libera il posto, e{" "}
+							<Term>non ricevere altre comunicazioni</Term>, che lascia il posto
+							tuo e ferma soltanto le email.
 						</Block>
 
 						<Block title="Prenotazione di un campo">
@@ -302,7 +320,8 @@ export default function PrivacyPage() {
 				<Section number={4} title="Che strada fanno i dati">
 					<p>
 						Vale la pena dirlo in chiaro, perché è la parte che di solito resta
-						nascosta. Quando invii uno dei due moduli:
+						nascosta. Quando invii uno dei moduli del sito — giocatori,
+					assistenza o iscrizione a un evento:
 					</p>
 					<ol className="flex list-decimal flex-col gap-2 pl-5">
 						<li>
@@ -325,8 +344,11 @@ export default function PrivacyPage() {
 					</ol>
 					<p>
 						Non vendiamo, non cediamo e non scambiamo i tuoi dati con nessuno
-						per finalità di marketing, né nostre né di terzi, e non ti
-						iscriviamo a nessuna newsletter.
+						per finalità di marketing, né nostre né di terzi. Non abbiamo una
+						newsletter e non ti iscriviamo a nessuna lista promozionale: se ti
+						sei iscritto a un evento, l'unica cosa che puoi ricevere sono le
+						comunicazioni su <em>quell'evento</em>, e puoi farle smettere in
+						qualsiasi momento dal link in fondo a ognuna.
 					</p>
 				</Section>
 

@@ -65,3 +65,43 @@ export type EventRsvpFormTarget = {
   dateEnd?: string | null;
   form: Omit<EventRsvpFormBlock, "_type"> | null;
 };
+
+/** Immagine inserita nel corpo di una comunicazione via email. */
+export type EmailContentImage = SanityImage & {
+  _type: "emailImage";
+  _key: string;
+};
+
+/** Pulsante primario di una comunicazione. O completo o assente. */
+export type EmailCta = {
+  label?: string | null;
+  href?: string | null;
+};
+
+/**
+ * L'evento a cui una comunicazione si riferisce, con i moduli che ospita: da
+ * quelli si ricavano i destinatari.
+ */
+export type CommunicationEvent = {
+  _id: string;
+  title: string;
+  slug: string;
+  dateStart: string;
+  dateEnd?: string | null;
+  forms: { _key: string; heading?: string | null; capacity?: number | null }[];
+};
+
+/** Risultato di `COMMUNICATIONS_QUERY`: quel che basta a elencarle. */
+export type EventCommunicationSummary = {
+  _id: string;
+  _updatedAt: string;
+  subject: string;
+  preheader?: string | null;
+  cta?: EmailCta | null;
+  event: CommunicationEvent | null;
+};
+
+/** Risultato di `COMMUNICATION_BY_ID_QUERY`: con il testo da comporre. */
+export type EventCommunicationDocument = EventCommunicationSummary & {
+  body?: PortableTextBlock[] | null;
+};

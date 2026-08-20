@@ -5,6 +5,7 @@ import circleInvites from "./tables/circleInvites";
 import circleMembers from "./tables/circleMembers";
 import circles from "./tables/circles";
 import clientInvites from "./tables/clientInvites";
+import eventCommunications from "./tables/eventCommunications";
 import eventRsvps from "./tables/eventRsvps";
 import externalBookings from "./tables/externalBookings";
 import events from "./tables/events";
@@ -32,6 +33,7 @@ export default defineSchema({
   matchRequests,
   supportRequests,
   eventRsvps,
+  eventCommunications,
   circles,
   circleMembers,
   circleInvites,

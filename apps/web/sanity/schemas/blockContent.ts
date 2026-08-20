@@ -1,6 +1,8 @@
 import { ImageIcon } from "@sanity/icons/Image";
 import { defineArrayMember, defineField, defineType } from "sanity";
 
+import { linkAnnotation } from "./link";
+
 /**
  * Rich text del corpo articolo (Portable Text).
  * Viene renderizzato da `components/events/portable-text.tsx`.
@@ -30,31 +32,7 @@ export const blockContent = defineType({
           { title: "Sottolineato", value: "underline" },
           { title: "Codice", value: "code" },
         ],
-        annotations: [
-          defineArrayMember({
-            name: "link",
-            title: "Link",
-            type: "object",
-            fields: [
-              defineField({
-                name: "href",
-                title: "URL",
-                type: "url",
-                validation: (rule) =>
-                  rule.required().uri({
-                    scheme: ["http", "https", "mailto", "tel"],
-                    allowRelative: true,
-                  }),
-              }),
-              defineField({
-                name: "blank",
-                title: "Apri in una nuova scheda",
-                type: "boolean",
-                initialValue: false,
-              }),
-            ],
-          }),
-        ],
+        annotations: [linkAnnotation],
       },
     }),
     defineArrayMember({

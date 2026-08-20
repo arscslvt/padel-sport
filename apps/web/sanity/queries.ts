@@ -104,6 +104,64 @@ export const EVENTS_WITH_RSVP_QUERY = defineQuery(`
     }
 `);
 
+/**
+ * Campi comuni alle comunicazioni. L'evento è dereferenziato perché alla
+ * dashboard serve il titolo per la card e i moduli per sapere a chi si può
+ * mandare: sono la stessa coppia `_id` + `_key` con cui Convex tiene le
+ * iscrizioni.
+ */
+const communicationFields = /* groq */ `
+  _id,
+  _updatedAt,
+  subject,
+  preheader,
+  cta,
+  "event": event-> {
+    _id,
+    title,
+    "slug": slug.current,
+    dateStart,
+    dateEnd,
+    "forms": body[_type == "rsvpForm"] {
+      _key,
+      heading,
+      capacity
+    }
+  }
+`;
+
+/**
+ * Le comunicazioni pubblicate, per la console di invio.
+ *
+ * Solo pubblicate perché il client legge con `perspective: "published"`: è la
+ * soglia fra «la sto ancora scrivendo» e «è pronta da mandare», e vale gratis.
+ */
+export const COMMUNICATIONS_QUERY = defineQuery(`
+  *[_type == "eventCommunication" && defined(event)] | order(_updatedAt desc) {
+    ${communicationFields}
+  }
+`);
+
+/**
+ * Una singola comunicazione con il testo completo.
+ *
+ * La rilegge la route dell'invio prima di comporre le mail: il browser manda
+ * solo l'`_id`, il contenuto viene da qui — stesso principio di `loadForm`
+ * nella route delle iscrizioni.
+ */
+export const COMMUNICATION_BY_ID_QUERY = defineQuery(`
+  *[_type == "eventCommunication" && _id == $id][0] {
+    ${communicationFields},
+    body[] {
+      ...,
+      _type == "emailImage" => {
+        ${imageFields},
+        "sourceWidth": asset->metadata.dimensions.width
+      }
+    }
+  }
+`);
+
 /** Solo gli slug, per `generateStaticParams`. */
 export const EVENT_SLUGS_QUERY = defineQuery(`
   *[_type == "event" && defined(slug.current)].slug.current
