@@ -17,12 +17,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/(dashboard)/_components/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/app/(dashboard)/_components/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -300,182 +294,176 @@ export default function Participations({
   };
 
   return (
-    <Tabs defaultValue="participations" className="space-y-4">
-      <TabsList className="w-full md:w-max">
-        <TabsTrigger value="participations">Partecipazioni</TabsTrigger>
-      </TabsList>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium">Evento</span>
+        <Select value={selected?.id} onValueChange={setSelectedId}>
+          <SelectTrigger className="w-full bg-white md:w-[28rem]">
+            <SelectValue placeholder="Scegli un evento" />
+          </SelectTrigger>
+          <SelectContent>
+            {forms.map((form) => {
+              const count = countOf(form);
 
-      <TabsContent value="participations" className="space-y-6">
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Evento</span>
-          <Select value={selected?.id} onValueChange={setSelectedId}>
-            <SelectTrigger className="w-full bg-white md:w-[28rem]">
-              <SelectValue placeholder="Scegli un evento" />
-            </SelectTrigger>
-            <SelectContent>
-              {forms.map((form) => {
-                const count = countOf(form);
+              return (
+                <SelectItem key={form.id} value={form.id}>
+                  {form.eventTitle}
+                  {form.showsHeading && form.heading
+                    ? ` — ${form.heading}`
+                    : ""}{" "}
+                  <span className="text-muted-foreground">
+                    ·{" "}
+                    {format(new Date(form.dateStart), "d MMM yyyy", {
+                      locale: it,
+                    })}
+                    {count ? ` · ${count.attendees} iscritti` : ""}
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
 
-                return (
-                  <SelectItem key={form.id} value={form.id}>
-                    {form.eventTitle}
-                    {form.showsHeading && form.heading
-                      ? ` — ${form.heading}`
-                      : ""}{" "}
-                    <span className="text-muted-foreground">
-                      ·{" "}
-                      {format(new Date(form.dateStart), "d MMM yyyy", {
-                        locale: it,
-                      })}
-                      {count ? ` · ${count.attendees} iscritti` : ""}
-                    </span>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {selected && (
-          <>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarClock className="size-4" />
-                {formatEventDate(selected.dateStart, selected.dateEnd)}
-              </span>
-              {selected.closesAt && (
-                <Badge
-                  variant="outline"
-                  className={
-                    isRsvpClosed(selected.closesAt)
-                      ? "bg-red-50 text-red-900 border-red-200"
-                      : "bg-green-50 text-green-900 border-green-200"
-                  }
-                >
-                  {isRsvpClosed(selected.closesAt)
-                    ? "Iscrizioni chiuse"
-                    : "Iscrizioni aperte"}
-                </Badge>
-              )}
-            </div>
-
-            <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Iscritti" value={entries?.length ?? "—"} />
-              <StatCard
-                label="Persone attese"
-                value={seatsTaken ?? "—"}
-                hint="Iscritti e accompagnatori."
-              />
-              <StatCard
-                label="Posti rimasti"
-                value={
-                  selected.capacity == null ? "Illimitati" : (seatsLeft ?? "—")
+      {selected && (
+        <>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarClock className="size-4" />
+              {formatEventDate(selected.dateStart, selected.dateEnd)}
+            </span>
+            {selected.closesAt && (
+              <Badge
+                variant="outline"
+                className={
+                  isRsvpClosed(selected.closesAt)
+                    ? "bg-red-50 text-red-900 border-red-200"
+                    : "bg-green-50 text-green-900 border-green-200"
                 }
-                hint={
-                  selected.capacity == null
-                    ? "Nessun tetto impostato sul modulo."
-                    : `Capienza: ${seatsLabel(selected.capacity)}.`
-                }
-              />
-              <StatCard
-                label="Ultima iscrizione"
-                value={
-                  lastEntry
-                    ? formatDistanceToNow(lastEntry.createdAt, {
-                        locale: it,
-                        addSuffix: true,
-                      })
-                    : "—"
-                }
-              />
-            </section>
+              >
+                {isRsvpClosed(selected.closesAt)
+                  ? "Iscrizioni chiuse"
+                  : "Iscrizioni aperte"}
+              </Badge>
+            )}
+          </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Elenco iscritti</CardTitle>
-                <CardDescription>
-                  In ordine di arrivo. Annullare un'iscrizione libera i posti
-                  che occupava.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {entries === undefined ? (
-                  <ListSkeleton />
-                ) : entries.length === 0 ? (
-                  <Empty>
-                    <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <UserPlus />
-                      </EmptyMedia>
-                      <EmptyTitle>Nessuna iscrizione</EmptyTitle>
-                      <EmptyDescription>
-                        Il modulo è pubblicato ma non è ancora arrivato nessuno.
-                      </EmptyDescription>
-                    </EmptyHeader>
-                  </Empty>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Persone</TableHead>
-                          <TableHead>Iscritto il</TableHead>
-                          <TableHead className="text-right">Azioni</TableHead>
+          <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Iscritti" value={entries?.length ?? "—"} />
+            <StatCard
+              label="Persone attese"
+              value={seatsTaken ?? "—"}
+              hint="Iscritti e accompagnatori."
+            />
+            <StatCard
+              label="Posti rimasti"
+              value={
+                selected.capacity == null ? "Illimitati" : (seatsLeft ?? "—")
+              }
+              hint={
+                selected.capacity == null
+                  ? "Nessun tetto impostato sul modulo."
+                  : `Capienza: ${seatsLabel(selected.capacity)}.`
+              }
+            />
+            <StatCard
+              label="Ultima iscrizione"
+              value={
+                lastEntry
+                  ? formatDistanceToNow(lastEntry.createdAt, {
+                      locale: it,
+                      addSuffix: true,
+                    })
+                  : "—"
+              }
+            />
+          </section>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Elenco iscritti</CardTitle>
+              <CardDescription>
+                In ordine di arrivo. Annullare un'iscrizione libera i posti che
+                occupava.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {entries === undefined ? (
+                <ListSkeleton />
+              ) : entries.length === 0 ? (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <UserPlus />
+                    </EmptyMedia>
+                    <EmptyTitle>Nessuna iscrizione</EmptyTitle>
+                    <EmptyDescription>
+                      Il modulo è pubblicato ma non è ancora arrivato nessuno.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Persone</TableHead>
+                        <TableHead>Iscritto il</TableHead>
+                        <TableHead className="text-right">Azioni</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {entries.map((entry) => (
+                        <TableRow key={entry.id}>
+                          <TableCell className="font-medium">
+                            {entry.name}
+                          </TableCell>
+                          <TableCell>
+                            <a
+                              href={`mailto:${entry.email}`}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              {entry.email}
+                            </a>
+                          </TableCell>
+                          <TableCell>
+                            {entry.seats}
+                            {entry.guests > 0 && (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                (+{entry.guests})
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground whitespace-nowrap">
+                            {format(entry.createdAt, "d MMM, HH:mm", {
+                              locale: it,
+                            })}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleCancel(entry)}
+                            >
+                              <Trash className="size-4" />
+                              <span className="sr-only">
+                                Annulla iscrizione
+                              </span>
+                            </Button>
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {entries.map((entry) => (
-                          <TableRow key={entry.id}>
-                            <TableCell className="font-medium">
-                              {entry.name}
-                            </TableCell>
-                            <TableCell>
-                              <a
-                                href={`mailto:${entry.email}`}
-                                className="text-muted-foreground hover:text-foreground"
-                              >
-                                {entry.email}
-                              </a>
-                            </TableCell>
-                            <TableCell>
-                              {entry.seats}
-                              {entry.guests > 0 && (
-                                <span className="text-muted-foreground">
-                                  {" "}
-                                  (+{entry.guests})
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground whitespace-nowrap">
-                              {format(entry.createdAt, "d MMM, HH:mm", {
-                                locale: it,
-                              })}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleCancel(entry)}
-                              >
-                                <Trash className="size-4" />
-                                <span className="sr-only">
-                                  Annulla iscrizione
-                                </span>
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </TabsContent>
-    </Tabs>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
   );
 }
