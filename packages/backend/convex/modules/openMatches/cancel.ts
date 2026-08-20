@@ -8,6 +8,7 @@ import {
 } from "./lib";
 import { releaseMerge } from "../../bookings/lib";
 import { formatClubDateTime } from "../../utils/clubTime";
+import { staffBookingUrl } from "../../utils/staffLinks";
 
 /**
  * Elimina una partita creata dall'utente, annullando anche la prenotazione
@@ -90,7 +91,10 @@ export default mutation({
         message: `${player.name} ha eliminato la partita del ${formatClubDateTime(
           match.matchDate,
         )}: il campo torna disponibile.`,
-        tags: ["booking", "cancelled", "mobile"],
+        // La prenotazione resta in agenda come annullata: il campo che si
+        // libera va guardato lì, non in un elenco.
+        url: staffBookingUrl(match.bookingId, "all"),
+        idempotencyKey: `match-cancel-${matchId}`,
       },
     );
 

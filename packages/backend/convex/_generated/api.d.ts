@@ -54,7 +54,9 @@ import type * as modules_friends_request from "../modules/friends/request.js";
 import type * as modules_friends_respond from "../modules/friends/respond.js";
 import type * as modules_friends_search from "../modules/friends/search.js";
 import type * as modules_matchRequests_create from "../modules/matchRequests/create.js";
+import type * as modules_matchRequests_list from "../modules/matchRequests/list.js";
 import type * as modules_matchRequests_markNotified from "../modules/matchRequests/markNotified.js";
+import type * as modules_matchRequests_update from "../modules/matchRequests/update.js";
 import type * as modules_notifications_alert from "../modules/notifications/alert.js";
 import type * as modules_notifications_bookingMail from "../modules/notifications/bookingMail.js";
 import type * as modules_notifications_confirmation from "../modules/notifications/confirmation.js";
@@ -76,7 +78,9 @@ import type * as modules_openMatches_requests from "../modules/openMatches/reque
 import type * as modules_settings_booking from "../modules/settings/booking.js";
 import type * as modules_settings_lib from "../modules/settings/lib.js";
 import type * as modules_supportRequests_create from "../modules/supportRequests/create.js";
+import type * as modules_supportRequests_list from "../modules/supportRequests/list.js";
 import type * as modules_supportRequests_markNotified from "../modules/supportRequests/markNotified.js";
+import type * as modules_supportRequests_update from "../modules/supportRequests/update.js";
 import type * as modules_tournaments_advancements from "../modules/tournaments/advancements.js";
 import type * as modules_tournaments_categories_get from "../modules/tournaments/categories/get.js";
 import type * as modules_tournaments_edit from "../modules/tournaments/edit.js";
@@ -108,8 +112,10 @@ import type * as tables_players from "../tables/players.js";
 import type * as tables_slots from "../tables/slots.js";
 import type * as tables_supportRequests from "../tables/supportRequests.js";
 import type * as utils_clubTime from "../utils/clubTime.js";
+import type * as utils_hark from "../utils/hark.js";
 import type * as utils_notification_client from "../utils/notification_client.js";
 import type * as utils_serverSecret from "../utils/serverSecret.js";
+import type * as utils_staffLinks from "../utils/staffLinks.js";
 
 import type {
   ApiFromModules,
@@ -164,7 +170,9 @@ declare const fullApi: ApiFromModules<{
   "modules/friends/respond": typeof modules_friends_respond;
   "modules/friends/search": typeof modules_friends_search;
   "modules/matchRequests/create": typeof modules_matchRequests_create;
+  "modules/matchRequests/list": typeof modules_matchRequests_list;
   "modules/matchRequests/markNotified": typeof modules_matchRequests_markNotified;
+  "modules/matchRequests/update": typeof modules_matchRequests_update;
   "modules/notifications/alert": typeof modules_notifications_alert;
   "modules/notifications/bookingMail": typeof modules_notifications_bookingMail;
   "modules/notifications/confirmation": typeof modules_notifications_confirmation;
@@ -186,7 +194,9 @@ declare const fullApi: ApiFromModules<{
   "modules/settings/booking": typeof modules_settings_booking;
   "modules/settings/lib": typeof modules_settings_lib;
   "modules/supportRequests/create": typeof modules_supportRequests_create;
+  "modules/supportRequests/list": typeof modules_supportRequests_list;
   "modules/supportRequests/markNotified": typeof modules_supportRequests_markNotified;
+  "modules/supportRequests/update": typeof modules_supportRequests_update;
   "modules/tournaments/advancements": typeof modules_tournaments_advancements;
   "modules/tournaments/categories/get": typeof modules_tournaments_categories_get;
   "modules/tournaments/edit": typeof modules_tournaments_edit;
@@ -218,8 +228,10 @@ declare const fullApi: ApiFromModules<{
   "tables/slots": typeof tables_slots;
   "tables/supportRequests": typeof tables_supportRequests;
   "utils/clubTime": typeof utils_clubTime;
+  "utils/hark": typeof utils_hark;
   "utils/notification_client": typeof utils_notification_client;
   "utils/serverSecret": typeof utils_serverSecret;
+  "utils/staffLinks": typeof utils_staffLinks;
 }>;
 
 /**

@@ -22,7 +22,8 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 import {
@@ -132,9 +133,23 @@ function DashboardSkeleton() {
   );
 }
 
+/**
+ * I tre elenchi della pagina. Il nome è quello che viaggia in `?tab=`, ed è lo
+ * stesso che `utils/staffLinks` scrive nei link delle notifiche.
+ */
+const BOOKINGS_TABS = ["pending", "merge", "all"] as const;
+type BookingsTab = (typeof BOOKINGS_TABS)[number];
+
+const isBookingsTab = (value: string | null): value is BookingsTab =>
+  value !== null && BOOKINGS_TABS.includes(value as BookingsTab);
+
+/** L'ancora nel DOM della singola prenotazione, per lo scroll dai link. */
+const bookingAnchor = (bookingId: string) => `booking-${bookingId}`;
+
 function BookingCard({
   booking,
   partner,
+  highlighted,
   isUpdating,
   onAccept,
   onChanged,
@@ -142,6 +157,8 @@ function BookingCard({
   booking: Booking;
   /** L'altro gruppo, quando la struttura ha unito due prenotazioni parziali. */
   partner?: Booking;
+  /** È quella indicata dal link della notifica: va trovata a colpo d'occhio. */
+  highlighted?: boolean;
   isUpdating: boolean;
   onAccept: (
     bookingId: Id<"bookings">,
@@ -339,7 +356,13 @@ function BookingCard({
   };
 
   return (
-    <article className="rounded-lg border bg-muted/20 p-4">
+    <article
+      id={bookingAnchor(booking._id)}
+      className={cn(
+        "scroll-mt-20 rounded-lg border bg-muted/20 p-4 transition-shadow",
+        highlighted && "ring-2 ring-primary ring-offset-2",
+      )}
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:justify-between">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -552,6 +575,18 @@ export default function BookingsDashboard() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  /**
+   * `?tab=` e `?booking=` sono l'atterraggio delle notifiche: la prima sceglie
+   * l'elenco, la seconda la scheda da mettere in evidenza. Restano nell'URL,
+   * così il link si può anche girare a un collega.
+   */
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<BookingsTab>(() => {
+    const requested = searchParams.get("tab");
+    return isBookingsTab(requested) ? requested : "pending";
+  });
+  const highlightedId = searchParams.get("booking");
+
   const pendingBookings = useMemo(
     () =>
       (bookings ?? []).filter(
@@ -570,6 +605,32 @@ export default function BookingsDashboard() {
 
   // Le coppie che chiuderebbero un campo: due gruppi parziali alla stessa ora.
   const pairs = useMemo(() => mergeablePairs(bookings ?? []), [bookings]);
+
+  /**
+   * La prenotazione indicata dal link può non stare nell'elenco che il link
+   * chiedeva — una in attesa nel frattempo accettata, per dirne una. Se non è
+   * nell'elenco aperto si passa a «Tutte», dove c'è di sicuro: meglio spostare
+   * il tab che mostrare una pagina che sembra aver perso la prenotazione.
+   *
+   * Lo scroll si fa una volta sola: dopo, la pagina è di chi la sta usando.
+   */
+  const scrolledTo = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!highlightedId || !bookings) return;
+    if (scrolledTo.current === highlightedId) return;
+    if (!bookings.some((booking) => booking._id === highlightedId)) return;
+
+    const card = document.getElementById(bookingAnchor(highlightedId));
+
+    if (!card) {
+      if (tab !== "all") setTab("all");
+      return;
+    }
+
+    scrolledTo.current = highlightedId;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightedId, bookings, tab]);
 
   const nextBooking = acceptedBookings?.[0] ?? null;
 
@@ -699,7 +760,11 @@ export default function BookingsDashboard() {
         </Card>
       </section>
 
-      <Tabs defaultValue="pending" className="space-y-3">
+      <Tabs
+        value={tab}
+        onValueChange={(value) => isBookingsTab(value) && setTab(value)}
+        className="space-y-3"
+      >
         <div>
           <TabsList className="w-full md:w-max">
             <TabsTrigger value="pending">
@@ -777,6 +842,7 @@ export default function BookingsDashboard() {
                   key={booking._id}
                   booking={booking}
                   partner={mergedPartnerOf(booking, bookings)}
+                  highlighted={booking._id === highlightedId}
                   isUpdating={updatingId === booking._id}
                   onAccept={handleAccept}
                   onChanged={() => void load()}
@@ -832,6 +898,7 @@ export default function BookingsDashboard() {
                   key={booking._id}
                   booking={booking}
                   partner={mergedPartnerOf(booking, bookings)}
+                  highlighted={booking._id === highlightedId}
                   isUpdating={updatingId === booking._id}
                   onAccept={handleAccept}
                   onChanged={() => void load()}

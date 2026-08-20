@@ -1,10 +1,11 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
+import { sendHark } from "@padel-sport/backend/convex/utils/hark";
+import { staffEventFormUrl } from "@padel-sport/backend/convex/utils/staffLinks";
 import { render } from "@react-email/render";
 import { ConvexHttpClient } from "convex/browser";
 import { ConvexError } from "convex/values";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-
 import { EventRsvpClubEmail } from "@/emails/event-rsvp-club";
 import { EventRsvpCopyEmail } from "@/emails/event-rsvp-copy";
 import {
@@ -17,7 +18,6 @@ import {
 } from "@/lib/event-rsvp";
 import { formatEventDate } from "@/lib/events";
 import { EVENTS_LINK } from "@/lib/links";
-import { sendNtfyAlert } from "@/lib/ntfy";
 import { client } from "@/sanity/client";
 import { EVENT_RSVP_FORM_QUERY } from "@/sanity/queries";
 import type { EventRsvpFormTarget } from "@/sanity/types";
@@ -235,9 +235,9 @@ export async function POST(request: Request) {
    * fallire la risposta. La push parte prima delle mail perché serve a coprirle
    * — se Resend è giù, il telefono suona lo stesso.
    */
-  await sendNtfyAlert({
+  await sendHark({
     title: `Iscrizione: ${target.title}`,
-    message: [
+    body: [
       `${values.name} — ${seats === 1 ? "1 persona" : `${seats} persone`}`,
       `Email: ${values.email}`,
       `Evento: ${dateLabel}`,
@@ -245,8 +245,8 @@ export async function POST(request: Request) {
         ? `Posti: ${seatsTaken}/${capacity}${seatsLeft === 0 ? " — esauriti" : ""}`
         : `Totale iscritti: ${seatsTaken} persone`,
     ].join("\n"),
-    tags: ["event-rsvp", "new"],
-    priority: capacity && seatsLeft === 0 ? "high" : "default",
+    url: staffEventFormUrl(target._id, values.blockKey),
+    idempotencyKey: `event-rsvp-${rsvpId}`,
   });
 
   const apiKey = process.env.RESEND_API_KEY;

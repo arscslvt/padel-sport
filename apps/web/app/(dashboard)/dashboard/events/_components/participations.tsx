@@ -6,6 +6,7 @@ import type { FunctionReturnType } from "convex/server";
 import { format, formatDistanceToNow } from "date-fns";
 import { it } from "date-fns/locale";
 import { CalendarClock, CalendarOff, Trash, UserPlus } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -135,7 +136,21 @@ export default function Participations({
   events: EventWithRsvpForms[];
 }) {
   const forms = useMemo(() => flattenForms(events), [events]);
-  const [selectedId, setSelectedId] = useState(forms[0]?.id ?? "");
+
+  /**
+   * `?form=` sceglie il modulo da mostrare: è dove atterra chi tocca l'avviso
+   * di una nuova iscrizione. Ha la stessa forma dell'id qui sopra —
+   * `evento:blocco` — perché è quello che il link porta con sé. Se il modulo
+   * non c'è più (evento spubblicato dallo Studio) si ricade sul primo.
+   */
+  const searchParams = useSearchParams();
+  const [selectedId, setSelectedId] = useState(() => {
+    const requested = searchParams.get("form");
+    if (requested && forms.some((form) => form.id === requested)) {
+      return requested;
+    }
+    return forms[0]?.id ?? "";
+  });
 
   const selected = forms.find((form) => form.id === selectedId) ?? forms[0];
 

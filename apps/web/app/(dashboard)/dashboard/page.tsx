@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { requireStaffMember } from "@/lib/staff";
 import BookingsDashboard from "./_components/bookings-dashboard";
 
@@ -13,7 +14,12 @@ export default async function DashboardPage() {
           struttura.
         </p>
       </section>
-      <BookingsDashboard />
+      {/* L'agenda legge `?booking=` e `?tab=` per aprirsi già sulla scheda che
+          la notifica indicava, e Next vuole `useSearchParams` dentro un
+          confine di Suspense: senza, la pagina non si prerenderizza. */}
+      <Suspense fallback={null}>
+        <BookingsDashboard />
+      </Suspense>
     </div>
   );
 }

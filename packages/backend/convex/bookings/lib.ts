@@ -3,6 +3,7 @@ import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { syncMatchStatus } from "../modules/openMatches/lib";
 import { formatClubDateTime } from "../utils/clubTime";
+import { staffBookingUrl } from "../utils/staffLinks";
 
 /**
  * Scioglie l'unione di una prenotazione che sta per essere annullata.
@@ -54,11 +55,11 @@ export async function releaseMerge(
   }
 
   await ctx.scheduler.runAfter(0, internal.modules.notifications.alert.default, {
-    title: "Campo unito non più completo",
+    title: "⚠️ Campo unito non più completo",
     message: `${partner.bookedBy}, ${formatClubDateTime(
       partner.bookingDate,
     )}: ${booking.bookedBy} ha disdetto. Il campo torna incompleto.`,
-    tags: ["booking", "merge", "cancelled"],
-    priority: "high",
+    url: staffBookingUrl(partnerId),
+    idempotencyKey: `merge-release-${bookingId}-${partnerId}`,
   });
 }

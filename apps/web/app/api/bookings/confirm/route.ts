@@ -108,7 +108,7 @@ export async function POST(request: Request) {
   ];
   const missing = Math.max(0, MAX_PLAYERS - players.length);
 
-  // Nessuna push allo staff da qui: l'avviso su ntfy parte già alla creazione
+  // Nessuna push allo staff da qui: l'avviso su Hark parte già alla creazione
   // della prenotazione (modules/openMatches/create.ts), e ripeterlo a ogni
   // mail vorrebbe dire due notifiche per la stessa partita.
 

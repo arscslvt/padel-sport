@@ -4,6 +4,7 @@ import { internal } from "../../_generated/api";
 import { internalAction, internalQuery } from "../../_generated/server";
 import { MATCH_DURATION_MS } from "../openMatches/lib";
 import { formatClubDateTime } from "../../utils/clubTime";
+import { staffBookingUrl } from "../../utils/staffLinks";
 
 /**
  * Le mail che seguono una prenotazione dopo che è stata creata: la conferma
@@ -139,15 +140,15 @@ export default internalAction({
       await ctx.runAction(internal.modules.notifications.alert.default, {
         title:
           kind === "accepted"
-            ? "Conferma non comunicata"
+            ? "⚠️ Conferma non comunicata"
             : kind === "merged"
-              ? "Unione dei campi non comunicata"
-              : "Disdetta non comunicata",
+              ? "⚠️ Unione dei campi non comunicata"
+              : "⚠️ Disdetta non comunicata",
         message: `${data.bookedBy}, ${formatClubDateTime(
           data.start,
         )}: avvisare a mano.`,
-        tags: ["booking", kind, "error"],
-        priority: "high",
+        url: staffBookingUrl(bookingId),
+        idempotencyKey: `booking-mail-error-${bookingId}-${kind}`,
       });
     }
   },

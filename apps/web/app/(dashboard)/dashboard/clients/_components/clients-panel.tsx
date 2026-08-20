@@ -3,6 +3,7 @@
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { AlertCircle, Search, UserRoundX, Users } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -112,7 +113,15 @@ export function ClientsPanel() {
   const [clients, setClients] = useState<Client[] | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<MembershipFilter>("all");
-  const [openClient, setOpenClient] = useState<string | null>(null);
+  /**
+   * `?client=` apre direttamente la scheda: è dove atterra chi tocca una
+   * notifica che parla di quella persona. Si legge una volta sola — dopo,
+   * comanda chi clicca nell'elenco.
+   */
+  const searchParams = useSearchParams();
+  const [openClient, setOpenClient] = useState<string | null>(() =>
+    searchParams.get("client"),
+  );
 
   const load = useCallback(async (search: string) => {
     try {

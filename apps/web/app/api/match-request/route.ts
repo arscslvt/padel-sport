@@ -1,9 +1,10 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
+import { excerpt, sendHark } from "@padel-sport/backend/convex/utils/hark";
+import { staffMatchRequestUrl } from "@padel-sport/backend/convex/utils/staffLinks";
 import { render } from "@react-email/render";
 import { ConvexHttpClient } from "convex/browser";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-
 import { MatchRequestClubEmail } from "@/emails/match-request-club";
 import { MatchRequestCopyEmail } from "@/emails/match-request-copy";
 import {
@@ -13,7 +14,6 @@ import {
   missingPlayersLabel,
   toMatchTimestamp,
 } from "@/lib/match-request";
-import { excerpt, sendNtfyAlert } from "@/lib/ntfy";
 
 const CLUB_INBOX =
   process.env.MATCH_REQUEST_INBOX ?? "supporto@asdpadelsport.com";
@@ -90,9 +90,9 @@ export async function POST(request: Request) {
    * far fallire la risposta. La push parte prima delle mail proprio perché
    * serve a coprirle — se Resend è giù, il telefono suona lo stesso.
    */
-  await sendNtfyAlert({
+  await sendHark({
     title: `Richiesta giocatori: ${values.name}`,
-    message: [
+    body: [
       `Cerca ${emailProps.missingLabel} per ${emailProps.matchDateLabel}.`,
       `Livello: ${emailProps.levelLabel}`,
       `Telefono: ${values.phone}`,
@@ -101,8 +101,8 @@ export async function POST(request: Request) {
     ]
       .filter(Boolean)
       .join("\n"),
-    tags: ["match-request", "new"],
-    priority: "high",
+    url: staffMatchRequestUrl(requestId),
+    idempotencyKey: `player-request-${requestId}`,
   });
 
   const apiKey = process.env.RESEND_API_KEY;

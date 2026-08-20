@@ -4,6 +4,7 @@ import { mutation } from "../../_generated/server";
 import { membershipOf } from "../circles/lib";
 import { addPlayerToMatch, requirePlayer, visibilityOf } from "./lib";
 import { formatClubDateTime } from "../../utils/clubTime";
+import { staffBookingUrl } from "../../utils/staffLinks";
 
 /** Unisciti subito a una partita aperta in modalità "direct". */
 export default mutation({
@@ -47,7 +48,8 @@ export default mutation({
         message: `${player.name} si è unito alla partita del ${formatClubDateTime(
           match.matchDate,
         )}.`,
-        tags: ["match", "join"],
+        url: staffBookingUrl(match.bookingId),
+        idempotencyKey: `match-join-${matchId}-${player._id}`,
       },
     );
 

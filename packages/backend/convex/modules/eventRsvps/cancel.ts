@@ -7,6 +7,7 @@ import { assertServer } from "../../utils/serverSecret";
 function snapshot(rsvp: Doc<"eventRsvps">, alreadyCancelled: boolean) {
   return {
     alreadyCancelled,
+    id: rsvp._id,
     name: rsvp.name,
     email: rsvp.email,
     eventTitle: rsvp.eventTitle,

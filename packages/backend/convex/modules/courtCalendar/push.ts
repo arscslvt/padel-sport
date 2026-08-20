@@ -6,6 +6,7 @@ import { internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
 import { calendarConfig, deleteBooking, insertBooking } from "./client";
 import { formatClubDateTime } from "../../utils/clubTime";
+import { staffBookingUrl } from "../../utils/staffLinks";
 
 /**
  * Porta le nostre prenotazioni sul calendario condiviso, così che SumUp le
@@ -55,12 +56,12 @@ export default internalAction({
       console.error("Prenotazione non pubblicata sul calendario:", error);
 
       await ctx.runAction(internal.modules.notifications.alert.default, {
-        title: "Prenotazione non sincronizzata con SumUp",
+        title: "⚠️ Prenotazione non sincronizzata con SumUp",
         message: `${booking.bookedBy}, ${formatClubDateTime(
           booking.start,
         )}: bloccare l'orario su SumUp a mano.`,
-        tags: ["booking", "calendar", "error"],
-        priority: "high",
+        url: staffBookingUrl(bookingId),
+        idempotencyKey: `calendar-push-error-${bookingId}`,
       });
     }
   },

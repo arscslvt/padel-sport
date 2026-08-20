@@ -8,7 +8,7 @@
  * WhatsApp come «alle 13:00» mentre mail e sito, che il fuso lo dichiarano,
  * davano l'orario giusto.
  *
- * Da qui passa qualunque data destinata a un messaggio: WhatsApp, avvisi ntfy
+ * Da qui passa qualunque data destinata a un messaggio: WhatsApp, avvisi Hark
  * allo staff, righe di log leggibili.
  */
 

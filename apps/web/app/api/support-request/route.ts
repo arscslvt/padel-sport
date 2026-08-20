@@ -1,12 +1,12 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
+import { excerpt, sendHark } from "@padel-sport/backend/convex/utils/hark";
+import { staffSupportUrl } from "@padel-sport/backend/convex/utils/staffLinks";
 import { render } from "@react-email/render";
 import { ConvexHttpClient } from "convex/browser";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-
 import { SupportRequestClubEmail } from "@/emails/support-request-club";
 import { SupportRequestCopyEmail } from "@/emails/support-request-copy";
-import { excerpt, sendNtfyAlert } from "@/lib/ntfy";
 import {
   formatSupportDate,
   SUPPORT_HOURS,
@@ -67,9 +67,9 @@ export async function POST(request: Request) {
    * far fallire la risposta. La push parte prima delle mail proprio perché
    * serve a coprirle — se Resend è giù, il telefono suona lo stesso.
    */
-  await sendNtfyAlert({
+  await sendHark({
     title: `Assistenza: ${values.name}`,
-    message: [
+    body: [
       values.memberId ? `Socio ${values.memberId}` : null,
       `Telefono: ${values.phone}`,
       `Email: ${values.email}`,
@@ -78,8 +78,8 @@ export async function POST(request: Request) {
     ]
       .filter((line) => line !== null)
       .join("\n"),
-    tags: ["support-request", "new"],
-    priority: "high",
+    url: staffSupportUrl(requestId),
+    idempotencyKey: `support-${requestId}`,
   });
 
   const receivedAtLabel = formatSupportDate(Date.now());

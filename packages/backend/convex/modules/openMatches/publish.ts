@@ -3,6 +3,7 @@ import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
 import { LEVEL_MAX, LEVEL_MIN, requirePlayer, visibilityOf } from "./lib";
 import { formatClubDateTime } from "../../utils/clubTime";
+import { staffBookingUrl } from "../../utils/staffLinks";
 
 /**
  * Apre a tutti una partita privata o di cerchia.
@@ -86,7 +87,8 @@ export default mutation({
         message: `${player.name} ha reso aperta la partita del ${formatClubDateTime(
           match.matchDate,
         )}: mancano ${match.maxPlayers - match.playerIds.length} giocatori.`,
-        tags: ["match", "open"],
+        url: staffBookingUrl(match.bookingId),
+        idempotencyKey: `match-open-${matchId}`,
       },
     );
 

@@ -5,6 +5,7 @@ import { mutation } from "../../_generated/server";
 import { membersOf, requireCircleMember } from "../circles/lib";
 import { isMembershipValid, membershipStatus } from "../clients/lib";
 import { bookingSettings, isWithinOpeningHours } from "../settings/lib";
+import { staffBookingUrl } from "../../utils/staffLinks";
 import { addGuestToMatch } from "./guests";
 import { inviteToMatch } from "./invite";
 import {
@@ -296,7 +297,8 @@ export default mutation({
         message: `${player.name} ha prenotato per il ${formatClubDateTime(
           args.bookingDate,
         )}${visibilityNote}.`,
-        tags: ["booking", "new", origin === "web" ? "web" : "mobile"],
+        url: staffBookingUrl(bookingId, "pending"),
+        idempotencyKey: `booking-new-${bookingId}`,
       },
     );
 

@@ -72,7 +72,9 @@ export default mutation({
         message: `${player.name} ha creato la cerchia "${trimmed}"${
           invited > 0 ? ` e ha invitato ${invited} giocatori.` : "."
         }`,
-        tags: ["circle", "new", "mobile"],
+        // Senza `url`: le cerchie vivono solo nell'app, non c'è una pagina
+        // della dashboard su cui far atterrare il tocco.
+        idempotencyKey: `circle-new-${circleId}`,
       },
     );
 

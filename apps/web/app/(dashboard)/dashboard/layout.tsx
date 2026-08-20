@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  Inbox,
   LayoutDashboard,
   type LucideIcon,
   Settings,
@@ -42,6 +43,7 @@ export const viewport: Viewport = {
 const routes: ReadonlyArray<{ name: string; href: string; icon: LucideIcon }> =
   [
     { name: "Riepilogo", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Richieste", href: "/dashboard/requests", icon: Inbox },
     { name: "Clienti", href: "/dashboard/clients", icon: Users },
     { name: "Eventi", href: "/dashboard/events", icon: CalendarDays },
     { name: "Configurazione", href: "/dashboard/settings", icon: Settings },

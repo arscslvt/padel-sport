@@ -5,6 +5,7 @@ import type { ActionCtx } from "../../_generated/server";
 import { action, internalAction } from "../../_generated/server";
 import { calendarConfig, listBlocks } from "./client";
 import { syncWindow } from "./lib";
+import { STAFF_SETTINGS_URL } from "../../utils/staffLinks";
 
 /**
  * Porta dentro le prenotazioni prese su SumUp.
@@ -43,11 +44,14 @@ export default internalAction({
       console.error("Sincronizzazione del calendario campi fallita:", error);
 
       await ctx.runAction(internal.modules.notifications.alert.default, {
-        title: "Calendario campi non sincronizzato",
+        title: "⚠️ Calendario campi non sincronizzato",
         message:
           "Le prenotazioni prese su SumUp potrebbero non essere aggiornate sul sito.",
-        tags: ["booking", "calendar", "error"],
-        priority: "high",
+        url: STAFF_SETTINGS_URL,
+        // Questa gira ogni cinque minuti: con una chiave che cambia solo allo
+        // scoccare dell'ora, un guasto lungo suona una volta all'ora invece di
+        // dodici. Il testo qui sopra è fisso, altrimenti sarebbe un 409.
+        idempotencyKey: `calendar-pull-error-${new Date().toISOString().slice(0, 13)}`,
       });
 
       // Il motivo torna a chi ha lanciato l'azione a mano: senza, un errore di

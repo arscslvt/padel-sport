@@ -3,6 +3,7 @@ import { internal } from "../../_generated/api";
 import { mutation, query } from "../../_generated/server";
 import { addPlayerToMatch, requirePlayer, toPlayerView } from "./lib";
 import { formatClubDateTime } from "../../utils/clubTime";
+import { staffBookingUrl } from "../../utils/staffLinks";
 
 /** Invia una richiesta di partecipazione a una partita in modalità "request". */
 export const request = mutation({
@@ -59,7 +60,8 @@ export const request = mutation({
         message: `${player.name} chiede di unirsi alla partita del ${formatClubDateTime(
           match.matchDate,
         )}.`,
-        tags: ["match", "request"],
+        url: staffBookingUrl(match.bookingId),
+        idempotencyKey: `join-request-${requestId}`,
       },
     );
 
