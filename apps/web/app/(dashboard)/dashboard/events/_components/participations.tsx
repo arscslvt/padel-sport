@@ -8,10 +8,13 @@ import { it } from "date-fns/locale";
 import {
   CalendarClock,
   CalendarOff,
+  ClipboardCheck,
   MailX,
+  Search,
   Trash,
   UserPlus,
 } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -32,6 +35,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -48,45 +52,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { isRsvpClosed, seatsLabel } from "@/lib/event-rsvp";
+import { type FormRow, flattenForms, initialFormId } from "@/lib/event-forms";
+import {
+  isCheckInOpen,
+  isRsvpClosed,
+  searchRsvps,
+  seatsLabel,
+} from "@/lib/event-rsvp";
 import { formatEventDate } from "@/lib/events";
 import type { EventWithRsvpForms } from "@/sanity/types";
 
 /**
- * Un modulo per riga: la coppia evento + blocco è la chiave con cui Convex
- * tiene le iscrizioni, e un evento può ospitare più di un modulo.
+ * Ogni minuto, l'ora corrente.
+ *
+ * Scadenza delle iscrizioni e apertura della cassa sono confronti con «adesso»:
+ * calcolati una volta al montaggio resterebbero fermi, e la sera dell'evento la
+ * dashboard sta aperta per ore. Un minuto è il passo giusto — la precisione che
+ * serve è quella dell'orologio a muro, non del cronometro.
  */
-type FormRow = {
-  id: string;
-  eventId: string;
-  blockKey: string;
-  eventTitle: string;
-  eventSlug: string;
-  dateStart: string;
-  dateEnd?: string | null;
-  heading?: string | null;
-  capacity?: number | null;
-  closesAt?: string | null;
-  /** Compare nell'etichetta solo se l'evento ha più moduli: altrimenti è rumore. */
-  showsHeading: boolean;
-};
+function useMinuteTick() {
+  const [now, setNow] = useState(() => Date.now());
 
-function flattenForms(events: EventWithRsvpForms[]): FormRow[] {
-  return events.flatMap((event) =>
-    event.forms.map((form) => ({
-      id: `${event._id}:${form._key}`,
-      eventId: event._id,
-      blockKey: form._key,
-      eventTitle: event.title,
-      eventSlug: event.slug,
-      dateStart: event.dateStart,
-      dateEnd: event.dateEnd,
-      heading: form.heading,
-      capacity: form.capacity,
-      closesAt: form.closesAt,
-      showsHeading: event.forms.length > 1,
-    })),
-  );
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return now;
 }
 
 function StatCard({
@@ -139,20 +131,16 @@ export default function Participations({
 
   /**
    * `?form=` sceglie il modulo da mostrare: è dove atterra chi tocca l'avviso
-   * di una nuova iscrizione. Ha la stessa forma dell'id qui sopra —
-   * `evento:blocco` — perché è quello che il link porta con sé. Se il modulo
-   * non c'è più (evento spubblicato dallo Studio) si ricade sul primo.
+   * di una nuova iscrizione, e da dove torna chi arriva dalla lista arrivi.
    */
   const searchParams = useSearchParams();
-  const [selectedId, setSelectedId] = useState(() => {
-    const requested = searchParams.get("form");
-    if (requested && forms.some((form) => form.id === requested)) {
-      return requested;
-    }
-    return forms[0]?.id ?? "";
-  });
+  const [selectedId, setSelectedId] = useState(() =>
+    initialFormId(forms, searchParams.get("form")),
+  );
 
   const selected = forms.find((form) => form.id === selectedId) ?? forms[0];
+  const now = useMinuteTick();
+  const [query, setQuery] = useState("");
 
   const counts = useQuery(
     api.modules.eventRsvps.statsBatch.default,
@@ -207,6 +195,9 @@ export default function Participations({
 
   useEffect(() => {
     void loadEntries();
+    // Cambiando evento la ricerca di prima non vuol dire più niente, e lasciarla
+    // lì farebbe sembrare vuoto un elenco che è solo filtrato.
+    setQuery("");
   }, [loadEntries]);
 
   const cancelRsvp = async (id: string) => {
@@ -255,6 +246,13 @@ export default function Participations({
       ? Math.max(selected.capacity - seatsTaken, 0)
       : null;
   const lastEntry = entries?.length ? entries[entries.length - 1] : null;
+
+  /**
+   * La ricerca filtra solo la tabella. I riquadri qui sopra continuano a
+   * contare tutti: «Persone attese: 3» perché si sta cercando un nome sarebbe
+   * un numero sbagliato scritto in grande.
+   */
+  const visible = entries ? searchRsvps(entries, query) : undefined;
 
   const handleCancel = (entry: { id: string; name: string }) => {
     toast("Stai annullando un'iscrizione", {
@@ -342,15 +340,32 @@ export default function Participations({
               <Badge
                 variant="outline"
                 className={
-                  isRsvpClosed(selected.closesAt)
+                  isRsvpClosed(selected.closesAt, now)
                     ? "bg-red-50 text-red-900 border-red-200"
                     : "bg-green-50 text-green-900 border-green-200"
                 }
               >
-                {isRsvpClosed(selected.closesAt)
+                {isRsvpClosed(selected.closesAt, now)
                   ? "Iscrizioni chiuse"
                   : "Iscrizioni aperte"}
               </Badge>
+            )}
+
+            {/*
+             * Quando non ha più senso aspettare iscritti, quel che serve non è
+             * più questa pagina ma l'appello all'ingresso: il tasto compare da
+             * sé, senza ricaricare, perché la sera dell'evento la dashboard
+             * resta aperta.
+             */}
+            {isCheckInOpen(selected.closesAt, selected.dateStart, now) && (
+              <Button asChild size="sm" className="ml-auto">
+                <Link
+                  href={`/dashboard/events/arrivi?form=${encodeURIComponent(selected.id)}`}
+                >
+                  <ClipboardCheck className="size-4" />
+                  Registra arrivi
+                </Link>
+              </Button>
             )}
           </div>
 
@@ -393,8 +408,28 @@ export default function Participations({
                 occupava.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {entries === undefined ? (
+            <CardContent className="space-y-4">
+              {entries !== undefined && entries.length > 0 && (
+                <div>
+                  {/* `relative` attorno al solo campo: vedi `arrivals.tsx`. */}
+                  <div className="relative">
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                    <Input
+                      placeholder="Cerca per nome o email…"
+                      className="h-10 bg-white pl-9"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                    />
+                  </div>
+                  {query.trim() && visible && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {visible.length} di {entries.length} iscritti
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {entries === undefined || visible === undefined ? (
                 <ListSkeleton />
               ) : entries.length === 0 ? (
                 <Empty>
@@ -405,6 +440,20 @@ export default function Participations({
                     <EmptyTitle>Nessuna iscrizione</EmptyTitle>
                     <EmptyDescription>
                       Il modulo è pubblicato ma non è ancora arrivato nessuno.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              ) : visible.length === 0 ? (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <Search />
+                    </EmptyMedia>
+                    <EmptyTitle>Nessun iscritto trovato</EmptyTitle>
+                    <EmptyDescription>
+                      Nessuno fra i {entries.length} iscritti risponde a «
+                      {query.trim()}». Prova con una parte del nome o con
+                      l'indirizzo email.
                     </EmptyDescription>
                   </EmptyHeader>
                 </Empty>
@@ -421,7 +470,7 @@ export default function Participations({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {entries.map((entry) => (
+                      {visible.map((entry) => (
                         <TableRow key={entry.id}>
                           <TableCell className="font-medium">
                             {entry.name}

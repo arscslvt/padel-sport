@@ -47,6 +47,7 @@ import type * as modules_eventCommunications_list from "../modules/eventCommunic
 import type * as modules_eventCommunications_pendingCounts from "../modules/eventCommunications/pendingCounts.js";
 import type * as modules_eventCommunications_recordDeliveries from "../modules/eventCommunications/recordDeliveries.js";
 import type * as modules_eventRsvps_cancel from "../modules/eventRsvps/cancel.js";
+import type * as modules_eventRsvps_checkIn from "../modules/eventRsvps/checkIn.js";
 import type * as modules_eventRsvps_create from "../modules/eventRsvps/create.js";
 import type * as modules_eventRsvps_getByToken from "../modules/eventRsvps/getByToken.js";
 import type * as modules_eventRsvps_list from "../modules/eventRsvps/list.js";
@@ -174,6 +175,7 @@ declare const fullApi: ApiFromModules<{
   "modules/eventCommunications/pendingCounts": typeof modules_eventCommunications_pendingCounts;
   "modules/eventCommunications/recordDeliveries": typeof modules_eventCommunications_recordDeliveries;
   "modules/eventRsvps/cancel": typeof modules_eventRsvps_cancel;
+  "modules/eventRsvps/checkIn": typeof modules_eventRsvps_checkIn;
   "modules/eventRsvps/create": typeof modules_eventRsvps_create;
   "modules/eventRsvps/getByToken": typeof modules_eventRsvps_getByToken;
   "modules/eventRsvps/list": typeof modules_eventRsvps_list;

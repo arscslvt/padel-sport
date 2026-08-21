@@ -39,6 +39,16 @@ export default query({
         notifiedAt: entry.notifiedAt,
         /** Ha chiesto di non ricevere comunicazioni: la dashboard lo segnala */
         unsubscribedAt: entry.unsubscribedAt,
+        /** Arrivato alla cassa: lo usa la lista arrivi, il resto lo ignora */
+        checkedInAt: entry.checkedInAt,
+        /**
+         * Gli indici oltre il numero di accompagnatori si scartano qui: se
+         * l'iscrizione è stata corretta al ribasso dopo una spunta, la lista
+         * arrivi non deve disegnare un ospite che non esiste più.
+         */
+        checkedInGuests: (entry.checkedInGuests ?? []).filter(
+          (index) => index >= 0 && index < entry.guests,
+        ),
       }));
   },
 });

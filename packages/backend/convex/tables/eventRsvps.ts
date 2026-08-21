@@ -53,6 +53,25 @@ const eventRsvps = defineTable({
   unsubscribedAt: v.optional(v.float64()),
   /** Esito dell'invio delle mail: l'iscrizione resta valida anche se fallisce */
   notifiedAt: v.optional(v.float64()),
+  /**
+   * Si è presentato alla cassa la sera dell'evento.
+   *
+   * Facoltativo come `unsubscribedAt` e per lo stesso motivo: assente vale
+   * «non ancora arrivato», che è lo stato di partenza di chiunque.
+   */
+  checkedInAt: v.optional(v.float64()),
+  /**
+   * Quali accompagnatori sono arrivati, per indice 0-based.
+   *
+   * Un elenco di indici e non un contatore: gli ospiti sono anonimi, le caselle
+   * della lista arrivi no. Con un contatore, spuntare «Ospite 2» accenderebbe
+   * la casella di «Ospite 1» — e chi sta in cassa vedrebbe la spunta muoversi
+   * da sola. Gli indici rendono rappresentabile un sottoinsieme qualunque.
+   *
+   * Se `guests` cala dopo una spunta, gli indici fuori scala si ignorano in
+   * lettura invece di migrarli: sono segnaposto, non persone.
+   */
+  checkedInGuests: v.optional(v.array(v.float64())),
   createdAt: v.float64(),
 })
   .index("by_form", ["eventId", "blockKey"])

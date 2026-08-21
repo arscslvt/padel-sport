@@ -46,6 +46,46 @@ export async function GET(request: Request) {
   }
 }
 
+const checkInSchema = z.object({
+  id: z.string().min(1),
+  /** Assente = l'iscritto in persona; un numero = l'indice dell'accompagnatore. */
+  guestIndex: z.number().int().min(0).optional(),
+  arrived: z.boolean(),
+});
+
+/** La spunta della lista arrivi: chi si è presentato alla cassa. */
+export async function PATCH(request: Request) {
+  const gate = await staffGate();
+  if (!gate.ok) return gate.response;
+
+  const parsed = checkInSchema.safeParse(
+    await request.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Dati non validi." }, { status: 400 });
+  }
+
+  try {
+    const result = await gate.convex.mutation(
+      api.modules.eventRsvps.checkIn.default,
+      {
+        secret: gate.secret,
+        id: parsed.data.id as Id<"eventRsvps">,
+        guestIndex: parsed.data.guestIndex,
+        arrived: parsed.data.arrived,
+      },
+    );
+
+    return NextResponse.json({ entry: result });
+  } catch (error) {
+    console.error("Arrivo non registrato:", error);
+    return NextResponse.json(
+      { error: convexMessage(error, "Non riesco a registrare l'arrivo.") },
+      { status: 400 },
+    );
+  }
+}
+
 const cancelSchema = z.object({ id: z.string().min(1) });
 
 export async function DELETE(request: Request) {

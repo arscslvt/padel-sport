@@ -78,6 +78,67 @@ export function isRsvpClosed(closesAt?: string | null, now = Date.now()) {
   return Number.isFinite(deadline) && deadline <= now;
 }
 
+/**
+ * Ricerca sugli iscritti, condivisa dalle due liste della dashboard.
+ *
+ * Gli accenti si appiattiscono prima del confronto: «Nicolo» deve trovare
+ * «Niccolò». Alla cassa si cerca in piedi, col dito, su una tastiera del
+ * telefono — e chi digita non ha voglia di tenere premuta la «o» per
+ * assomigliare a com'è scritto in banca dati.
+ *
+ * I termini si intersecano invece di sommarsi, come in `searchEvents`: «mario
+ * rossi» deve restringere, non allargare a tutti i Mario e tutti i Rossi.
+ *
+ * Generica sulla forma minima che le serve, così vale sia per le righe
+ * dell'elenco iscritti sia per quelle degli arrivi senza tirarsi dietro i tipi
+ * generati da Convex.
+ */
+export function searchRsvps<T extends { name: string; email: string }>(
+  entries: T[],
+  query: string,
+): T[] {
+  const terms = fold(query).split(/\s+/).filter(Boolean);
+  if (!terms.length) return entries;
+
+  return entries.filter((entry) => {
+    const haystack = fold(`${entry.name} ${entry.email}`);
+    return terms.every((term) => haystack.includes(term));
+  });
+}
+
+function fold(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+}
+
+/**
+ * Da quando ha senso aprire la lista arrivi.
+ *
+ * Due condizioni in «oppure» e non una sola: `closesAt` è facoltativo sullo
+ * Studio, quindi fermarsi alla scadenza vorrebbe dire che un modulo senza
+ * scadenza non mostra il tasto mai — proprio gli eventi gestiti con più
+ * leggerezza, che sono quelli che poi in cassa fanno tribolare.
+ *
+ * Il giorno intero e non l'ora d'inizio: la cassa si allestisce prima che
+ * l'evento cominci, e alle 20:00 la lista deve già esserci.
+ */
+export function isCheckInOpen(
+  closesAt: string | null | undefined,
+  dateStart: string,
+  now = Date.now(),
+) {
+  if (isRsvpClosed(closesAt, now)) return true;
+
+  const start = new Date(dateStart);
+  if (Number.isNaN(start.getTime())) return false;
+
+  start.setHours(0, 0, 0, 0);
+  return start.getTime() <= now;
+}
+
 const deadlineFormatter = new Intl.DateTimeFormat("it-IT", {
   day: "numeric",
   month: "long",
