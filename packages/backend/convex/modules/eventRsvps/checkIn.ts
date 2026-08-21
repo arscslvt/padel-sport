@@ -3,17 +3,14 @@ import { mutation } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
 
 /**
- * Registra chi si presenta alla cassa la sera dell'evento.
+ * Registra chi si è presentato alla cassa: un elenco intero per volta.
  *
- * Una spunta per volta, e ogni spunta è un fatto a sé: l'iscritto e i suoi
- * accompagnatori possono arrivare in momenti diversi, quindi segnare presente
- * il primo non dice niente degli altri. È lo staff a decidere, guardando chi ha
- * davanti.
- *
- * `arrived: false` è il ripensamento — si spunta per sbaglio la riga sopra, e
- * disfare deve costare un clic. Per questo la firma non è «registra l'arrivo»
- * ma «lo stato di questa persona ora è questo»: chiamarla due volte di fila con
- * lo stesso valore lascia le cose come stanno.
+ * Non dice «spunta questa persona» ma «lo stato adesso è questo». La differenza
+ * conta perché alla cassa si spunta a raffica: con una chiamata per casella le
+ * risposte tornano fuori ordine, e quella della prima — calcolata prima che la
+ * seconda partisse — riporta indietro lo stato appena scritto. La casella si
+ * smarca da sola sotto le dita. Mandando lo stato intero l'ultima scrittura
+ * vince, ed è sempre quella giusta.
  *
  * Protetta dal segreto condiviso come `cancel.byStaff`: chi sta in lista non ha
  * titolo per dichiararsi arrivato da solo.
@@ -21,75 +18,67 @@ import { assertServer } from "../../utils/serverSecret";
 export default mutation({
   args: {
     secret: v.string(),
-    id: v.id("eventRsvps"),
-    /**
-     * Assente vuol dire l'iscritto in persona. Un numero è l'indice 0-based
-     * dell'accompagnatore, quello che la lista mostra come «Ospite n+1».
-     */
-    guestIndex: v.optional(v.float64()),
-    arrived: v.boolean(),
+    entries: v.array(
+      v.object({
+        id: v.id("eventRsvps"),
+        /** L'iscritto in persona. */
+        arrived: v.boolean(),
+        /** Indici 0-based degli accompagnatori arrivati. */
+        guests: v.array(v.float64()),
+      }),
+    ),
   },
-  handler: async (ctx, { secret, id, guestIndex, arrived }) => {
+  handler: async (ctx, { secret, entries }) => {
     assertServer(secret);
 
-    const rsvp = await ctx.db.get(id);
-    if (!rsvp) {
+    if (entries.length > 500) {
       throw new ConvexError({
-        code: "not_found",
-        message: "Iscrizione non trovata.",
+        code: "too_many",
+        message: "Troppe iscrizioni in una volta sola.",
       });
     }
 
-    // Un'iscrizione annullata non ha nessuno da accogliere: se qualcuno si
-    // presenta lo stesso, prima va rimessa in piedi.
-    if (rsvp.status !== "confirmed") {
-      throw new ConvexError({
-        code: "cancelled",
-        message: "Questa iscrizione è stata annullata.",
-      });
+    const saved: Array<{
+      id: string;
+      checkedInAt?: number;
+      checkedInGuests: number[];
+    }> = [];
+    const skipped: string[] = [];
+
+    for (const entry of entries) {
+      const rsvp = await ctx.db.get(entry.id);
+
+      /*
+       * Una riga sparita o annullata nel frattempo si salta invece di far
+       * fallire tutto: la mutation è transazionale, quindi un'eccezione qui
+       * butterebbe via anche le venti spunte buone che le stanno accanto — e
+       * chi è in cassa le rifarebbe a mano senza sapere perché.
+       */
+      if (!rsvp || rsvp.status !== "confirmed") {
+        skipped.push(entry.id);
+        continue;
+      }
+
+      /*
+       * L'ora d'arrivo è quella della prima spunta. Risalvare lo stesso stato
+       * non la sposta in avanti: altrimenti in banca dati resterebbe l'ora
+       * dell'ultimo salvataggio, non quella in cui la persona è entrata.
+       */
+      const checkedInAt = entry.arrived
+        ? (rsvp.checkedInAt ?? Date.now())
+        : undefined;
+
+      const checkedInGuests = [...new Set(entry.guests)]
+        .filter(
+          (index) =>
+            Number.isInteger(index) && index >= 0 && index < rsvp.guests,
+        )
+        .sort((a, b) => a - b);
+
+      await ctx.db.patch(entry.id, { checkedInAt, checkedInGuests });
+      saved.push({ id: entry.id, checkedInAt, checkedInGuests });
     }
 
-    if (guestIndex === undefined) {
-      await ctx.db.patch(id, {
-        checkedInAt: arrived ? Date.now() : undefined,
-      });
-    } else {
-      if (!Number.isInteger(guestIndex) || guestIndex < 0) {
-        throw new ConvexError({
-          code: "bad_guest",
-          message: "Accompagnatore non valido.",
-        });
-      }
-
-      if (guestIndex >= rsvp.guests) {
-        throw new ConvexError({
-          code: "bad_guest",
-          message: "Questa iscrizione non ha un accompagnatore a quel posto.",
-        });
-      }
-
-      const current = new Set(rsvp.checkedInGuests ?? []);
-      if (arrived) {
-        current.add(guestIndex);
-      } else {
-        current.delete(guestIndex);
-      }
-
-      await ctx.db.patch(id, {
-        // Ordinati e ripuliti dagli indici fuori scala: quel che si rilegge
-        // dev'essere già presentabile, senza che chi legge debba rimediare.
-        checkedInGuests: [...current]
-          .filter((index) => index < rsvp.guests)
-          .sort((a, b) => a - b),
-      });
-    }
-
-    const updated = await ctx.db.get(id);
-
-    return {
-      id,
-      checkedInAt: updated?.checkedInAt,
-      checkedInGuests: updated?.checkedInGuests ?? [],
-    };
+    return { saved, skipped };
   },
 });

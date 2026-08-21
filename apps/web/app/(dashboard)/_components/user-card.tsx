@@ -4,9 +4,14 @@ import { useAuth, useUser } from "@clerk/nextjs";
 import { LogOut } from "lucide-react";
 
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { useSidebar } from "@/components/ui/sidebar";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  SidebarMenu,
+  SidebarMenuAction,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSkeleton,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import { useProfileDialog } from "../_providers/profile-dialog.provider";
 
 export default function UserCard() {
@@ -17,15 +22,11 @@ export default function UserCard() {
 
   if (!user) {
     return (
-      <Skeleton>
-        <div className="flex items-center gap-4 p-2">
-          <div className="rounded-full bg-border h-10 w-10" />
-          <div className="flex-1">
-            <div className="h-4 bg-border rounded w-3/4 mb-2" />
-            <div className="h-3 bg-border rounded w-1/2" />
-          </div>
-        </div>
-      </Skeleton>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuSkeleton showIcon />
+        </SidebarMenuItem>
+      </SidebarMenu>
     );
   }
 
@@ -35,29 +36,34 @@ export default function UserCard() {
   };
 
   return (
-    <div className="flex items-center gap-1">
-      <button
-        type="button"
-        onClick={handleOpenProfile}
-        aria-label="Apri le impostazioni del profilo"
-        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md p-2 text-left transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-      >
-        <Avatar>
-          <AvatarImage src={user?.imageUrl} alt={user?.fullName ?? "User"} />
-        </Avatar>
-        <p className="truncate text-sm font-medium">{user?.fullName}</p>
-      </button>
-
-      <div>
-        <Button
-          size={"icon"}
-          variant={"ghost"}
-          className="group/button rounded-full hover:bg-destructive/10 focus-visible:bg-destructive/10"
-          onClick={() => signOut()}
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          size="lg"
+          onClick={handleOpenProfile}
+          aria-label="Apri le impostazioni del profilo"
+          tooltip={user.fullName ?? "Profilo"}
         >
-          <LogOut className="size-4 group-hover/button:text-destructive" />
-        </Button>
-      </div>
-    </div>
+          <Avatar className="size-8 shrink-0">
+            <AvatarImage src={user.imageUrl} alt={user.fullName ?? "Utente"} />
+          </Avatar>
+          <span className="truncate font-medium">{user.fullName}</span>
+        </SidebarMenuButton>
+
+        {/*
+         * `SidebarMenuAction` sparisce da sé a barra stretta: uscire è un gesto
+         * che non si deve poter fare per sbaglio mirando all'avatar, e in tre
+         * centimetri i due bersagli finirebbero uno sull'altro. Con la barra
+         * stretta si esce dal profilo, che è un clic più in là ma è voluto.
+         */}
+        <SidebarMenuAction
+          onClick={() => signOut()}
+          aria-label="Esci dalla dashboard"
+          className="hover:bg-destructive/10 hover:text-destructive"
+        >
+          <LogOut />
+        </SidebarMenuAction>
+      </SidebarMenuItem>
+    </SidebarMenu>
   );
 }

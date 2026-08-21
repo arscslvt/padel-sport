@@ -594,6 +594,33 @@ function SidebarMenuBadge({
   );
 }
 
+/**
+ * Le larghezze possibili delle righe finte, dal 50% al 90%.
+ *
+ * Un elenco di segnaposto tutti della stessa lunghezza sembra una tabella, non
+ * del testo in arrivo: la varietà è il motivo per cui esistono.
+ */
+const SKELETON_WIDTHS = ["50%", "60%", "70%", "80%", "90%"] as const;
+
+/**
+ * Qui l'originale shadcn tira `Math.random()`, e in SSR non regge: il server ne
+ * pesca una, il client in idratazione un'altra, e React se ne accorge —
+ * «server rendered HTML didn't match». `useId` è invece l'unico numero che le
+ * due parti concordano di avere uguale, quindi la varietà si ricava da lì.
+ * Righe diverse restano diverse, e ognuna resta sé stessa fra un render e
+ * l'altro.
+ */
+function useSkeletonWidth() {
+  const id = React.useId();
+
+  let hash = 0;
+  for (let index = 0; index < id.length; index++) {
+    hash = (hash * 31 + id.charCodeAt(index)) % 9973;
+  }
+
+  return SKELETON_WIDTHS[hash % SKELETON_WIDTHS.length];
+}
+
 function SidebarMenuSkeleton({
   className,
   showIcon = false,
@@ -601,10 +628,7 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<"div"> & {
   showIcon?: boolean;
 }) {
-  // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
-  }, []);
+  const width = useSkeletonWidth();
 
   return (
     <div

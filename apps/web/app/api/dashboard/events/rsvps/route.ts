@@ -47,13 +47,25 @@ export async function GET(request: Request) {
 }
 
 const checkInSchema = z.object({
-  id: z.string().min(1),
-  /** Assente = l'iscritto in persona; un numero = l'indice dell'accompagnatore. */
-  guestIndex: z.number().int().min(0).optional(),
-  arrived: z.boolean(),
+  entries: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        arrived: z.boolean(),
+        guests: z.array(z.number().int().min(0)),
+      }),
+    )
+    .min(1)
+    .max(500),
 });
 
-/** La spunta della lista arrivi: chi si è presentato alla cassa. */
+/**
+ * Le spunte della lista arrivi, a gruppi.
+ *
+ * Arriva lo stato intero delle righe toccate, non un «accendi questa casella»:
+ * chi è in cassa spunta a raffica e il client accumula, così l'ultima
+ * scrittura vince e non c'è ordine di arrivo da rispettare.
+ */
 export async function PATCH(request: Request) {
   const gate = await staffGate();
   if (!gate.ok) return gate.response;
@@ -70,17 +82,18 @@ export async function PATCH(request: Request) {
       api.modules.eventRsvps.checkIn.default,
       {
         secret: gate.secret,
-        id: parsed.data.id as Id<"eventRsvps">,
-        guestIndex: parsed.data.guestIndex,
-        arrived: parsed.data.arrived,
+        entries: parsed.data.entries.map((entry) => ({
+          ...entry,
+          id: entry.id as Id<"eventRsvps">,
+        })),
       },
     );
 
-    return NextResponse.json({ entry: result });
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("Arrivo non registrato:", error);
+    console.error("Arrivi non registrati:", error);
     return NextResponse.json(
-      { error: convexMessage(error, "Non riesco a registrare l'arrivo.") },
+      { error: convexMessage(error, "Non riesco a registrare gli arrivi.") },
       { status: 400 },
     );
   }
