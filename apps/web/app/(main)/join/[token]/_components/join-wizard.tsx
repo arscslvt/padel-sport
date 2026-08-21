@@ -316,7 +316,7 @@ export function JoinWizard({
         subtitle="Li abbiamo presi quando sei passato in struttura: controlla che siano giusti e correggi quel che serve."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="firstName">Nome</Label>
           <Input
@@ -361,7 +361,7 @@ export function JoinWizard({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="birthPlace">Luogo di nascita</Label>
           <Input

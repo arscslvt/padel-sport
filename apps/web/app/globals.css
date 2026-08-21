@@ -232,6 +232,26 @@
     @apply bg-background text-foreground;
     @apply overflow-x-hidden;
   }
+
+  /*
+   * I campi data su iOS.
+   *
+   * Safari li disegna come controllo nativo e in quella veste ignora la
+   * larghezza e l'altezza che gli diamo: si prende lo spazio che vuole, sfonda
+   * il contenitore e fa comparire una barra di scorrimento orizzontale nei
+   * pannelli stretti — la scheda cliente su telefono, per dirne una. Spento
+   * l'aspetto nativo il campo torna a rispettare il proprio box, e al tocco si
+   * apre lo stesso il selettore di sistema.
+   */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 /*
