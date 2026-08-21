@@ -29,10 +29,11 @@ export default async function EventArrivalsPage() {
         </Button>
         <h1 className="text-2xl font-semibold">Arrivi</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          L'appello all'ingresso: si spunta chi si presenta, iscritti e
-          accompagnatori uno per uno. Le spunte si salvano da sole, quindi la
-          pagina si può ricaricare o passare a un altro telefono senza perdere
-          niente. Da qui non si annulla nessuna iscrizione.
+          L'appello all'ingresso: si spunta chi si presenta, l'iscritto e i suoi
+          accompagnatori — uno per uno, o tutto il gruppo in un tocco se
+          arrivano insieme. Le spunte si salvano da sole, quindi la pagina si
+          può ricaricare o passare a un altro telefono senza perdere niente. Da
+          qui non si annulla nessuna iscrizione.
         </p>
       </section>
       <Arrivals events={events} />

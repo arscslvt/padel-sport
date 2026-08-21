@@ -115,6 +115,45 @@ function fold(value: string) {
 }
 
 /**
+ * I due ordini possibili per un elenco di iscritti.
+ *
+ * `signup` è l'ordine in cui si sono iscritti, `name` l'alfabetico sul nome.
+ * Servono tutti e due: l'ordine di iscrizione racconta come si è riempito
+ * l'evento, ma alla cassa arriva una persona che dice il proprio nome, e in
+ * un elenco lungo cercarlo in ordine di arrivo vuol dire far aspettare la
+ * fila.
+ */
+export type RsvpOrder = "signup" | "name";
+
+/**
+ * Alfabetico all'italiana: accenti e maiuscole non contano nel confronto, come
+ * già nella ricerca. «D'Àngelo» sta dove chi legge si aspetta «D'Angelo», e
+ * «de luca» scritto in minuscolo non finisce in fondo alla lista.
+ */
+const nameCollator = new Intl.Collator("it", { sensitivity: "base" });
+
+/**
+ * L'elenco riordinato, senza toccare quello ricevuto.
+ *
+ * Anche `signup` ordina davvero invece di fidarsi di com'è arrivata la lista:
+ * è l'etichetta che si legge sullo schermo, e deve restare vera anche il
+ * giorno in cui la query cambia il suo `sort`.
+ *
+ * A parità di nome decide l'iscrizione: due omonimi devono stare sempre nello
+ * stesso ordine, o si spunta l'uno credendo di spuntare l'altro.
+ */
+export function sortRsvps<T extends { name: string; createdAt: number }>(
+  entries: T[],
+  order: RsvpOrder,
+): T[] {
+  return [...entries].sort((a, b) =>
+    order === "signup"
+      ? a.createdAt - b.createdAt
+      : nameCollator.compare(a.name, b.name) || a.createdAt - b.createdAt,
+  );
+}
+
+/**
  * Da quando ha senso aprire la lista arrivi.
  *
  * Due condizioni in «oppure» e non una sola: `closesAt` è facoltativo sullo

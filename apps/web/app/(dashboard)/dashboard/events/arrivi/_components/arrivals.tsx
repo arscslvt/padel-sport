@@ -2,7 +2,14 @@
 
 import type { api } from "@padel-sport/backend/convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
-import { CalendarClock, CalendarOff, Search, UserPlus } from "lucide-react";
+import {
+	CalendarClock,
+	CalendarOff,
+	CheckCheck,
+	Search,
+	Undo2,
+	UserPlus,
+} from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -22,6 +29,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/app/(dashboard)/_components/card";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Empty,
@@ -40,7 +48,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { flattenForms, initialFormId } from "@/lib/event-forms";
-import { searchRsvps } from "@/lib/event-rsvp";
+import { type RsvpOrder, searchRsvps, sortRsvps } from "@/lib/event-rsvp";
 import { formatEventDate } from "@/lib/events";
 import { DURATION, EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -57,8 +65,10 @@ import type { EventWithRsvpForms } from "@/sanity/types";
  *
  * Gli accompagnatori non hanno un nome in banca dati — il modulo pubblico
  * chiede solo quanti sono — quindi si numerano: «Ospite 1», «Ospite 2». Sono
- * segnaposto di conteggio, e vanno spuntati uno per uno perché possono arrivare
- * in momenti diversi da chi li ha iscritti.
+ * segnaposto di conteggio, e si spuntano anche uno per uno, perché possono
+ * arrivare in momenti diversi da chi li ha iscritti. Ma il caso normale è che
+ * si presentino insieme: per quello c'è il tasto del gruppo, che segna tutta
+ * l'iscrizione in un tocco.
  */
 
 type RsvpEntry = FunctionReturnType<
@@ -114,6 +124,34 @@ export function applyToggle(
 				};
 
 	return { ...checks, [entryId]: next };
+}
+
+/**
+ * Lo stato dopo un «tutti»: l'iscrizione intera, iscritto e accompagnatori.
+ *
+ * Riscrive la riga invece di rigiocarsi `applyToggle` una volta per persona.
+ * Il gruppo che si presenta insieme è un gesto solo, e detto così non c'è
+ * nessuno stato di mezzo — mezzo gruppo spuntato — che possa restare lì se
+ * qualcosa va storto a metà.
+ *
+ * Gli indici degli accompagnatori si rigenerano dal numero attuale: se
+ * l'iscrizione è stata corretta al ribasso, il «tutti» non fa rinascere le
+ * spunte di ospiti che non ci sono più.
+ */
+export function applyToggleAll(
+	checks: Checks,
+	entry: Pick<RsvpEntry, "id" | "guests">,
+	value: boolean,
+): Checks {
+	return {
+		...checks,
+		[entry.id]: {
+			arrived: value,
+			guests: value
+				? Array.from({ length: entry.guests }, (_, index) => index)
+				: [],
+		},
+	};
 }
 
 /** Quante persone porta un'iscrizione, e quante ne sono già entrate. */
@@ -277,6 +315,12 @@ export default function Arrivals({ events }: { events: EventWithRsvpForms[] }) {
 
 	const [entries, setEntries] = useState<RsvpEntry[] | undefined>(undefined);
 	const [query, setQuery] = useState("");
+	/**
+	 * L'ordine dell'elenco: una preferenza di chi spunta, non un filtro. Per
+	 * questo sopravvive al cambio di evento mentre la ricerca no — chi alla
+	 * cassa va a nomi ci va per tutta la serata, non per un modulo solo.
+	 */
+	const [order, setOrder] = useState<RsvpOrder>("signup");
 	const [checks, setChecks] = useState<Checks>({});
 	const [status, setStatus] = useState<SaveStatus>("idle");
 	/** Batte a ogni spunta: è il segnale che fa ripartire l'attesa. */
@@ -402,6 +446,13 @@ export default function Arrivals({ events }: { events: EventWithRsvpForms[] }) {
 		}
 	}, []);
 
+	/** Quel che segue ogni spunta: la riga da salvare, e l'attesa che riparte. */
+	const queueSave = (entryId: string) => {
+		dirty.current.add(entryId);
+		setStatus("pending");
+		setPulse((count) => count + 1);
+	};
+
 	/**
 	 * La spunta, che è solo un cambio di stato locale.
 	 *
@@ -414,10 +465,19 @@ export default function Arrivals({ events }: { events: EventWithRsvpForms[] }) {
 		value: boolean,
 	) => {
 		setChecks((current) => applyToggle(current, entryId, guestIndex, value));
+		queueSave(entryId);
+	};
 
-		dirty.current.add(entryId);
-		setStatus("pending");
-		setPulse((count) => count + 1);
+	/**
+	 * Il gruppo intero, in un tocco.
+	 *
+	 * Una riga sola da salvare come per una spunta qualunque: il salvataggio
+	 * manda comunque lo stato completo dell'iscrizione, quindi «tutti» non è
+	 * più pesante di una casella singola.
+	 */
+	const toggleAll = (entry: RsvpEntry, value: boolean) => {
+		setChecks((current) => applyToggleAll(current, entry, value));
+		queueSave(entry.id);
 	};
 
 	/**
@@ -485,11 +545,13 @@ export default function Arrivals({ events }: { events: EventWithRsvpForms[] }) {
 	const percent = expected > 0 ? Math.round((arrived / expected) * 100) : 0;
 
 	/**
-	 * Il filtro tocca solo l'elenco. La barra in cima continua a contare tutti:
-	 * dice quanta gente è entrata stasera, e cercare un nome non fa arrivare né
-	 * sparire nessuno.
+	 * Il filtro e l'ordine toccano solo l'elenco. La barra in cima continua a
+	 * contare tutti: dice quanta gente è entrata stasera, e cercare un nome o
+	 * riordinare i nomi non fa arrivare né sparire nessuno.
 	 */
-	const visible = entries ? searchRsvps(entries, query) : undefined;
+	const visible = entries
+		? sortRsvps(searchRsvps(entries, query), order)
+		: undefined;
 
 	return (
 		<div className="space-y-6">
@@ -571,27 +633,55 @@ export default function Arrivals({ events }: { events: EventWithRsvpForms[] }) {
 						<CardHeader>
 							<CardTitle>Chi è atteso</CardTitle>
 							<CardDescription>
-								In ordine di iscrizione. Chi è già entrato resta al suo posto,
-								barrato, così un nome si ritrova sempre dove lo si era lasciato.
+								{order === "signup"
+									? "In ordine di iscrizione."
+									: "In ordine alfabetico, per nome."}{" "}
+								Chi è già entrato resta al suo posto, barrato, così un nome si
+								ritrova sempre dove lo si era lasciato.
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="space-y-4">
 							{entries !== undefined && entries.length > 0 && (
 								<div>
-									{/*
-									 * `relative` sta stretto attorno al solo campo: il contatore
-									 * qui sotto cresce e cala, e se stesse dentro sposterebbe il
-									 * centro rispetto a cui l'icona si posiziona — che scenderebbe
-									 * appena si comincia a scrivere.
-									 */}
-									<div className="relative">
-										<Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-										<Input
-											placeholder="Cerca per nome o email…"
-											className="h-11 bg-white pl-9"
-											value={query}
-											onChange={(event) => setQuery(event.target.value)}
-										/>
+									<div className="flex flex-col gap-2 sm:flex-row">
+										{/*
+										 * `relative` sta stretto attorno al solo campo: il contatore
+										 * qui sotto cresce e cala, e se stesse dentro sposterebbe il
+										 * centro rispetto a cui l'icona si posiziona — che scenderebbe
+										 * appena si comincia a scrivere.
+										 */}
+										<div className="relative flex-1">
+											<Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+											<Input
+												placeholder="Cerca per nome o email…"
+												className="h-11 bg-white pl-9"
+												value={query}
+												onChange={(event) => setQuery(event.target.value)}
+											/>
+										</div>
+										{/*
+										 * Due sole voci, ma in una tendina e non in un interruttore: il
+										 * nome dell'ordine in cui si sta guardando la lista resta scritto
+										 * anche quando non lo si sta cambiando, e chi prende in mano il
+										 * telefono a metà serata non deve indovinarlo.
+										 */}
+										<Select
+											value={order}
+											onValueChange={(value) => setOrder(value as RsvpOrder)}
+										>
+											<SelectTrigger
+												aria-label="Ordine dell'elenco"
+												className="h-11 w-full bg-white sm:w-56"
+											>
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="signup">
+													Ordine di iscrizione
+												</SelectItem>
+												<SelectItem value="name">Ordine alfabetico</SelectItem>
+											</SelectContent>
+										</Select>
 									</div>
 									{query.trim() && visible && (
 										<p className="mt-1.5 text-xs text-muted-foreground">
@@ -636,17 +726,52 @@ export default function Arrivals({ events }: { events: EventWithRsvpForms[] }) {
 									{visible.map((entry) => {
 										const check = checks[entry.id] ?? NOBODY;
 										const counts = tally(entry, check);
+										const allArrived = counts.arrived === counts.total;
+										const GroupIcon = allArrived ? Undo2 : CheckCheck;
 
 										return (
 											<li key={entry.id} className="py-2 first:pt-0 last:pb-0">
-												<PersonRow
-													label={entry.name}
-													sublabel={entry.email}
-													checked={check.arrived}
-													onToggle={(value) =>
-														toggle(entry.id, undefined, value)
-													}
-												/>
+												<div className="flex items-center gap-2">
+													<div className="min-w-0 flex-1">
+														<PersonRow
+															label={entry.name}
+															sublabel={entry.email}
+															checked={check.arrived}
+															onToggle={(value) =>
+																toggle(entry.id, undefined, value)
+															}
+														/>
+													</div>
+
+													{/*
+													 * Il tasto del gruppo sta sulla riga del nome, non in fondo
+													 * agli ospiti: quando si presentano tutti insieme è lì che si
+													 * guarda, e deve bastare un tocco senza scendere a contarli.
+													 * Fuori dalla `label` per forza — un bottone dentro l'etichetta
+													 * della casella spunterebbe anche quella a ogni tocco.
+													 */}
+													{entry.guests > 0 && (
+														<Button
+															type="button"
+															variant={allArrived ? "ghost" : "outline"}
+															size="sm"
+															className="shrink-0 text-xs text-muted-foreground"
+															aria-label={
+																allArrived
+																	? `Annulla l'arrivo di ${entry.name} e dei suoi accompagnatori`
+																	: `Segna arrivati ${entry.name} e ${
+																entry.guests === 1
+																	? "il suo accompagnatore"
+																	: `i suoi ${entry.guests} accompagnatori`
+															}`
+															}
+															onClick={() => toggleAll(entry, !allArrived)}
+														>
+															<GroupIcon className="size-3.5" />
+															{allArrived ? "Annulla" : `Tutti e ${counts.total}`}
+														</Button>
+													)}
+												</div>
 
 												{entry.guests > 0 && (
 													<div className="mt-1 ml-4 border-l pl-3">
