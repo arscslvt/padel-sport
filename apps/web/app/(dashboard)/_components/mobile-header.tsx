@@ -1,14 +1,14 @@
 "use client";
 
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
-import { SidebarOpen } from "lucide-react";
 
 export default function MobileHeader() {
   const { toggleSidebar } = useSidebar();
 
   return (
-    <div className="sticky top-0 bg-white/85 backdrop-blur-md md:hidden flex items-center px-4 py-2">
+    <div className="sticky top-0 z-20 bg-white/85 backdrop-blur-md md:hidden flex items-center px-4 py-2">
       <div>
         <Button
           size={"icon"}
@@ -16,7 +16,7 @@ export default function MobileHeader() {
           className="bg-transparent rounded-full"
           onClick={() => toggleSidebar()}
         >
-          <SidebarOpen />
+          <Menu />
         </Button>
       </div>
       <div className="pl-2.5">

@@ -1,14 +1,19 @@
 "use client";
 
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { LogOut } from "lucide-react";
+
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { useSidebar } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useProfileDialog } from "../_providers/profile-dialog.provider";
 
 export default function UserCard() {
   const { user } = useUser();
   const { signOut } = useAuth();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const { openProfile } = useProfileDialog();
 
   if (!user) {
     return (
@@ -24,16 +29,24 @@ export default function UserCard() {
     );
   }
 
+  const handleOpenProfile = () => {
+    if (isMobile) setOpenMobile(false);
+    openProfile();
+  };
+
   return (
-    <div className="flex items-center gap-2.5 p-2">
-      <div className="flex-1 flex items-center gap-2.5">
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={handleOpenProfile}
+        aria-label="Apri le impostazioni del profilo"
+        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md p-2 text-left transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+      >
         <Avatar>
           <AvatarImage src={user?.imageUrl} alt={user?.fullName ?? "User"} />
         </Avatar>
-        <div>
-          <p className="text-sm font-medium">{user?.fullName}</p>
-        </div>
-      </div>
+        <p className="truncate text-sm font-medium">{user?.fullName}</p>
+      </button>
 
       <div>
         <Button

@@ -1,11 +1,10 @@
 "use client";
 
-import { UserProfile, useAuth, useUser } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { LogOut, Settings } from "lucide-react";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import UserProfileDialog from "@/components/user-profile-dialog";
 
 export default function UserMenu() {
   const { user, isLoaded } = useUser();
@@ -83,15 +83,7 @@ export default function UserMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-        <DialogContent
-          className="max-w-fit p-0 bg-transparent border-0 shadow-none sm:max-w-fit"
-          showCloseButton={false}
-        >
-          <DialogTitle className="sr-only">Impostazioni profilo</DialogTitle>
-          <UserProfile routing="hash" />
-        </DialogContent>
-      </Dialog>
+      <UserProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </>
   );
 }
