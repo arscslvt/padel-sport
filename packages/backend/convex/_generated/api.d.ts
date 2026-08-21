@@ -50,6 +50,7 @@ import type * as modules_eventRsvps_cancel from "../modules/eventRsvps/cancel.js
 import type * as modules_eventRsvps_checkIn from "../modules/eventRsvps/checkIn.js";
 import type * as modules_eventRsvps_create from "../modules/eventRsvps/create.js";
 import type * as modules_eventRsvps_getByToken from "../modules/eventRsvps/getByToken.js";
+import type * as modules_eventRsvps_lib from "../modules/eventRsvps/lib.js";
 import type * as modules_eventRsvps_list from "../modules/eventRsvps/list.js";
 import type * as modules_eventRsvps_markNotified from "../modules/eventRsvps/markNotified.js";
 import type * as modules_eventRsvps_recipientCounts from "../modules/eventRsvps/recipientCounts.js";
@@ -57,6 +58,7 @@ import type * as modules_eventRsvps_recipients from "../modules/eventRsvps/recip
 import type * as modules_eventRsvps_stats from "../modules/eventRsvps/stats.js";
 import type * as modules_eventRsvps_statsBatch from "../modules/eventRsvps/statsBatch.js";
 import type * as modules_eventRsvps_unsubscribe from "../modules/eventRsvps/unsubscribe.js";
+import type * as modules_eventRsvps_update from "../modules/eventRsvps/update.js";
 import type * as modules_friends_lib from "../modules/friends/lib.js";
 import type * as modules_friends_list from "../modules/friends/list.js";
 import type * as modules_friends_remove from "../modules/friends/remove.js";
@@ -178,6 +180,7 @@ declare const fullApi: ApiFromModules<{
   "modules/eventRsvps/checkIn": typeof modules_eventRsvps_checkIn;
   "modules/eventRsvps/create": typeof modules_eventRsvps_create;
   "modules/eventRsvps/getByToken": typeof modules_eventRsvps_getByToken;
+  "modules/eventRsvps/lib": typeof modules_eventRsvps_lib;
   "modules/eventRsvps/list": typeof modules_eventRsvps_list;
   "modules/eventRsvps/markNotified": typeof modules_eventRsvps_markNotified;
   "modules/eventRsvps/recipientCounts": typeof modules_eventRsvps_recipientCounts;
@@ -185,6 +188,7 @@ declare const fullApi: ApiFromModules<{
   "modules/eventRsvps/stats": typeof modules_eventRsvps_stats;
   "modules/eventRsvps/statsBatch": typeof modules_eventRsvps_statsBatch;
   "modules/eventRsvps/unsubscribe": typeof modules_eventRsvps_unsubscribe;
+  "modules/eventRsvps/update": typeof modules_eventRsvps_update;
   "modules/friends/lib": typeof modules_friends_lib;
   "modules/friends/list": typeof modules_friends_list;
   "modules/friends/remove": typeof modules_friends_remove;

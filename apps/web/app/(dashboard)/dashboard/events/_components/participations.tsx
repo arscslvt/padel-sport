@@ -21,6 +21,7 @@ import { toast } from "sonner";
 
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -61,6 +62,7 @@ import {
 } from "@/lib/event-rsvp";
 import { formatEventDate } from "@/lib/events";
 import type { EventWithRsvpForms } from "@/sanity/types";
+import { GuestsDialog, NewRsvpDialog } from "./rsvp-editor";
 
 /**
  * Ogni minuto, l'ora corrente.
@@ -401,12 +403,22 @@ export default function Participations({
           </section>
 
           <Card>
-            <CardHeader>
+            {/* `gap-x-6`: il testo arriva fin sotto al tasto, e senza respiro
+                la descrizione sembra scritta dentro il bottone. */}
+            <CardHeader className="gap-x-6">
               <CardTitle>Elenco iscritti</CardTitle>
               <CardDescription>
-                In ordine di arrivo. Annullare un'iscrizione libera i posti che
-                occupava.
+                In ordine di arrivo. Da qui si aggiunge chi si è fatto vivo per
+                altre strade, si corregge chi porta qualcuno e si annulla chi
+                non viene più: i posti si liberano da soli.
               </CardDescription>
+              <CardAction>
+                <NewRsvpDialog
+                  form={selected}
+                  seatsLeft={seatsLeft}
+                  onCreated={loadEntries}
+                />
+              </CardAction>
             </CardHeader>
             <CardContent className="space-y-4">
               {entries !== undefined && entries.length > 0 && (
@@ -508,16 +520,24 @@ export default function Participations({
                             })}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleCancel(entry)}
-                            >
-                              <Trash className="size-4" />
-                              <span className="sr-only">
-                                Annulla iscrizione
-                              </span>
-                            </Button>
+                            <div className="flex justify-end gap-1">
+                              <GuestsDialog
+                                form={selected}
+                                entry={entry}
+                                seatsLeft={seatsLeft}
+                                onSaved={loadEntries}
+                              />
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleCancel(entry)}
+                              >
+                                <Trash className="size-4" />
+                                <span className="sr-only">
+                                  Annulla iscrizione
+                                </span>
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

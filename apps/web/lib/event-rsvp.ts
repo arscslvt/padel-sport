@@ -14,6 +14,16 @@ export const DEFAULT_MAX_GUESTS = 3;
 /** Tetto di sicurezza: oltre non si va nemmeno se il blocco chiede di più. */
 export const MAX_GUESTS_LIMIT = 10;
 
+/**
+ * Accompagnatori che può registrare la segreteria dalla dashboard.
+ *
+ * Più alto del tetto del modulo perché è un'altra cosa: `maxGuests` è la
+ * regola dell'evento per chi si iscrive da solo, questo è un antirefuso per
+ * chi al banco ha le persone davanti e le conta. Allineato a
+ * `STAFF_MAX_GUESTS` di Convex, che è quello che decide davvero.
+ */
+export const STAFF_MAX_GUESTS = 20;
+
 export const eventRsvpSchema = z.object({
   slug: z.string().min(1),
   blockKey: z.string().min(1),

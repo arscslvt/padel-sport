@@ -16,39 +16,14 @@ import {
   MAX_GUESTS_LIMIT,
   rsvpCancelPath,
 } from "@/lib/event-rsvp";
+import { loadRsvpForm, seatsLeftOf } from "@/lib/event-rsvp-form";
 import { formatEventDate } from "@/lib/events";
 import { EVENTS_LINK } from "@/lib/links";
-import { client } from "@/sanity/client";
-import { EVENT_RSVP_FORM_QUERY } from "@/sanity/queries";
-import type { EventRsvpFormTarget } from "@/sanity/types";
 
 const CLUB_INBOX = process.env.EVENT_RSVP_INBOX ?? "supporto@asdpadelsport.com";
 const FROM =
   process.env.EMAIL_FROM ?? "Padel Sport Melilli <noreply@asdpadelsport.com>";
 const SITE_URL = "https://www.asdpadelsport.com";
-
-/**
- * Rilegge il modulo dal documento pubblicato su Sanity.
- *
- * Il browser manda solo slug e `_key`: posti, scadenza e accompagnatori
- * massimi vengono da qui, perché sono la configurazione decisa dall'editor. Il
- * client Sanity ha `perspective: "published"`, quindi un evento in bozza non
- * raccoglie iscrizioni — che è la cosa giusta: non è ancora online.
- */
-async function loadForm(slug: string, key: string) {
-  const target = await client.fetch<EventRsvpFormTarget | null>(
-    EVENT_RSVP_FORM_QUERY,
-    { slug, key },
-  );
-
-  return target?.form ? { ...target, form: target.form } : null;
-}
-
-function seatsLeftOf(capacity: number | null | undefined, seatsTaken: number) {
-  return typeof capacity === "number"
-    ? Math.max(capacity - seatsTaken, 0)
-    : null;
-}
 
 /** Posti rimasti, per mostrarli sotto il modulo. Nessun dato personale. */
 export async function GET(request: Request) {
@@ -60,7 +35,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Parametri mancanti." }, { status: 400 });
   }
 
-  const target = await loadForm(slug, key);
+  const target = await loadRsvpForm(slug, key);
   if (!target) {
     return NextResponse.json({ error: "Modulo non trovato." }, { status: 404 });
   }
@@ -117,7 +92,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const target = await loadForm(values.slug, values.blockKey);
+  const target = await loadRsvpForm(values.slug, values.blockKey);
   if (!target) {
     return NextResponse.json(
       { error: "Questo modulo di iscrizione non esiste più." },

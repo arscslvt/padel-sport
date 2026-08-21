@@ -20,6 +20,8 @@ export type FormRow = {
   dateEnd?: string | null;
   heading?: string | null;
   capacity?: number | null;
+  /** Accompagnatori ammessi dal modulo. Alla segreteria serve solo per dirlo. */
+  maxGuests?: number | null;
   closesAt?: string | null;
   /** Compare nell'etichetta solo se l'evento ha più moduli: altrimenti è rumore. */
   showsHeading: boolean;
@@ -41,6 +43,7 @@ export function flattenForms(events: EventWithRsvpForms[]): FormRow[] {
       dateEnd: event.dateEnd,
       heading: form.heading,
       capacity: form.capacity,
+      maxGuests: form.maxGuests,
       closesAt: form.closesAt,
       showsHeading: event.forms.length > 1,
     })),
