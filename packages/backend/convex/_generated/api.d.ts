@@ -42,7 +42,10 @@ import type * as modules_courtCalendar_pull from "../modules/courtCalendar/pull.
 import type * as modules_courtCalendar_push from "../modules/courtCalendar/push.js";
 import type * as modules_eventCommunications_begin from "../modules/eventCommunications/begin.js";
 import type * as modules_eventCommunications_complete from "../modules/eventCommunications/complete.js";
+import type * as modules_eventCommunications_lib from "../modules/eventCommunications/lib.js";
 import type * as modules_eventCommunications_list from "../modules/eventCommunications/list.js";
+import type * as modules_eventCommunications_pendingCounts from "../modules/eventCommunications/pendingCounts.js";
+import type * as modules_eventCommunications_recordDeliveries from "../modules/eventCommunications/recordDeliveries.js";
 import type * as modules_eventRsvps_cancel from "../modules/eventRsvps/cancel.js";
 import type * as modules_eventRsvps_create from "../modules/eventRsvps/create.js";
 import type * as modules_eventRsvps_getByToken from "../modules/eventRsvps/getByToken.js";
@@ -103,6 +106,7 @@ import type * as tables_circleInvites from "../tables/circleInvites.js";
 import type * as tables_circleMembers from "../tables/circleMembers.js";
 import type * as tables_circles from "../tables/circles.js";
 import type * as tables_clientInvites from "../tables/clientInvites.js";
+import type * as tables_eventCommunicationDeliveries from "../tables/eventCommunicationDeliveries.js";
 import type * as tables_eventCommunications from "../tables/eventCommunications.js";
 import type * as tables_eventRsvps from "../tables/eventRsvps.js";
 import type * as tables_events from "../tables/events.js";
@@ -165,7 +169,10 @@ declare const fullApi: ApiFromModules<{
   "modules/courtCalendar/push": typeof modules_courtCalendar_push;
   "modules/eventCommunications/begin": typeof modules_eventCommunications_begin;
   "modules/eventCommunications/complete": typeof modules_eventCommunications_complete;
+  "modules/eventCommunications/lib": typeof modules_eventCommunications_lib;
   "modules/eventCommunications/list": typeof modules_eventCommunications_list;
+  "modules/eventCommunications/pendingCounts": typeof modules_eventCommunications_pendingCounts;
+  "modules/eventCommunications/recordDeliveries": typeof modules_eventCommunications_recordDeliveries;
   "modules/eventRsvps/cancel": typeof modules_eventRsvps_cancel;
   "modules/eventRsvps/create": typeof modules_eventRsvps_create;
   "modules/eventRsvps/getByToken": typeof modules_eventRsvps_getByToken;
@@ -226,6 +233,7 @@ declare const fullApi: ApiFromModules<{
   "tables/circleMembers": typeof tables_circleMembers;
   "tables/circles": typeof tables_circles;
   "tables/clientInvites": typeof tables_clientInvites;
+  "tables/eventCommunicationDeliveries": typeof tables_eventCommunicationDeliveries;
   "tables/eventCommunications": typeof tables_eventCommunications;
   "tables/eventRsvps": typeof tables_eventRsvps;
   "tables/events": typeof tables_events;

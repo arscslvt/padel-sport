@@ -51,7 +51,9 @@ function chunk<T>(items: T[], size: number) {
  * 2. il lucchetto si prende **prima** di spedire, così un doppio clic o un
  *    retry non mandano la stessa mail due volte;
  * 3. l'HTML si compone una volta sola e per ogni destinatario cambia solo il
- *    token del link di disiscrizione.
+ *    token del link di disiscrizione;
+ * 4. ogni blocco accettato lascia una riga di consegna per destinatario, che è
+ *    quel che permette al prossimo invio di rivolgersi ai soli nuovi iscritti.
  */
 export async function POST(request: Request) {
   const gate = await staffGate();
@@ -66,6 +68,7 @@ export async function POST(request: Request) {
   }
 
   const { id, blockKey, allowResend } = parsed.data;
+  const audience = parsed.data.audience ?? "all";
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -99,12 +102,23 @@ export async function POST(request: Request) {
     );
   }
 
-  let recipients: { name: string; email: string; cancelToken: string }[];
+  let recipients: {
+    id: Id<"eventRsvps">;
+    name: string;
+    email: string;
+    cancelToken: string;
+  }[];
 
   try {
     recipients = await gate.convex.query(
       api.modules.eventRsvps.recipients.default,
-      { secret: gate.secret, eventId: event._id, blockKey },
+      {
+        secret: gate.secret,
+        eventId: event._id,
+        blockKey,
+        documentId: document._id,
+        audience,
+      },
     );
   } catch (error) {
     console.error("Destinatari non recuperati:", error);
@@ -116,7 +130,12 @@ export async function POST(request: Request) {
 
   if (!recipients.length) {
     return NextResponse.json(
-      { error: "Nessun iscritto da raggiungere: non c'è niente da mandare." },
+      {
+        error:
+          audience === "pending"
+            ? "Nessun nuovo iscritto: l'hanno già ricevuta tutti."
+            : "Nessun iscritto da raggiungere: non c'è niente da mandare.",
+      },
       { status: 409 },
     );
   }
@@ -138,6 +157,7 @@ export async function POST(request: Request) {
         recipients: recipients.length,
         sentBy: gate.userId,
         allowResend,
+        audience,
       },
     );
 
@@ -195,6 +215,29 @@ export async function POST(request: Request) {
         if (result.error) throw result.error;
 
         delivered += batch.length;
+
+        // Subito, non alla fine: se l'invio si interrompe fra un blocco e
+        // l'altro, quel che è partito resta segnato e il tentativo successivo
+        // riparte da chi manca davvero.
+        try {
+          await gate.convex.mutation(
+            api.modules.eventCommunications.recordDeliveries.default,
+            {
+              secret: gate.secret,
+              communicationId: sendId,
+              documentId: document._id,
+              blockKey,
+              recipients: batch.map((recipient) => ({
+                rsvpId: recipient.id,
+                email: recipient.email,
+              })),
+            },
+          );
+        } catch (error) {
+          // Le mail sono partite comunque: perderne la traccia significa solo
+          // che questi destinatari risulteranno ancora fra i mancanti.
+          console.error("Consegne non registrate:", error);
+        }
       } catch (error) {
         // Un blocco che fallisce non ferma gli altri: chi si può ancora
         // raggiungere va raggiunto, e il conto di chi è rimasto fuori finisce

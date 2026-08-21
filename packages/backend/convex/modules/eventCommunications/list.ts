@@ -41,6 +41,8 @@ export default query({
         subject: row.subject,
         status: row.status,
         recipients: row.recipients,
+        /** Assente sugli invii vecchi: valgono come «a tutti», che è quel che erano */
+        audience: row.audience ?? "all",
         delivered: row.delivered,
         failed: row.failed,
         startedAt: row.startedAt,

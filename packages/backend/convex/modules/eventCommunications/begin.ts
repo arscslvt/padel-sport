@@ -35,6 +35,12 @@ export default mutation({
     sentBy: v.string(),
     /** Reinvio deliberato: la dashboard lo passa solo dopo una seconda conferma */
     allowResend: v.optional(v.boolean()),
+    /**
+     * `pending` manda solo a chi non l'ha ancora ricevuta: non è un reinvio,
+     * è la stessa comunicazione che raggiunge chi si è iscritto dopo. Per
+     * questo non chiede la conferma di «invia di nuovo».
+     */
+    audience: v.optional(v.union(v.literal("all"), v.literal("pending"))),
   },
   handler: async (ctx, args) => {
     assertServer(args.secret);
@@ -69,9 +75,12 @@ export default mutation({
       });
     }
 
+    const audience = args.audience ?? "all";
     const sent = previous.find((row) => row.status === "sent");
 
-    if (sent && !args.allowResend) {
+    // Il blocco vale per chi rimanda la mail a tutti. Chi sta raggiungendo i
+    // nuovi iscritti non sta ripetendo niente a nessuno: nessuna conferma.
+    if (sent && audience === "all" && !args.allowResend) {
       throw new ConvexError({
         code: "already_sent",
         message: "Questa comunicazione è già stata inviata a questi iscritti.",
@@ -86,12 +95,16 @@ export default mutation({
       subject: args.subject,
       status: "sending",
       recipients: args.recipients,
+      audience,
+      // Da qui in avanti ogni invio lascia le sue consegne riga per riga: è il
+      // segno che distingue questa comunicazione da quelle partite prima.
+      tracked: true,
       delivered: 0,
       failed: 0,
       sentBy: args.sentBy,
       startedAt: now,
     });
 
-    return { id, resent: Boolean(sent) };
+    return { id, resent: Boolean(sent) && audience === "all" };
   },
 });

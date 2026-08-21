@@ -1,6 +1,12 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
+/** Verso chi è partito un invio: l'elenco intero, o solo chi ancora non l'ha. */
+const communicationAudience = v.union(
+  v.literal("all"),
+  v.literal("pending"),
+);
+
 const communicationStatus = v.union(
   /** Invio in corso: la riga esiste già e fa da lucchetto */
   v.literal("sending"),
@@ -38,6 +44,23 @@ const eventCommunications = defineTable({
   status: communicationStatus,
   /** Destinatari a cui si è tentato l'invio, disiscritti già esclusi */
   recipients: v.float64(),
+  /**
+   * A chi era rivolto: tutti gli iscritti, o solo chi non l'aveva ancora
+   * ricevuta. Lo storico deve saper distinguere «mandata a 40 persone» da
+   * «recuperati i 3 arrivati dopo».
+   */
+  audience: v.optional(communicationAudience),
+  /**
+   * L'invio ha lasciato una riga in `eventCommunicationDeliveries` per ogni
+   * destinatario raggiunto.
+   *
+   * Facoltativo perché nasce dopo gli invii già fatti: assente vuol dire
+   * «spedita prima che esistesse il tracciamento», e per quelle righe l'unico
+   * modo di sapere chi c'era è la data — chi si era iscritto prima di
+   * `startedAt` l'ha ricevuta. È l'approssimazione che rende innocuo il
+   * rilascio in produzione: nessuno si ritrova la mail una seconda volta.
+   */
+  tracked: v.optional(v.boolean()),
   delivered: v.float64(),
   failed: v.float64(),
   /** `userId` Clerk di chi ha premuto invio: un invio ha sempre un nome sopra */
@@ -53,4 +76,4 @@ const eventCommunications = defineTable({
   .index("by_event", ["eventId"]);
 
 export default eventCommunications;
-export { communicationStatus };
+export { communicationAudience, communicationStatus };

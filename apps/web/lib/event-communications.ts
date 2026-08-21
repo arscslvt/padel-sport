@@ -16,6 +16,12 @@ export const communicationSendSchema = z.object({
   blockKey: z.string().min(1),
   /** Reinvio deliberato: la dashboard lo passa solo dopo la seconda conferma */
   allowResend: z.boolean().optional(),
+  /**
+   * Chi deve riceverla: tutti gli iscritti al modulo, oppure solo chi non ce
+   * l'ha ancora. Il secondo caso è la strada normale dopo il primo invio —
+   * raggiunge gli arrivati dopo senza rimandare niente a chi ha già letto.
+   */
+  audience: z.enum(["all", "pending"]).optional(),
 });
 
 export const communicationTestSchema = z.object({

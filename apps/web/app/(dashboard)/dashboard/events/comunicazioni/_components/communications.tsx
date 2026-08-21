@@ -60,6 +60,14 @@ type RecipientCount = {
   unsubscribed: number;
 };
 
+/** Quanti, fra gli iscritti di adesso, non hanno ancora ricevuto una comunicazione. */
+type PendingCount = {
+  documentId: string;
+  blockKey: string;
+  pending: number;
+  reached: number;
+};
+
 type SendRecord = {
   id: string;
   documentId: string;
@@ -68,6 +76,7 @@ type SendRecord = {
   subject: string;
   status: "sending" | "sent" | "failed";
   recipients: number;
+  audience: "all" | "pending";
   delivered: number;
   failed: number;
   startedAt: number;
@@ -79,7 +88,11 @@ type Payload = {
   communications: EventCommunicationSummary[];
   counts: RecipientCount[];
   sends: SendRecord[];
+  pending: PendingCount[];
 };
+
+/** A chi si sta per mandare: l'elenco intero, o i soli iscritti nuovi. */
+type Audience = "all" | "pending";
 
 /** Il documento nello Studio, aperto sulla scheda giusta. */
 function studioUrl(id: string) {
@@ -117,6 +130,7 @@ export default function Communications() {
     communication: EventCommunicationSummary;
     blockKey: string;
     recipients: number;
+    audience: Audience;
     resend: boolean;
   } | null>(null);
   const [pending, setPending] = useState<string | null>(null);
@@ -130,7 +144,7 @@ export default function Communications() {
         toast.error("Comunicazioni non caricate", {
           description: payload?.error ?? "Riprova fra poco.",
         });
-        setData({ communications: [], counts: [], sends: [] });
+        setData({ communications: [], counts: [], sends: [], pending: [] });
         return;
       }
 
@@ -139,7 +153,7 @@ export default function Communications() {
       toast.error("Comunicazioni non caricate", {
         description: "Controlla la connessione e riprova.",
       });
-      setData({ communications: [], counts: [], sends: [] });
+      setData({ communications: [], counts: [], sends: [], pending: [] });
     }
   }, []);
 
@@ -157,6 +171,16 @@ export default function Communications() {
     (eventId: string, blockKey: string) =>
       data?.counts.find(
         (count) => count.eventId === eventId && count.blockKey === blockKey,
+      ),
+    [data],
+  );
+
+  /** Quanti nuovi iscritti aspettano ancora questa comunicazione. */
+  const pendingOf = useCallback(
+    (documentId: string, blockKey: string) =>
+      data?.pending.find(
+        (entry) =>
+          entry.documentId === documentId && entry.blockKey === blockKey,
       ),
     [data],
   );
@@ -210,7 +234,7 @@ export default function Communications() {
   const send = async () => {
     if (!confirm) return;
 
-    const { communication, blockKey, resend } = confirm;
+    const { communication, blockKey, audience, resend } = confirm;
     setPending(`send:${communication._id}`);
 
     try {
@@ -222,6 +246,7 @@ export default function Communications() {
           body: JSON.stringify({
             id: communication._id,
             blockKey,
+            audience,
             allowResend: resend,
           }),
         },
@@ -296,8 +321,13 @@ export default function Communications() {
           const count = countOf(event._id, blockKey);
           const recipients = count?.recipients ?? 0;
           const previousSend = sendOf(communication._id, blockKey);
+          const sent = previousSend?.status === "sent";
           const sending = previousSend?.status === "sending";
           const busy = pending === `send:${communication._id}`;
+          // Prima del primo invio «mancano» tutti: il conteggio dei nuovi ha
+          // senso solo da lì in poi.
+          const missing =
+            pendingOf(communication._id, blockKey)?.pending ?? recipients;
 
           return (
             <Card key={communication._id}>
@@ -371,21 +401,31 @@ export default function Communications() {
                   .
                 </p>
 
-                {previousSend?.status === "sent" && (
-                  <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-                    Inviata il{" "}
-                    {format(
-                      previousSend.completedAt ?? previousSend.startedAt,
-                      "d MMMM yyyy 'alle' HH:mm",
-                      { locale: it },
-                    )}{" "}
-                    a {recipientsLabel(previousSend.delivered)}
-                    {previousSend.failed
-                      ? `, ${previousSend.failed} non raggiunti`
-                      : ""}
-                    . Le modifiche fatte da allora non raggiungono chi l'ha già
-                    ricevuta.
-                  </p>
+                {sent && previousSend && (
+                  <div className="space-y-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+                    <p>
+                      Inviata il{" "}
+                      {format(
+                        previousSend.completedAt ?? previousSend.startedAt,
+                        "d MMMM yyyy 'alle' HH:mm",
+                        { locale: it },
+                      )}{" "}
+                      a {recipientsLabel(previousSend.delivered)}
+                      {previousSend.audience === "pending"
+                        ? " che ancora non l'avevano"
+                        : ""}
+                      {previousSend.failed
+                        ? `, ${previousSend.failed} non raggiunti`
+                        : ""}
+                      . Le modifiche fatte da allora non raggiungono chi l'ha
+                      già ricevuta.
+                    </p>
+                    <p className="text-foreground">
+                      {missing > 0
+                        ? `${missing === 1 ? "1 iscritto non l'ha" : `${missing} iscritti non l'hanno`} ancora ricevuta — chi si è iscritto dopo, e chi non è stato raggiunto. Puoi mandarla solo a ${missing === 1 ? "lui" : "loro"}.`
+                        : "Tutti gli iscritti di adesso l'hanno già ricevuta."}
+                    </p>
+                  </div>
                 )}
 
                 {recipients === 0 && (
@@ -423,24 +463,65 @@ export default function Communications() {
                     ? "Invio…"
                     : "Mandami una prova"}
                 </Button>
-                <Button
-                  size="sm"
-                  className="ml-auto"
-                  disabled={recipients === 0 || sending || busy}
-                  onClick={() =>
-                    setConfirm({
-                      communication,
-                      blockKey,
-                      recipients,
-                      resend: previousSend?.status === "sent",
-                    })
-                  }
-                >
-                  <Send className="size-4" />
-                  {previousSend?.status === "sent"
-                    ? "Invia di nuovo"
-                    : `Invia a ${recipientsLabel(recipients)}`}
-                </Button>
+                {sent ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ml-auto"
+                      disabled={recipients === 0 || sending || busy}
+                      onClick={() =>
+                        setConfirm({
+                          communication,
+                          blockKey,
+                          recipients,
+                          audience: "all",
+                          resend: true,
+                        })
+                      }
+                    >
+                      Invia di nuovo a tutti
+                    </Button>
+                    {missing > 0 && (
+                      <Button
+                        size="sm"
+                        disabled={sending || busy}
+                        onClick={() =>
+                          setConfirm({
+                            communication,
+                            blockKey,
+                            recipients: missing,
+                            audience: "pending",
+                            resend: false,
+                          })
+                        }
+                      >
+                        <Send className="size-4" />
+                        {missing === 1
+                          ? "Invia a chi manca"
+                          : `Invia ai ${missing} che mancano`}
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="ml-auto"
+                    disabled={recipients === 0 || sending || busy}
+                    onClick={() =>
+                      setConfirm({
+                        communication,
+                        blockKey,
+                        recipients,
+                        audience: "all",
+                        resend: false,
+                      })
+                    }
+                  >
+                    <Send className="size-4" />
+                    {`Invia a ${recipientsLabel(recipients)}`}
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           );
@@ -477,9 +558,11 @@ export default function Communications() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {confirm?.resend
-                ? "Mandarla una seconda volta?"
-                : "Stai per mandare una mail vera"}
+              {confirm?.audience === "pending"
+                ? "Mandarla a chi non ce l'ha?"
+                : confirm?.resend
+                  ? "Mandarla una seconda volta?"
+                  : "Stai per mandare una mail vera"}
             </DialogTitle>
             <DialogDescription asChild>
               <div className="space-y-3">
@@ -488,12 +571,17 @@ export default function Communications() {
                   <span className="font-medium text-foreground">
                     {recipientsLabel(confirm?.recipients ?? 0)}
                   </span>{" "}
-                  iscritti a «{confirm?.communication.event?.title}».
+                  {confirm?.audience === "pending"
+                    ? "che non l'hanno ancora ricevuta, fra gli iscritti a"
+                    : "iscritti a"}{" "}
+                  «{confirm?.communication.event?.title}».
                 </p>
                 <p>
-                  {confirm?.resend
-                    ? "Questa comunicazione è già stata inviata a questi iscritti: la riceveranno una seconda volta, nella versione pubblicata adesso."
-                    : "Una mail inviata non si richiama indietro. Se non l'hai ancora fatto, mandati prima una prova."}
+                  {confirm?.audience === "pending"
+                    ? "Chi l'ha già ricevuta resta fuori: non se la ritrova una seconda volta in casella. Parte la versione pubblicata adesso, che può essere diversa da quella di allora."
+                    : confirm?.resend
+                      ? "Questa comunicazione è già stata inviata a questi iscritti: la riceveranno una seconda volta, nella versione pubblicata adesso."
+                      : "Una mail inviata non si richiama indietro. Se non l'hai ancora fatto, mandati prima una prova."}
                 </p>
               </div>
             </DialogDescription>

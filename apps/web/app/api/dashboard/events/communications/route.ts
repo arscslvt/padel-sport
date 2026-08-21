@@ -12,11 +12,12 @@ export const dynamic = "force-dynamic";
 
 /**
  * Quel che serve alla console di invio: le comunicazioni pronte, quante
- * persone raggiungerebbero e cosa è già stato mandato.
+ * persone raggiungerebbero, cosa è già stato mandato e chi non l'ha ancora
+ * ricevuto.
  *
- * Tre elenchi separati invece di un oggetto già composto: la pagina li incrocia
- * da sé, e tenerli distinti evita di rifare qui la forma che serve alla UI —
- * che cambia più spesso dei dati.
+ * Elenchi separati invece di un oggetto già composto: la pagina li incrocia da
+ * sé, e tenerli distinti evita di rifare qui la forma che serve alla UI — che
+ * cambia più spesso dei dati.
  */
 export async function GET() {
   const gate = await staffGate();
@@ -43,7 +44,18 @@ export async function GET() {
       ).values(),
     ];
 
-    const [counts, sends] = await Promise.all([
+    // I destinatari mancanti dipendono dalla coppia comunicazione+modulo, non
+    // dal solo modulo: la stessa lista di iscritti può avere già ricevuto una
+    // comunicazione e non un'altra.
+    const targets = communications.flatMap((entry) =>
+      (entry.event?.forms ?? []).map((form) => ({
+        documentId: entry._id,
+        eventId: entry.event?._id as string,
+        blockKey: form._key,
+      })),
+    );
+
+    const [counts, sends, pending] = await Promise.all([
       forms.length
         ? gate.convex.query(api.modules.eventRsvps.recipientCounts.default, {
             secret: gate.secret,
@@ -56,9 +68,15 @@ export async function GET() {
             documentIds: communications.map((entry) => entry._id),
           })
         : [],
+      targets.length
+        ? gate.convex.query(
+            api.modules.eventCommunications.pendingCounts.default,
+            { secret: gate.secret, targets },
+          )
+        : [],
     ]);
 
-    return NextResponse.json({ communications, counts, sends });
+    return NextResponse.json({ communications, counts, sends, pending });
   } catch (error) {
     console.error("Comunicazioni non recuperate:", error);
     return NextResponse.json(
