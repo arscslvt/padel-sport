@@ -21,7 +21,6 @@ import { toast } from "sonner";
 
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -403,35 +402,68 @@ export default function Participations({
           </section>
 
           <Card>
-            {/* `gap-x-6`: il testo arriva fin sotto al tasto, e senza respiro
-                la descrizione sembra scritta dentro il bottone. */}
-            <CardHeader className="gap-x-6">
-              <CardTitle>Elenco iscritti</CardTitle>
-              <CardDescription>
-                In ordine di arrivo. Da qui si aggiunge chi si è fatto vivo per
-                altre strade, si corregge chi porta qualcuno e si annulla chi
-                non viene più: i posti si liberano da soli.
-              </CardDescription>
-              <CardAction>
-                <NewRsvpDialog
-                  form={selected}
-                  seatsLeft={seatsLeft}
-                  onCreated={loadEntries}
-                />
-              </CardAction>
+            <CardHeader>
+              {/*
+               * Il tasto non sta in `CardAction`: quella lo incolla in una
+               * colonna a destra anche sul telefono, e con lo schermo stretto
+               * la descrizione finisce a incolonnarsi su cinque righe per
+               * lasciargli il posto. Qui sotto i 640px va a capo — testo per
+               * tutta la larghezza, tasto sotto — e da lì in su torna in alto
+               * a destra com'era.
+               */}
+              <div className="flex items-start justify-between gap-6">
+                <div className="space-y-1.5">
+                  <CardTitle>Elenco iscritti</CardTitle>
+                  <CardDescription>
+                    In ordine di arrivo. Da qui si aggiunge chi si è fatto vivo
+                    per altre strade, si corregge chi porta qualcuno e si
+                    annulla chi non viene più: i posti si liberano da soli.
+                  </CardDescription>
+                </div>
+                {/*
+                 * Sul telefono il tasto non sta qui ma accanto alla ricerca,
+                 * più sotto: in cima si prenderebbe metà della larghezza e la
+                 * descrizione si incolonnerebbe su cinque righe per fargli
+                 * posto.
+                 */}
+                <div className="hidden sm:block">
+                  <NewRsvpDialog
+                    form={selected}
+                    seatsLeft={seatsLeft}
+                    onCreated={loadEntries}
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {entries !== undefined && entries.length > 0 && (
+              {/*
+               * La riga si disegna anche a elenco vuoto, dove resta il solo
+               * tasto: sul telefono è l'unico che c'è, e a un modulo senza
+               * iscritti serve proprio quello.
+               */}
+              {entries !== undefined && (
                 <div>
-                  {/* `relative` attorno al solo campo: vedi `arrivals.tsx`. */}
-                  <div className="relative">
-                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                    <Input
-                      placeholder="Cerca per nome o email…"
-                      className="h-10 bg-white pl-9"
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                    />
+                  <div className="flex items-center gap-2">
+                    {entries.length > 0 && (
+                      /* `relative` attorno al solo campo: vedi `arrivals.tsx`. */
+                      <div className="relative flex-1">
+                        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                        <Input
+                          placeholder="Cerca per nome o email…"
+                          className="h-10 bg-white pl-9"
+                          value={query}
+                          onChange={(event) => setQuery(event.target.value)}
+                        />
+                      </div>
+                    )}
+                    <div className="ml-auto sm:hidden">
+                      <NewRsvpDialog
+                        form={selected}
+                        seatsLeft={seatsLeft}
+                        onCreated={loadEntries}
+                        compact
+                      />
+                    </div>
                   </div>
                   {query.trim() && visible && (
                     <p className="mt-1.5 text-xs text-muted-foreground">
