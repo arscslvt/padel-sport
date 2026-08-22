@@ -6,12 +6,10 @@ import type { BookingDay, TimeSlot } from "@/lib/booking";
 import { formatDuration, MATCH_DURATION_MINUTES } from "@/lib/booking";
 
 /**
- * Giorno e orario di inizio. La durata non si sceglie: le partite durano
- * novanta minuti e il campo lo assegna la struttura.
- *
- * Gli orari mostrati sono già quelli liberi: `useCourtAvailability` incrocia
- * le finestre di apertura con le prenotazioni esistenti. La disponibilità vera
- * resta comunque verificata alla conferma, lato Convex.
+ * Quando si gioca. Gli orari sono gli stessi della pagina di prenotazione —
+ * `useCourtAvailability` toglie quelli passati e quelli in cui tutti i campi
+ * sono già occupati — perché una richiesta di giocatori per un orario in cui
+ * non c'è campo libero non porta da nessuna parte.
  */
 export function ScheduleStep({
   step,
@@ -41,8 +39,8 @@ export function ScheduleStep({
       <StepHeader
         step={step}
         total={totalSteps}
-        title="Quando vuoi giocare?"
-        subtitle="Scegli il giorno e l'orario di inizio."
+        title="Per quando?"
+        subtitle="Vedi solo i giorni e gli orari con un campo ancora libero."
       />
 
       <SchedulePicker
@@ -56,8 +54,9 @@ export function ScheduleStep({
         onSelectTime={onSelectTime}
         hint={
           <>
-            Ogni partita dura {formatDuration(MATCH_DURATION_MINUTES)}. Il campo
-            viene assegnato dalla struttura alla conferma.
+            Una partita dura {formatDuration(MATCH_DURATION_MINUTES)}. Il campo
+            non è ancora prenotato: lo blocchiamo noi quando la squadra è al
+            completo.
           </>
         }
       />

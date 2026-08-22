@@ -6,22 +6,14 @@ import { api } from "@padel-sport/backend/convex/_generated/api";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { VerifyStep } from "@/components/booking/verify-step";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import {
-  availableSlots,
-  BOOKABLE_DAYS,
-  bookableDays,
-  combineDateAndTime,
-  DEFAULT_WINDOWS,
-  occupiedCourts,
-  overlappingBlocks,
-  overlappingBookings,
-} from "@/lib/booking";
+import { useCourtAvailability } from "@/hooks/use-court-availability";
+import { combineDateAndTime } from "@/lib/booking";
 import {
   type BookingFormValues,
   bookingFormSchema,
@@ -86,32 +78,20 @@ export function BookingWizard() {
     api.modules.openMatches.players.upsertProfile,
   );
 
-  // Giorni e fasce arrivano dalla configurazione della struttura: finché non è
-  // stata letta usiamo i valori storici, così la griglia non resta vuota.
-  const settings = useQuery(api.modules.settings.booking.get, {});
-  const windows = settings?.windows ?? DEFAULT_WINDOWS;
-
   // Il club può pretendere la squadra al completo: finché la configurazione
   // non è arrivata restiamo sul comportamento storico (si prenota anche da
   // soli), tanto la parola definitiva è del server.
+  const settings = useQuery(api.modules.settings.booking.get, {});
   const fullSquadRequired = settings?.fullSquadRequired ?? false;
 
-  const days = useMemo(
-    () => bookableDays(settings?.bookableDays ?? BOOKABLE_DAYS),
-    [settings?.bookableDays],
-  );
-
-  const range = useMemo(() => {
-    const from = days[0].date.getTime();
-    const last = new Date(days[days.length - 1].date);
-    last.setHours(23, 59, 59, 999);
-    return { from, to: last.getTime() };
-  }, [days]);
-
-  const availability = useQuery(api.bookings.availability.default, range);
-  const courts = useQuery(api.slots.listActive.default);
-  const availabilityLoading =
-    availability === undefined || courts === undefined;
+  // Giorni e orari liberi: stessa lettura del modulo «cerco giocatori» della
+  // home, così le due griglie non possono divergere.
+  const {
+    days,
+    slotsByDay,
+    loading: availabilityLoading,
+    noCourts,
+  } = useCourtAvailability();
 
   // Le prenotazioni prese su SumUp arrivano qui da un calendario condiviso,
   // riletto ogni cinque minuti da un cron. Chiedere una rilettura appena si
@@ -144,34 +124,6 @@ export function BookingWizard() {
   const dayIndex = values.day
     ? days.findIndex((day) => format(day.date, "yyyy-MM-dd") === values.day)
     : -1;
-
-  /**
-   * Orari proponibili giorno per giorno: alle finestre di apertura togliamo
-   * quelli già passati e quelli in cui tutti i campi attivi sono occupati.
-   * Il controllo definitivo resta lato Convex, alla conferma.
-   */
-  const slotsByDay = useMemo(() => {
-    return days.map((day) => {
-      const slots = availableSlots(day.date, windows);
-      if (availabilityLoading) return slots;
-
-      return slots.filter((slot) => {
-        const start = combineDateAndTime(day.date, slot.time);
-        const overlapping = overlappingBookings(availability.busy, start);
-
-        // Una prenotazione senza campo assegnato (righe vecchie) li blocca tutti.
-        if (overlapping.some((booking) => !booking.slot)) return false;
-
-        // Ogni appuntamento esterno toglie un campo: non sappiamo quale, ma
-        // sappiamo che uno è occupato.
-        const blocked = overlappingBlocks(availability.blocks, start);
-
-        // Si contano i campi, non le prenotazioni: due gruppi uniti dalla
-        // struttura ne occupano uno in due.
-        return occupiedCourts(overlapping) + blocked.length < courts.length;
-      });
-    });
-  }, [days, windows, availability, courts, availabilityLoading]);
 
   // Il livello del profilo suggerisce la fascia, finché non la si tocca.
   const [levelTouched, setLevelTouched] = useState(false);
@@ -357,7 +309,7 @@ export function BookingWizard() {
             dayIndex={dayIndex < 0 ? null : dayIndex}
             time={values.time || null}
             loading={availabilityLoading}
-            noCourts={!availabilityLoading && courts.length === 0}
+            noCourts={noCourts}
             onSelectDay={selectDay}
             onSelectTime={(time) =>
               form.setValue("time", time, { shouldValidate: true })
