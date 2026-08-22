@@ -3,15 +3,17 @@
 import { ArrowUpRight, CalendarDays, Sparkles } from "lucide-react";
 import Link from "next/link";
 
+import { EventConcludedBadge } from "@/components/events/event-concluded";
 import { SanityImage } from "@/components/events/sanity-image";
 import { Heading } from "@/components/ui/heading";
-import { formatCardDate } from "@/lib/events";
+import { formatCardDate, isConcluded } from "@/lib/events";
 import { eventLink } from "@/lib/links";
 import { cn } from "@/lib/utils";
 import type { EventCardData } from "@/sanity/types";
 
 export function EventCard({ event }: { event: EventCardData }) {
   const isHighlighted = !!event.highlighted;
+  const concluded = isConcluded(event);
 
   return (
     <Link
@@ -27,17 +29,26 @@ export function EventCard({ event }: { event: EventCardData }) {
       )}
     >
       {event.banner?.asset ? (
-        <SanityImage
-          image={event.banner}
-          ratio={16 / 10}
-          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-          sourceWidth={800}
-          imageClassName="transition-transform duration-500 group-hover:scale-[1.03]"
-        />
+        <div className="relative">
+          <SanityImage
+            image={event.banner}
+            ratio={16 / 10}
+            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+            sourceWidth={800}
+            imageClassName={cn(
+              "transition-transform duration-500 group-hover:scale-[1.03]",
+              concluded && "saturate-[0.85]",
+            )}
+          />
+          {concluded && (
+            <EventConcludedBadge className="absolute top-3 left-3" />
+          )}
+        </div>
       ) : null}
 
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div className="flex flex-wrap items-center gap-1.5">
+          {concluded && !event.banner?.asset && <EventConcludedBadge />}
           {isHighlighted && (
             // Pieno invece che ambra: si inverte correttamente anche dentro
             // `tone-ink`, dove la stessa card rende su fondo scuro.

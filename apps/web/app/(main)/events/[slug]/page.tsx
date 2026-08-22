@@ -7,11 +7,12 @@ import { PortableText } from "next-sanity";
 
 import { AddToCalendar } from "@/components/add-to-calendar";
 import { ArticleReveal } from "@/components/events/article-reveal";
+import { EventConcludedAlert } from "@/components/events/event-concluded";
 import { portableTextComponents } from "@/components/events/portable-text";
 import { SanityImage } from "@/components/events/sanity-image";
 import { ShareRail } from "@/components/events/share-rail";
 import { Heading } from "@/components/ui/heading";
-import { formatEventDate } from "@/lib/events";
+import { formatEventDate, isConcluded } from "@/lib/events";
 import { EVENTS_LINK } from "@/lib/links";
 import { client } from "@/sanity/client";
 import { ogImageUrl } from "@/sanity/image";
@@ -78,6 +79,7 @@ export default async function EventArticlePage({ params }: PageProps) {
 
   const url = `${SITE_URL}${EVENTS_LINK}/${event.slug}`;
   const dateLabel = formatEventDate(event.dateStart, event.dateEnd);
+  const concluded = isConcluded(event);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -113,7 +115,7 @@ export default async function EventArticlePage({ params }: PageProps) {
       {/* Rail social sticky: fuori dalla colonna di testo, come nel layout di riferimento. */}
       <div className="pointer-events-none absolute inset-y-0 left-4 hidden lg:block xl:left-10">
         <div className="pointer-events-auto sticky top-32">
-          <ShareRail url={url} title={event.title} />
+          <ShareRail url={url} title={event.title} concluded={concluded} />
         </div>
       </div>
 
@@ -126,6 +128,8 @@ export default async function EventArticlePage({ params }: PageProps) {
             <ArrowLeft className="size-4" />
             Tutti gli eventi
           </Link>
+
+          {concluded && <EventConcludedAlert />}
 
           <header className="flex flex-col gap-4">
             {Boolean(event.highlighted || event.tags?.length) && (
@@ -161,19 +165,25 @@ export default async function EventArticlePage({ params }: PageProps) {
                 {dateLabel}
               </span>
               <div className="flex flex-wrap items-center gap-2">
-                <AddToCalendar
-                  event={{
-                    title: event.title,
-                    description: event.seoDescription || event.excerpt,
-                    dateStart: event.dateStart,
-                    dateEnd: event.dateEnd,
-                    url,
-                  }}
-                  icsHref={`${EVENTS_LINK}/${event.slug}/ics`}
-                />
+                {/* A evento finito il pulsante sparisce: salvare in agenda una
+                    data già passata non serve a nessuno. La stessa porta la
+                    chiude la route del .ics, raggiungibile anche a mano. */}
+                {!concluded && (
+                  <AddToCalendar
+                    event={{
+                      title: event.title,
+                      description: event.seoDescription || event.excerpt,
+                      dateStart: event.dateStart,
+                      dateEnd: event.dateEnd,
+                      url,
+                    }}
+                    icsHref={`${EVENTS_LINK}/${event.slug}/ics`}
+                  />
+                )}
                 <ShareRail
                   url={url}
                   title={event.title}
+                  concluded={concluded}
                   orientation="horizontal"
                   className="lg:hidden"
                 />

@@ -94,6 +94,14 @@ export function isUpcoming(
   return reference >= now;
 }
 
+/** Speculare a `isUpcoming`: l'evento si è già svolto. */
+export function isConcluded(
+  event: Pick<EventCardData, "dateStart" | "dateEnd">,
+  now: number = Date.now(),
+): boolean {
+  return !isUpcoming(event, now);
+}
+
 export const SORT_OPTIONS = ["recent", "relevant"] as const;
 export type SortOption = (typeof SORT_OPTIONS)[number];
 

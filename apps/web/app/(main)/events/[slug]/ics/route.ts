@@ -1,4 +1,5 @@
 import { buildICS } from "@/lib/calendar";
+import { isConcluded } from "@/lib/events";
 import { client } from "@/sanity/client";
 import { EVENT_CALENDAR_QUERY } from "@/sanity/queries";
 
@@ -28,6 +29,12 @@ export async function GET(
 
   if (!event) {
     return new Response("Evento non trovato", { status: 404 });
+  }
+
+  // 410 e non 404: l'evento è esistito, è solo passato. Nessuna mail punta qui,
+  // quindi l'unico modo di arrivarci a evento finito è l'URL scritto a mano.
+  if (isConcluded(event)) {
+    return new Response("Evento concluso", { status: 410 });
   }
 
   const ics = buildICS(
