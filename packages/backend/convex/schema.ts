@@ -1,6 +1,6 @@
 import { defineSchema } from "convex/server";
-import bookings from "./tables/bookings";
 import bookingSettings from "./tables/bookingSettings";
+import bookings from "./tables/bookings";
 import circleInvites from "./tables/circleInvites";
 import circleMembers from "./tables/circleMembers";
 import circles from "./tables/circles";
@@ -8,8 +8,8 @@ import clientInvites from "./tables/clientInvites";
 import eventCommunicationDeliveries from "./tables/eventCommunicationDeliveries";
 import eventCommunications from "./tables/eventCommunications";
 import eventRsvps from "./tables/eventRsvps";
-import externalBookings from "./tables/externalBookings";
 import events from "./tables/events";
+import externalBookings from "./tables/externalBookings";
 import friendships from "./tables/friendships";
 import joinRequests from "./tables/joinRequests";
 import matchGuests from "./tables/matchGuests";
@@ -19,6 +19,8 @@ import memberships from "./tables/memberships";
 import openMatches from "./tables/openMatches";
 import players from "./tables/players";
 import slots from "./tables/slots";
+import socialPosts from "./tables/socialPosts";
+import socialSettings from "./tables/socialSettings";
 import supportRequests from "./tables/supportRequests";
 
 export default defineSchema({
@@ -43,4 +45,6 @@ export default defineSchema({
   memberships,
   matchInvites,
   matchGuests,
+  socialPosts,
+  socialSettings,
 });
