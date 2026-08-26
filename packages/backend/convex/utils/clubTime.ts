@@ -41,3 +41,30 @@ export function formatClubDateTime(
 
   return `${value("day")}/${value("month")}/${value("year")}${separator}${value("hour")}:${value("minute")}`;
 }
+
+/**
+ * Il giorno di calendario del club, come `YYYY-MM-DD`.
+ *
+ * Serve alle chiavi che valgono una volta al giorno — la storia dei campi
+ * liberi, il consiglio, il riepilogo di una giornata di torneo. Prenderlo da
+ * `toISOString().slice(0, 10)`, che è la scorciatoia ovvia, dà il giorno in
+ * UTC: fra mezzanotte e le due di un sabato d'estate quella data è ancora
+ * venerdì, e la stessa storia verrebbe pubblicata due volte a distanza di
+ * un'ora senza che nulla segnali l'errore.
+ *
+ * L'ordinamento alfabetico coincide con quello cronologico, che è la ragione
+ * per cui il formato è questo e non quello italiano.
+ */
+export function clubDay(timestamp: number): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: CLUB_TIME_ZONE,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).formatToParts(new Date(timestamp));
+
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}

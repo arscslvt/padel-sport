@@ -54,3 +54,8 @@ export function staffMatchRequestUrl(requestId: string) {
 
 /** La configurazione, dove si governano campi e orari. */
 export const STAFF_SETTINGS_URL = `${BASE_URL}/dashboard/settings`;
+
+/** Le bozze social, con una già aperta. */
+export function staffSocialUrl(postId: string) {
+  return `${BASE_URL}/dashboard/social?post=${encodeURIComponent(postId)}`;
+}

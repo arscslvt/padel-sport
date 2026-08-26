@@ -6,6 +6,7 @@ import {
   Inbox,
   LayoutDashboard,
   type LucideIcon,
+  Megaphone,
   Settings,
   Users,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const routes: ReadonlyArray<{ name: string; href: string; icon: LucideIcon }> =
     { name: "Clienti", href: "/dashboard/clients", icon: Users },
     { name: "Punti e premi", href: "/dashboard/points", icon: Gift },
     { name: "Eventi", href: "/dashboard/events", icon: CalendarDays },
+    { name: "Social", href: "/dashboard/social", icon: Megaphone },
     { name: "Configurazione", href: "/dashboard/settings", icon: Settings },
   ];
 
