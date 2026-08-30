@@ -1,6 +1,9 @@
 import { internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
+import { clubDay } from "../../utils/clubTime";
 import { staffSocialUrl } from "../../utils/staffLinks";
+import { clubMoment } from "../settings/lib";
+import { triggerKeyFor } from "./lib";
 
 /**
  * Il battito del sistema social: una volta all'ora.
@@ -19,7 +22,57 @@ import { staffSocialUrl } from "../../utils/staffLinks";
  */
 export default internalAction({
   handler: async (ctx) => {
+    const now = Date.now();
+    const hour = Math.floor(clubMoment(now).minutes / 60);
+
+    /**
+     * La storia dei campi liberi di domani, alle diciannove.
+     *
+     * L'ora è quella del club e non quella del server: fissata in UTC
+     * slitterebbe di un'ora fra estate e inverno, e una storia che dice
+     * «domani» pubblicata alle venti di sera non è la stessa cosa che alle
+     * diciannove. La chiave contiene il giorno, quindi anche se il battito
+     * passasse due volte nella stessa ora ne uscirebbe una sola.
+     */
+    if (hour === 19) {
+      const tomorrow = clubDay(now + 24 * 60 * 60 * 1000);
+
+      await ctx.runMutation(internal.modules.social.enqueue.default, {
+        kind: "courts_tomorrow",
+        triggerKey: triggerKeyFor({ kind: "courts_tomorrow", day: tomorrow }),
+      });
+    }
+
+    /**
+     * Il rinnovo del gettone, una volta al giorno.
+     *
+     * Alle quattro del mattino: se qualcosa va storto, l'avviso arriva prima
+     * che la struttura apra, invece che nel mezzo di una giornata di torneo.
+     */
+    if (hour === 4) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.modules.social.instagram.refresh.default,
+        {},
+      );
+    }
+
     const work = await ctx.runQuery(internal.modules.social.data.pending, {});
+
+    // Chi aspettava il proprio turno: il promemoria di un evento che ora è
+    // fra due giorni. Si riempie adesso, con i valori conservati sulla riga.
+    for (const postId of work.toRender) {
+      const result = await ctx.runMutation(
+        internal.modules.social.data.renderParked,
+        { postId },
+      );
+
+      if (result?.status === "queued") {
+        await ctx.scheduler.runAfter(0, internal.modules.social.queue.default, {
+          postId,
+        });
+      }
+    }
 
     for (const postId of work.due) {
       await ctx.scheduler.runAfter(0, internal.modules.social.queue.default, {

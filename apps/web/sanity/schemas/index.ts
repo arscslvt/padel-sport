@@ -5,6 +5,7 @@ import { emailContent } from "./emailContent";
 import { event } from "./event";
 import { eventCommunication } from "./eventCommunication";
 import { rsvpForm } from "./rsvpForm";
+import { socialAsset } from "./socialAsset";
 
 export const schemaTypes: SchemaTypeDefinition[] = [
   event,
@@ -12,4 +13,5 @@ export const schemaTypes: SchemaTypeDefinition[] = [
   blockContent,
   emailContent,
   rsvpForm,
+  socialAsset,
 ];

@@ -58,6 +58,9 @@ export default query({
         facts: row.facts,
         scheduledAt: row.scheduledAt,
         publishedAt: row.publishedAt,
+        /** L'id del media su Instagram: è la chiave con cui la fase di
+         *  riconciliazione ritrova un post di cui si è persa la risposta. */
+        externalId: row.externalId,
         permalink: row.permalink,
         error: row.error,
         reviewedBy: row.reviewedBy,

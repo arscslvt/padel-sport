@@ -68,3 +68,28 @@ export function clubDay(timestamp: number): string {
 
   return `${value("year")}-${value("month")}-${value("day")}`;
 }
+
+/** Solo l'orario, "09:30", nell'ora del club. */
+export function clubTimeOfDay(timestamp: number): string {
+  const parts = clubParts(timestamp);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${value("hour")}:${value("minute")}`;
+}
+
+/**
+ * La data per esteso, "domenica 30 agosto", nell'ora del club.
+ *
+ * Per ciò che dura un giorno intero — le fasce libere di domani, una giornata
+ * di torneo — l'orario non è un dettaglio in più: è rumore che sposta
+ * l'attenzione su un istante che non significa niente.
+ */
+export function clubDateLong(timestamp: number): string {
+  return new Intl.DateTimeFormat("it-IT", {
+    timeZone: CLUB_TIME_ZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(timestamp));
+}

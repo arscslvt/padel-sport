@@ -2,40 +2,39 @@ import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
+import type { SocialChannel } from "./lib";
 
 /**
  * Il giunto fra chi scrive un contenuto e chi lo pubblica.
  *
- * Esiste perché la composizione non sappia che i canali esistono. Chi compone
- * riempie una riga; da qui in poi si decide su quale profilo finisce e con che
- * regole — Instagram concatena gli hashtag in fondo e regge solo un'immagine
- * per le storie, Facebook ha altri gusti e altri limiti. Senza questo strato,
- * aggiungere un canale vorrebbe dire mettere le mani nel compositore.
+ * Esiste perché la composizione non sappia che i canali esistono. Chi riempie
+ * un template riempie una riga; da qui in poi si decide su quale profilo
+ * finisce e con che regole — Instagram concatena gli hashtag in fondo e regge
+ * una sola immagine per le storie, Facebook ha altri gusti e altri limiti.
  *
- * **In questa versione non pubblica niente.** Prende il lucchetto e chiude la
- * riga come pubblicata senza codice esterno: serve a far camminare la macchina
- * a stati per intero — e a tarare il compositore su una settimana di traffico
- * vero — prima che qualcuno legga qualcosa. Il pubblicatore vero arriva con le
- * credenziali di Meta, e da lì la riga porterà anche `externalId` e
- * `permalink`.
- *
- * Le righe chiuse adesso non verranno ripubblicate all'accensione: il
- * pubblicatore tratta solo lo stato `queued`, e queste sono già `published`.
+ * Aggiungere un canale è una riga in questa mappa più il suo modulo. Non c'è
+ * nessun `if` da toccare: è il motivo per cui questo file esiste invece di una
+ * chiamata diretta al pubblicatore.
  */
+const PUBLISHERS: Record<
+  SocialChannel,
+  typeof internal.modules.social.instagram.publish.default
+> = {
+  instagram: internal.modules.social.instagram.publish.default,
+};
+
 export default internalAction({
   args: { postId: v.id("socialPosts") },
   handler: async (ctx, { postId }) => {
-    const row = await ctx.runMutation(
-      internal.modules.social.data.beginPublish,
-      { postId },
-    );
-
-    // Il lucchetto non si è aperto: la riga non era pronta, oppure qualcun
-    // altro la sta già pubblicando. In entrambi i casi non è affar nostro.
-    if (!row) return;
-
-    await ctx.runMutation(internal.modules.social.data.completePublish, {
+    const row = await ctx.runQuery(internal.modules.social.data.forCompose, {
       postId,
     });
+
+    if (!row || row.status !== "queued") return;
+
+    // Il lucchetto lo prende il pubblicatore, non questo: qui si sceglie solo
+    // la strada. Prenderlo prima significherebbe doverlo restituire in ogni
+    // ramo d'errore di un file che non sa niente di come si pubblica.
+    await ctx.scheduler.runAfter(0, PUBLISHERS[row.channel], { postId });
   },
 });

@@ -19,8 +19,10 @@ import memberships from "./tables/memberships";
 import openMatches from "./tables/openMatches";
 import players from "./tables/players";
 import slots from "./tables/slots";
+import socialCredentials from "./tables/socialCredentials";
 import socialPosts from "./tables/socialPosts";
 import socialSettings from "./tables/socialSettings";
+import socialTemplates from "./tables/socialTemplates";
 import supportRequests from "./tables/supportRequests";
 
 export default defineSchema({
@@ -45,6 +47,8 @@ export default defineSchema({
   memberships,
   matchInvites,
   matchGuests,
+  socialCredentials,
   socialPosts,
   socialSettings,
+  socialTemplates,
 });

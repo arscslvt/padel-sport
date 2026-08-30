@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 
+import { components } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import {
   internalMutation,
@@ -9,15 +10,26 @@ import {
 } from "../../_generated/server";
 import { clubDay } from "../../utils/clubTime";
 import {
-  approvalFor,
+  type AnonymitySource,
+  assertAnonymous,
+  type FactsInput,
+} from "./anonymity";
+import { freeSlotsTomorrow } from "./courts";
+import {
+  approvalForMode,
   DEFAULT_SOCIAL_SETTINGS,
   posterSpec,
+  resolveModes,
   type SocialChannel,
   type SocialFormat,
   type SocialPostKind,
   type SocialSettings,
+  socialChannel,
   socialPostKind,
+  templateFormats,
 } from "./lib";
+import type { TemplateValues } from "./situations";
+import { renderTemplate } from "./template";
 
 /**
  * Tutti gli accessi al database dei contenuti social.
@@ -65,9 +77,11 @@ async function readSettings(ctx: QueryCtx): Promise<SocialSettings> {
 
   if (!row) return DEFAULT_SOCIAL_SETTINGS;
 
+  const modes = resolveModes(row.modes, row.disabledKinds);
+
   return {
     enabled: row.enabled,
-    disabledKinds: row.disabledKinds,
+    modes,
     maxPerDay: row.maxPerDay,
     tone: row.tone,
     avoid: row.avoid,
@@ -109,12 +123,14 @@ export async function claimRow(
     format,
     channel,
     triggerKey,
+    subjectId,
     scheduledAt,
   }: {
     kind: SocialPostKind;
     format: SocialFormat;
     channel: SocialChannel;
     triggerKey: string;
+    subjectId?: string;
     scheduledAt?: number;
   },
 ): Promise<Id<"socialPosts"> | null> {
@@ -132,7 +148,10 @@ export async function claimRow(
 
   const config = await readSettings(ctx);
 
-  if (!config.enabled || config.disabledKinds.includes(kind)) return null;
+  // Modalità manuale: il sistema non produce niente da sé, e non lascia
+  // traccia. Una riga saltata direbbe «avrei potuto», che su una categoria
+  // affidata alle persone è rumore, non informazione.
+  if (!config.enabled || config.modes[kind] === "manual") return null;
 
   const now = Date.now();
   const today = clubDay(now);
@@ -151,8 +170,9 @@ export async function claimRow(
     kind,
     format,
     channel,
-    approval: approvalFor(kind),
+    approval: approvalForMode(config.modes[kind]),
     triggerKey,
+    subjectId,
     posterToken: crypto.randomUUID().replaceAll("-", ""),
     scheduledAt: scheduledAt ?? now,
     attempts: 0,
@@ -180,6 +200,37 @@ export const forCompose = internalQuery({
   args: { postId: v.id("socialPosts") },
   handler: async (ctx, { postId }) => await ctx.db.get(postId),
 });
+
+/**
+ * I recapiti veri di ciò che ha generato una riga.
+ *
+ * Li rilegge la mutation, non li riceve: se il nome arrivasse dall'azione
+ * insieme al testo da controllare, il controllo non proverebbe niente — starebbe
+ * confrontando due cose passate per la stessa strada. Qui invece il confronto è
+ * fra ciò che il modello ha scritto e ciò che sta davvero sul documento.
+ */
+async function anonymitySource(
+  ctx: MutationCtx,
+  row: Doc<"socialPosts">,
+): Promise<AnonymitySource> {
+  if (!row.subjectId) return {};
+
+  if (row.kind === "player_request") {
+    const request = await ctx.db.get(row.subjectId as Id<"matchRequests">);
+    return request
+      ? { name: request.name, email: request.email, phone: request.phone }
+      : {};
+  }
+
+  if (row.kind === "open_match") {
+    const match = await ctx.db.get(row.subjectId as Id<"openMatches">);
+    if (!match) return {};
+    const creator = await ctx.db.get(match.creatorId);
+    return { name: creator?.name };
+  }
+
+  return {};
+}
 
 /**
  * Chiude la composizione e decide dove va la riga.
@@ -212,11 +263,26 @@ export const completeCompose = internalMutation({
       throw new Error(`Il contenuto non è in composizione: ${row.status}.`);
     }
 
+    // L'ultima rete prima che il contenuto diventi pubblicabile. Sta in una
+    // mutation perché deve poter rifiutare in transazione: un controllo che si
+    // limitasse a segnalare avrebbe pubblicato, e poi avvisato.
+    assertAnonymous(
+      row.kind,
+      draft.caption,
+      draft.poster,
+      await anonymitySource(ctx, row),
+    );
+
     const status = row.approval === "auto" ? "queued" : "pending_review";
 
     await ctx.db.patch(postId, {
       ...draft,
       status,
+      // Il lasciapassare è nuovo a ogni stesura, non solo alla prima. Alla
+      // rigenerazione la locandina precedente è già stata disegnata e messa in
+      // cache come immutabile: senza un indirizzo nuovo, la versione corretta
+      // resterebbe invisibile dietro quella vecchia.
+      posterToken: crypto.randomUUID().replaceAll("-", ""),
       publishStartedAt: undefined,
       error: undefined,
     });
@@ -369,11 +435,21 @@ export const pending = internalQuery({
         (row) => now - (row.publishStartedAt ?? row.createdAt) > STALE_AFTER_MS,
       );
 
-    const drafting = stuck(
-      await ctx.db
-        .query("socialPosts")
-        .withIndex("by_status_scheduled", (q) => q.eq("status", "drafting"))
-        .take(20),
+    // Solo le stesure il cui momento è già arrivato: un promemoria d'evento
+    // resta di proposito in composizione per settimane, e lo spazzino non deve
+    // scambiare l'attesa per un incaglio.
+    const draftingRows = await ctx.db
+      .query("socialPosts")
+      .withIndex("by_status_scheduled", (q) =>
+        q.eq("status", "drafting").lte("scheduledAt", now),
+      )
+      .take(20);
+
+    const drafting = stuck(draftingRows);
+
+    /** Quelle il cui turno è arrivato adesso: vanno riempite, non archiviate. */
+    const toRender = draftingRows.filter(
+      (row) => !drafting.some((late) => late._id === row._id),
     );
 
     const publishing = stuck(
@@ -385,6 +461,7 @@ export const pending = internalQuery({
 
     return {
       due: due.map((row) => row._id),
+      toRender: toRender.map((row) => row._id),
       drafting: drafting.map((row) => row._id),
       publishing: publishing.map((row) => row._id),
     };
@@ -393,6 +470,10 @@ export const pending = internalQuery({
 
 /**
  * Una riga rimasta appesa passa a chi può decidere.
+ *
+ * `skipped` è il terzo caso, e non è un fallimento: il trigger è scattato ma non
+ * c'era niente da raccontare. Vale la pena distinguerlo, altrimenti una serata
+ * senza campi liberi somiglierebbe a un guasto.
  *
  * La composizione incagliata è un fallimento e basta: nessuno ha visto niente.
  * La pubblicazione incagliata no — la chiamata a Instagram può essere andata a
@@ -405,7 +486,11 @@ export const pending = internalQuery({
 export const abandon = internalMutation({
   args: {
     postId: v.id("socialPosts"),
-    status: v.union(v.literal("failed"), v.literal("needs_attention")),
+    status: v.union(
+      v.literal("failed"),
+      v.literal("needs_attention"),
+      v.literal("skipped"),
+    ),
     error: v.string(),
   },
   handler: async (ctx, { postId, status, error }) => {
@@ -414,3 +499,448 @@ export const abandon = internalMutation({
 });
 
 export type SocialPostId = Id<"socialPosts">;
+
+/**
+ * I fatti di una riga, già ridotti a ciò che si può raccontare.
+ *
+ * È l'unico posto che legge i documenti sorgente, e proietta: le due funzioni
+ * anonime restituiscono conteggi, date e livelli, e nient'altro. Il nome del
+ * creatore di una partita e i recapiti di chi ha compilato il modulo escono da
+ * qui **solo** dentro `source`, che non arriva mai al modello — serve alla
+ * verifica finale, che gira in `completeCompose`.
+ *
+ * Restituisce `null` per i tipi il cui trigger non è ancora agganciato: il
+ * compositore li archivia come saltati invece di inventarsi qualcosa.
+ */
+export async function factsInputFor(
+  ctx: QueryCtx,
+  row: Doc<"socialPosts">,
+): Promise<{ input: FactsInput; source: AnonymitySource } | null> {
+  if (row.kind === "player_request") {
+    if (!row.subjectId) return null;
+    const request = await ctx.db.get(row.subjectId as Id<"matchRequests">);
+    if (!request) return null;
+
+    return {
+      input: {
+        kind: "player_request" as const,
+        matchDate: request.matchDate,
+        level: request.level,
+        missingPlayers: request.missingPlayers,
+      },
+      // Le note restano fuori di proposito: sono testo libero, e chi scrive
+      // «sono Marco, chiamatemi al 333» lo fa lì dentro.
+      source: {
+        name: request.name,
+        email: request.email,
+        phone: request.phone,
+      },
+    };
+  }
+
+  if (row.kind === "open_match") {
+    if (!row.subjectId) return null;
+    const match = await ctx.db.get(row.subjectId as Id<"openMatches">);
+    if (!match) return null;
+
+    const guests = await ctx.db
+      .query("matchGuests")
+      .withIndex("by_match", (q) => q.eq("matchId", match._id))
+      .collect();
+
+    const taken = match.playerIds.length + guests.length;
+    const creator = await ctx.db.get(match.creatorId);
+
+    return {
+      input: {
+        kind: "open_match" as const,
+        matchDate: match.matchDate,
+        freeSeats: Math.max(match.maxPlayers - taken, 0),
+        levelMin: match.levelMin,
+        levelMax: match.levelMax,
+      },
+      source: { name: creator?.name },
+    };
+  }
+
+  if (row.kind === "tournament_result") {
+    if (!row.subjectId) return null;
+
+    // Il componente valida l'identificativo e **lancia** se non ha la forma
+    // giusta, invece di restituire `null`. Qui dentro siamo in una mutation
+    // schedulata: un'eccezione annullerebbe la transazione e lascerebbe la riga
+    // in composizione per sempre, senza che da nessuna parte compaia il motivo.
+    const match = await ctx
+      .runQuery(components.tournaments.modules.matches.get.getById, {
+        matchId: row.subjectId as never,
+      })
+      .catch(() => null);
+
+    if (!match || match.rawStatus !== "completed") return null;
+
+    const [teamA, teamB] = match.teams;
+    if (!teamA || !teamB) return null;
+
+    /**
+     * Il vincitore va per primo.
+     *
+     * I template dicono «{squadraA} vince»: se qui arrivasse la squadra A del
+     * tabellone invece di quella che ha vinto, metà dei post racconterebbe il
+     * risultato al contrario — e senza sbagliare un solo numero, il che è il
+     * modo peggiore di sbagliare.
+     */
+    const wonA = match.points.teamA > match.points.teamB;
+
+    return {
+      input: {
+        kind: "tournament_result" as const,
+        tournament: match.tournamentName ?? "Torneo del circolo",
+        stage: match.stage ?? "",
+        teamA: wonA ? teamA.name : teamB.name,
+        teamB: wonA ? teamB.name : teamA.name,
+        sets: match.sets.map(
+          (set: { teamAPoints: number; teamBPoints: number }) => ({
+            a: wonA ? set.teamAPoints : set.teamBPoints,
+            b: wonA ? set.teamBPoints : set.teamAPoints,
+          }),
+        ),
+      },
+      source: {},
+    };
+  }
+
+  if (row.kind === "courts_tomorrow") {
+    const slots = await freeSlotsTomorrow(ctx);
+
+    return {
+      input: {
+        kind: "courts_tomorrow" as const,
+        // Il giorno da raccontare è domani, e serve un istante qualunque dentro
+        // quel giorno perché sia `formatClubDateTime` a scriverlo.
+        day: Date.now() + 24 * 60 * 60 * 1000,
+        slots,
+      },
+      source: {},
+    };
+  }
+
+  if (row.kind === "tip") {
+    const previous = await ctx.db
+      .query("socialPosts")
+      .withIndex("by_kind_created", (q) => q.eq("kind", "tip"))
+      .order("desc")
+      .take(40);
+
+    return {
+      input: {
+        kind: "tip" as const,
+        alreadyCovered: previous
+          .filter((post) => post.status === "published" && post.poster)
+          .map((post) => post.poster?.headline ?? "")
+          .filter(Boolean)
+          .slice(0, 30),
+      },
+      source: {},
+    };
+  }
+
+  return null;
+}
+
+/** La versione interrogabile dall'azione che compone i consigli. */
+export const factsFor = internalQuery({
+  args: { postId: v.id("socialPosts") },
+  handler: async (ctx, { postId }) => {
+    const row = await ctx.db.get(postId);
+    return row ? await factsInputFor(ctx, row) : null;
+  },
+});
+
+/**
+ * Il template da usare, fra quelli approvati per questa situazione.
+ *
+ * Si prende il meno usato, e a parità il più fermo. È la rotazione: pescare a
+ * caso fra sei varianti significa, in pratica, vedere la stessa due volte di
+ * fila abbastanza spesso da farsi notare.
+ */
+export async function pickTemplate(
+  ctx: QueryCtx,
+  kind: SocialPostKind,
+  situation: string,
+  format: SocialFormat,
+): Promise<Doc<"socialTemplates"> | null> {
+  const approved = (
+    await ctx.db
+      .query("socialTemplates")
+      .withIndex("by_slot", (q) =>
+        q.eq("kind", kind).eq("situation", situation).eq("status", "approved"),
+      )
+      .collect()
+  ).filter((template) => templateFormats(template).includes(format));
+
+  if (approved.length === 0) return null;
+
+  return approved.sort(
+    (a, b) =>
+      a.usageCount - b.usageCount || (a.lastUsedAt ?? 0) - (b.lastUsedAt ?? 0),
+  )[0];
+}
+
+/** Segna una riga come saltata, con il motivo, dall'interno di una mutation. */
+export async function markSkipped(
+  ctx: MutationCtx,
+  postId: Id<"socialPosts">,
+  reason: string,
+): Promise<void> {
+  await ctx.db.patch(postId, {
+    status: "skipped",
+    error: reason,
+    publishStartedAt: undefined,
+  });
+}
+
+/**
+ * Scrive nella riga il contenuto uscito da un template.
+ *
+ * Il pezzo in comune fra le tre strade che arrivano qui — il trigger di
+ * dominio, il webhook degli eventi, il promemoria che si sveglia al proprio
+ * turno. Erano tre copie della stessa decina di righe, e la decisione più
+ * delicata (il primo giro passa dalla dashboard) stava scritta in tre posti.
+ *
+ * Restituisce lo stato scelto, perché è chi chiama a sapere se accodare la
+ * pubblicazione o mandare l'avviso.
+ */
+export async function applyTemplate(
+  ctx: MutationCtx,
+  row: Doc<"socialPosts">,
+  template: Doc<"socialTemplates">,
+  values: TemplateValues,
+  factsLabel: string,
+): Promise<{ status: "queued" | "pending_review"; firstUse: boolean }> {
+  const drafted = renderTemplate(template, values);
+
+  // La rete di sicurezza vale anche qui, dove i buchi vengono riempiti con dati
+  // veri. Non protegge più dal modello — quei nomi non li ha mai visti — ma da
+  // un template che chiedesse il buco sbagliato.
+  assertAnonymous(
+    row.kind,
+    drafted.caption,
+    drafted.poster,
+    await anonymitySource(ctx, row),
+  );
+
+  /**
+   * Il primo contenuto di ogni template fa una sosta in dashboard.
+   *
+   * È lì, con i buchi riempiti di dati veri, che si vedono le cose che sullo
+   * template vuoto non si notano: un accordo sbagliato, una frase che con tre set
+   * diventa sgraziata. Approvarlo è ciò che dichiara buono il template.
+   */
+  const firstUse = template.usageCount === 0;
+  const status =
+    row.approval === "auto" && !firstUse ? "queued" : "pending_review";
+
+  await ctx.db.patch(row._id, {
+    status,
+    templateId: template._id,
+    facts: factsLabel,
+    caption: drafted.caption,
+    hashtags: drafted.hashtags,
+    poster: drafted.poster,
+    backgroundAssetRef: template.backgroundAssetRef,
+    altText: template.altText,
+    linkUrl: "asdpadelsport.com/book",
+    // Nuovo a ogni stesura: la locandina precedente può già essere stata
+    // disegnata e messa in cache come immutabile.
+    posterToken: crypto.randomUUID().replaceAll("-", ""),
+    publishStartedAt: undefined,
+  });
+
+  if (status === "queued") {
+    await ctx.db.patch(template._id, {
+      usageCount: template.usageCount + 1,
+      lastUsedAt: Date.now(),
+    });
+  }
+
+  return { status, firstUse };
+}
+
+/**
+ * Riempie una riga che aspettava il proprio turno.
+ *
+ * Oggi la usa solo il promemoria degli eventi, che nasce settimane prima di
+ * quando dovrà uscire. I suoi valori sono conservati sulla riga perché gli
+ * eventi vivono su Sanity e da qui non si rileggono — per tutti gli altri
+ * trigger i fatti si ricalcolano al momento, che è meglio.
+ */
+export const renderParked = internalMutation({
+  args: { postId: v.id("socialPosts") },
+  handler: async (ctx, { postId }) => {
+    const row = await ctx.db.get(postId);
+    if (!row || row.status !== "drafting") return null;
+
+    if (!row.subjectValues) {
+      await markSkipped(ctx, postId, "Nessun dato conservato per comporlo.");
+      return null;
+    }
+
+    const values = JSON.parse(row.subjectValues) as TemplateValues;
+
+    // Gli eventi hanno una situazione sola, e sono gli unici che si parcheggiano.
+    // Se un domani si mettesse in attesa anche altro, la situazione andrà
+    // conservata sulla riga insieme ai valori.
+    const template = await pickTemplate(ctx, row.kind, "standard", row.format);
+
+    if (!template) {
+      await markSkipped(
+        ctx,
+        postId,
+        `Nessuno template approvato per «${row.kind}».`,
+      );
+      return null;
+    }
+
+    const { status } = await applyTemplate(
+      ctx,
+      row,
+      template,
+      values,
+      row.facts ?? "promemoria evento",
+    );
+
+    return { status };
+  },
+});
+
+/** Il gettone di un canale, se ne è già stato salvato uno. */
+export const credentials = internalQuery({
+  args: { channel: socialChannel },
+  handler: async (ctx, { channel }) =>
+    await ctx.db
+      .query("socialCredentials")
+      .withIndex("by_channel", (q) => q.eq("channel", channel))
+      .first(),
+});
+
+/**
+ * Salva un gettone rinnovato, o il seme al primo avvio.
+ *
+ * `refreshFailures` si azzera a ogni successo: conta i guasti *di fila*, non
+ * quelli di sempre, perché serve a distinguere l'intoppo passeggero dal gettone
+ * ormai morto.
+ */
+export const saveCredentials = internalMutation({
+  args: {
+    channel: socialChannel,
+    accessToken: v.string(),
+    expiresAt: v.optional(v.number()),
+  },
+  handler: async (ctx, { channel, accessToken, expiresAt }) => {
+    const existing = await ctx.db
+      .query("socialCredentials")
+      .withIndex("by_channel", (q) => q.eq("channel", channel))
+      .first();
+
+    const now = Date.now();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        accessToken,
+        expiresAt,
+        refreshedAt: now,
+        refreshFailures: 0,
+        updatedAt: now,
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("socialCredentials", {
+      channel,
+      accessToken,
+      expiresAt,
+      refreshedAt: now,
+      refreshFailures: 0,
+      updatedAt: now,
+    });
+  },
+});
+
+/** Un rinnovo andato storto: si conta, e si riproverà domani. */
+export const recordRefreshFailure = internalMutation({
+  args: { channel: socialChannel },
+  handler: async (ctx, { channel }) => {
+    const existing = await ctx.db
+      .query("socialCredentials")
+      .withIndex("by_channel", (q) => q.eq("channel", channel))
+      .first();
+
+    if (!existing) return;
+
+    await ctx.db.patch(existing._id, {
+      refreshFailures: existing.refreshFailures + 1,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Il gettone da usare adesso, promuovendo il seme quando serve.
+ *
+ * Tre casi, e vale la pena tenerli distinti:
+ *
+ * - **niente in tabella**: si promuove il seme e si ricorda da quale valore
+ *   veniva;
+ * - **il seme è cambiato**: qualcuno ha messo a mano un gettone nuovo perché il
+ *   vecchio era morto. Vince la variabile, e la tabella riparte da lì;
+ * - **il seme è lo stesso**: la tabella è più aggiornata, perché il rinnovo
+ *   automatico ci ha scritto sopra. Vince la tabella.
+ *
+ * È una mutation e non una query perché il primo e il secondo caso scrivono. Il
+ * gettone non esce mai da qui verso l'esterno: lo leggono solo le azioni che
+ * devono parlare con Meta.
+ */
+export const resolveToken = internalMutation({
+  args: { channel: socialChannel, seed: v.optional(v.string()) },
+  handler: async (ctx, { channel, seed }) => {
+    const existing = await ctx.db
+      .query("socialCredentials")
+      .withIndex("by_channel", (q) => q.eq("channel", channel))
+      .first();
+
+    const now = Date.now();
+
+    if (!existing) {
+      if (!seed) return null;
+
+      await ctx.db.insert("socialCredentials", {
+        channel,
+        accessToken: seed,
+        seedFingerprint: seed,
+        refreshFailures: 0,
+        updatedAt: now,
+      });
+
+      return { accessToken: seed, expiresAt: undefined };
+    }
+
+    if (seed && existing.seedFingerprint !== seed) {
+      await ctx.db.patch(existing._id, {
+        accessToken: seed,
+        seedFingerprint: seed,
+        expiresAt: undefined,
+        refreshedAt: undefined,
+        refreshFailures: 0,
+        updatedAt: now,
+      });
+
+      return { accessToken: seed, expiresAt: undefined };
+    }
+
+    return {
+      accessToken: existing.accessToken,
+      expiresAt: existing.expiresAt,
+      refreshedAt: existing.refreshedAt,
+    };
+  },
+});

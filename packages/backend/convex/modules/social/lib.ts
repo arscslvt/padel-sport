@@ -56,9 +56,33 @@ export type SocialFormat = Infer<typeof socialFormat>;
 export const socialChannel = v.union(v.literal("instagram"));
 export type SocialChannel = Infer<typeof socialChannel>;
 
-/** Chi decide se esce. Deriva dal `kind`, non lo passa il chiamante. */
+/** Chi decide se esce. Deriva dalla modalità scelta per il tipo. */
 export const socialApproval = v.union(v.literal("auto"), v.literal("staff"));
 export type SocialApproval = Infer<typeof socialApproval>;
+
+/**
+ * Come si comporta il circolo su una categoria di contenuti.
+ *
+ * Prima era cablata nel codice, e la regola era una sola per tutti: passa dallo
+ * staff ciò che il modello inventa. È una buona regola di partenza, ma non
+ * sopravvive al fatto che la stessa struttura possa fidarsi dei risultati e non
+ * dei consigli, o il contrario — e quel giudizio non è del codice.
+ */
+export const socialMode = v.union(
+  /**
+   * Il sistema non produce niente da sé per questa categoria.
+   *
+   * I trigger scattano e non lasciano traccia: nessuna riga, nessun contenuto
+   * in sospeso. Non è «spento e basta» in senso stretto, è «me ne occupo io» —
+   * e finché non c'è un modo di produrli su richiesta, in pratica coincide.
+   */
+  v.literal("manual"),
+  /** Il contenuto si scrive e aspetta in dashboard. */
+  v.literal("review"),
+  /** Il contenuto si scrive ed esce da solo. */
+  v.literal("auto"),
+);
+export type SocialMode = Infer<typeof socialMode>;
 
 /**
  * Trattamento cromatico della locandina.
@@ -178,15 +202,90 @@ export function formatsFor(kind: SocialPostKind): readonly SocialFormat[] {
 }
 
 /**
- * Chi deve dare il via libera.
+ * Le modalità di partenza, finché nessuno le tocca dalla dashboard.
  *
- * La regola è una sola: passa dallo staff ciò che il modello *inventa*, esce da
- * solo ciò che il modello si limita a confezionare. Un riepilogo di campi
- * liberi è un dato del gestionale vestito a festa; un consiglio tecnico è
- * un'opinione firmata dal circolo.
+ * Riproducono la regola che prima era cablata: passa dallo staff ciò che il
+ * modello *inventa*, esce da solo ciò che viene soltanto confezionato. Con gli
+ * template quel confine si è spostato — ciò che il modello inventa adesso è lo
+ * template, letto e approvato una volta — e resta a carico dello staff soltanto
+ * il consiglio tecnico, che viene riscritto da capo ogni volta.
+ *
+ * Da qui in poi è una preferenza, non una legge: la struttura può decidere di
+ * fidarsi dei consigli o di rivedere i risultati, e quel giudizio non spetta a
+ * questo file.
  */
-export function approvalFor(kind: SocialPostKind): SocialApproval {
-  return kind === "tip" || kind === "event_announce" ? "staff" : "auto";
+export const DEFAULT_MODES: Record<SocialPostKind, SocialMode> = {
+  tournament_result: "auto",
+  courts_tomorrow: "auto",
+  tip: "review",
+  event_announce: "auto",
+  event_reminder: "auto",
+  open_match: "auto",
+  player_request: "auto",
+};
+
+/**
+ * Le modalità effettive, componendo le fonti in ordine di precedenza.
+ *
+ * Quella salvata vince; se manca si guarda il vecchio elenco di trigger spenti,
+ * dove «spento» diventa «manuale»; e in mancanza di entrambi vale il valore di
+ * partenza. Così una configurazione salvata mesi fa continua a comportarsi come
+ * si comportava, e una categoria aggiunta dopo non nasce muta.
+ *
+ * Sta qui e non accanto a chi legge perché i lettori sono due — il motore e il
+ * pannello — e due copie della stessa precedenza sarebbero due occasioni di
+ * scriverla diversa.
+ */
+export function resolveModes(
+  saved: { kind: SocialPostKind; mode: SocialMode }[] | undefined,
+  legacyDisabled: SocialPostKind[] | undefined,
+): Record<SocialPostKind, SocialMode> {
+  const explicit = new Map(saved?.map((entry) => [entry.kind, entry.mode]));
+
+  return Object.fromEntries(
+    SOCIAL_POST_KINDS.map((kind) => [
+      kind,
+      explicit.get(kind) ??
+        (legacyDisabled?.includes(kind) ? "manual" : DEFAULT_MODES[kind]),
+    ]),
+  ) as Record<SocialPostKind, SocialMode>;
+}
+
+/**
+ * In quali formati esce un template, leggendo la forma nuova o quella vecchia.
+ *
+ * Sta qui perché i lettori sono tre — la scelta al momento di pubblicare, la
+ * mappa di copertura e il pannello — e tre copie della stessa ricaduta
+ * sarebbero tre occasioni di scriverla diversa.
+ */
+export function templateFormats(template: {
+  formats?: SocialFormat[];
+  format?: SocialFormat;
+}): SocialFormat[] {
+  if (template.formats?.length) return template.formats;
+  return template.format ? [template.format] : [];
+}
+
+/** La forma con cui le modalità si salvano: coppie, non un dizionario. */
+export function modesToPairs(
+  modes: Record<SocialPostKind, SocialMode>,
+): { kind: SocialPostKind; mode: SocialMode }[] {
+  return SOCIAL_POST_KINDS.map((kind) => ({ kind, mode: modes[kind] }));
+}
+
+/**
+ * Chi deve dare il via libera, secondo la modalità scelta.
+ *
+ * `manual` non compare: quella non è una risposta a «chi approva», è un «non si
+ * arriva nemmeno a chiederselo», e viene intercettata prima che una riga nasca.
+ *
+ * Il primo contenuto di ogni template fa comunque una sosta in dashboard anche in
+ * modalità autonoma. Quella regola non sta qui perché non riguarda la
+ * categoria: riguarda il template, ed è la differenza fra fidarsi di una scelta
+ * editoriale e fidarsi di una frase che nessuno ha ancora visto riempita.
+ */
+export function approvalForMode(mode: SocialMode): SocialApproval {
+  return mode === "review" ? "staff" : "auto";
 }
 
 /**
@@ -257,14 +356,8 @@ export interface SocialSettings {
    * a posto.
    */
   enabled: boolean;
-  /**
-   * I trigger spenti, non quelli accesi.
-   *
-   * Al contrario di quel che verrebbe da fare, perché così una riga di
-   * configurazione salvata prima che un trigger esistesse non lo tiene spento
-   * per sempre senza che nessuno capisca il perché.
-   */
-  disabledKinds: SocialPostKind[];
+  /** Come si comporta ogni categoria: manuale, con approvazione, autonoma. */
+  modes: Record<SocialPostKind, SocialMode>;
   /** Quante pubblicazioni al giorno al massimo, su tutti i trigger insieme. */
   maxPerDay: number;
   /** Voce del club: come deve suonare. */
@@ -276,7 +369,7 @@ export interface SocialSettings {
 
 export const DEFAULT_SOCIAL_SETTINGS: SocialSettings = {
   enabled: false,
-  disabledKinds: [],
+  modes: DEFAULT_MODES,
   // Due al giorno è la rete di sicurezza contro la giornata di torneo che
   // scatena una raffica: non è il ritmo previsto, è il tetto oltre il quale
   // qualcosa è andato storto.

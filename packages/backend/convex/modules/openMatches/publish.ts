@@ -1,9 +1,10 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
-import { LEVEL_MAX, LEVEL_MIN, requirePlayer, visibilityOf } from "./lib";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
+import { triggerKeyFor } from "../social/lib";
+import { LEVEL_MAX, LEVEL_MIN, requirePlayer, visibilityOf } from "./lib";
 
 /**
  * Apre a tutti una partita privata o di cerchia.
@@ -91,6 +92,14 @@ export default mutation({
         idempotencyKey: `match-open-${matchId}`,
       },
     );
+
+    // Stessa chiave di quella creata già pubblica: se per qualche motivo
+    // passasse da entrambe le strade, la seconda non produce niente.
+    await ctx.scheduler.runAfter(0, internal.modules.social.enqueue.default, {
+      kind: "open_match",
+      triggerKey: triggerKeyFor({ kind: "open_match", matchId }),
+      subjectId: matchId,
+    });
 
     return { matchId };
   },

@@ -46,6 +46,20 @@ export default mutation({
       error: undefined,
     });
 
+    // Approvare il primo contenuto uscito da un template è ciò che dichiara
+    // buono il template: da qui in poi quello che ne esce non passa più di qui.
+    // Se invece viene scartato il contatore resta a zero, e il prossimo
+    // contenuto torna in dashboard — che è il comportamento prudente.
+    if (row.templateId) {
+      const template = await ctx.db.get(row.templateId);
+      if (template) {
+        await ctx.db.patch(row.templateId, {
+          usageCount: template.usageCount + 1,
+          lastUsedAt: Date.now(),
+        });
+      }
+    }
+
     await ctx.scheduler.runAfter(0, internal.modules.social.queue.default, {
       postId,
     });

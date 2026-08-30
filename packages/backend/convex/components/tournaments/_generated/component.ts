@@ -233,6 +233,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             any,
             Name
           >;
+          getById: FunctionReference<
+            "query",
+            "internal",
+            { matchId: string },
+            any,
+            Name
+          >;
           getLiveMatchesByTournamentId: FunctionReference<
             "query",
             "internal",
