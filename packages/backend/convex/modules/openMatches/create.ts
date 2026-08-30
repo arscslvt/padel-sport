@@ -2,10 +2,12 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
+import { formatClubDateTime } from "../../utils/clubTime";
+import { staffBookingUrl } from "../../utils/staffLinks";
 import { membersOf, requireCircleMember } from "../circles/lib";
 import { isMembershipValid, membershipStatus } from "../clients/lib";
 import { bookingSettings, isWithinOpeningHours } from "../settings/lib";
-import { staffBookingUrl } from "../../utils/staffLinks";
+import { triggerKeyFor } from "../social/lib";
 import { addGuestToMatch } from "./guests";
 import { inviteToMatch } from "./invite";
 import {
@@ -19,7 +21,6 @@ import {
   requirePlayer,
   SLOT_INTERVAL_MS,
 } from "./lib";
-import { formatClubDateTime } from "../../utils/clubTime";
 
 /**
  * Crea una prenotazione dall'app mobile: occupa un campo reale
@@ -53,9 +54,7 @@ export default mutation({
     invitePlayerIds: v.optional(v.array(v.id("players"))),
     /** Giocatori senza app: solo un nome, e la mail se la si vuole lasciare. */
     guests: v.optional(
-      v.array(
-        v.object({ name: v.string(), email: v.optional(v.string()) }),
-      ),
+      v.array(v.object({ name: v.string(), email: v.optional(v.string()) })),
     ),
     notes: v.optional(v.string()),
     /**
@@ -86,17 +85,12 @@ export default mutation({
     const settings = await bookingSettings(ctx);
 
     if (
-      !isWithinOpeningHours(
-        settings,
-        args.bookingDate,
-        MATCH_DURATION_MINUTES,
-      )
+      !isWithinOpeningHours(settings, args.bookingDate, MATCH_DURATION_MINUTES)
     ) {
       throw new Error("La struttura è chiusa nell'orario selezionato.");
     }
 
-    const horizon =
-      Date.now() + settings.bookableDays * 24 * 60 * 60 * 1000;
+    const horizon = Date.now() + settings.bookableDays * 24 * 60 * 60 * 1000;
 
     if (args.bookingDate > horizon) {
       throw new Error(
@@ -187,7 +181,10 @@ export default mutation({
     }
 
     // 6 cifre alfanumeriche casuali per il codice di prenotazione
-    const bookingCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const bookingCode = Math.random()
+      .toString(36)
+      .substring(2, 8)
+      .toUpperCase();
 
     const existingCode = await ctx.db
       .query("bookings")
@@ -226,7 +223,8 @@ export default mutation({
       levelMax: args.levelMax,
       // Fuori dalle partite aperte non si chiede il permesso: chi è stato
       // invitato è già approvato.
-      joinMode: args.visibility === "public" ? (args.joinMode ?? "direct") : "direct",
+      joinMode:
+        args.visibility === "public" ? (args.joinMode ?? "direct") : "direct",
       status: "open",
       visibility: args.visibility,
       circleId,
@@ -283,6 +281,17 @@ export default mutation({
       internal.modules.courtCalendar.push.default,
       { bookingId },
     );
+
+    // Solo se nasce già aperta a tutti: una partita privata o di cerchia non
+    // ha niente da chiedere al pubblico. Se verrà aperta dopo, ci penserà
+    // `publish` — con la stessa chiave, quindi senza doppioni.
+    if (args.visibility === "public") {
+      await ctx.scheduler.runAfter(0, internal.modules.social.enqueue.default, {
+        kind: "open_match",
+        triggerKey: triggerKeyFor({ kind: "open_match", matchId }),
+        subjectId: matchId,
+      });
+    }
 
     const origin = args.origin ?? "app";
 

@@ -1,6 +1,8 @@
 import { v } from "convex/values";
+import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
 import { matchRequestLevel } from "../../tables/matchRequests";
+import { triggerKeyFor } from "../social/lib";
 
 const DEFAULT_COUNTRY_CODE = "+39";
 
@@ -52,7 +54,7 @@ export default mutation({
       throw new Error("Puoi cercare da 1 a 3 giocatori.");
     }
 
-    return await ctx.db.insert("matchRequests", {
+    const requestId = await ctx.db.insert("matchRequests", {
       name,
       email,
       phone,
@@ -63,5 +65,21 @@ export default mutation({
       status: "new",
       createdAt: Date.now(),
     });
+
+    // La storia che cerca giocatori parte da qui, dentro la mutation, e non
+    // dalla route che manda le mail: così vale anche se un domani la richiesta
+    // arrivasse da un'altra strada. Accodata e non chiamata subito, perché un
+    // intoppo nel lato social non deve far perdere la richiesta — che è la
+    // stessa ragione per cui le mail partono dopo il salvataggio.
+    //
+    // Nome, mail e telefono restano qui: il contenuto che ne nasce riceve solo
+    // data, livello e quanti ne mancano.
+    await ctx.scheduler.runAfter(0, internal.modules.social.enqueue.default, {
+      kind: "player_request",
+      triggerKey: triggerKeyFor({ kind: "player_request", requestId }),
+      subjectId: requestId,
+    });
+
+    return requestId;
   },
 });

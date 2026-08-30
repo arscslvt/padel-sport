@@ -39,6 +39,15 @@ const socialPosts = defineTable({
    * compone `triggerKeyFor`.
    */
   triggerKey: v.string(),
+  /**
+   * L'identificativo di ciò che ha generato la riga: la partita, la richiesta,
+   * il documento dell'evento.
+   *
+   * Ricavarlo dalla `triggerKey` sarebbe possibile — è dentro la stringa — ma
+   * legherebbe la lettura dei fatti al formato di una chiave nata per un altro
+   * scopo. Un campo costa meno di quel vincolo.
+   */
+  subjectId: v.optional(v.string()),
 
   /**
    * Il testo esatto consegnato al modello, già anonimizzato.
@@ -73,6 +82,26 @@ const socialPosts = defineTable({
   posterToken: v.string(),
   /** L'indirizzo *dipinto* sulla locandina: le storie non reggono link veri. */
   linkUrl: v.optional(v.string()),
+  /**
+   * Da quale template è nata, quando ne viene da uno.
+   *
+   * Serve a chiudere il giro del primo giro: approvare il contenuto è ciò che
+   * dichiara buono il template, e senza questo riferimento non si saprebbe quale.
+   */
+  templateId: v.optional(v.id("socialTemplates")),
+  /**
+   * I valori con cui riempire il template, per chi non li può rileggere.
+   *
+   * Serve solo agli eventi: quelli vivono su Sanity, e il promemoria si compone
+   * due giorni prima dell'evento, quando il webhook che portava i dati è
+   * passato da settimane. Tutti gli altri li ricalcolano dal database al
+   * momento, che è meglio — un dato riletto è aggiornato, uno conservato è una
+   * fotografia.
+   *
+   * Resta comunque fresca: se l'evento cambia, Sanity manda un altro webhook e
+   * questa viene riscritta.
+   */
+  subjectValues: v.optional(v.string()),
 
   /** Da quando è pubblicabile. Per i promemoria, due giorni prima dell'evento. */
   scheduledAt: v.float64(),

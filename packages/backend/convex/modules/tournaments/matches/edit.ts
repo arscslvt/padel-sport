@@ -1,6 +1,7 @@
-import { components } from "../../../_generated/api";
-import { mutation } from "../../../_generated/server";
 import { v } from "convex/values";
+import { components, internal } from "../../../_generated/api";
+import { mutation } from "../../../_generated/server";
+import { triggerKeyFor } from "../../social/lib";
 
 export const editMatch = mutation({
   args: {
@@ -41,5 +42,23 @@ export const editMatch = mutation({
         ...rest,
       },
     );
+
+    /**
+     * Il racconto di una partita finita parte da qui, e non dal componente.
+     *
+     * Le mutation dentro `components/tournaments/` non vedono l'`internal.`
+     * dell'app che le ospita: da lì non si può accodare niente. Questo wrapper
+     * è il primo punto in cui il risultato è salvato e la coda è raggiungibile.
+     *
+     * Solo quando la partita passa a conclusa: le modifiche a un incontro in
+     * corso — un set corretto, l'orario spostato — non sono una notizia.
+     */
+    if (rest.status === "completed") {
+      await ctx.scheduler.runAfter(0, internal.modules.social.enqueue.default, {
+        kind: "tournament_result",
+        triggerKey: triggerKeyFor({ kind: "tournament_result", matchId }),
+        subjectId: matchId,
+      });
+    }
   },
 });

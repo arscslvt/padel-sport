@@ -1,12 +1,13 @@
 import { CalendarIcon } from "@sanity/icons/Calendar";
 import { EnvelopeIcon } from "@sanity/icons/Envelope";
+import { ImagesIcon } from "@sanity/icons/Images";
 import type { StructureResolver } from "sanity/structure";
 
 /**
- * Due elenchi: gli articoli pubblicati sul sito e le comunicazioni che si
- * mandano agli iscritti. Restano separati perché sono due mestieri diversi —
- * uno si legge sul web, l'altro arriva in una casella di posta — anche se una
- * comunicazione punta sempre a un evento.
+ * Tre elenchi: gli articoli pubblicati sul sito, le comunicazioni che si mandano
+ * agli iscritti, e le fotografie che l'IA usa per le locandine social. Restano
+ * separati perché sono mestieri diversi — uno si legge sul web, uno arriva in
+ * una casella di posta, e il terzo non si legge affatto: si guarda.
  */
 export const structure: StructureResolver = (S) =>
   S.list()
@@ -16,4 +17,7 @@ export const structure: StructureResolver = (S) =>
       S.documentTypeListItem("eventCommunication")
         .title("Comunicazioni")
         .icon(EnvelopeIcon),
+      S.documentTypeListItem("socialAsset")
+        .title("Foto per i social")
+        .icon(ImagesIcon),
     ]);

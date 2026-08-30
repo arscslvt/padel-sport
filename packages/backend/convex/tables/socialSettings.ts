@@ -1,7 +1,7 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
-import { socialPostKind } from "../modules/social/lib";
+import { socialMode, socialPostKind } from "../modules/social/lib";
 
 /**
  * Come parla il circolo sui social: un'unica riga, gestita dalla dashboard.
@@ -19,13 +19,30 @@ import { socialPostKind } from "../modules/social/lib";
 const socialSettings = defineTable({
   enabled: v.boolean(),
   /**
-   * I trigger spenti, non quelli accesi.
+   * Come si comporta ogni categoria: manuale, con approvazione, autonoma.
    *
-   * Al contrario di quel che verrebbe da fare, e per una ragione precisa: una
-   * riga di configurazione salvata prima che un trigger esistesse non deve
-   * tenerlo spento per sempre senza che nessuno capisca il perché.
+   * Facoltativo perché una riga salvata prima che questo campo esistesse deve
+   * continuare a funzionare: chi legge ricava la modalità dal vecchio elenco di
+   * trigger spenti, e dai valori di partenza per tutto il resto. Una categoria
+   * che non compare qui non è spenta — prende il proprio valore di partenza,
+   * altrimenti aggiungere un trigger nuovo lo lascerebbe muto per sempre senza
+   * che nessuno capisca il perché.
    */
-  disabledKinds: v.array(socialPostKind),
+  modes: v.optional(
+    // Un elenco di coppie e non un dizionario: Convex non accetta chiavi
+    // letterali nei record, e una chiave `v.string()` libera lascerebbe entrare
+    // categorie che non esistono.
+    v.array(v.object({ kind: socialPostKind, mode: socialMode })),
+  ),
+  /**
+   * Il campo che `modes` ha sostituito.
+   *
+   * Resta soltanto perché le righe salvate prima continuino a essere leggibili.
+   * Non lo scrive più nessuno.
+   *
+   * @deprecated
+   */
+  disabledKinds: v.optional(v.array(socialPostKind)),
   /** Tetto giornaliero su tutti i trigger insieme. */
   maxPerDay: v.float64(),
   tone: v.string(),

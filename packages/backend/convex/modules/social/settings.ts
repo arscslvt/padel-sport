@@ -2,7 +2,13 @@ import { v } from "convex/values";
 
 import { mutation, query } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
-import { DEFAULT_SOCIAL_SETTINGS, socialPostKind } from "./lib";
+import {
+  DEFAULT_SOCIAL_SETTINGS,
+  modesToPairs,
+  resolveModes,
+  socialMode,
+  socialPostKind,
+} from "./lib";
 
 /**
  * Come e se il circolo parla sui social.
@@ -26,9 +32,11 @@ export const get = query({
 
     if (!row) return { ...DEFAULT_SOCIAL_SETTINGS, updatedAt: null };
 
+    const modes = resolveModes(row.modes, row.disabledKinds);
+
     return {
       enabled: row.enabled,
-      disabledKinds: row.disabledKinds,
+      modes,
       maxPerDay: row.maxPerDay,
       tone: row.tone,
       avoid: row.avoid,
@@ -42,7 +50,9 @@ export const update = mutation({
   args: {
     secret: v.string(),
     enabled: v.optional(v.boolean()),
-    disabledKinds: v.optional(v.array(socialPostKind)),
+    modes: v.optional(
+      v.array(v.object({ kind: socialPostKind, mode: socialMode })),
+    ),
     maxPerDay: v.optional(v.number()),
     tone: v.optional(v.string()),
     avoid: v.optional(v.string()),
@@ -72,9 +82,19 @@ export const update = mutation({
       return existing._id;
     }
 
+    // La prima riga si costruisce per esteso e non spargendoci sopra i valori
+    // di partenza: quelli tengono le modalità come dizionario, la tabella come
+    // coppie, e uno `spread` che mescola le due forme compila soltanto finché
+    // nessuno guarda.
     return await ctx.db.insert("socialSettings", {
-      ...DEFAULT_SOCIAL_SETTINGS,
-      ...changes,
+      enabled: changes.enabled ?? DEFAULT_SOCIAL_SETTINGS.enabled,
+      modes: changes.modes ?? modesToPairs(DEFAULT_SOCIAL_SETTINGS.modes),
+      maxPerDay: changes.maxPerDay ?? DEFAULT_SOCIAL_SETTINGS.maxPerDay,
+      tone: changes.tone ?? DEFAULT_SOCIAL_SETTINGS.tone,
+      avoid: changes.avoid ?? DEFAULT_SOCIAL_SETTINGS.avoid,
+      baseHashtags:
+        changes.baseHashtags ?? DEFAULT_SOCIAL_SETTINGS.baseHashtags,
+      updatedBy: changes.updatedBy,
       updatedAt: now,
     });
   },

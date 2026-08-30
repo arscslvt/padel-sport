@@ -49,18 +49,24 @@ export function PostSheet({
   onChanged: () => Promise<void>;
 }) {
   const [caption, setCaption] = useState("");
+  const [feedback, setFeedback] = useState("");
   const [pending, setPending] = useState<string | null>(null);
 
   // Aprire un'altra bozza deve ripartire dal suo testo, non da quello rimasto
   // nel campo della precedente.
   useEffect(() => {
     setCaption(post?.caption ?? "");
+    setFeedback("");
     setPending(null);
   }, [post]);
 
   if (!post) return null;
 
   const editable = post.status === "pending_review" || post.status === "queued";
+  const canRedo =
+    post.status === "pending_review" ||
+    post.status === "failed" ||
+    post.status === "rejected";
   const dirty = caption.trim() !== (post.caption ?? "").trim();
 
   const call = async (
@@ -68,12 +74,13 @@ export function PostSheet({
     url: string,
     body: Record<string, unknown>,
     success: string,
+    method: "PATCH" | "POST" = "PATCH",
   ) => {
     setPending(key);
 
     try {
       const response = await fetch(url, {
-        method: "PATCH",
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
@@ -164,6 +171,25 @@ export function PostSheet({
             </div>
           ) : null}
 
+          {canRedo ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="feedback">Cosa non va</Label>
+              <Textarea
+                id="feedback"
+                rows={2}
+                placeholder="Es. «troppo lungo, e non nominare il livello»"
+                value={feedback}
+                onChange={(event) => setFeedback(event.target.value)}
+                disabled={pending !== null}
+              />
+              <p className="text-xs text-muted-foreground">
+                Finisce nelle istruzioni al modello quando chiedi di rifare, e
+                resta scritto sulla riga se scarti. Più è preciso, meglio
+                funziona.
+              </p>
+            </div>
+          ) : null}
+
           {post.status === "published" ? (
             <div className="space-y-2 rounded-lg border p-3">
               <p className="text-sm text-muted-foreground">
@@ -190,11 +216,29 @@ export function PostSheet({
           ) : null}
         </div>
 
-        {editable ? (
+        {editable || canRedo ? (
           <div className="mt-auto flex flex-wrap gap-2 border-t p-4">
+            {canRedo ? (
+              <Button
+                variant="outline"
+                disabled={pending !== null}
+                onClick={() =>
+                  call(
+                    "redo",
+                    `/api/dashboard/social/${post.id}/regenerate`,
+                    { feedback: feedback.trim() || undefined },
+                    "Sto rifacendo la bozza",
+                    "POST",
+                  )
+                }
+              >
+                {pending === "redo" ? "Rifaccio…" : "Rifai"}
+              </Button>
+            ) : null}
+
             <Button
               variant="outline"
-              disabled={!dirty || pending !== null}
+              disabled={!editable || !dirty || pending !== null}
               onClick={() =>
                 call(
                   "save",
@@ -207,20 +251,26 @@ export function PostSheet({
               {pending === "save" ? "Salvataggio…" : "Salva"}
             </Button>
 
-            <Button
-              variant="ghost"
-              disabled={pending !== null}
-              onClick={() =>
-                call(
-                  "reject",
-                  "/api/dashboard/social",
-                  { action: "reject", postId: post.id },
-                  "Bozza scartata",
-                )
-              }
-            >
-              Scarta
-            </Button>
+            {editable ? (
+              <Button
+                variant="ghost"
+                disabled={pending !== null}
+                onClick={() =>
+                  call(
+                    "reject",
+                    "/api/dashboard/social",
+                    {
+                      action: "reject",
+                      postId: post.id,
+                      feedback: feedback.trim() || undefined,
+                    },
+                    "Bozza scartata",
+                  )
+                }
+              >
+                Scarta
+              </Button>
+            ) : null}
 
             {post.status === "pending_review" ? (
               <Button

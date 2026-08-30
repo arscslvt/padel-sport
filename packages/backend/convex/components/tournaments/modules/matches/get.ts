@@ -358,3 +358,34 @@ export const getAllByTournamentId = query({
     return await hydrateMatches(ctx, allMatches);
   },
 });
+
+/**
+ * A single match, hydrated, plus the name of the tournament it belongs to.
+ *
+ * The other queries here all start from a tournament or a group. This one
+ * starts from the match, because the caller that needs it — the social content
+ * pipeline in the parent app — only knows that a match was just finished.
+ * The tournament name comes along because it is what the post leads with, and
+ * fetching it separately would mean walking the same two references twice.
+ */
+export const getById = query({
+  args: { matchId: v.id("matches") },
+  handler: async (ctx, { matchId }) => {
+    const match = await ctx.db.get(matchId);
+    if (!match) return null;
+
+    const [hydrated] = await hydrateMatches(ctx, [match]);
+    if (!hydrated) return null;
+
+    const category = await ctx.db.get(match.tournamentCategoryId);
+    const tournament = category
+      ? await ctx.db.get(category.tournamentId)
+      : null;
+
+    return {
+      ...hydrated,
+      rawStatus: match.status,
+      tournamentName: tournament?.name,
+    };
+  },
+});
