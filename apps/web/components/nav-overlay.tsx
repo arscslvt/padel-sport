@@ -17,13 +17,7 @@ import {
 } from "@/components/nav-pill";
 import { Button } from "@/components/ui/button";
 import { getInfo } from "@/lib/info";
-import {
-  EVENTS_LINK,
-  MY_BOOKINGS_LINK,
-  SHOW_TOURNAMENT_BANNER,
-  TROFEO_LINK,
-  WHERE_WE_ARE_LINK,
-} from "@/lib/links";
+import { EVENTS_LINK, MY_BOOKINGS_LINK, WHERE_WE_ARE_LINK } from "@/lib/links";
 import { DURATION, EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -153,21 +147,6 @@ export function NavOverlay({ open, onOpenChange, scrolled }: NavOverlayProps) {
                       })}
                     </ul>
                   </nav>
-
-                  {SHOW_TOURNAMENT_BANNER && (
-                    <motion.div {...rise(0.2)} className="mt-6">
-                      <Link
-                        href={TROFEO_LINK}
-                        className="border-border bg-muted hover:bg-accent inline-flex items-center gap-2.5 rounded-full border py-2 pr-5 pl-4 text-sm transition-colors"
-                      >
-                        <span className="bg-foreground size-1.5 animate-pulse rounded-full" />
-                        <span>Trofeo San Sebastiano</span>
-                        <span className="text-muted-foreground">
-                          Regolamento e calendario.
-                        </span>
-                      </Link>
-                    </motion.div>
-                  )}
 
                   <motion.div
                     {...rise(0.24)}

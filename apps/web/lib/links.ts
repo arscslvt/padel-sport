@@ -15,24 +15,17 @@ export const BOOKING_LINK = "/book";
  * codice e QR. È la via d'uscita quando la conferma non arriva in casella.
  */
 export const MY_BOOKINGS_LINK = "/bookings" as Route;
+/**
+ * Area personale del socio: prenotazioni e portafoglio punti in un posto solo.
+ * È anche il link che le mail dei punti portano con sé.
+ */
+export const PERSONAL_AREA_LINK = "/area-personale" as Route;
 
 export const SUMUP_BOOKING_URL =
   "https://www.sumupbookings.com/a-s-d-padel-sport-melilli";
 /** Informativa privacy: raggiungibile dalla riga legale del footer. */
 export const PRIVACY_LINK: Route = "/privacy";
-/** Pagina statica del torneo: regolamento, formula e calendario. */
-export const TROFEO_LINK = "/trofeo-san-sebastiano" as Route;
 /** Tabellone con i risultati in diretta. */
 export const TOURNAMENT_LINK = "/tournament/trofeo-san-sebastiano" as Route;
-
-/**
- * Rimandi al Trofeo San Sebastiano (blocco su /events e riga nel menu).
- *
- * Il torneo non è un contenuto Sanity, quindi senza questi rimandi la sua
- * pagina non sarebbe raggiungibile da nessuna parte. È contenuto deperibile:
- * a torneo concluso basta rimettere `false` qui — poi si possono cancellare
- * `components/events/tournament-callout.tsx` e il blocco nel menu.
- */
-export const SHOW_TOURNAMENT_BANNER = true;
 
 export const eventLink = (slug: string) => `${EVENTS_LINK}/${slug}` as Route;
