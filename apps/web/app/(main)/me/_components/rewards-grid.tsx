@@ -27,8 +27,8 @@ import type { WalletReward } from "./types";
 /**
  * La vetrina dei premi, dal più vicino al più lontano.
  *
- * Un premio sbloccato si riconosce perché è a colori e ha il bottone; uno
- * ancora lontano resta in grigio con la sua barretta, così si capisce a colpo
+ * Un premio sbloccato si riconosce dall'etichetta verde e dal bottone; uno
+ * ancora lontano ha il lucchetto e la sua barretta, così si capisce a colpo
  * d'occhio cosa si può prendere adesso e cosa no.
  */
 export function RewardsGrid({
@@ -104,10 +104,9 @@ function RewardCard({
             src={reward.imageUrl}
             alt=""
             loading="lazy"
-            className={cn(
-              "size-full object-cover transition-[transform,filter] duration-700 ease-out group-hover:scale-[1.03]",
-              !reward.unlocked && "grayscale-[0.85]",
-            )}
+            // La foto resta quella caricata dallo staff, senza filtri: a dire
+            // se il premio è sbloccato ci pensano l'etichetta e il bottone.
+            className="size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
           />
         ) : (
           <div className="bg-background/60 text-muted-foreground flex size-full items-center justify-center">

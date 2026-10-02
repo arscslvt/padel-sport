@@ -13,13 +13,15 @@ export const BOOKING_LINK = "/book";
 /**
  * Recupero delle prenotazioni: ci si riconosce con la mail e si ritrovano
  * codice e QR. È la via d'uscita quando la conferma non arriva in casella.
+ * Vive dentro l'area personale; `/bookings`, il vecchio indirizzo, ci rimanda
+ * (next.config.ts).
  */
-export const MY_BOOKINGS_LINK = "/bookings" as Route;
+export const MY_BOOKINGS_LINK = "/me#bookings" as Route;
 /**
  * Area personale del socio: prenotazioni e portafoglio punti in un posto solo.
  * È anche il link che le mail dei punti portano con sé.
  */
-export const PERSONAL_AREA_LINK = "/area-personale" as Route;
+export const PERSONAL_AREA_LINK = "/me" as Route;
 
 export const SUMUP_BOOKING_URL =
   "https://www.sumupbookings.com/a-s-d-padel-sport-melilli";

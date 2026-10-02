@@ -96,12 +96,12 @@ export function BookingOutcome({
       </div>
 
       <p className="text-muted-foreground mx-auto mt-6 max-w-[52ch] text-xs leading-relaxed">
-        Se la mail non arriva, il codice non è perso: lo ritrovi in{" "}
+        Se la mail non arriva, il codice non è perso: lo ritrovi nella tua{" "}
         <Link
           href={MY_BOOKINGS_LINK}
           className="hover:text-foreground underline underline-offset-4"
         >
-          Le tue prenotazioni
+          Area personale
         </Link>
         , verificando lo stesso indirizzo email.
       </p>
