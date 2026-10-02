@@ -1,9 +1,8 @@
 "use client";
 
-import * as React from "react";
-
-import { cn } from "@/lib/utils";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import * as React from "react";
+import { useMediaQuery } from "usehooks-ts";
 
 import {
   Dialog,
@@ -23,7 +22,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { useMediaQuery } from "usehooks-ts";
+import { cn } from "@/lib/utils";
 
 import type { ProviderProps } from "@/types/components/provider.type";
 
@@ -112,14 +111,17 @@ type ResponsiveDrawerContentProps = ProviderProps &
 export function ResponsiveDrawerContent({
   children,
   className,
+  ...props
 }: ResponsiveDrawerContentProps) {
   const { open, setOpen, isDesktop } =
     React.useContext(ResponsiveProviderContext) || {};
 
+  // Gli altri attributi (per esempio `onPaste`) arrivano al contenitore vero,
+  // modale o drawer che sia: è lui ad avere il fuoco quando si apre.
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className={cn("sm:max-w-106.25", className)}>
+        <DialogContent className={cn("sm:max-w-106.25", className)} {...props}>
           {children}
         </DialogContent>
       </Dialog>
@@ -128,7 +130,9 @@ export function ResponsiveDrawerContent({
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerContent className={cn(className)}>{children}</DrawerContent>
+      <DrawerContent className={cn(className)} {...props}>
+        {children}
+      </DrawerContent>
     </Drawer>
   );
 }

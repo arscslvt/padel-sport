@@ -5,16 +5,14 @@ import { type ClipboardEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  ResponsiveDrawer,
+  ResponsiveDrawerContent,
+  ResponsiveDrawerFooter,
+  ResponsiveDrawerHeader,
+} from "@/components/ui/responsive-drawer";
 import { Textarea } from "@/components/ui/textarea";
 import { prepareImage } from "@/lib/image-resize";
 
@@ -247,22 +245,22 @@ export function RewardDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"
+    // Da telefono un modulo così lungo sta meglio in un drawer dal basso: si
+    // chiude col pollice e la tastiera non copre i bottoni. Da 768px in su
+    // torna la modale (components/ui/responsive-drawer.tsx).
+    <ResponsiveDrawer open={open} setOpen={onOpenChange}>
+      <ResponsiveDrawerContent
+        className="sm:max-w-lg md:max-h-[90dvh] md:overflow-y-auto"
         onPaste={pasteImage}
       >
-        <DialogHeader>
-          <DialogTitle>
-            {reward ? "Modifica premio" : "Nuovo premio"}
-          </DialogTitle>
-          <DialogDescription>
-            Si sblocca quando il cliente raggiunge il costo in punti, e lo
-            riscatta dalla sua area personale.
-          </DialogDescription>
-        </DialogHeader>
+        <ResponsiveDrawerHeader
+          title={reward ? "Modifica premio" : "Nuovo premio"}
+          description="Si sblocca quando il cliente raggiunge il costo in punti, e lo riscatta dalla sua area personale."
+        />
 
-        <div className="space-y-4">
+        {/* Nel drawer scorre solo il modulo: testata e bottoni restano fermi,
+            e il drawer resta trascinabile dalla maniglia. */}
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 md:overflow-visible md:px-0">
           <div className="space-y-1.5">
             <Label>Foto</Label>
             {preview ? (
@@ -289,7 +287,7 @@ export function RewardDialog({
                 type="button"
                 onClick={() => fileInput.current?.click()}
                 disabled={processing}
-                className="text-muted-foreground hover:bg-muted/40 flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed text-sm transition-colors"
+                className="text-muted-foreground bg-muted hover:bg-muted/70 border-muted-foreground/25 flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed text-sm transition-colors"
               >
                 {processing ? (
                   <Loader2 className="size-6 animate-spin" />
@@ -382,7 +380,8 @@ export function RewardDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        {/* Da telefono il bottone principale sta sopra, a portata di pollice. */}
+        <ResponsiveDrawerFooter className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Annulla
           </Button>
@@ -390,8 +389,8 @@ export function RewardDialog({
             {saving && <Loader2 className="size-4 animate-spin" />}
             {reward ? "Salva" : "Pubblica premio"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDrawerFooter>
+      </ResponsiveDrawerContent>
+    </ResponsiveDrawer>
   );
 }
