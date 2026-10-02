@@ -38,6 +38,7 @@ function toRow(player: Doc<"players">) {
     code: player.code,
     consents: player.consents,
     createdAt: player.createdAt,
+    points: player.points ?? 0,
     missingFields: missingProfileFields(player),
   };
 }

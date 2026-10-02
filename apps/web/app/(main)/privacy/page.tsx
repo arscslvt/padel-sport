@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 /** Data dell'ultima revisione dei contenuti di questa pagina. */
-const LAST_UPDATE = "20 agosto 2026";
+const LAST_UPDATE = "2 ottobre 2026";
 
 /**
  * Fornitori che trattano dati per conto del club (art. 28 GDPR).
@@ -35,13 +35,13 @@ const PROCESSORS: ReadonlyArray<{
 	{
 		name: "Convex, Inc.",
 		purpose:
-			"Database in cui sono registrate le prenotazioni dei campi fatte dal sito, le iscrizioni agli eventi e le richieste di giocatori e di assistenza inviate dai moduli",
+			"Database in cui sono registrate le prenotazioni dei campi fatte dal sito, le iscrizioni agli eventi, le richieste di giocatori e di assistenza inviate dai moduli e il conto del programma punti; ospita anche le immagini dei premi",
 		place: "Stati Uniti",
 	},
 	{
 		name: "Resend (Plus Five Five, Inc.)",
 		purpose:
-			"Invio delle email: la notifica alla segreteria, la copia della richiesta a chi la manda e le comunicazioni della segreteria a chi si è iscritto a un evento",
+			"Invio delle email: la notifica alla segreteria, la copia della richiesta a chi la manda, le comunicazioni della segreteria a chi si è iscritto a un evento e gli avvisi dei movimenti del programma punti",
 		place: "Stati Uniti",
 	},
 	{
@@ -91,6 +91,10 @@ const RETENTION: ReadonlyArray<{ what: string; how: string }> = [
 	{
 		what: "Prenotazioni dei campi",
 		how: "Le prenotazioni fatte dal sito restano nel nostro database per il tempo necessario a gestire presenze e incassi, e comunque per i termini previsti dagli obblighi contabili; quelle fatte senza account restano nel gestionale SumUp, con gli stessi criteri",
+	},
+	{
+		what: "Programma punti",
+		how: "Saldo, movimenti e premi riscattati per tutta la durata della tua adesione al programma, e 12 mesi da quando esci dal programma o il programma termina. I punti in attesa di chi non ha aderito per 12 mesi dalla loro assegnazione. La prova della tua adesione (data e versione del regolamento accettato) la conserviamo fino a 10 anni, per poter dimostrare il consenso alle regole in caso di contestazione",
 	},
 	{
 		what: "Account dell'area riservata",
@@ -270,6 +274,26 @@ export default function PrivacyPage() {
 							del profilo (email, nome, eventuale immagine) sono gestiti per
 							nostro conto da Clerk. Base giuridica: esecuzione del rapporto
 							associativo o di collaborazione (art. 6.1.b GDPR).
+						</Block>
+
+						<Block title="Programma punti e premi">
+							Se aderisci al <Term>programma punti</Term>, registriamo la data
+							in cui hai accettato il regolamento e quale versione, i punti che
+							ti assegniamo o togliamo con il relativo motivo, il saldo, i premi
+							che riscatti con il loro codice e la loro scadenza. Li vedi tu
+							nella tua area personale e li vede la segreteria, che assegna i
+							punti e consegna i premi. Se ci hai lasciato un indirizzo email ti
+							scriviamo a ogni movimento: sono comunicazioni di servizio sul
+							programma, non promozionali. Non usiamo questi dati per profilarti
+							né per decidere qualcosa su di te in automatico. Base giuridica:
+							esecuzione del regolamento che hai accettato aderendo (art. 6.1.b
+							GDPR). Se la segreteria ti assegna punti prima che tu abbia
+							aderito, li registriamo <Term>in attesa</Term> sulla tua scheda di
+							socio, senza mandarti nulla, per poterteli accreditare quando
+							aderisci: base giuridica il nostro legittimo interesse a non
+							perdere i punti che hai guadagnato (art. 6.1.f GDPR). Puoi
+							chiederci di cancellarli o uscire dal programma quando vuoi
+							scrivendo a <MailLink />.
 						</Block>
 
 						<Block title="Navigazione del sito">

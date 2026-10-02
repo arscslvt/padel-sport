@@ -38,12 +38,18 @@ export async function GET(request: Request) {
   const gate = await staffGate();
   if (!gate.ok) return gate.response;
 
-  const q = new URL(request.url).searchParams.get("q")?.trim().toLowerCase();
+  const params = new URL(request.url).searchParams;
+  const q = params.get("q")?.trim().toLowerCase();
+  // Lo staff resta fuori dall'elenco, salvo chiederlo: chi lavora al club può
+  // essere anche socio, e da qui gli si caricano punti e tessera come a tutti.
+  const includeStaff = params.get("staff") === "1";
 
   try {
+    const staffIds = new Set(await staffClerkUserIds());
+
     const clients = await gate.convex.query(api.modules.clients.list.default, {
       secret: gate.secret,
-      excludeClerkUserIds: await staffClerkUserIds(),
+      excludeClerkUserIds: includeStaff ? [] : [...staffIds],
     });
 
     // Quello che Convex non sa: chi si è registrato dall'app non ha mai
@@ -64,6 +70,9 @@ export async function GET(request: Request) {
       return {
         ...client,
         email,
+        isStaff: Boolean(
+          client.clerkUserId && staffIds.has(client.clerkUserId),
+        ),
         avatarUrl: client.avatarUrl ?? identity?.avatarUrl,
         // `missingFields` l'ha calcolato Convex, che l'email non ce l'aveva:
         // lasciarcela direbbe «manca l'email» proprio sotto l'email.

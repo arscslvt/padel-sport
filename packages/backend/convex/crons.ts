@@ -32,4 +32,15 @@ crons.interval(
   {},
 );
 
+/**
+ * I punti in attesa più vecchi di un anno: è il termine scritto nel
+ * regolamento e nell'informativa (modules/points/expire.ts).
+ */
+crons.interval(
+  "punti in attesa scaduti",
+  { hours: 24 },
+  internal.modules.points.expire.default,
+  {},
+);
+
 export default crons;

@@ -3,6 +3,7 @@
 import {
   CalendarDays,
   ChevronRight,
+  Gift,
   Inbox,
   LayoutDashboard,
   type LucideIcon,
@@ -47,6 +48,7 @@ const routes: ReadonlyArray<Route> = [
   { name: "Riepilogo", href: "/dashboard", icon: LayoutDashboard },
   { name: "Richieste", href: "/dashboard/requests", icon: Inbox },
   { name: "Clienti", href: "/dashboard/clients", icon: Users },
+  { name: "Punti e premi", href: "/dashboard/points", icon: Gift },
   { name: "Eventi", href: "/dashboard/events", icon: CalendarDays },
   { name: "Social", href: "/dashboard/social", icon: Megaphone },
   {

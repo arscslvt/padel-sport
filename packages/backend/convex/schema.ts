@@ -18,6 +18,10 @@ import matchRequests from "./tables/matchRequests";
 import memberships from "./tables/memberships";
 import openMatches from "./tables/openMatches";
 import players from "./tables/players";
+import pointPresets from "./tables/pointPresets";
+import pointTransactions from "./tables/pointTransactions";
+import rewardRedemptions from "./tables/rewardRedemptions";
+import rewards from "./tables/rewards";
 import slots from "./tables/slots";
 import socialCredentials from "./tables/socialCredentials";
 import socialPosts from "./tables/socialPosts";
@@ -51,4 +55,8 @@ export default defineSchema({
   socialPosts,
   socialSettings,
   socialTemplates,
+  pointPresets,
+  pointTransactions,
+  rewards,
+  rewardRedemptions,
 });

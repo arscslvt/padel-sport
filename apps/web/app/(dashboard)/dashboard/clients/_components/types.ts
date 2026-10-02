@@ -61,6 +61,10 @@ export interface Client {
     updatedAt: number;
   };
   createdAt: number;
+  /** Saldo punti: zero per chi non ne ha mai ricevuti. */
+  points: number;
+  /** Fa parte dello staff: compare solo con il filtro «Mostra staff». */
+  isStaff?: boolean;
   missingFields: string[];
   account: AccountInfo;
   membership: Membership | null;
