@@ -2,6 +2,7 @@
 
 import {
   CalendarDays,
+  Gift,
   Inbox,
   LayoutDashboard,
   type LucideIcon,
@@ -23,6 +24,7 @@ const routes: ReadonlyArray<{ name: string; href: string; icon: LucideIcon }> =
     { name: "Riepilogo", href: "/dashboard", icon: LayoutDashboard },
     { name: "Richieste", href: "/dashboard/requests", icon: Inbox },
     { name: "Clienti", href: "/dashboard/clients", icon: Users },
+    { name: "Punti e premi", href: "/dashboard/points", icon: Gift },
     { name: "Eventi", href: "/dashboard/events", icon: CalendarDays },
     { name: "Configurazione", href: "/dashboard/settings", icon: Settings },
   ];

@@ -25,6 +25,8 @@ export const SUMUP_BOOKING_URL =
   "https://www.sumupbookings.com/a-s-d-padel-sport-melilli";
 /** Informativa privacy: raggiungibile dalla riga legale del footer. */
 export const PRIVACY_LINK: Route = "/privacy";
+/** Regolamento del programma punti: va accettato prima di ricevere punti. */
+export const POINTS_TERMS_LINK = "/regolamento-punti" as Route;
 /** Tabellone con i risultati in diretta. */
 export const TOURNAMENT_LINK = "/tournament/trofeo-san-sebastiano" as Route;
 

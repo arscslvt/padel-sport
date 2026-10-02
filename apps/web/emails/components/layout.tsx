@@ -4,6 +4,7 @@ import {
   Head,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -15,6 +16,26 @@ import * as s from "../theme";
 
 const SITE_URL = "https://www.asdpadelsport.com";
 
+/**
+ * Il logo ufficiale, lo stesso della home (`components/logo.tsx`) reso in PNG
+ * e ritagliato attorno al marchio: `public/email/logo.png`.
+ *
+ * Dev'essere un indirizzo pubblico e assoluto: Gmail e Outlook scaricano le
+ * immagini dai propri server, che `localhost` non lo raggiungono. Di norma è il
+ * file servito dal sito in produzione. In locale `EMAIL_LOGO_URL` lo sostituisce
+ * con una copia pubblica — un tunnel ngrok gratuito non va bene, perché a chi
+ * si presenta come browser risponde con una pagina di avviso al posto
+ * dell'immagine.
+ *
+ * PNG e non SVG: Gmail gli SVG non li mostra. Il file è a 480px per restare
+ * nitido sugli schermi ad alta densità, e si mostra a un sesto della larghezza.
+ */
+const LOGO = {
+  src: process.env.EMAIL_LOGO_URL ?? "https://asdpadelsport.com/email/logo.png",
+  width: 80,
+  height: 47,
+};
+
 interface EmailLayoutProps {
   /** Riga di anteprima nella lista della casella. */
   preview: string;
@@ -22,7 +43,7 @@ interface EmailLayoutProps {
 }
 
 /**
- * Cornice comune delle mail: stessa gerarchia del sito — marchio, occhiello,
+ * Cornice comune delle mail: stessa gerarchia del sito — logo, occhiello,
  * titolo serif, corpo sans, chiusura con i recapiti.
  */
 export function EmailLayout({ preview, children }: EmailLayoutProps) {
@@ -33,17 +54,15 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
       <Body style={s.main}>
         <Container style={s.container}>
           <Section style={{ padding: "28px 32px 0" }}>
-            <Text
-              style={{
-                color: s.color.foreground,
-                fontFamily: s.font.display,
-                fontSize: "20px",
-                letterSpacing: "-0.01em",
-                margin: 0,
-              }}
-            >
-              Padel Sport Melilli
-            </Text>
+            <Link href={SITE_URL}>
+              <Img
+                src={LOGO.src}
+                width={LOGO.width}
+                height={LOGO.height}
+                alt="Padel Sport Melilli"
+                style={{ display: "block", border: 0 }}
+              />
+            </Link>
           </Section>
 
           <Section style={s.content}>{children}</Section>

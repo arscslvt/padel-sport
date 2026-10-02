@@ -72,6 +72,11 @@ function ClientRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="truncate font-medium">{client.name}</span>
+            {client.isStaff && (
+              <Badge variant="secondary" className="font-normal">
+                Staff
+              </Badge>
+            )}
             {incomplete && (
               <Badge
                 variant="outline"
@@ -95,6 +100,12 @@ function ClientRow({
           />
         )}
 
+        {client.points > 0 && (
+          <span className="text-muted-foreground hidden shrink-0 text-xs tabular-nums sm:inline">
+            {client.points} pt
+          </span>
+        )}
+
         <MembershipBadge
           state={client.membershipState}
           until={
@@ -113,6 +124,8 @@ export function ClientsPanel() {
   const [clients, setClients] = useState<Client[] | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<MembershipFilter>("all");
+  /** Lo staff è nascosto di norma: si mostra per gestire chi è anche socio. */
+  const [showStaff, setShowStaff] = useState(false);
   /**
    * `?client=` apre direttamente la scheda: è dove atterra chi tocca una
    * notifica che parla di quella persona. Si legge una volta sola — dopo,
@@ -123,29 +136,37 @@ export function ClientsPanel() {
     searchParams.get("client"),
   );
 
-  const load = useCallback(async (search: string) => {
-    try {
-      const response = await fetch(
-        `/api/dashboard/clients${search ? `?q=${encodeURIComponent(search)}` : ""}`,
-      );
-      const payload = await response.json().catch(() => null);
+  const load = useCallback(
+    async (search: string) => {
+      const params = new URLSearchParams();
+      if (search) params.set("q", search);
+      if (showStaff) params.set("staff", "1");
+      const qs = params.toString();
 
-      if (!response.ok) {
+      try {
+        const response = await fetch(
+          `/api/dashboard/clients${qs ? `?${qs}` : ""}`,
+        );
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          toast.error("Clienti non caricati", {
+            description: payload?.error ?? "Riprova fra poco.",
+          });
+          setClients([]);
+          return;
+        }
+
+        setClients(payload.clients ?? []);
+      } catch {
         toast.error("Clienti non caricati", {
-          description: payload?.error ?? "Riprova fra poco.",
+          description: "Controlla la connessione e riprova.",
         });
         setClients([]);
-        return;
       }
-
-      setClients(payload.clients ?? []);
-    } catch {
-      toast.error("Clienti non caricati", {
-        description: "Controlla la connessione e riprova.",
-      });
-      setClients([]);
-    }
-  }, []);
+    },
+    [showStaff],
+  );
 
   // La ricerca aspetta che si smetta di scrivere: ogni tasto è una chiamata.
   useEffect(() => {
@@ -164,7 +185,8 @@ export function ClientsPanel() {
   }, [clients, filter]);
 
   const counts = useMemo(() => {
-    const list = clients ?? [];
+    // I contatori parlano dei clienti: lo staff mostrato col filtro non li gonfia.
+    const list = (clients ?? []).filter((client) => !client.isStaff);
     return {
       total: list.length,
       toFix: list.filter((client) =>
@@ -243,6 +265,15 @@ export function ClientsPanel() {
             {option.label}
           </Button>
         ))}
+        <Button
+          size="sm"
+          variant={showStaff ? "default" : "outline"}
+          className="rounded-full"
+          aria-pressed={showStaff}
+          onClick={() => setShowStaff((value) => !value)}
+        >
+          Mostra staff
+        </Button>
       </div>
 
       <div className="mt-4 overflow-hidden rounded-lg border">

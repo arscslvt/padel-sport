@@ -25,13 +25,14 @@ import { FIELD_CLASS, Hint, StepHeader } from "./wizard-ui";
  * a SumUp, dove prenota chi non è del giro. Differenza voluta rispetto ad
  * apps/mobile/app/login.tsx, che in quel caso registra l'utente.
  *
- * La usano due pagine con due intenzioni diverse (prenotare, ritrovare una
- * prenotazione): cambia solo cosa si dice, quindi le due versioni del testo
- * stanno qui sotto invece di passare cinque stringhe da fuori.
+ * La usano tre pagine con tre intenzioni diverse (prenotare, ritrovare una
+ * prenotazione, entrare nell'area personale): cambia solo cosa si dice,
+ * quindi le versioni del testo stanno qui sotto invece di passare cinque
+ * stringhe da fuori.
  */
 
 /** Cosa sta cercando di fare chi si verifica. */
-export type VerifyPurpose = "book" | "recover";
+export type VerifyPurpose = "book" | "recover" | "area";
 
 const COPY = {
   book: {
@@ -53,6 +54,16 @@ const COPY = {
     unknownBody:
       "Con questo indirizzo non risulta nessun account del club, quindi qui non c'è niente da ritrovare. Se hai prenotato senza account, la prenotazione è sul servizio esterno: aprilo e cercala lì. Se invece l'account pensavi di averlo, chiamaci: lo cerchiamo noi e, se serve, te lo attiviamo.",
     unknownCta: "Apri il servizio di prenotazione",
+  },
+  area: {
+    title: "Entra nella tua area",
+    subtitle:
+      "Scrivi la mail del tuo account: ti mandiamo un codice di verifica.",
+    hint: "Niente password: dopo la verifica trovi qui prenotazioni, punti e premi.",
+    unknownTitle: "Non troviamo questa email",
+    unknownBody:
+      "Con questo indirizzo non risulta nessun account del club. L'area personale è per i soci: se lo sei o vuoi diventarlo, chiamaci o passa in struttura e ti attiviamo l'account. Intanto puoi prenotare senza account dal servizio esterno.",
+    unknownCta: "Prenota senza account",
   },
 } as const;
 

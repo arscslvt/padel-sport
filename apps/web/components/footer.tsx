@@ -10,6 +10,7 @@ import { getInfo } from "@/lib/info";
 import {
   EVENTS_LINK,
   MY_BOOKINGS_LINK,
+  POINTS_TERMS_LINK,
   PRIVACY_LINK,
   WHERE_WE_ARE_LINK,
 } from "@/lib/links";
@@ -137,6 +138,15 @@ export default function Footer() {
                 className="hover:text-foreground transition-colors"
               >
                 Privacy e trattamento dei dati
+              </Link>
+              <span aria-hidden className="hidden sm:inline">
+                ·
+              </span>
+              <Link
+                href={POINTS_TERMS_LINK}
+                className="hover:text-foreground transition-colors"
+              >
+                Regolamento punti
               </Link>
               <span aria-hidden className="hidden sm:inline">
                 ·

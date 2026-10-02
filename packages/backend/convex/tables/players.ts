@@ -113,6 +113,24 @@ const players = defineTable({
   clubNotes: v.optional(v.string()),
   /** Quando la persona ha completato la propria iscrizione dal sito. */
   profileCompletedAt: v.optional(v.float64()),
+  /**
+   * Saldo punti: copia di comodo della somma di `pointTransactions`, che resta
+   * la verità. Assente vale zero — è il punto di partenza di tutti.
+   */
+  points: v.optional(v.float64()),
+  /**
+   * Adesione al programma punti: senza, il conto resta chiuso
+   * (modules/points/terms.ts). `version` è il regolamento accettato, `via` dice
+   * se dall'area personale o con un modulo firmato allo sportello.
+   */
+  pointsProgram: v.optional(
+    v.object({
+      acceptedAt: v.float64(),
+      version: v.string(),
+      via: v.union(v.literal("online"), v.literal("desk")),
+      recordedByClerkUserId: v.optional(v.string()),
+    }),
+  ),
 })
   .index("by_clerk_user_id", ["clerkUserId"])
   .index("by_code", ["code"])

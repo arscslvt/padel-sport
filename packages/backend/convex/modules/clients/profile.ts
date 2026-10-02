@@ -228,6 +228,22 @@ export const remove = mutation({
       await ctx.db.delete(invite._id);
     }
 
+    // Il conto punti di una scheda aperta per sbaglio non ha storia da
+    // conservare: se ne va con lei, come tessere e inviti.
+    for (const transaction of await ctx.db
+      .query("pointTransactions")
+      .withIndex("by_player", (q) => q.eq("playerId", playerId))
+      .collect()) {
+      await ctx.db.delete(transaction._id);
+    }
+
+    for (const redemption of await ctx.db
+      .query("rewardRedemptions")
+      .withIndex("by_player", (q) => q.eq("playerId", playerId))
+      .collect()) {
+      await ctx.db.delete(redemption._id);
+    }
+
     await ctx.db.delete(playerId);
   },
 });

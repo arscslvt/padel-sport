@@ -6,12 +6,14 @@ import {
   BadgeCheck,
   Loader2,
   MailX,
+  Maximize2,
   Save,
   Send,
   Trash2,
   UserRoundCheck,
   Wallet,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -41,8 +43,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 import { AccountBadge } from "./account-badge";
+import { ClientPageLayout, ClientPageSkeleton } from "./client-page-layout";
 import { MembershipBadge } from "./membership-badge";
 import {
   EMPTY_OPTIONAL,
@@ -50,15 +54,16 @@ import {
   type OptionalFieldsValue,
   optionalPayload,
 } from "./optional-fields";
+import { PointsTab } from "./points-tab";
 import { ResidenceFields, residencePayload } from "./residence-fields";
 import type { ClientDetail, Gender, Residence } from "./types";
 
 /**
- * La scheda del cliente: anagrafica a sinistra, tessera a destra.
+ * La scheda del cliente: anagrafica, account, tessera e punti.
  *
- * Le due metà rispondono a due domande diverse che lo staff si fa allo
- * sportello — «chi è» e «è in regola» — e per questo stanno separate invece di
- * essere un modulo unico da salvare tutto insieme.
+ * Ogni linguetta risponde a una domanda diversa che lo staff si fa allo
+ * sportello — «chi è», «è in regola», «quanti punti ha» — e per questo stanno
+ * separate invece di essere un modulo unico da salvare tutto insieme.
  */
 
 const GENDER_LABELS: Record<Gender, string> = {
@@ -104,6 +109,11 @@ function fromDateInput(value: string): number | undefined {
   return value ? new Date(`${value}T12:00:00`).getTime() : undefined;
 }
 
+/**
+ * La scheda nel pannello laterale: si apre dall'elenco senza perderlo di
+ * vista. Accanto alla X c'è il tasto che la porta a tutta pagina, per quando
+ * con quella persona c'è da lavorare con calma.
+ */
 export function ClientSheet({
   playerId,
   open,
@@ -114,6 +124,55 @@ export function ClientSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="flex w-full max-w-full flex-col gap-0 overflow-hidden sm:max-w-lg">
+        {playerId && (
+          <Link
+            href={`/dashboard/clients/${playerId}`}
+            aria-label="Apri la pagina del cliente"
+            title="Apri a tutta pagina"
+            className="ring-offset-background focus:ring-ring absolute top-4 right-11 z-10 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
+          >
+            <Maximize2 className="size-4" />
+          </Link>
+        )}
+        <ClientDetailView
+          playerId={playerId}
+          active={open}
+          variant="sheet"
+          onSaved={onSaved}
+          onRemoved={() => {
+            onOpenChange(false);
+            onSaved();
+          }}
+        />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/**
+ * Il contenuto della scheda: dati, salvataggi e linguette.
+ *
+ * Lo usano due contenitori, il pannello laterale e la pagina dedicata, che
+ * cambiano solo l'impaginazione. La logica sta qui una volta sola: due copie
+ * di un modulo anagrafico prima o poi salvano in due modi diversi.
+ */
+export function ClientDetailView({
+  playerId,
+  active,
+  variant,
+  onSaved,
+  onRemoved,
+}: {
+  playerId: string | null;
+  /** Falso a pannello chiuso: niente da caricare. */
+  active: boolean;
+  variant: "sheet" | "page";
+  onSaved: () => void;
+  onRemoved: () => void;
 }) {
   const [client, setClient] = useState<ClientDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -137,7 +196,7 @@ export function ClientSheet({
   const [startsAt, setStartsAt] = useState("");
 
   useEffect(() => {
-    if (!playerId || !open) return;
+    if (!playerId || !active) return;
 
     let cancelled = false;
     setLoading(true);
@@ -187,7 +246,7 @@ export function ClientSheet({
     return () => {
       cancelled = true;
     };
-  }, [playerId, open]);
+  }, [playerId, active]);
 
   /** Ricarica la scheda dopo un'azione che ne cambia lo stato. */
   const refresh = async () => {
@@ -298,8 +357,7 @@ export function ClientSheet({
       }
 
       toast.success("Scheda eliminata");
-      onOpenChange(false);
-      onSaved();
+      onRemoved();
     } catch {
       toast.error("Scheda non eliminata", {
         description: "Controlla la connessione e riprova.",
@@ -436,465 +494,926 @@ export function ClientSheet({
   const chosenStart = fromDateInput(startsAt);
   const membershipEnd = chosenStart ? chosenStart + MEMBERSHIP_MS : null;
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full max-w-full flex-col gap-0 overflow-hidden sm:max-w-lg">
-        {loading || !client ? (
-          <div className="space-y-4 p-6">
-            <Skeleton className="h-14 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
+  if (loading || !client) {
+    return variant === "page" ? (
+      <ClientPageSkeleton />
+    ) : (
+      <div className="space-y-4 p-6">
+        <Skeleton className="h-14 w-full" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
+  const isPage = variant === "page";
+
+  const tabs = (
+    <Tabs
+      defaultValue="profile"
+      className={cn("flex flex-col gap-0", isPage ? "" : "min-h-0 flex-1")}
+    >
+      <div
+        className={cn(
+          "shrink-0",
+          isPage ? "border-b px-5 pt-4 pb-3" : "px-4 pt-3 pb-1",
+        )}
+      >
+        <TabsList className={cn("w-full", isPage && "sm:w-fit")}>
+          <TabsTrigger value="profile" className="flex-1">
+            Anagrafica
+            {client.missingFields.length > 0 && <AttentionDot />}
+          </TabsTrigger>
+          <TabsTrigger value="account" className="flex-1">
+            Account
+            {client.account.state !== "active" && <AttentionDot />}
+          </TabsTrigger>
+          <TabsTrigger value="membership" className="flex-1">
+            Iscrizione
+            {NEEDS_ATTENTION.has(client.membershipState) && <AttentionDot />}
+          </TabsTrigger>
+          <TabsTrigger value="points" className="flex-1">
+            Punti
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
+      {/*
+       * L'unico elemento che scorre, e solo in verticale: `overflow-x`
+       * resta esplicito perché con `overflow-y: auto` il browser
+       * promuoverebbe da solo anche l'asse orizzontale, regalando una
+       * barra di troppo al primo campo che sborda.
+       *
+       * Il fondo somma due cose diverse: l'aria che serve all'ultimo
+       * bottone per non stare appiccicato al bordo, e l'incavo del
+       * telefono (`env`), che su desktop vale zero. Sommate e non
+       * alternative — con `max()` la barra di sistema si mangerebbe lo
+       * spazio del bottone invece di aggiungersi.
+       */}
+      <div
+        className={cn(
+          isPage
+            ? "px-5 pb-6"
+            : "min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))]",
+        )}
+      >
+        <TabsContent value="profile" className="space-y-4 pt-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="sheet-firstName">Nome</Label>
+              <Input
+                id="sheet-firstName"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sheet-lastName">Cognome</Label>
+              <Input
+                id="sheet-lastName"
+                value={lastName}
+                onChange={(event) => setLastName(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sheet-phone">Telefono</Label>
+              <Input
+                id="sheet-phone"
+                type="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sheet-birth">Data di nascita</Label>
+              <Input
+                id="sheet-birth"
+                type="date"
+                value={birthDate}
+                onChange={(event) => setBirthDate(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="sheet-email">Email</Label>
+              <Input
+                id="sheet-email"
+                type="email"
+                inputMode="email"
+                value={email}
+                disabled={client.account.state !== "none"}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sheet-birthPlace">Luogo di nascita</Label>
+              <Input
+                id="sheet-birthPlace"
+                value={birthPlace}
+                onChange={(event) => setBirthPlace(event.target.value)}
+              />
+            </div>
+
+            <ResidenceFields
+              value={residence}
+              onChange={setResidence}
+              idPrefix="sheet"
+            />
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="sheet-gender">Sesso</Label>
+              <Select
+                value={gender}
+                onValueChange={(value) => setGender(value as Gender)}
+              >
+                <SelectTrigger id="sheet-gender" className="w-full">
+                  <SelectValue placeholder="Non indicato" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(GENDER_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        ) : (
-          <>
-            <SheetHeader className="shrink-0 border-b pr-12 pb-3">
-              <div className="flex items-center gap-3">
-                <Avatar className="size-11">
-                  {client.avatarUrl && <AvatarImage src={client.avatarUrl} />}
-                  <AvatarFallback>
-                    {client.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <SheetTitle className="truncate">{client.name}</SheetTitle>
-                  <SheetDescription className="truncate">
-                    {client.email ?? "Email non disponibile"}
-                  </SheetDescription>
-                </div>
+
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            {client.account.state === "none"
+              ? "L'email si può ancora correggere: diventerà l'identità dell'account quando lo inviterai."
+              : "L'email e la foto appartengono all'account e si cambiano da lì."}
+          </p>
+
+          <OptionalFields
+            value={optional}
+            onChange={setOptional}
+            idPrefix="sheet"
+          />
+
+          <Button onClick={() => void saveProfile()} disabled={saving}>
+            {saving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Save className="size-4" />
+            )}
+            Salva anagrafica
+          </Button>
+
+          {client.account.state === "none" && (
+            <div className="border-t pt-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={confirmRemove}
+                disabled={saving}
+              >
+                <Trash2 className="size-4" />
+                Elimina questa scheda
+              </Button>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Possibile finché la persona non ha un account né prenotazioni
+                alle spalle.
+              </p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="account" className="space-y-3 pt-4">
+          {client.account.state === "none" && (
+            <>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                {email.trim()
+                  ? "Questa persona non ha ancora un modo per entrare. Invitandola riceverà un link per attivare l'account: da lì prenota online, senza password."
+                  : "Per invitare questa persona serve un indirizzo email: aggiungilo qui sopra e salva l'anagrafica."}
+              </p>
+
+              <Button
+                onClick={() => void invite()}
+                disabled={saving || !email.trim()}
+              >
+                {saving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Send className="size-4" />
+                )}
+                Invita ad attivare l'account
+              </Button>
+            </>
+          )}
+
+          {client.account.state === "invited" && (
+            <>
+              <div className="rounded-lg border bg-muted/20 p-3 text-sm">
+                <p className="font-medium">
+                  Invitato il{" "}
+                  {client.account.invitedAt
+                    ? format(client.account.invitedAt, "d MMMM yyyy", {
+                        locale: it,
+                      })
+                    : "—"}
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {(client.account.sentCount ?? 1) > 1
+                    ? `Mail inviata ${client.account.sentCount} volte, l'ultima il ${
+                        client.account.lastSentAt
+                          ? format(client.account.lastSentAt, "d MMM", {
+                              locale: it,
+                            })
+                          : "—"
+                      }.`
+                    : "Non ha ancora attivato l'account."}
+                </p>
               </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <MembershipBadge
-                  state={client.membershipState}
-                  until={
-                    current
-                      ? format(current.endsAt, "d MMM yyyy", { locale: it })
-                      : undefined
-                  }
-                />
-                <AccountBadge state={client.account.state} />
-                {client.code && (
-                  <Badge variant="outline" className="font-mono">
-                    #{client.code}
-                  </Badge>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => void invite()}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}
+                  Rimanda invito
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => void revokeInvite()}
+                  disabled={saving}
+                >
+                  <MailX className="size-4" />
+                  Annulla invito
+                </Button>
+              </div>
+            </>
+          )}
+
+          {client.account.state === "active" && (
+            <div className="flex items-start gap-2.5 rounded-lg border bg-muted/20 p-3 text-sm">
+              <UserRoundCheck className="mt-0.5 size-4 shrink-0" />
+              <div>
+                <p className="font-medium">Account attivo</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {client.account.acceptedAt
+                    ? `Attivato il ${format(client.account.acceptedAt, "d MMMM yyyy", { locale: it })}: prenota dal sito e dall'app.`
+                    : "Prenota dal sito e dall'app."}
+                </p>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="membership" className="space-y-4 pt-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Tessera annuale</h3>
+            {client.consents && (
+              <div className="flex gap-1.5">
+                {Object.entries(CONSENT_LABELS).map(([key, label]) =>
+                  client.consents?.[key as keyof typeof CONSENT_LABELS] ? (
+                    <Badge
+                      key={key}
+                      variant="outline"
+                      className="bg-white font-normal"
+                    >
+                      {label}
+                    </Badge>
+                  ) : null,
                 )}
               </div>
-            </SheetHeader>
+            )}
+          </div>
 
-            <Tabs
-              defaultValue="profile"
-              className="flex min-h-0 flex-1 flex-col gap-0"
+          {current ? (
+            <div className="rounded-lg border bg-muted/20 p-3 text-sm">
+              <p className="font-medium">
+                {format(current.startsAt, "d MMM yyyy", { locale: it })} –{" "}
+                {format(current.endsAt, "d MMM yyyy", { locale: it })}
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {current.paid
+                  ? `Pagata${current.paidAt ? ` il ${format(current.paidAt, "d MMM yyyy", { locale: it })}` : ""}${current.method ? ` · ${current.method === "cash" ? "contanti" : "POS"}` : ""}${current.amount ? ` · ${current.amount} EUR` : ""}`
+                  : "Non ancora saldata"}
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              Nessuna tessera: questa persona non risulta iscritta.
+            </p>
+          )}
+
+          <div className="space-y-3 rounded-lg border p-3">
+            <p className="text-sm font-medium">
+              {current ? "Rinnova per un altro anno" : "Apri l'iscrizione"}
+            </p>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="startsAt">Data di inizio</Label>
+              <Input
+                id="startsAt"
+                type="date"
+                value={startsAt}
+                onChange={(event) => setStartsAt(event.target.value)}
+              />
+              <p className="text-muted-foreground text-xs">
+                {membershipEnd
+                  ? `Valida fino al ${format(membershipEnd, "d MMMM yyyy", { locale: it })}.`
+                  : "Dodici mesi da questa data."}{" "}
+                Si può mettere una data passata, per registrare un'iscrizione
+                già avvenuta quest'anno.
+              </p>
+            </div>
+
+            <label
+              htmlFor="paid"
+              className="flex cursor-pointer items-center gap-2 text-sm"
             >
-              <div className="shrink-0 px-4 pt-3 pb-1">
-                <TabsList className="w-full">
-                  <TabsTrigger value="profile" className="flex-1">
-                    Anagrafica
-                    {client.missingFields.length > 0 && <AttentionDot />}
-                  </TabsTrigger>
-                  <TabsTrigger value="account" className="flex-1">
-                    Account
-                    {client.account.state !== "active" && <AttentionDot />}
-                  </TabsTrigger>
-                  <TabsTrigger value="membership" className="flex-1">
-                    Iscrizione
-                    {NEEDS_ATTENTION.has(client.membershipState) && (
-                      <AttentionDot />
-                    )}
-                  </TabsTrigger>
-                </TabsList>
+              <Checkbox
+                id="paid"
+                checked={paid}
+                onCheckedChange={(checked) => setPaid(Boolean(checked))}
+              />
+              Quota già incassata
+            </label>
+
+            {paid && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="method">Modalità</Label>
+                  <Select
+                    value={method}
+                    onValueChange={(value) =>
+                      setMethod(value as "cash" | "pos")
+                    }
+                  >
+                    <SelectTrigger id="method" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Contanti</SelectItem>
+                      <SelectItem value="pos">POS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="amount">Importo (EUR)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    placeholder="facoltativo"
+                    value={amount}
+                    onChange={(event) => setAmount(event.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button
+              onClick={() => void saveMembership()}
+              disabled={saving}
+              className="w-full"
+            >
+              {saving ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : current ? (
+                <BadgeCheck className="size-4" />
+              ) : (
+                <Wallet className="size-4" />
+              )}
+              {current ? "Rinnova per 12 mesi" : "Iscrivi per 12 mesi"}
+            </Button>
+
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              La data proposta è quella in cui finisce la tessera in corso, così
+              chi rinnova in anticipo non perde giorni.
+            </p>
+          </div>
+
+          {client.memberships.length > 1 && (
+            <div>
+              <p className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
+                Storico
+              </p>
+              <ul className="space-y-1.5 text-xs">
+                {client.memberships.slice(1).map((membership) => (
+                  <li
+                    key={membership.id}
+                    className="text-muted-foreground flex justify-between gap-3"
+                  >
+                    <span>
+                      {format(membership.startsAt, "MMM yyyy", {
+                        locale: it,
+                      })}{" "}
+                      –{" "}
+                      {format(membership.endsAt, "MMM yyyy", {
+                        locale: it,
+                      })}
+                    </span>
+                    <span>
+                      {membership.paid
+                        ? `pagata${membership.method ? ` · ${membership.method === "cash" ? "contanti" : "POS"}` : ""}`
+                        : "non pagata"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="points">
+          <PointsTab
+            playerId={client.id}
+            hasEmail={Boolean(client.email)}
+            onChanged={() => {
+              onSaved();
+              // Il saldo compare anche in testa alla pagina.
+              void refresh();
+            }}
+          />
+        </TabsContent>
+      </div>
+    </Tabs>
+  );
+
+  if (isPage) {
+    return (
+      <ClientPageLayout client={client} current={current}>
+        {tabs}
+      </ClientPageLayout>
+    );
+  }
+
+  return (
+    <>
+      <SheetHeader className="shrink-0 border-b pr-20 pb-3">
+        <div className="flex items-center gap-3">
+          <Avatar className="size-11">
+            {client.avatarUrl && <AvatarImage src={client.avatarUrl} />}
+            <AvatarFallback>
+              {client.name.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <SheetTitle className="truncate">{client.name}</SheetTitle>
+            <SheetDescription className="truncate">
+              {client.email ?? "Email non disponibile"}
+            </SheetDescription>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <MembershipBadge
+            state={client.membershipState}
+            until={
+              current
+                ? format(current.endsAt, "d MMM yyyy", { locale: it })
+                : undefined
+            }
+          />
+          <AccountBadge state={client.account.state} />
+          {client.code && (
+            <Badge variant="outline" className="font-mono">
+              #{client.code}
+            </Badge>
+          )}
+        </div>
+      </SheetHeader>
+
+      <Tabs
+        defaultValue="profile"
+        className={cn("flex flex-col gap-0", isPage ? "" : "min-h-0 flex-1")}
+      >
+        <div
+          className={cn(
+            "shrink-0",
+            isPage ? "border-b px-5 pt-4 pb-3" : "px-4 pt-3 pb-1",
+          )}
+        >
+          <TabsList className={cn("w-full", isPage && "sm:w-fit")}>
+            <TabsTrigger value="profile" className="flex-1">
+              Anagrafica
+              {client.missingFields.length > 0 && <AttentionDot />}
+            </TabsTrigger>
+            <TabsTrigger value="account" className="flex-1">
+              Account
+              {client.account.state !== "active" && <AttentionDot />}
+            </TabsTrigger>
+            <TabsTrigger value="membership" className="flex-1">
+              Iscrizione
+              {NEEDS_ATTENTION.has(client.membershipState) && <AttentionDot />}
+            </TabsTrigger>
+            <TabsTrigger value="points" className="flex-1">
+              Punti
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/*
+         * L'unico elemento che scorre, e solo in verticale: `overflow-x`
+         * resta esplicito perché con `overflow-y: auto` il browser
+         * promuoverebbe da solo anche l'asse orizzontale, regalando una
+         * barra di troppo al primo campo che sborda.
+         *
+         * Il fondo somma due cose diverse: l'aria che serve all'ultimo
+         * bottone per non stare appiccicato al bordo, e l'incavo del
+         * telefono (`env`), che su desktop vale zero. Sommate e non
+         * alternative — con `max()` la barra di sistema si mangerebbe lo
+         * spazio del bottone invece di aggiungersi.
+         */}
+        <div
+          className={cn(
+            isPage
+              ? "px-5 pb-6"
+              : "min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))]",
+          )}
+        >
+          <TabsContent value="profile" className="space-y-4 pt-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="sheet-firstName">Nome</Label>
+                <Input
+                  id="sheet-firstName"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sheet-lastName">Cognome</Label>
+                <Input
+                  id="sheet-lastName"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sheet-phone">Telefono</Label>
+                <Input
+                  id="sheet-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sheet-birth">Data di nascita</Label>
+                <Input
+                  id="sheet-birth"
+                  type="date"
+                  value={birthDate}
+                  onChange={(event) => setBirthDate(event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="sheet-email">Email</Label>
+                <Input
+                  id="sheet-email"
+                  type="email"
+                  inputMode="email"
+                  value={email}
+                  disabled={client.account.state !== "none"}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sheet-birthPlace">Luogo di nascita</Label>
+                <Input
+                  id="sheet-birthPlace"
+                  value={birthPlace}
+                  onChange={(event) => setBirthPlace(event.target.value)}
+                />
               </div>
 
-              {/*
-               * L'unico elemento che scorre, e solo in verticale: `overflow-x`
-               * resta esplicito perché con `overflow-y: auto` il browser
-               * promuoverebbe da solo anche l'asse orizzontale, regalando una
-               * barra di troppo al primo campo che sborda.
-               *
-               * Il fondo somma due cose diverse: l'aria che serve all'ultimo
-               * bottone per non stare appiccicato al bordo, e l'incavo del
-               * telefono (`env`), che su desktop vale zero. Sommate e non
-               * alternative — con `max()` la barra di sistema si mangerebbe lo
-               * spazio del bottone invece di aggiungersi.
-               */}
-              <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
-                <TabsContent value="profile" className="space-y-4 pt-4">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="sheet-firstName">Nome</Label>
-                      <Input
-                        id="sheet-firstName"
-                        value={firstName}
-                        onChange={(event) => setFirstName(event.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="sheet-lastName">Cognome</Label>
-                      <Input
-                        id="sheet-lastName"
-                        value={lastName}
-                        onChange={(event) => setLastName(event.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="sheet-phone">Telefono</Label>
-                      <Input
-                        id="sheet-phone"
-                        type="tel"
-                        value={phone}
-                        onChange={(event) => setPhone(event.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="sheet-birth">Data di nascita</Label>
-                      <Input
-                        id="sheet-birth"
-                        type="date"
-                        value={birthDate}
-                        onChange={(event) => setBirthDate(event.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="sheet-email">Email</Label>
-                      <Input
-                        id="sheet-email"
-                        type="email"
-                        inputMode="email"
-                        value={email}
-                        disabled={client.account.state !== "none"}
-                        onChange={(event) => setEmail(event.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="sheet-birthPlace">Luogo di nascita</Label>
-                      <Input
-                        id="sheet-birthPlace"
-                        value={birthPlace}
-                        onChange={(event) => setBirthPlace(event.target.value)}
-                      />
-                    </div>
+              <ResidenceFields
+                value={residence}
+                onChange={setResidence}
+                idPrefix="sheet"
+              />
 
-                    <ResidenceFields
-                      value={residence}
-                      onChange={setResidence}
-                      idPrefix="sheet"
-                    />
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="sheet-gender">Sesso</Label>
+                <Select
+                  value={gender}
+                  onValueChange={(value) => setGender(value as Gender)}
+                >
+                  <SelectTrigger id="sheet-gender" className="w-full">
+                    <SelectValue placeholder="Non indicato" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(GENDER_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="sheet-gender">Sesso</Label>
-                      <Select
-                        value={gender}
-                        onValueChange={(value) => setGender(value as Gender)}
-                      >
-                        <SelectTrigger id="sheet-gender" className="w-full">
-                          <SelectValue placeholder="Non indicato" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(GENDER_LABELS).map(
-                            ([value, label]) => (
-                              <SelectItem key={value} value={value}>
-                                {label}
-                              </SelectItem>
-                            ),
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              {client.account.state === "none"
+                ? "L'email si può ancora correggere: diventerà l'identità dell'account quando lo inviterai."
+                : "L'email e la foto appartengono all'account e si cambiano da lì."}
+            </p>
 
-                  <p className="text-muted-foreground text-xs leading-relaxed">
-                    {client.account.state === "none"
-                      ? "L'email si può ancora correggere: diventerà l'identità dell'account quando lo inviterai."
-                      : "L'email e la foto appartengono all'account e si cambiano da lì."}
+            <OptionalFields
+              value={optional}
+              onChange={setOptional}
+              idPrefix="sheet"
+            />
+
+            <Button onClick={() => void saveProfile()} disabled={saving}>
+              {saving ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Save className="size-4" />
+              )}
+              Salva anagrafica
+            </Button>
+
+            {client.account.state === "none" && (
+              <div className="border-t pt-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={confirmRemove}
+                  disabled={saving}
+                >
+                  <Trash2 className="size-4" />
+                  Elimina questa scheda
+                </Button>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Possibile finché la persona non ha un account né prenotazioni
+                  alle spalle.
+                </p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="account" className="space-y-3 pt-4">
+            {client.account.state === "none" && (
+              <>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {email.trim()
+                    ? "Questa persona non ha ancora un modo per entrare. Invitandola riceverà un link per attivare l'account: da lì prenota online, senza password."
+                    : "Per invitare questa persona serve un indirizzo email: aggiungilo qui sopra e salva l'anagrafica."}
+                </p>
+
+                <Button
+                  onClick={() => void invite()}
+                  disabled={saving || !email.trim()}
+                >
+                  {saving ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}
+                  Invita ad attivare l'account
+                </Button>
+              </>
+            )}
+
+            {client.account.state === "invited" && (
+              <>
+                <div className="rounded-lg border bg-muted/20 p-3 text-sm">
+                  <p className="font-medium">
+                    Invitato il{" "}
+                    {client.account.invitedAt
+                      ? format(client.account.invitedAt, "d MMMM yyyy", {
+                          locale: it,
+                        })
+                      : "—"}
                   </p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {(client.account.sentCount ?? 1) > 1
+                      ? `Mail inviata ${client.account.sentCount} volte, l'ultima il ${
+                          client.account.lastSentAt
+                            ? format(client.account.lastSentAt, "d MMM", {
+                                locale: it,
+                              })
+                            : "—"
+                        }.`
+                      : "Non ha ancora attivato l'account."}
+                  </p>
+                </div>
 
-                  <OptionalFields
-                    value={optional}
-                    onChange={setOptional}
-                    idPrefix="sheet"
-                  />
-
-                  <Button onClick={() => void saveProfile()} disabled={saving}>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => void invite()}
+                    disabled={saving}
+                  >
                     {saving ? (
                       <Loader2 className="size-4 animate-spin" />
                     ) : (
-                      <Save className="size-4" />
+                      <Send className="size-4" />
                     )}
-                    Salva anagrafica
+                    Rimanda invito
                   </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => void revokeInvite()}
+                    disabled={saving}
+                  >
+                    <MailX className="size-4" />
+                    Annulla invito
+                  </Button>
+                </div>
+              </>
+            )}
 
-                  {client.account.state === "none" && (
-                    <div className="border-t pt-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={confirmRemove}
-                        disabled={saving}
-                      >
-                        <Trash2 className="size-4" />
-                        Elimina questa scheda
-                      </Button>
-                      <p className="text-muted-foreground mt-1 text-xs">
-                        Possibile finché la persona non ha un account né
-                        prenotazioni alle spalle.
-                      </p>
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="account" className="space-y-3 pt-4">
-                  {client.account.state === "none" && (
-                    <>
-                      <p className="text-muted-foreground text-sm leading-relaxed">
-                        {email.trim()
-                          ? "Questa persona non ha ancora un modo per entrare. Invitandola riceverà un link per attivare l'account: da lì prenota online, senza password."
-                          : "Per invitare questa persona serve un indirizzo email: aggiungilo qui sopra e salva l'anagrafica."}
-                      </p>
-
-                      <Button
-                        onClick={() => void invite()}
-                        disabled={saving || !email.trim()}
-                      >
-                        {saving ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <Send className="size-4" />
-                        )}
-                        Invita ad attivare l'account
-                      </Button>
-                    </>
-                  )}
-
-                  {client.account.state === "invited" && (
-                    <>
-                      <div className="rounded-lg border bg-muted/20 p-3 text-sm">
-                        <p className="font-medium">
-                          Invitato il{" "}
-                          {client.account.invitedAt
-                            ? format(client.account.invitedAt, "d MMMM yyyy", {
-                                locale: it,
-                              })
-                            : "—"}
-                        </p>
-                        <p className="text-muted-foreground mt-1 text-xs">
-                          {(client.account.sentCount ?? 1) > 1
-                            ? `Mail inviata ${client.account.sentCount} volte, l'ultima il ${
-                                client.account.lastSentAt
-                                  ? format(client.account.lastSentAt, "d MMM", {
-                                      locale: it,
-                                    })
-                                  : "—"
-                              }.`
-                            : "Non ha ancora attivato l'account."}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => void invite()}
-                          disabled={saving}
-                        >
-                          {saving ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <Send className="size-4" />
-                          )}
-                          Rimanda invito
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          onClick={() => void revokeInvite()}
-                          disabled={saving}
-                        >
-                          <MailX className="size-4" />
-                          Annulla invito
-                        </Button>
-                      </div>
-                    </>
-                  )}
-
-                  {client.account.state === "active" && (
-                    <div className="flex items-start gap-2.5 rounded-lg border bg-muted/20 p-3 text-sm">
-                      <UserRoundCheck className="mt-0.5 size-4 shrink-0" />
-                      <div>
-                        <p className="font-medium">Account attivo</p>
-                        <p className="text-muted-foreground mt-0.5 text-xs">
-                          {client.account.acceptedAt
-                            ? `Attivato il ${format(client.account.acceptedAt, "d MMMM yyyy", { locale: it })}: prenota dal sito e dall'app.`
-                            : "Prenota dal sito e dall'app."}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="membership" className="space-y-4 pt-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold">Tessera annuale</h3>
-                    {client.consents && (
-                      <div className="flex gap-1.5">
-                        {Object.entries(CONSENT_LABELS).map(([key, label]) =>
-                          client.consents?.[
-                            key as keyof typeof CONSENT_LABELS
-                          ] ? (
-                            <Badge
-                              key={key}
-                              variant="outline"
-                              className="bg-white font-normal"
-                            >
-                              {label}
-                            </Badge>
-                          ) : null,
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {current ? (
-                    <div className="rounded-lg border bg-muted/20 p-3 text-sm">
-                      <p className="font-medium">
-                        {format(current.startsAt, "d MMM yyyy", { locale: it })}{" "}
-                        – {format(current.endsAt, "d MMM yyyy", { locale: it })}
-                      </p>
-                      <p className="text-muted-foreground mt-1 text-xs">
-                        {current.paid
-                          ? `Pagata${current.paidAt ? ` il ${format(current.paidAt, "d MMM yyyy", { locale: it })}` : ""}${current.method ? ` · ${current.method === "cash" ? "contanti" : "POS"}` : ""}${current.amount ? ` · ${current.amount} EUR` : ""}`
-                          : "Non ancora saldata"}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-sm">
-                      Nessuna tessera: questa persona non risulta iscritta.
-                    </p>
-                  )}
-
-                  <div className="space-y-3 rounded-lg border p-3">
-                    <p className="text-sm font-medium">
-                      {current
-                        ? "Rinnova per un altro anno"
-                        : "Apri l'iscrizione"}
-                    </p>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="startsAt">Data di inizio</Label>
-                      <Input
-                        id="startsAt"
-                        type="date"
-                        value={startsAt}
-                        onChange={(event) => setStartsAt(event.target.value)}
-                      />
-                      <p className="text-muted-foreground text-xs">
-                        {membershipEnd
-                          ? `Valida fino al ${format(membershipEnd, "d MMMM yyyy", { locale: it })}.`
-                          : "Dodici mesi da questa data."}{" "}
-                        Si può mettere una data passata, per registrare
-                        un'iscrizione già avvenuta quest'anno.
-                      </p>
-                    </div>
-
-                    <label
-                      htmlFor="paid"
-                      className="flex cursor-pointer items-center gap-2 text-sm"
-                    >
-                      <Checkbox
-                        id="paid"
-                        checked={paid}
-                        onCheckedChange={(checked) => setPaid(Boolean(checked))}
-                      />
-                      Quota già incassata
-                    </label>
-
-                    {paid && (
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="method">Modalità</Label>
-                          <Select
-                            value={method}
-                            onValueChange={(value) =>
-                              setMethod(value as "cash" | "pos")
-                            }
-                          >
-                            <SelectTrigger id="method" className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="cash">Contanti</SelectItem>
-                              <SelectItem value="pos">POS</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="amount">Importo (EUR)</Label>
-                          <Input
-                            id="amount"
-                            type="number"
-                            inputMode="decimal"
-                            min={0}
-                            placeholder="facoltativo"
-                            value={amount}
-                            onChange={(event) => setAmount(event.target.value)}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <Button
-                      onClick={() => void saveMembership()}
-                      disabled={saving}
-                      className="w-full"
-                    >
-                      {saving ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : current ? (
-                        <BadgeCheck className="size-4" />
-                      ) : (
-                        <Wallet className="size-4" />
-                      )}
-                      {current ? "Rinnova per 12 mesi" : "Iscrivi per 12 mesi"}
-                    </Button>
-
-                    <p className="text-muted-foreground text-xs leading-relaxed">
-                      La data proposta è quella in cui finisce la tessera in
-                      corso, così chi rinnova in anticipo non perde giorni.
-                    </p>
-                  </div>
-
-                  {client.memberships.length > 1 && (
-                    <div>
-                      <p className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
-                        Storico
-                      </p>
-                      <ul className="space-y-1.5 text-xs">
-                        {client.memberships.slice(1).map((membership) => (
-                          <li
-                            key={membership.id}
-                            className="text-muted-foreground flex justify-between gap-3"
-                          >
-                            <span>
-                              {format(membership.startsAt, "MMM yyyy", {
-                                locale: it,
-                              })}{" "}
-                              –{" "}
-                              {format(membership.endsAt, "MMM yyyy", {
-                                locale: it,
-                              })}
-                            </span>
-                            <span>
-                              {membership.paid
-                                ? `pagata${membership.method ? ` · ${membership.method === "cash" ? "contanti" : "POS"}` : ""}`
-                                : "non pagata"}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </TabsContent>
+            {client.account.state === "active" && (
+              <div className="flex items-start gap-2.5 rounded-lg border bg-muted/20 p-3 text-sm">
+                <UserRoundCheck className="mt-0.5 size-4 shrink-0" />
+                <div>
+                  <p className="font-medium">Account attivo</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    {client.account.acceptedAt
+                      ? `Attivato il ${format(client.account.acceptedAt, "d MMMM yyyy", { locale: it })}: prenota dal sito e dall'app.`
+                      : "Prenota dal sito e dall'app."}
+                  </p>
+                </div>
               </div>
-            </Tabs>
-          </>
-        )}
-      </SheetContent>
-    </Sheet>
+            )}
+          </TabsContent>
+
+          <TabsContent value="membership" className="space-y-4 pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Tessera annuale</h3>
+              {client.consents && (
+                <div className="flex gap-1.5">
+                  {Object.entries(CONSENT_LABELS).map(([key, label]) =>
+                    client.consents?.[key as keyof typeof CONSENT_LABELS] ? (
+                      <Badge
+                        key={key}
+                        variant="outline"
+                        className="bg-white font-normal"
+                      >
+                        {label}
+                      </Badge>
+                    ) : null,
+                  )}
+                </div>
+              )}
+            </div>
+
+            {current ? (
+              <div className="rounded-lg border bg-muted/20 p-3 text-sm">
+                <p className="font-medium">
+                  {format(current.startsAt, "d MMM yyyy", { locale: it })} –{" "}
+                  {format(current.endsAt, "d MMM yyyy", { locale: it })}
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {current.paid
+                    ? `Pagata${current.paidAt ? ` il ${format(current.paidAt, "d MMM yyyy", { locale: it })}` : ""}${current.method ? ` · ${current.method === "cash" ? "contanti" : "POS"}` : ""}${current.amount ? ` · ${current.amount} EUR` : ""}`
+                    : "Non ancora saldata"}
+                </p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Nessuna tessera: questa persona non risulta iscritta.
+              </p>
+            )}
+
+            <div className="space-y-3 rounded-lg border p-3">
+              <p className="text-sm font-medium">
+                {current ? "Rinnova per un altro anno" : "Apri l'iscrizione"}
+              </p>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="startsAt">Data di inizio</Label>
+                <Input
+                  id="startsAt"
+                  type="date"
+                  value={startsAt}
+                  onChange={(event) => setStartsAt(event.target.value)}
+                />
+                <p className="text-muted-foreground text-xs">
+                  {membershipEnd
+                    ? `Valida fino al ${format(membershipEnd, "d MMMM yyyy", { locale: it })}.`
+                    : "Dodici mesi da questa data."}{" "}
+                  Si può mettere una data passata, per registrare un'iscrizione
+                  già avvenuta quest'anno.
+                </p>
+              </div>
+
+              <label
+                htmlFor="paid"
+                className="flex cursor-pointer items-center gap-2 text-sm"
+              >
+                <Checkbox
+                  id="paid"
+                  checked={paid}
+                  onCheckedChange={(checked) => setPaid(Boolean(checked))}
+                />
+                Quota già incassata
+              </label>
+
+              {paid && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="method">Modalità</Label>
+                    <Select
+                      value={method}
+                      onValueChange={(value) =>
+                        setMethod(value as "cash" | "pos")
+                      }
+                    >
+                      <SelectTrigger id="method" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Contanti</SelectItem>
+                        <SelectItem value="pos">POS</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="amount">Importo (EUR)</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      placeholder="facoltativo"
+                      value={amount}
+                      onChange={(event) => setAmount(event.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <Button
+                onClick={() => void saveMembership()}
+                disabled={saving}
+                className="w-full"
+              >
+                {saving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : current ? (
+                  <BadgeCheck className="size-4" />
+                ) : (
+                  <Wallet className="size-4" />
+                )}
+                {current ? "Rinnova per 12 mesi" : "Iscrivi per 12 mesi"}
+              </Button>
+
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                La data proposta è quella in cui finisce la tessera in corso,
+                così chi rinnova in anticipo non perde giorni.
+              </p>
+            </div>
+
+            {client.memberships.length > 1 && (
+              <div>
+                <p className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
+                  Storico
+                </p>
+                <ul className="space-y-1.5 text-xs">
+                  {client.memberships.slice(1).map((membership) => (
+                    <li
+                      key={membership.id}
+                      className="text-muted-foreground flex justify-between gap-3"
+                    >
+                      <span>
+                        {format(membership.startsAt, "MMM yyyy", {
+                          locale: it,
+                        })}{" "}
+                        –{" "}
+                        {format(membership.endsAt, "MMM yyyy", {
+                          locale: it,
+                        })}
+                      </span>
+                      <span>
+                        {membership.paid
+                          ? `pagata${membership.method ? ` · ${membership.method === "cash" ? "contanti" : "POS"}` : ""}`
+                          : "non pagata"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="points">
+            <PointsTab
+              playerId={client.id}
+              hasEmail={Boolean(client.email)}
+              onChanged={() => {
+                onSaved();
+                // Il saldo compare anche in testa alla pagina.
+                void refresh();
+              }}
+            />
+          </TabsContent>
+        </div>
+      </Tabs>
+    </>
   );
 }
