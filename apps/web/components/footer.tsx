@@ -9,7 +9,7 @@ import { ANCHORS } from "@/lib/anchors";
 import { getInfo } from "@/lib/info";
 import {
   EVENTS_LINK,
-  MY_BOOKINGS_LINK,
+  PERSONAL_AREA_LINK,
   POINTS_TERMS_LINK,
   PRIVACY_LINK,
   WHERE_WE_ARE_LINK,
@@ -77,10 +77,10 @@ export default function Footer() {
                 </li>
                 <li>
                   <Link
-                    href={MY_BOOKINGS_LINK}
+                    href={PERSONAL_AREA_LINK}
                     className="hover:text-foreground transition-colors"
                   >
-                    Le tue prenotazioni
+                    Area personale
                   </Link>
                 </li>
               </ul>

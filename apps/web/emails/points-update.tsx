@@ -106,7 +106,7 @@ PointsUpdateEmail.PreviewProps = {
   delta: 3,
   label: "Partita vinta",
   balance: 12,
-  walletUrl: "https://asdpadelsport.com/area-personale",
+  walletUrl: "https://asdpadelsport.com/me",
 } satisfies PointsUpdateEmailProps;
 
 export default PointsUpdateEmail;

@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { getInfo } from "@/lib/info";
 import {
   EVENTS_LINK,
-  MY_BOOKINGS_LINK,
   PERSONAL_AREA_LINK,
   WHERE_WE_ARE_LINK,
 } from "@/lib/links";
@@ -30,7 +29,6 @@ const routes: ReadonlyArray<{ name: string; href: string }> = [
   { name: "Home", href: "/" },
   { name: "Dove trovarci", href: WHERE_WE_ARE_LINK },
   { name: "Tornei ed Eventi", href: EVENTS_LINK },
-  { name: "Le tue prenotazioni", href: MY_BOOKINGS_LINK },
   { name: "Area personale", href: PERSONAL_AREA_LINK },
 ];
 

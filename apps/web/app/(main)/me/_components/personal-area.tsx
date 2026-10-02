@@ -12,12 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getInfo } from "@/lib/info";
-import { BOOKING_LINK } from "@/lib/links";
+import { BOOKING_LINK, PERSONAL_AREA_LINK } from "@/lib/links";
 import { DURATION, EASE } from "@/lib/motion";
 
-import { MyBookings } from "../../bookings/_components/my-bookings";
+import { BookingCodeForm } from "./booking-code-form";
 import { History } from "./history";
 import { JoinProgram } from "./join-program";
+import { MyBookings } from "./my-bookings";
 import { RewardsGrid } from "./rewards-grid";
 import { WalletCard } from "./wallet-card";
 
@@ -44,8 +45,15 @@ export function PersonalArea() {
 
   if (!isSignedIn) {
     return (
-      <div className="rounded-card bg-muted p-6 sm:p-8 lg:p-10">
-        <VerifyStep purpose="area" />
+      <div>
+        <div className="rounded-card bg-muted p-6 sm:p-8 lg:p-10">
+          <VerifyStep purpose="area" />
+        </div>
+        {/* Per i compagni di squadra senza account: il codice gliel'ha
+            passato chi ha prenotato, e la verifica via email non li troverebbe. */}
+        <div className="mt-2.5">
+          <BookingCodeForm />
+        </div>
       </div>
     );
   }
@@ -72,7 +80,7 @@ export function PersonalArea() {
           <Button
             variant="ghost"
             size="pill"
-            onClick={() => void signOut({ redirectUrl: "/area-personale" })}
+            onClick={() => void signOut({ redirectUrl: PERSONAL_AREA_LINK })}
           >
             Esci
           </Button>
@@ -102,7 +110,7 @@ export function PersonalArea() {
             Ciao {wallet.firstName}.{" "}
             <button
               type="button"
-              onClick={() => void signOut({ redirectUrl: "/area-personale" })}
+              onClick={() => void signOut({ redirectUrl: PERSONAL_AREA_LINK })}
               className="hover:text-foreground underline underline-offset-4"
             >
               Non sei tu?
@@ -136,12 +144,23 @@ export function PersonalArea() {
         canRedeem={wallet.program.state === "joined"}
       />
 
-      <section aria-labelledby="bookings-title" className="space-y-6">
+      {/* `#bookings` è dove atterrano i vecchi link a `/bookings` e il
+          rimando dopo una prenotazione (next.config.ts). */}
+      <section
+        id="bookings"
+        aria-labelledby="bookings-title"
+        className="scroll-mt-28 space-y-6"
+      >
         <Heading as="h2" size="sub" id="bookings-title">
           Le tue prenotazioni
         </Heading>
-        <div className="rounded-card bg-muted p-6 sm:p-8 lg:p-10">
-          <MyBookings />
+        <div>
+          <div className="rounded-card bg-muted p-6 sm:p-8 lg:p-10">
+            <MyBookings />
+          </div>
+          <div className="mt-2.5">
+            <BookingCodeForm />
+          </div>
         </div>
       </section>
 

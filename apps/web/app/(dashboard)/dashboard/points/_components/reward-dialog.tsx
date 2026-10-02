@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { prepareImage } from "@/lib/image-resize";
 
 import type { Reward } from "./types";
 
@@ -28,8 +29,23 @@ import type { Reward } from "./types";
  * limite sul corpo della richiesta.
  */
 
-/** Oltre questa misura la foto pesa sulla pagina del cliente più di quanto serva. */
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+/**
+ * Il file di partenza può essere grande: uno scatto del telefono pesa anche
+ * dieci mega. Tanto viene ridotto a 600px e ricodificato in WebP prima di
+ * partire (lib/image-resize.ts); il tetto serve solo a non far elaborare al
+ * browser qualcosa di assurdo.
+ */
+const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
+
+/** Il lato massimo della foto salvata: la card del premio non ne mostra di più. */
+const MAX_IMAGE_SIZE = 600;
+
+/** "42 KB", "1,2 MB": il peso finale, per far vedere che la conversione è servita. */
+function formatBytes(bytes: number): string {
+  return bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+    : `${(bytes / 1024 / 1024).toLocaleString("it-IT", { maximumFractionDigits: 1 })} MB`;
+}
 
 async function uploadImage(file: File): Promise<string> {
   const response = await fetch("/api/dashboard/points/rewards/upload-url", {
@@ -74,6 +90,9 @@ export function RewardDialog({
   const [preview, setPreview] = useState<string | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
   const [saving, setSaving] = useState(false);
+  /** La foto scelta è in conversione: niente salvataggio finché non è pronta. */
+  const [processing, setProcessing] = useState(false);
+  const [imageInfo, setImageInfo] = useState<string | null>(null);
 
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -86,6 +105,7 @@ export function RewardDialog({
     setTerms(reward?.terms ?? "");
     setValidityDays(reward?.validityDays ? String(reward.validityDays) : "");
     setFile(null);
+    setImageInfo(null);
     setPreview(reward?.imageUrl ?? null);
     setRemoveImage(false);
   }, [open, reward]);
@@ -98,20 +118,43 @@ export function RewardDialog({
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const pickFile = (picked: File | undefined) => {
+  const pickFile = async (picked: File | undefined) => {
     if (!picked) return;
 
-    if (!picked.type.startsWith("image/")) {
-      toast.error("Serve un'immagine: JPG, PNG o WebP.");
+    // Alcuni browser non danno un tipo agli HEIC del telefono: li lasciamo
+    // provare, e se non si aprono lo dice `prepareImage`.
+    const looksLikeImage =
+      picked.type.startsWith("image/") || /\.(heic|heif)$/i.test(picked.name);
+
+    if (!looksLikeImage) {
+      toast.error("Serve un'immagine: JPG, PNG, WebP, HEIC o simili.");
       return;
     }
-    if (picked.size > MAX_IMAGE_BYTES) {
-      toast.error("La foto supera i 5 MB: riducila prima di caricarla.");
+    if (picked.size > MAX_SOURCE_BYTES) {
+      toast.error("La foto supera i 25 MB: scegline una più leggera.");
       return;
     }
 
-    setFile(picked);
-    setRemoveImage(false);
+    setProcessing(true);
+    try {
+      const prepared = await prepareImage(picked, MAX_IMAGE_SIZE);
+
+      setFile(prepared.file);
+      setImageInfo(
+        `${prepared.width}×${prepared.height} · ${
+          prepared.file.type === "image/webp" ? "WebP" : "JPEG"
+        } · ${formatBytes(prepared.file.size)}`,
+      );
+      setRemoveImage(false);
+    } catch (error) {
+      toast.error("Foto non utilizzabile", {
+        description:
+          error instanceof Error ? error.message : "Prova con un'altra foto.",
+      });
+    } finally {
+      setProcessing(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
   };
 
   /**
@@ -129,11 +172,12 @@ export function RewardDialog({
     if (!image) return;
 
     event.preventDefault();
-    pickFile(image);
+    void pickFile(image);
   };
 
   const clearImage = () => {
     setFile(null);
+    setImageInfo(null);
     setPreview(null);
     setRemoveImage(Boolean(reward?.hasImage));
     if (fileInput.current) fileInput.current.value = "";
@@ -244,24 +288,34 @@ export function RewardDialog({
               <button
                 type="button"
                 onClick={() => fileInput.current?.click()}
+                disabled={processing}
                 className="text-muted-foreground hover:bg-muted/40 flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed text-sm transition-colors"
               >
-                <ImagePlus className="size-6" />
-                Carica una foto o incollala (⌘V / Ctrl+V)
-                <span className="text-xs">JPG, PNG o WebP, max 5 MB</span>
+                {processing ? (
+                  <Loader2 className="size-6 animate-spin" />
+                ) : (
+                  <ImagePlus className="size-6" />
+                )}
+                {processing
+                  ? "Preparo la foto…"
+                  : "Carica una foto o incollala (⌘V / Ctrl+V)"}
+                <span className="text-xs">
+                  Qualsiasi formato: la riduciamo a 600px e la salviamo in WebP
+                </span>
               </button>
             )}
             {preview && (
               <p className="text-muted-foreground text-xs">
-                Per sostituirla, incolla un'altra immagine o toglila con la X.
+                {imageInfo ? `${imageInfo}. ` : ""}Per sostituirla, incolla
+                un'altra immagine o toglila con la X.
               </p>
             )}
             <input
               ref={fileInput}
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/*,.heic,.heif"
               className="hidden"
-              onChange={(event) => pickFile(event.target.files?.[0])}
+              onChange={(event) => void pickFile(event.target.files?.[0])}
             />
           </div>
 
@@ -332,7 +386,7 @@ export function RewardDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Annulla
           </Button>
-          <Button onClick={() => void save()} disabled={saving}>
+          <Button onClick={() => void save()} disabled={saving || processing}>
             {saving && <Loader2 className="size-4 animate-spin" />}
             {reward ? "Salva" : "Pubblica premio"}
           </Button>
