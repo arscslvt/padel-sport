@@ -1,28 +1,16 @@
 "use client";
 
-import { format } from "date-fns";
-import { it } from "date-fns/locale";
-import {
-  Check,
-  Gift,
-  Loader2,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-  Undo2,
-} from "lucide-react";
-import Link from "next/link";
+import { Gift, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CountBadge } from "@/app/(dashboard)/_components/count-badge";
-
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/app/(dashboard)/_components/tabs";
+import { useConfirm } from "@/app/(dashboard)/_providers/confirm.provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { pointsLabel, signedPoints } from "@/lib/points";
 import { cn } from "@/lib/utils";
-
+import { RedemptionCard } from "./redemption-card";
 import { RewardDialog } from "./reward-dialog";
 import type { PendingRedemption, Preset, Reward } from "./types";
 
@@ -238,6 +226,20 @@ function RedemptionsList({
   onClose: (redemption: PendingRedemption, action: "used" | "cancel") => void;
 }) {
   const [query, setQuery] = useState("");
+  const confirm = useConfirm();
+
+  // Annullare restituisce i punti e il cliente non ha più il premio: va
+  // confermato. Consegnare no, è il gesto di tutti i giorni.
+  const askCancel = async (row: PendingRedemption) => {
+    const result = await confirm({
+      title: "Annullare il riscatto?",
+      description: `${row.playerName} non potrà più ritirare «${row.title}» e i ${row.cost} punti gli tornano sul saldo.`,
+      confirmLabel: "Annulla il riscatto",
+      cancelLabel: "Indietro",
+      tone: "destructive",
+    });
+    if (result) onClose(row, "cancel");
+  };
 
   // Allo sportello si cerca per codice, letto dal telefono del cliente, o per
   // nome quando il codice non lo trova più.
@@ -273,80 +275,29 @@ function RedemptionsList({
 
   return (
     <div className="space-y-3">
-      <div className="relative max-w-sm">
-        <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+      <div className="relative md:max-w-sm">
+        <Search className="text-muted-foreground absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
         <Input
           aria-label="Cerca per codice o nome"
           placeholder="Codice o nome"
-          className="pl-9"
+          className="bg-card h-11 rounded-xl pl-10 text-base md:h-9 md:text-sm"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
       </div>
 
-      <ul className="divide-y rounded-xl border bg-card">
+      <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
         {visible.map((row) => (
-          <li
+          <RedemptionCard
             key={row.id}
-            className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="min-w-0">
-              <p className="flex flex-wrap items-center gap-2 font-medium">
-                <span className="font-mono tracking-wider">{row.code}</span>
-                <span className="truncate">{row.title}</span>
-                {row.state === "expired" && (
-                  <Badge variant="outline" className="text-destructive">
-                    Scaduto
-                  </Badge>
-                )}
-              </p>
-              <p className="text-muted-foreground mt-0.5 text-sm">
-                <Link
-                  href={`/dashboard/clients?client=${row.playerId}`}
-                  className="hover:text-foreground underline-offset-2 hover:underline"
-                >
-                  {row.playerName}
-                </Link>{" "}
-                · riscattato il {format(row.createdAt, "d MMM", { locale: it })}
-                {row.expiresAt
-                  ? ` · ${row.state === "expired" ? "scaduto" : "scade"} il ${format(row.expiresAt, "d MMM yyyy", { locale: it })}`
-                  : ""}
-              </p>
-            </div>
-
-            <div className="flex shrink-0 gap-2">
-              {row.state === "active" && (
-                <Button
-                  size="sm"
-                  disabled={pending !== null}
-                  onClick={() => onClose(row, "used")}
-                >
-                  {pending === row.id ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Check className="size-4" />
-                  )}
-                  Consegnato
-                </Button>
-              )}
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={pending !== null}
-                onClick={() => onClose(row, "cancel")}
-              >
-                <Undo2 className="size-4" />
-                Annulla
-              </Button>
-            </div>
-          </li>
+            redemption={row}
+            busy={pending === row.id}
+            disabled={pending !== null}
+            onDeliver={() => onClose(row, "used")}
+            onCancel={() => void askCancel(row)}
+          />
         ))}
-        {visible.length === 0 && (
-          <li className="text-muted-foreground p-4 text-sm">
-            Nessun riscatto con questo codice o nome.
-          </li>
-        )}
-      </ul>
+      </div>
     </div>
   );
 }

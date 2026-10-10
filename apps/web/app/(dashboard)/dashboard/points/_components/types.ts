@@ -27,6 +27,8 @@ export interface PendingRedemption {
   id: string;
   playerId: string;
   playerName: string;
+  /** Foto del premio, se il premio ne ha una. */
+  imageUrl: string | null;
   title: string;
   cost: number;
   code: string;

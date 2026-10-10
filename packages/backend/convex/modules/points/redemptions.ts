@@ -11,6 +11,7 @@ import {
   generateRedemptionCode,
   redemptionExpiry,
   redemptionState,
+  rewardImageUrl,
 } from "./lib";
 import { programState } from "./terms";
 
@@ -90,11 +91,15 @@ export const pending = query({
         .sort((a, b) => b.createdAt - a.createdAt)
         .map(async (row) => {
           const player = await ctx.db.get(row.playerId);
+          // La foto del premio: allo sportello si riconosce l'oggetto da
+          // consegnare prima ancora di leggerne il nome.
+          const reward = await ctx.db.get(row.rewardId);
 
           return {
             id: row._id,
             playerId: row.playerId,
             playerName: player ? displayName(player) : "Cliente rimosso",
+            imageUrl: reward ? await rewardImageUrl(ctx, reward) : null,
             title: row.title,
             cost: row.cost,
             code: row.code,
