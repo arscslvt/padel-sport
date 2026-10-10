@@ -20,6 +20,8 @@ import { MAX_PLAYERS } from "@/lib/booking";
 import { type MergePair, mergeablePairs } from "@/lib/booking-merge";
 import { cn } from "@/lib/utils";
 
+import { useConfirm } from "../../_providers/confirm.provider";
+
 /**
  * Le coppie di prenotazioni parziali che si possono chiudere in un campo solo.
  *
@@ -49,7 +51,7 @@ function GroupColumn({
     <div className="min-w-0 flex-1 space-y-1.5 p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h4 className="truncate text-sm font-semibold">{booking.bookedBy}</h4>
-        <Badge variant="outline" className="bg-white font-normal">
+        <Badge variant="outline" className="bg-card font-normal">
           {levelLabels[booking.level]}
         </Badge>
       </div>
@@ -62,11 +64,7 @@ function GroupColumn({
 
       <div className="flex flex-wrap gap-1.5 pt-1">
         {booking.players.map((player) => (
-          <Badge
-            key={player}
-            variant="outline"
-            className="bg-white font-normal"
-          >
+          <Badge key={player} variant="outline" className="bg-card font-normal">
             {player}
           </Badge>
         ))}
@@ -93,8 +91,8 @@ function PairCard({
   return (
     <article
       className={cn(
-        "rounded-lg border bg-muted/20",
-        suggested && "border-blue-200 bg-blue-50/40",
+        "bg-card rounded-2xl border",
+        suggested && "border-info-border",
       )}
     >
       <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2.5">
@@ -102,12 +100,12 @@ function PairCard({
           {format(keep.bookingDate, "EEEE d MMMM, HH:mm", { locale: it })}
         </span>
         {suggested ? (
-          <Badge className="border-blue-200 bg-blue-100 text-blue-900">
+          <Badge className="border-info-border bg-info-subtle text-info-foreground">
             <Sparkles className="size-3.5" />
             Stesso livello
           </Badge>
         ) : (
-          <Badge variant="outline" className="bg-white font-normal">
+          <Badge variant="outline" className="bg-card font-normal">
             Livelli diversi
           </Badge>
         )}
@@ -127,7 +125,7 @@ function PairCard({
           {freedCourt && <span>· si libera {freedCourt}</span>}
         </p>
 
-        <Button size="sm" onClick={() => onMerge(pair)} disabled={busy}>
+        <Button onClick={() => onMerge(pair)} disabled={busy}>
           <ArrowLeftRight className="size-4" />
           Unisci
         </Button>
@@ -147,6 +145,7 @@ export default function MergePairs({
   onMerged: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const ask = useConfirm();
 
   const pairs = useMemo(() => mergeablePairs(bookings), [bookings]);
   const courtNames = useMemo(
@@ -190,46 +189,31 @@ export default function MergePairs({
    * La conferma dice cosa succede davvero: due clienti ricevono una mail e un
    * campo cambia stato. Non è un'azione da fare per sbaglio con un click.
    */
-  const confirm = (pair: MergePair) => {
-    toast("Unire le due prenotazioni", {
+  const confirm = async (pair: MergePair) => {
+    const result = await ask({
+      title: "Unire le due prenotazioni?",
       description: (
         <>
-          <span className="font-medium">{pair.keep.bookedBy}</span> e{" "}
-          <span className="font-medium">{pair.move.bookedBy}</span> giocheranno
-          nello stesso campo, in {pair.players}.
+          <span className="text-foreground font-medium">
+            {pair.keep.bookedBy}
+          </span>{" "}
+          e{" "}
+          <span className="text-foreground font-medium">
+            {pair.move.bookedBy}
+          </span>{" "}
+          giocheranno nello stesso campo, in {pair.players}. Entrambi ricevono
+          una mail con i nomi degli altri giocatori.
           {!pair.suggested && (
-            <div className="mt-2 text-amber-600">
+            <span className="text-warning-foreground mt-2 block">
               Hanno dichiarato livelli diversi: valuta se avvisarli prima.
-            </div>
+            </span>
           )}
-          <div className="mt-2">
-            Entrambi ricevono una mail con i nomi degli altri giocatori. Il
-            codice QR resta legato alla conferma, che è un passo a parte.
-          </div>
-          <div className="mt-3 flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1 bg-transparent"
-              onClick={() => toast.dismiss()}
-            >
-              Annulla
-            </Button>
-            <Button
-              className="flex-1"
-              disabled={busy}
-              onClick={() => {
-                toast.dismiss();
-                void merge(pair);
-              }}
-            >
-              <ArrowLeftRight className="size-4" />
-              Unisci
-            </Button>
-          </div>
         </>
       ),
-      duration: Infinity,
+      confirmLabel: "Unisci",
     });
+
+    if (result) void merge(pair);
   };
 
   if (pairs.length === 0) {
@@ -256,7 +240,7 @@ export default function MergePairs({
           key={`${pair.keep._id}-${pair.move._id}`}
           pair={pair}
           courtNames={courtNames}
-          onMerge={confirm}
+          onMerge={(next) => void confirm(next)}
           busy={busy}
         />
       ))}
