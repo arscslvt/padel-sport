@@ -629,7 +629,7 @@ export function ClientDetailView({
           isPage ? "border-b px-5 pt-4 pb-3" : "px-4 pt-3 pb-1",
         )}
       >
-        <TabsList className={cn("w-full", isPage && "sm:w-fit")}>
+        <TabsList className={cn(!isPage && "md:w-full")}>
           <TabsTrigger value="profile" className="flex-1">
             Anagrafica
             {client.missingFields.length > 0 && <AttentionDot />}
@@ -1127,7 +1127,7 @@ export function ClientDetailView({
             isPage ? "border-b px-5 pt-4 pb-3" : "px-4 pt-3 pb-1",
           )}
         >
-          <TabsList className={cn("w-full", isPage && "sm:w-fit")}>
+          <TabsList className={cn(!isPage && "md:w-full")}>
             <TabsTrigger value="profile" className="flex-1">
               Anagrafica
               {client.missingFields.length > 0 && <AttentionDot />}

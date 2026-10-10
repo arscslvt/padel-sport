@@ -6,7 +6,6 @@ import { Inbox, LifeBuoy, MailCheck, Users } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-
 import {
   Card,
   CardContent,
@@ -14,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/(dashboard)/_components/card";
+import { CountBadge } from "@/app/(dashboard)/_components/count-badge";
 import {
   Tabs,
   TabsContent,
@@ -216,9 +216,15 @@ export function RequestsPanel() {
         onValueChange={(value) => setTab(value as "support" | "matches")}
         className="space-y-3"
       >
-        <TabsList className="w-full md:w-max">
-          <TabsTrigger value="support">Assistenza ({openSupport})</TabsTrigger>
-          <TabsTrigger value="matches">Giocatori ({openMatches})</TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="support">
+            Assistenza
+            <CountBadge count={openSupport} />
+          </TabsTrigger>
+          <TabsTrigger value="matches">
+            Giocatori
+            <CountBadge count={openMatches} />
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="support">

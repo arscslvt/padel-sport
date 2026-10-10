@@ -26,7 +26,9 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]",
+        // Da telefono a tutta larghezza, come un controllo a segmenti di iOS e
+        // con bersagli più alti; da 768px in su alla misura del contenuto.
+        "bg-muted text-muted-foreground flex h-10 w-full items-center justify-center rounded-lg p-[3px] md:inline-flex md:h-9 md:w-fit",
         className,
       )}
       {...props}

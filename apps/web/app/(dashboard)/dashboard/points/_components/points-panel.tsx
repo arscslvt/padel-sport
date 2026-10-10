@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { CountBadge } from "@/app/(dashboard)/_components/count-badge";
 
 import {
   Tabs,
@@ -132,11 +133,7 @@ export function PointsPanel() {
         <TabsList>
           <TabsTrigger value="redemptions">
             Da consegnare
-            {waiting > 0 && (
-              <Badge className="ml-1 h-5 min-w-5 px-1.5 tabular-nums">
-                {waiting}
-              </Badge>
-            )}
+            <CountBadge count={waiting} />
           </TabsTrigger>
           <TabsTrigger value="rewards">Premi</TabsTrigger>
           <TabsTrigger value="presets">Preset</TabsTrigger>
