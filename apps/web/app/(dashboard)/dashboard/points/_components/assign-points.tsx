@@ -11,7 +11,9 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { SlotText } from "slot-text/react";
+import "slot-text/style.css";
 import { toast } from "sonner";
 
 import { SheetHeader } from "@/app/(dashboard)/_components/sheet-header";
@@ -228,6 +230,26 @@ function ClientWallet({
   const [sign, setSign] = useState<1 | -1>(1);
   const [amount, setAmount] = useState(1);
   const [reason, setReason] = useState("");
+  /** Assegnati: il saldo sta rotolando, poi il pannello si chiude. */
+  const [closing, setClosing] = useState(false);
+  const [direction, setDirection] = useState<"up" | "down">("up");
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Un pannello chiuso prima del tempo non deve chiudersi di nuovo dopo.
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+
+  /**
+   * Il saldo che cambia rotola come un contatore: in su quando si dà, in giù
+   * quando si toglie. Con «riduci movimento» il numero cambia e basta.
+   */
+  const roll = reduce
+    ? { direction, duration: 0, stagger: 0 }
+    : { direction, duration: 420, stagger: 60 };
 
   useEffect(() => {
     fetch(`/api/dashboard/clients/${client.id}/points`)
@@ -264,18 +286,29 @@ function ClientWallet({
         return false;
       }
 
-      // Il pannello si chiude: un'assegnazione è un gesto concluso, e il
-      // toast dice cosa è successo e il saldo nuovo.
+      // Prima il saldo si aggiorna sotto gli occhi di chi l'ha toccato, poi
+      // il pannello si chiude: un'assegnazione è un gesto concluso, e il
+      // toast ne resta il riepilogo.
+      setDirection(delta > 0 ? "up" : "down");
       if (payload?.pending) {
+        setWallet((current) =>
+          current
+            ? { ...current, pendingPoints: current.pendingPoints + delta }
+            : current,
+        );
         toast.success(`${signed(delta)} punti in attesa`, {
           description: `${firstName} li riceve quando aderisce al programma.`,
         });
       } else {
+        setWallet((current) =>
+          current ? { ...current, balance: payload.balance } : current,
+        );
         toast.success(`${signed(delta)} punti a ${firstName}`, {
           description: `Nuovo saldo: ${payload.balance} punti.`,
         });
       }
-      onDone();
+      setClosing(true);
+      closeTimer.current = setTimeout(onDone, reduce ? 500 : 1200);
       return true;
     } catch {
       toast.error("Punti non assegnati", {
@@ -325,7 +358,14 @@ function ClientWallet({
           <div className="shrink-0 text-right">
             {wallet ? (
               <p className="text-2xl leading-none font-semibold tabular-nums">
-                {wallet.balance}
+                {/* Le cifre animate sono pezzi separati: lo screen reader
+                    legge la copia intera, e il toast annuncia il cambio. */}
+                <span className="sr-only">{wallet.balance}</span>
+                <SlotText
+                  aria-hidden
+                  text={String(wallet.balance)}
+                  options={roll}
+                />
               </p>
             ) : (
               <Loader2 className="text-muted-foreground ml-auto size-5 animate-spin" />
@@ -336,7 +376,16 @@ function ClientWallet({
 
         {wallet && (wallet.pendingPoints > 0 || !joined) && !frozen && (
           <p className="text-warning-foreground -mt-1 pb-4 text-xs leading-relaxed">
-            {wallet.pendingPoints > 0 && `+${wallet.pendingPoints} in attesa. `}
+            {wallet.pendingPoints > 0 && (
+              <>
+                <SlotText
+                  text={`+${wallet.pendingPoints}`}
+                  options={roll}
+                  className="font-medium tabular-nums"
+                />{" "}
+                in attesa.{" "}
+              </>
+            )}
             {!joined &&
               "Non ha ancora aderito al programma: i punti restano in attesa finché non accetta il regolamento."}
           </p>
@@ -359,7 +408,9 @@ function ClientWallet({
                 <button
                   key={preset.id}
                   type="button"
-                  disabled={busy !== null || (!joined && preset.points < 0)}
+                  disabled={
+                    busy !== null || closing || (!joined && preset.points < 0)
+                  }
                   onClick={() =>
                     void submit(
                       preset.id,
@@ -488,7 +539,7 @@ function ClientWallet({
                         </Button>
                         <Button
                           className="h-12 rounded-xl"
-                          disabled={!reasonValid || busy !== null}
+                          disabled={!reasonValid || busy !== null || closing}
                           onClick={() => void submitManual()}
                         >
                           {busy === "manual" && (

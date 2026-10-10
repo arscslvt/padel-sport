@@ -116,6 +116,7 @@
         "react-icons": "^5.6.0",
         "resend": "^6.18.1",
         "sanity": "^6.9.1",
+        "slot-text": "^0.3.4",
         "sonner": "^2.0.7",
         "styled-components": "^6.1.19",
         "tailwind-merge": "^3.4.0",
@@ -3589,6 +3590,8 @@
     "skills": ["skills@1.5.22", "", { "dependencies": { "tar": "^7.5.20", "yaml": "^2.8.3" }, "bin": { "skills": "bin/cli.mjs", "add-skill": "bin/cli.mjs" } }, "sha512-cHiLjwZEawWFvudIqeeMZlvZayTLbRouydMbblyrdiyH7ZLbqUrSrEEr+Tg+X265iztRlVMsyOYRwpD5JxBsvg=="],
 
     "slash": ["slash@3.0.0", "", {}, "sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q=="],
+
+    "slot-text": ["slot-text@0.3.4", "", { "peerDependencies": { "react": ">=18 <20", "solid-js": ">=1.8 <2", "svelte": ">=4 <6", "vue": ">=3.4 <4" }, "optionalPeers": ["react", "solid-js", "svelte", "vue"] }, "sha512-C3FTc0cAx/6FywK9yvE93FdEc3hQXfzeQSvJH8SioWHyHcxLfU9tgkoqnUChPR2Q4Kh9j/sHgkpcNe2m5UCpnA=="],
 
     "slugify": ["slugify@1.6.9", "", {}, "sha512-vZ7rfeehZui7wQs438JXBckYLkIIdfHOXsaVEUMyS5fHo1483l1bMdo0EDSWYclY0yZKFOipDy4KHuKs6ssvdg=="],
 
