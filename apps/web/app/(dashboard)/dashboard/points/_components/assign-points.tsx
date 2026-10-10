@@ -17,6 +17,7 @@ import "slot-text/style.css";
 import { toast } from "sonner";
 
 import { SheetHeader } from "@/app/(dashboard)/_components/sheet-header";
+import { useFloatingAction } from "@/app/(dashboard)/_providers/floating-action.provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,22 +66,21 @@ function signed(points: number) {
 export function AssignPoints() {
   const [open, setOpen] = useState(false);
 
+  // Da telefono il pulsante fluttua sopra la barra in basso: lo disegna il
+  // layout, che lo fa entrare e uscire da dietro la barra al cambio di pagina.
+  useFloatingAction({
+    key: "assign-points",
+    label: "Assegna punti",
+    icon: Coins,
+    onClick: () => setOpen(true),
+  });
+
   return (
     <>
       <Button className="hidden md:inline-flex" onClick={() => setOpen(true)}>
         <Coins className="size-4" />
         Assegna punti
       </Button>
-
-      {/* Sopra la barra in basso: la sua altezza più il suo margine, più aria. */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="bg-foreground text-background fixed right-4 bottom-[calc(max(0.5rem,env(safe-area-inset-bottom))+4.75rem)] z-30 flex h-12 items-center gap-2 rounded-full pr-5 pl-4 text-[15px] font-medium shadow-[0_10px_30px_-10px_oklch(0.2_0_0/0.5)] transition-transform active:scale-95 md:hidden"
-      >
-        <Coins className="size-5" />
-        Assegna punti
-      </button>
 
       <ResponsiveDrawer open={open} setOpen={setOpen}>
         <ResponsiveDrawerContent className="bg-background sm:max-w-md md:max-h-[90dvh] md:overflow-y-auto">
