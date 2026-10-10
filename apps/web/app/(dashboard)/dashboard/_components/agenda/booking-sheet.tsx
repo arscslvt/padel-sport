@@ -4,15 +4,14 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { Loader2, Phone, Unlink } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
-
 import { ListGroup, ListRow } from "@/app/(dashboard)/_components/list";
+import { SheetHeader } from "@/app/(dashboard)/_components/sheet-header";
 import { StatusBadge } from "@/app/(dashboard)/_components/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   ResponsiveDrawer,
   ResponsiveDrawerContent,
   ResponsiveDrawerFooter,
-  ResponsiveDrawerHeader,
 } from "@/components/ui/responsive-drawer";
 import { MAX_PLAYERS } from "@/lib/booking";
 
@@ -98,7 +97,7 @@ function Body({
 
   return (
     <>
-      <ResponsiveDrawerHeader
+      <SheetHeader
         title={booking.bookedBy}
         description={`${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
       />

@@ -221,7 +221,7 @@ export function MobileFiltersDrawer({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="bg-background">
-        <DrawerHeader className="text-left">
+        <DrawerHeader className="text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
           <DrawerTitle>Filtra e ordina</DrawerTitle>
           <DrawerDescription className="sr-only">
             Scegli quali clienti vedere e in che ordine.

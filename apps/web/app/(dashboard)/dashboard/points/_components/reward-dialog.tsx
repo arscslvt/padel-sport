@@ -3,6 +3,7 @@
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { type ClipboardEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { SheetHeader } from "@/app/(dashboard)/_components/sheet-header";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,6 @@ import {
   ResponsiveDrawer,
   ResponsiveDrawerContent,
   ResponsiveDrawerFooter,
-  ResponsiveDrawerHeader,
 } from "@/components/ui/responsive-drawer";
 import { Textarea } from "@/components/ui/textarea";
 import { prepareImage } from "@/lib/image-resize";
@@ -253,7 +253,7 @@ export function RewardDialog({
         className="sm:max-w-lg md:max-h-[90dvh] md:overflow-y-auto"
         onPaste={pasteImage}
       >
-        <ResponsiveDrawerHeader
+        <SheetHeader
           title={reward ? "Modifica premio" : "Nuovo premio"}
           description="Si sblocca quando il cliente raggiunge il costo in punti, e lo riscatta dalla sua area personale."
         />

@@ -5,6 +5,7 @@ import { it } from "date-fns/locale";
 import { Ban, Loader2, LockOpen } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { SheetHeader } from "@/app/(dashboard)/_components/sheet-header";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,6 @@ import {
   ResponsiveDrawer,
   ResponsiveDrawerContent,
   ResponsiveDrawerFooter,
-  ResponsiveDrawerHeader,
 } from "@/components/ui/responsive-drawer";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -208,7 +208,7 @@ export function AccountSuspension({
 
       <ResponsiveDrawer open={open} setOpen={setOpen}>
         <ResponsiveDrawerContent className="sm:max-w-lg">
-          <ResponsiveDrawerHeader
+          <SheetHeader
             title="Sospendi account"
             description={`${client.name} riceverà una mail con il motivo e con i recapiti del club per un eventuale reclamo.`}
           />

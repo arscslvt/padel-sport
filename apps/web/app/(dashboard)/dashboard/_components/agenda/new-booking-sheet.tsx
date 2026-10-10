@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { Loader2, UserRound, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { SheetHeader } from "@/app/(dashboard)/_components/sheet-header";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,6 @@ import {
   ResponsiveDrawer,
   ResponsiveDrawerContent,
   ResponsiveDrawerFooter,
-  ResponsiveDrawerHeader,
 } from "@/components/ui/responsive-drawer";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -235,7 +235,7 @@ function Form({
 
   return (
     <>
-      <ResponsiveDrawerHeader
+      <SheetHeader
         title="Nuova prenotazione"
         description="Nasce già confermata: la prendi tu per conto del club."
       />

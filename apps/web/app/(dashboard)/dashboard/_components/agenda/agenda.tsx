@@ -5,20 +5,19 @@ import { useQuery } from "convex/react";
 import { CalendarCheck, Plus, Search, Users, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-
 import { CountBadge } from "@/app/(dashboard)/_components/count-badge";
 import { ListGroup, ListRow } from "@/app/(dashboard)/_components/list";
 import {
   PageBody,
   PageHeader,
 } from "@/app/(dashboard)/_components/page-header";
+import { SheetHeader } from "@/app/(dashboard)/_components/sheet-header";
 import { useConfirm } from "@/app/(dashboard)/_providers/confirm.provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   ResponsiveDrawer,
   ResponsiveDrawerContent,
-  ResponsiveDrawerHeader,
 } from "@/components/ui/responsive-drawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { mergeablePairs, mergedPartnerOf } from "@/lib/booking-merge";
@@ -360,7 +359,7 @@ export function Agenda() {
 
       <ResponsiveDrawer open={mergeOpen} setOpen={setMergeOpen}>
         <ResponsiveDrawerContent className="sm:max-w-2xl md:max-h-[90dvh] md:overflow-y-auto">
-          <ResponsiveDrawerHeader
+          <SheetHeader
             title="Campi da completare"
             description="In cima le coppie dello stesso livello."
           />

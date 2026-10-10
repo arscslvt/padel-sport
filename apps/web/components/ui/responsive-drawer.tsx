@@ -141,10 +141,15 @@ export function ResponsiveDrawerHeader({
   title,
   description,
   visuallyHidden = false,
+  className,
+  titleClassName = "font-heading",
 }: {
   title: string;
   description?: string;
   visuallyHidden?: boolean;
+  className?: string;
+  /** Il carattere del titolo: di norma il display del sito (/tournament). */
+  titleClassName?: string;
 }) {
   const { isDesktop } = React.useContext(ResponsiveProviderContext) || {};
 
@@ -153,8 +158,8 @@ export function ResponsiveDrawerHeader({
   if (isDesktop) {
     return (
       <Wrapper>
-        <DialogHeader>
-          <DialogTitle className="font-heading">{title}</DialogTitle>
+        <DialogHeader className={className}>
+          <DialogTitle className={titleClassName}>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
       </Wrapper>
@@ -162,8 +167,8 @@ export function ResponsiveDrawerHeader({
   }
 
   return (
-    <DrawerHeader className="text-left">
-      <DrawerTitle className="font-heading">{title}</DrawerTitle>
+    <DrawerHeader className={cn("text-left", className)}>
+      <DrawerTitle className={titleClassName}>{title}</DrawerTitle>
       {description && <DrawerDescription>{description}</DrawerDescription>}
     </DrawerHeader>
   );

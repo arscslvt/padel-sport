@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { SheetHeader } from "@/app/(dashboard)/_components/sheet-header";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,7 +17,6 @@ import {
   ResponsiveDrawer,
   ResponsiveDrawerContent,
   ResponsiveDrawerFooter,
-  ResponsiveDrawerHeader,
 } from "@/components/ui/responsive-drawer";
 
 /**
@@ -95,7 +95,7 @@ export default function ConfirmProvider({ children }: { children: ReactNode }) {
         <ResponsiveDrawerContent className="sm:max-w-md">
           {options && (
             <>
-              <ResponsiveDrawerHeader
+              <SheetHeader
                 title={options.title}
                 description={
                   typeof options.description === "string"

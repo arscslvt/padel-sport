@@ -150,7 +150,7 @@ function MoreDrawer({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="bg-background">
-        <DrawerHeader className="text-left">
+        <DrawerHeader className="text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
           <DrawerTitle>Altro</DrawerTitle>
           <DrawerDescription className="sr-only">
             Eventi, configurazione del club e il tuo account.
