@@ -6,6 +6,7 @@ import { AlertCircle, Loader2, Search, UserRoundX, Users } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { LevelBars } from "@/components/level-bars";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { findLevelRangeIndex } from "@/lib/levels";
 import { Input } from "../../../_components/input";
 import { AccountBadge } from "./account-badge";
 import { ClientSheet } from "./client-sheet";
@@ -38,7 +40,12 @@ import {
   MobileFiltersDrawer,
 } from "./mobile-filters";
 import { PointsBadge } from "./points-badge";
-import { type ClientSort, DEFAULT_SORT, sortClients } from "./sort-menu";
+import {
+  type ClientSort,
+  DEFAULT_SORT,
+  type SortKey,
+  sortClients,
+} from "./sort-menu";
 import type { Client } from "./types";
 
 /**
@@ -53,9 +60,12 @@ import type { Client } from "./types";
 
 function ClientRow({
   client,
+  sortKey,
   onOpen,
 }: {
   client: Client;
+  /** L'ordinamento attivo: da telefono la riga ne mostra il valore. */
+  sortKey: SortKey;
   onOpen: (id: string) => void;
 }) {
   const incomplete = client.missingFields.length > 0;
@@ -85,7 +95,7 @@ function ClientRow({
             {incomplete && (
               <Badge
                 variant="outline"
-                className="border-amber-200 bg-amber-50 font-normal text-amber-900"
+                className="border-warning-border bg-warning-subtle text-warning-foreground font-normal"
               >
                 <AlertCircle className="size-3.5" />
                 Dati incompleti
@@ -112,6 +122,25 @@ function ClientRow({
             frozen={Boolean(client.suspension)}
             className="hidden shrink-0 sm:inline-flex"
           />
+        )}
+
+        {/*
+         * Da telefono i badge della riga non ci stanno: ordinando per punti o
+         * per livello, in coda resta il valore su cui si sta ordinando — senza,
+         * l'ordine si vedrebbe ma non si capirebbe.
+         */}
+        {sortKey === "points" && (
+          <PointsBadge
+            points={client.points}
+            frozen={Boolean(client.suspension)}
+            className="shrink-0 sm:hidden"
+          />
+        )}
+        {sortKey === "level" && (
+          <span className="flex shrink-0 items-center gap-1.5 text-[15px] font-semibold tabular-nums sm:hidden">
+            {client.level.toFixed(1)}
+            <LevelBars filled={findLevelRangeIndex(client.level) + 1} />
+          </span>
         )}
 
         <MembershipBadge
@@ -400,6 +429,7 @@ export function ClientsPanel() {
               <ClientRow
                 key={client.id}
                 client={client}
+                sortKey={sort.key}
                 onOpen={openClientFromList}
               />
             ))}
