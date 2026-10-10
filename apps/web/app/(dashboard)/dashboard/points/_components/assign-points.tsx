@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronLeft,
   ChevronRight,
   Coins,
   Loader2,
@@ -9,6 +10,7 @@ import {
   Search,
   Snowflake,
 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -17,7 +19,6 @@ import { SheetHeader } from "@/app/(dashboard)/_components/sheet-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   ResponsiveDrawer,
   ResponsiveDrawerContent,
@@ -81,7 +82,7 @@ export function AssignPoints() {
       </button>
 
       <ResponsiveDrawer open={open} setOpen={setOpen}>
-        <ResponsiveDrawerContent className="sm:max-w-md md:max-h-[90dvh] md:overflow-y-auto">
+        <ResponsiveDrawerContent className="bg-background sm:max-w-md md:max-h-[90dvh] md:overflow-y-auto">
           {open && <Panel />}
         </ResponsiveDrawerContent>
       </ResponsiveDrawer>
@@ -199,7 +200,15 @@ function Panel() {
   );
 }
 
-/** Il conto di una persona e i modi di caricarle punti. */
+/**
+ * Il conto di una persona e i modi di caricarle punti.
+ *
+ * Un asse solo, il margine sinistro, e una gerarchia sola: chi è e quanto ha
+ * (il saldo a destra, sulla stessa riga del nome), poi i preset a tutta riga
+ * — un tocco e i punti sono caricati — e l'importo a mano solo se lo si
+ * chiede. Il manuale è l'eccezione: tenerlo sempre aperto metteva quattro
+ * controlli fra l'operatore e il gesto di tutti i giorni.
+ */
 function ClientWallet({
   client,
   presets,
@@ -209,10 +218,12 @@ function ClientWallet({
   presets: Preset[];
   onBack: () => void;
 }) {
+  const reduce = useReducedMotion();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [manualOpen, setManualOpen] = useState(false);
   const [sign, setSign] = useState<1 | -1>(1);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(1);
   const [reason, setReason] = useState("");
 
   useEffect(() => {
@@ -278,17 +289,14 @@ function ClientWallet({
     }
   };
 
-  const manualPoints = Number.parseInt(amount, 10);
-  const manualValid =
-    Number.isInteger(manualPoints) &&
-    manualPoints > 0 &&
-    reason.trim().length >= 2;
+  const reasonValid = reason.trim().length >= 2;
 
   const submitManual = async () => {
-    const delta = sign * manualPoints;
-    const done = await submit("manual", { delta, label: reason.trim() }, delta);
-    if (done) {
-      setAmount("");
+    const delta = sign * amount;
+    if (await submit("manual", { delta, label: reason.trim() }, delta)) {
+      setManualOpen(false);
+      setSign(1);
+      setAmount(1);
       setReason("");
     }
   };
@@ -296,197 +304,240 @@ function ClientWallet({
   return (
     <>
       <SheetHeader title="Assegna punti" />
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:px-0 md:pb-0">
-        {/* Chi, e quanto ha: la prima cosa da controllare prima di caricare. */}
-        <section className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="size-11 shrink-0">
-              {client.avatarUrl && <AvatarImage src={client.avatarUrl} />}
-              <AvatarFallback>
-                {client.name.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[17px] font-semibold">
-                {client.name}
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:px-0 md:pb-0">
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-muted-foreground hover:text-foreground -ml-1 inline-flex min-h-9 items-center gap-0.5 text-sm transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          Cambia cliente
+        </button>
+
+        {/* Chi è e quanto ha, sulla stessa riga: il saldo si legge senza
+            cercarlo, allineato a destra come un importo. */}
+        <div className="flex items-center gap-3 pt-2 pb-4">
+          <Avatar className="size-11 shrink-0">
+            {client.avatarUrl && <AvatarImage src={client.avatarUrl} />}
+            <AvatarFallback className="bg-foreground/[0.07]">
+              {client.name.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[17px] leading-tight font-semibold">
+              {client.name}
+            </p>
+            <p className="text-muted-foreground truncate text-[13px]">
+              {client.phone ?? client.email ?? "Nessun recapito"}
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            {wallet ? (
+              <p className="text-2xl leading-none font-semibold tabular-nums">
+                {wallet.balance}
               </p>
-              <p className="text-muted-foreground truncate text-[13px]">
-                {client.phone ?? client.email ?? "Nessun recapito"}
+            ) : (
+              <Loader2 className="text-muted-foreground ml-auto size-5 animate-spin" />
+            )}
+            <p className="text-muted-foreground mt-1 text-xs">punti</p>
+          </div>
+        </div>
+
+        {wallet && (wallet.pendingPoints > 0 || !joined) && !frozen && (
+          <p className="text-warning-foreground -mt-1 pb-4 text-xs leading-relaxed">
+            {wallet.pendingPoints > 0 && `+${wallet.pendingPoints} in attesa. `}
+            {!joined &&
+              "Non ha ancora aderito al programma: i punti restano in attesa finché non accetta il regolamento."}
+          </p>
+        )}
+
+        <div className="border-t pt-4">
+          {frozen ? (
+            <div className="border-danger-border bg-danger-subtle text-danger-foreground flex items-start gap-2.5 rounded-xl border p-3 text-sm">
+              <Snowflake className="mt-0.5 size-4 shrink-0" />
+              <p>
+                L'account è sospeso: i punti sono congelati fino alla
+                riattivazione.
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="shrink-0"
-              onClick={onBack}
-            >
-              Cambia
-            </Button>
-          </div>
-
-          <div className="bg-muted/70 rounded-2xl px-4 py-3.5">
-            <p className="text-muted-foreground text-xs">Saldo</p>
-            <p className="mt-1 flex items-baseline gap-1.5">
-              {wallet ? (
-                <span className="text-3xl leading-none font-semibold tabular-nums">
-                  {wallet.balance}
-                </span>
-              ) : (
-                <Loader2 className="text-muted-foreground size-5 animate-spin" />
-              )}
-              <span className="text-muted-foreground text-sm">punti</span>
-            </p>
-            {wallet && wallet.pendingPoints > 0 && (
-              <p className="text-warning-foreground mt-1.5 text-xs">
-                +{wallet.pendingPoints} in attesa di adesione al programma
-              </p>
-            )}
-            {wallet && !joined && !frozen && (
-              <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
-                Non ha ancora aderito al programma: i punti restano in attesa
-                finché non accetta il regolamento.
-              </p>
-            )}
-          </div>
-        </section>
-
-        {frozen ? (
-          <div className="border-danger-border bg-danger-subtle text-danger-foreground flex items-start gap-2.5 rounded-xl border p-3 text-sm">
-            <Snowflake className="mt-0.5 size-4 shrink-0" />
-            <p>
-              L'account è sospeso: i punti sono congelati fino alla
-              riattivazione.
-            </p>
-          </div>
-        ) : (
-          <>
-            {presets.length > 0 && (
-              <section className="space-y-2.5">
-                <h3 className="text-sm font-semibold">Preset</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {presets.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      disabled={busy !== null || (!joined && preset.points < 0)}
-                      onClick={() =>
-                        void submit(
-                          preset.id,
-                          { presetId: preset.id },
-                          preset.points,
-                        )
-                      }
-                      className="bg-card flex min-h-16 flex-col items-start justify-center gap-0.5 rounded-xl border px-3.5 py-2.5 text-left transition-[background-color,transform] active:scale-[0.97] disabled:opacity-40 md:hover:bg-muted/50"
-                    >
-                      <span
-                        className={cn(
-                          "flex items-center gap-1.5 text-lg leading-none font-semibold tabular-nums",
-                          preset.points > 0
-                            ? "text-success-foreground"
-                            : "text-danger-foreground",
-                        )}
-                      >
-                        {busy === preset.id && (
-                          <Loader2 className="size-4 animate-spin" />
-                        )}
-                        {signed(preset.points)}
-                      </span>
-                      <span className="w-full truncate text-[13px]">
-                        {preset.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold">Importo a mano</h3>
-              <div className="grid grid-cols-[auto_1fr] gap-2">
-                <fieldset className="bg-muted flex rounded-xl p-1">
-                  <legend className="sr-only">Aggiungi o togli</legend>
-                  <button
-                    type="button"
-                    aria-label="Aggiungi punti"
-                    aria-pressed={sign === 1}
-                    onClick={() => setSign(1)}
+          ) : (
+            <div className="space-y-2">
+              {/* I preset a tutta riga: il numero davanti, grande, perché è
+                  quello che si sta per dare; la causale accanto. */}
+              {presets.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  disabled={busy !== null || (!joined && preset.points < 0)}
+                  onClick={() =>
+                    void submit(
+                      preset.id,
+                      { presetId: preset.id },
+                      preset.points,
+                    )
+                  }
+                  className="bg-card flex min-h-14 w-full items-center gap-4 rounded-xl border px-4 text-left transition-[background-color,transform] active:scale-[0.98] disabled:opacity-40 md:hover:bg-muted/50"
+                >
+                  <span
                     className={cn(
-                      "flex size-10 items-center justify-center rounded-lg transition-colors",
-                      sign === 1 && "bg-background shadow-xs",
+                      "w-10 shrink-0 text-lg font-semibold tabular-nums",
+                      preset.points > 0
+                        ? "text-success-foreground"
+                        : "text-danger-foreground",
                     )}
                   >
-                    <Plus className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Togli punti"
-                    aria-pressed={sign === -1}
-                    // A un conto non attivo non si tolgono punti (lib.ts).
-                    disabled={!joined}
-                    onClick={() => setSign(-1)}
-                    className={cn(
-                      "flex size-10 items-center justify-center rounded-lg transition-colors disabled:opacity-40",
-                      sign === -1 && "bg-background shadow-xs",
-                    )}
-                  >
-                    <Minus className="size-4" />
-                  </button>
-                </fieldset>
-                <Input
-                  aria-label="Punti"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  step={1}
-                  placeholder="Punti"
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
-                  className="bg-card h-12 rounded-xl text-base tabular-nums"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="assign-reason" className="font-normal">
-                  Motivo{" "}
-                  <span className="text-muted-foreground">
-                    (lo legge il cliente)
+                    {signed(preset.points)}
                   </span>
-                </Label>
-                <Input
-                  id="assign-reason"
-                  value={reason}
-                  maxLength={80}
-                  placeholder="Es. torneo sociale, correzione"
-                  onChange={(event) => setReason(event.target.value)}
-                  className="bg-card h-12 rounded-xl text-base"
-                />
-              </div>
-              <Button
-                className="h-12 w-full rounded-xl"
-                disabled={!manualValid || busy !== null}
-                onClick={() => void submitManual()}
-              >
-                {busy === "manual" && (
-                  <Loader2 className="size-4 animate-spin" />
+                  <span className="min-w-0 flex-1 truncate text-[15px]">
+                    {preset.label}
+                  </span>
+                  {busy === preset.id && (
+                    <Loader2 className="text-muted-foreground size-4 animate-spin" />
+                  )}
+                </button>
+              ))}
+
+              <AnimatePresence initial={false} mode="wait">
+                {manualOpen ? (
+                  <motion.section
+                    key="manual"
+                    aria-label="Altro importo"
+                    initial={
+                      reduce ? { opacity: 0 } : { opacity: 0, height: 0 }
+                    }
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                    transition={{ type: "spring", bounce: 0, duration: 0.35 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-3 pt-3">
+                      <fieldset className="bg-foreground/[0.06] grid grid-cols-2 gap-1 rounded-xl p-1">
+                        <legend className="sr-only">Aggiungi o togli</legend>
+                        {(
+                          [
+                            [1, "Aggiungi"],
+                            [-1, "Togli"],
+                          ] as const
+                        ).map(([value, label]) => (
+                          <button
+                            key={label}
+                            type="button"
+                            aria-pressed={sign === value}
+                            // A un conto non attivo non si tolgono punti (lib.ts).
+                            disabled={value === -1 && !joined}
+                            onClick={() => setSign(value)}
+                            className={cn(
+                              "min-h-10 rounded-lg text-sm transition-colors disabled:opacity-40",
+                              sign === value
+                                ? "bg-background font-medium shadow-xs"
+                                : "text-muted-foreground",
+                            )}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </fieldset>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="size-12 shrink-0 rounded-xl"
+                          aria-label="Un punto in meno"
+                          disabled={amount <= 1}
+                          onClick={() => setAmount((value) => value - 1)}
+                        >
+                          <Minus className="size-4" />
+                        </Button>
+                        <Input
+                          aria-label="Punti"
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={1000}
+                          value={amount}
+                          onChange={(event) =>
+                            setAmount(
+                              Math.min(
+                                1000,
+                                Math.max(1, Number(event.target.value) || 1),
+                              ),
+                            )
+                          }
+                          className="bg-card h-12 rounded-xl text-center text-xl font-semibold tabular-nums"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="size-12 shrink-0 rounded-xl"
+                          aria-label="Un punto in più"
+                          disabled={amount >= 1000}
+                          onClick={() => setAmount((value) => value + 1)}
+                        >
+                          <Plus className="size-4" />
+                        </Button>
+                      </div>
+
+                      <Input
+                        aria-label="Motivo"
+                        value={reason}
+                        maxLength={80}
+                        placeholder="Motivo, lo legge il cliente"
+                        onChange={(event) => setReason(event.target.value)}
+                        className="bg-card h-12 rounded-xl text-base"
+                      />
+
+                      <div className="grid grid-cols-[auto_1fr] gap-2">
+                        <Button
+                          variant="ghost"
+                          className="h-12 rounded-xl"
+                          onClick={() => setManualOpen(false)}
+                        >
+                          Annulla
+                        </Button>
+                        <Button
+                          className="h-12 rounded-xl"
+                          disabled={!reasonValid || busy !== null}
+                          onClick={() => void submitManual()}
+                        >
+                          {busy === "manual" && (
+                            <Loader2 className="size-4 animate-spin" />
+                          )}
+                          {sign === 1 ? "Aggiungi" : "Togli"} {amount}{" "}
+                          {amount === 1 ? "punto" : "punti"}
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.section>
+                ) : (
+                  <motion.div
+                    key="toggle"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setManualOpen(true)}
+                      className="text-foreground hover:bg-muted/60 flex min-h-12 w-full items-center gap-2 rounded-xl px-4 text-[15px] font-medium transition-colors"
+                    >
+                      <Plus className="size-4" />
+                      Altro importo
+                    </button>
+                  </motion.div>
                 )}
-                {manualValid
-                  ? `${sign === 1 ? "Aggiungi" : "Togli"} ${manualPoints} punti`
-                  : "Indica punti e motivo"}
-              </Button>
-            </section>
-          </>
-        )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
 
         <Link
           href={`/dashboard/clients/${client.id}?tab=points&from=points`}
-          className="active:bg-muted/80 md:hover:bg-muted/50 bg-card flex min-h-14 items-center gap-3 rounded-2xl border px-4 text-[15px] transition-colors"
+          className="text-muted-foreground hover:text-foreground mt-4 inline-flex min-h-10 items-center gap-0.5 text-sm transition-colors"
         >
-          <span className="flex-1">
-            Scheda punti completa
-            <span className="text-muted-foreground block text-[13px]">
-              Storico, premi riscattati, adesione
-            </span>
-          </span>
-          <ChevronRight className="text-muted-foreground size-4" />
+          Apri la scheda punti di {firstName}
+          <ChevronRight className="size-4" />
         </Link>
       </div>
     </>
