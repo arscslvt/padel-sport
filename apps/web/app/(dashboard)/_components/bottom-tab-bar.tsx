@@ -62,7 +62,12 @@ export function BottomTabBar() {
     <>
       <nav
         aria-label="Sezioni della dashboard"
-        className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden"
+        // Il contenitore, da bordo a bordo, ha lo sfondo della pagina: Safari
+        // su iOS colora la sua barra in basso con lo sfondo dell'elemento
+        // fissato al bordo, e su uno trasparente ripiega sul bianco. Stesso
+        // colore della pagina, quindi la fascia non si vede; la sfumatura
+        // sopra evita il taglio netto dove il contenuto le scorre sotto.
+        className="bg-background before:from-background fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:to-transparent md:hidden"
       >
         <div className="dashboard-material bg-background/80 supports-[backdrop-filter]:bg-background/70 mx-auto flex max-w-md items-stretch rounded-[1.75rem] border p-1 shadow-[0_8px_30px_-12px_oklch(0.2_0_0/0.25)] backdrop-blur-xl backdrop-saturate-150">
           {PRIMARY_NAV.map((item) => (
