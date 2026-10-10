@@ -102,7 +102,7 @@ function Body({
         description={`${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
       />
 
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-2 md:px-0">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pt-1 pb-2 md:-mx-1 md:px-1">
         <div className="flex flex-wrap gap-1.5">
           {pending ? (
             <StatusBadge tone="warning">Da confermare</StatusBadge>

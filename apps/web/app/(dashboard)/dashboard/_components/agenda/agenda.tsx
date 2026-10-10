@@ -363,7 +363,7 @@ export function Agenda() {
             title="Campi da completare"
             description="In cima le coppie dello stesso livello."
           />
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:px-0 md:pb-0">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:-mx-1 md:px-1 md:pb-0">
             <MergePairs
               bookings={list}
               courts={(courts ?? []).map((court) => ({

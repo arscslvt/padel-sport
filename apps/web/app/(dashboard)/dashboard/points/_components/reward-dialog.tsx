@@ -260,7 +260,7 @@ export function RewardDialog({
 
         {/* Nel drawer scorre solo il modulo: testata e bottoni restano fermi,
             e il drawer resta trascinabile dalla maniglia. */}
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 md:overflow-visible md:px-0">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pt-1 md:overflow-visible md:-mx-1 md:px-1">
           <div className="space-y-1.5">
             <Label>Foto</Label>
             {preview ? (

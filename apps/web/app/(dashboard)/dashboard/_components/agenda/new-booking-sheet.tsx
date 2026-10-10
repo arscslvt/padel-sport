@@ -240,7 +240,7 @@ function Form({
         description="Nasce già confermata: la prendi tu per conto del club."
       />
 
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 pb-2 md:px-0">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 pt-1 pb-2 md:-mx-1 md:px-1">
         <Field label="Chi prenota" htmlFor="new-booking-name">
           {client ? (
             <div className="bg-muted/50 flex min-h-12 items-center gap-3 rounded-xl border px-3">

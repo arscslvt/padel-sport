@@ -144,7 +144,7 @@ function Panel({ onDone }: { onDone: () => void }) {
         title="Assegna punti"
         description="Cerca il cliente: poi un tocco sul preset, o un importo a mano."
       />
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:px-0 md:pb-0">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pt-1 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:-mx-1 md:px-1 md:pb-0">
         <div className="relative">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
           <Input
@@ -335,7 +335,7 @@ function ClientWallet({
         title={client.name}
         back={{ label: "Cambia cliente", onClick: onBack }}
       />
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:px-0 md:pb-0">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:-mx-1 md:px-1 md:pb-0">
         {/* Il recapito e il saldo, sulla stessa riga: il saldo si legge senza
             cercarlo, allineato a destra come un importo. */}
         <div className="flex items-center gap-3 pb-4">
