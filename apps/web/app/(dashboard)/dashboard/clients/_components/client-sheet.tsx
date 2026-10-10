@@ -14,7 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Tabs,
@@ -43,10 +43,13 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { findLevelRangeIndex, LEVEL_RANGES } from "@/lib/levels";
 import { cn } from "@/lib/utils";
 
 import { AccountBadge } from "./account-badge";
+import { AccountSuspension } from "./account-suspension";
 import { ClientPageLayout, ClientPageSkeleton } from "./client-page-layout";
+import { LevelSelect } from "./level-select";
 import { MembershipBadge } from "./membership-badge";
 import {
   EMPTY_OPTIONAL,
@@ -56,7 +59,7 @@ import {
 } from "./optional-fields";
 import { PointsTab } from "./points-tab";
 import { ResidenceFields, residencePayload } from "./residence-fields";
-import type { ClientDetail, Gender, Residence } from "./types";
+import type { Client, ClientDetail, Gender, Residence } from "./types";
 
 /**
  * La scheda del cliente: anagrafica, account, tessera e punti.
@@ -110,17 +113,71 @@ function fromDateInput(value: string): number | undefined {
 }
 
 /**
+ * Le schede già aperte in questa sessione. Riaprirne una la mostra subito,
+ * mentre quella fresca arriva dal server e prende il suo posto.
+ */
+const detailCache = new Map<string, ClientDetail>();
+
+/**
+ * Quello che la riga dell'elenco sa già: nome, contatti, tessera in corso.
+ * Basta a non aprire una scheda vuota; il resto — indirizzo, dati sanitari,
+ * storico delle tessere — arriva con la scheda completa.
+ */
+function previewDetail(row: Client): ClientDetail {
+  const { membership, ...rest } = row;
+  return { ...rest, memberships: membership ? [membership] : [] };
+}
+
+/** I valori del modulo anagrafico per una scheda, nella forma dei suoi campi. */
+function formValues(detail: ClientDetail) {
+  // La proposta di partenza della tessera: dove finisce quella in corso, così
+  // un rinnovo anticipato non fa perdere giorni. Altrimenti oggi.
+  const last = detail.memberships.reduce<number | null>(
+    (latest, row) =>
+      latest === null || row.endsAt > latest ? row.endsAt : latest,
+    null,
+  );
+
+  return {
+    firstName: detail.firstName ?? "",
+    lastName: detail.lastName ?? "",
+    email: detail.email ?? "",
+    phone: detail.phone ?? "",
+    birthDate: toDateInput(detail.birthDate),
+    birthPlace: detail.birthPlace ?? "",
+    gender: detail.gender,
+    level: detail.level as number | undefined,
+    residence: (detail.residence ?? {}) as Residence,
+    optional: {
+      taxCode: detail.taxCode ?? "",
+      health: detail.health ?? {},
+      clubNotes: detail.clubNotes ?? "",
+    } as OptionalFieldsValue,
+    startsAt: toDateInput(last && last > Date.now() ? last : Date.now()),
+  };
+}
+
+type FormValues = ReturnType<typeof formValues>;
+
+function sameValue(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
  * La scheda nel pannello laterale: si apre dall'elenco senza perderlo di
  * vista. Accanto alla X c'è il tasto che la porta a tutta pagina, per quando
  * con quella persona c'è da lavorare con calma.
  */
 export function ClientSheet({
   playerId,
+  preview,
   open,
   onOpenChange,
   onSaved,
 }: {
   playerId: string | null;
+  /** La riga dell'elenco, per mostrare subito quello che si sa già. */
+  preview?: Client;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
@@ -140,6 +197,7 @@ export function ClientSheet({
         )}
         <ClientDetailView
           playerId={playerId}
+          preview={preview}
           active={open}
           variant="sheet"
           onSaved={onSaved}
@@ -162,12 +220,14 @@ export function ClientSheet({
  */
 export function ClientDetailView({
   playerId,
+  preview,
   active,
   variant,
   onSaved,
   onRemoved,
 }: {
   playerId: string | null;
+  preview?: Client;
   /** Falso a pannello chiuso: niente da caricare. */
   active: boolean;
   variant: "sheet" | "page";
@@ -177,6 +237,10 @@ export function ClientDetailView({
   const [client, setClient] = useState<ClientDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Falso finché a video c'è solo l'anteprima dell'elenco: si legge, ma non si
+  // salva niente — un salvataggio adesso cancellerebbe i campi non ancora arrivati.
+  const [complete, setComplete] = useState(false);
+  const busy = saving || !complete;
 
   // Anagrafica
   const [firstName, setFirstName] = useState("");
@@ -186,6 +250,7 @@ export function ClientDetailView({
   const [birthDate, setBirthDate] = useState("");
   const [birthPlace, setBirthPlace] = useState("");
   const [gender, setGender] = useState<Gender | undefined>();
+  const [level, setLevel] = useState<number | undefined>();
   const [residence, setResidence] = useState<Residence>({});
   const [optional, setOptional] = useState<OptionalFieldsValue>(EMPTY_OPTIONAL);
 
@@ -195,11 +260,69 @@ export function ClientDetailView({
   const [amount, setAmount] = useState("");
   const [startsAt, setStartsAt] = useState("");
 
+  const form: FormValues = {
+    firstName,
+    lastName,
+    email,
+    phone,
+    birthDate,
+    birthPlace,
+    gender,
+    level,
+    residence,
+    optional,
+    startsAt,
+  };
+  const formRef = useRef(form);
+  formRef.current = form;
+
+  const setters: { [K in keyof FormValues]: (value: FormValues[K]) => void } = {
+    firstName: setFirstName,
+    lastName: setLastName,
+    email: setEmail,
+    phone: setPhone,
+    birthDate: setBirthDate,
+    birthPlace: setBirthPlace,
+    gender: setGender,
+    level: setLevel,
+    residence: setResidence,
+    optional: setOptional,
+    startsAt: setStartsAt,
+  };
+  const settersRef = useRef(setters);
+
+  // L'anteprima si legge una volta, all'apertura: l'elenco che si ricarica
+  // dopo un salvataggio non deve far ripartire la scheda.
+  const previewRef = useRef(preview);
+  previewRef.current = preview;
+
   useEffect(() => {
     if (!playerId || !active) return;
 
     let cancelled = false;
-    setLoading(true);
+
+    /**
+     * Riempie il modulo. Con `seeded` tocca solo i campi rimasti come li
+     * aveva lasciati l'anteprima: quello che lo staff ha già corretto nel
+     * frattempo non viene sovrascritto dal server.
+     */
+    const fill = (next: FormValues, seeded?: FormValues) => {
+      for (const key of Object.keys(next) as (keyof FormValues)[]) {
+        if (seeded && !sameValue(formRef.current[key], seeded[key])) continue;
+        (settersRef.current[key] as (value: unknown) => void)(next[key]);
+      }
+    };
+
+    const cached = detailCache.get(playerId);
+    const row =
+      previewRef.current?.id === playerId ? previewRef.current : undefined;
+    const seed = cached ?? (row ? previewDetail(row) : null);
+    const seededForm = seed ? formValues(seed) : undefined;
+
+    setClient(seed);
+    if (seededForm) fill(seededForm);
+    setComplete(Boolean(cached));
+    setLoading(!seed);
 
     fetch(`/api/dashboard/clients/${playerId}`)
       .then((response) => response.json())
@@ -212,29 +335,10 @@ export function ClientDetailView({
           return;
         }
 
+        detailCache.set(playerId, detail);
         setClient(detail);
-        setFirstName(detail.firstName ?? "");
-        setLastName(detail.lastName ?? "");
-        setEmail(detail.email ?? "");
-        setPhone(detail.phone ?? "");
-        setBirthDate(toDateInput(detail.birthDate));
-        setBirthPlace(detail.birthPlace ?? "");
-        setGender(detail.gender);
-        setResidence(detail.residence ?? {});
-        setOptional({
-          taxCode: detail.taxCode ?? "",
-          health: detail.health ?? {},
-          clubNotes: detail.clubNotes ?? "",
-        });
-
-        // La proposta di partenza: dove finisce la tessera in corso, così un
-        // rinnovo anticipato non fa perdere giorni. Altrimenti oggi.
-        const last = detail.memberships.reduce<number | null>(
-          (latest, row) =>
-            latest === null || row.endsAt > latest ? row.endsAt : latest,
-          null,
-        );
-        setStartsAt(toDateInput(last && last > Date.now() ? last : Date.now()));
+        fill(formValues(detail), seededForm);
+        setComplete(true);
       })
       .catch(() => {
         if (!cancelled) toast.error("Scheda non disponibile.");
@@ -254,7 +358,10 @@ export function ClientDetailView({
     const payload = await fetch(`/api/dashboard/clients/${playerId}`)
       .then((response) => response.json())
       .catch(() => null);
-    if (payload?.client) setClient(payload.client);
+    if (payload?.client) {
+      detailCache.set(playerId, payload.client);
+      setClient(payload.client);
+    }
   };
 
   const invite = async () => {
@@ -416,6 +523,9 @@ export function ClientDetailView({
           birthDate: fromDateInput(birthDate),
           birthPlace: birthPlace.trim() || undefined,
           gender,
+          // Solo se lo staff ha cambiato fascia: chi si è valutato 3.5 da solo
+          // non deve ritrovarsi a 4 per aver corretto il telefono.
+          level: level !== client?.level ? level : undefined,
           residence: residencePayload(residence),
           ...optionalPayload(optional),
         }),
@@ -619,7 +729,7 @@ export function ClientDetailView({
               idPrefix="sheet"
             />
 
-            <div className="space-y-1.5 sm:col-span-2">
+            <div className="space-y-1.5">
               <Label htmlFor="sheet-gender">Sesso</Label>
               <Select
                 value={gender}
@@ -637,6 +747,14 @@ export function ClientDetailView({
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sheet-level">Livello</Label>
+              <LevelSelect
+                id="sheet-level"
+                value={findLevelRangeIndex(level)}
+                onValueChange={(index) => setLevel(LEVEL_RANGES[index].level)}
+              />
+            </div>
           </div>
 
           <p className="text-muted-foreground text-xs leading-relaxed">
@@ -651,7 +769,7 @@ export function ClientDetailView({
             idPrefix="sheet"
           />
 
-          <Button onClick={() => void saveProfile()} disabled={saving}>
+          <Button onClick={() => void saveProfile()} disabled={busy}>
             {saving ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
@@ -667,7 +785,7 @@ export function ClientDetailView({
                 size="sm"
                 className="text-destructive hover:text-destructive"
                 onClick={confirmRemove}
-                disabled={saving}
+                disabled={busy}
               >
                 <Trash2 className="size-4" />
                 Elimina questa scheda
@@ -691,7 +809,7 @@ export function ClientDetailView({
 
               <Button
                 onClick={() => void invite()}
-                disabled={saving || !email.trim()}
+                disabled={busy || !email.trim()}
               >
                 {saving ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -731,7 +849,7 @@ export function ClientDetailView({
                 <Button
                   variant="outline"
                   onClick={() => void invite()}
-                  disabled={saving}
+                  disabled={busy}
                 >
                   {saving ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -743,7 +861,7 @@ export function ClientDetailView({
                 <Button
                   variant="ghost"
                   onClick={() => void revokeInvite()}
-                  disabled={saving}
+                  disabled={busy}
                 >
                   <MailX className="size-4" />
                   Annulla invito
@@ -753,17 +871,29 @@ export function ClientDetailView({
           )}
 
           {client.account.state === "active" && (
-            <div className="flex items-start gap-2.5 rounded-lg border bg-muted/20 p-3 text-sm">
-              <UserRoundCheck className="mt-0.5 size-4 shrink-0" />
-              <div>
-                <p className="font-medium">Account attivo</p>
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {client.account.acceptedAt
-                    ? `Attivato il ${format(client.account.acceptedAt, "d MMMM yyyy", { locale: it })}: prenota dal sito e dall'app.`
-                    : "Prenota dal sito e dall'app."}
-                </p>
-              </div>
-            </div>
+            <>
+              {!client.suspension && (
+                <div className="flex items-start gap-2.5 rounded-lg border bg-muted/20 p-3 text-sm">
+                  <UserRoundCheck className="mt-0.5 size-4 shrink-0" />
+                  <div>
+                    <p className="font-medium">Account attivo</p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      {client.account.acceptedAt
+                        ? `Attivato il ${format(client.account.acceptedAt, "d MMMM yyyy", { locale: it })}: prenota dal sito e dall'app.`
+                        : "Prenota dal sito e dall'app."}
+                    </p>
+                  </div>
+                </div>
+              )}
+              <AccountSuspension
+                client={client}
+                disabled={busy}
+                onChanged={async () => {
+                  onSaved();
+                  await refresh();
+                }}
+              />
+            </>
           )}
         </TabsContent>
 
@@ -875,7 +1005,7 @@ export function ClientDetailView({
 
             <Button
               onClick={() => void saveMembership()}
-              disabled={saving}
+              disabled={busy}
               className="w-full"
             >
               {saving ? (
@@ -975,7 +1105,10 @@ export function ClientDetailView({
                 : undefined
             }
           />
-          <AccountBadge state={client.account.state} />
+          <AccountBadge
+            state={client.account.state}
+            suspended={Boolean(client.suspension)}
+          />
           {client.code && (
             <Badge variant="outline" className="font-mono">
               #{client.code}
@@ -1094,7 +1227,7 @@ export function ClientDetailView({
                 idPrefix="sheet"
               />
 
-              <div className="space-y-1.5 sm:col-span-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="sheet-gender">Sesso</Label>
                 <Select
                   value={gender}
@@ -1112,6 +1245,14 @@ export function ClientDetailView({
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sheet-level">Livello</Label>
+                <LevelSelect
+                  id="sheet-level"
+                  value={findLevelRangeIndex(level)}
+                  onValueChange={(index) => setLevel(LEVEL_RANGES[index].level)}
+                />
+              </div>
             </div>
 
             <p className="text-muted-foreground text-xs leading-relaxed">
@@ -1126,7 +1267,7 @@ export function ClientDetailView({
               idPrefix="sheet"
             />
 
-            <Button onClick={() => void saveProfile()} disabled={saving}>
+            <Button onClick={() => void saveProfile()} disabled={busy}>
               {saving ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -1142,7 +1283,7 @@ export function ClientDetailView({
                   size="sm"
                   className="text-destructive hover:text-destructive"
                   onClick={confirmRemove}
-                  disabled={saving}
+                  disabled={busy}
                 >
                   <Trash2 className="size-4" />
                   Elimina questa scheda
@@ -1166,7 +1307,7 @@ export function ClientDetailView({
 
                 <Button
                   onClick={() => void invite()}
-                  disabled={saving || !email.trim()}
+                  disabled={busy || !email.trim()}
                 >
                   {saving ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -1206,7 +1347,7 @@ export function ClientDetailView({
                   <Button
                     variant="outline"
                     onClick={() => void invite()}
-                    disabled={saving}
+                    disabled={busy}
                   >
                     {saving ? (
                       <Loader2 className="size-4 animate-spin" />
@@ -1218,7 +1359,7 @@ export function ClientDetailView({
                   <Button
                     variant="ghost"
                     onClick={() => void revokeInvite()}
-                    disabled={saving}
+                    disabled={busy}
                   >
                     <MailX className="size-4" />
                     Annulla invito
@@ -1228,17 +1369,29 @@ export function ClientDetailView({
             )}
 
             {client.account.state === "active" && (
-              <div className="flex items-start gap-2.5 rounded-lg border bg-muted/20 p-3 text-sm">
-                <UserRoundCheck className="mt-0.5 size-4 shrink-0" />
-                <div>
-                  <p className="font-medium">Account attivo</p>
-                  <p className="text-muted-foreground mt-0.5 text-xs">
-                    {client.account.acceptedAt
-                      ? `Attivato il ${format(client.account.acceptedAt, "d MMMM yyyy", { locale: it })}: prenota dal sito e dall'app.`
-                      : "Prenota dal sito e dall'app."}
-                  </p>
-                </div>
-              </div>
+              <>
+                {!client.suspension && (
+                  <div className="flex items-start gap-2.5 rounded-lg border bg-muted/20 p-3 text-sm">
+                    <UserRoundCheck className="mt-0.5 size-4 shrink-0" />
+                    <div>
+                      <p className="font-medium">Account attivo</p>
+                      <p className="text-muted-foreground mt-0.5 text-xs">
+                        {client.account.acceptedAt
+                          ? `Attivato il ${format(client.account.acceptedAt, "d MMMM yyyy", { locale: it })}: prenota dal sito e dall'app.`
+                          : "Prenota dal sito e dall'app."}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <AccountSuspension
+                  client={client}
+                  disabled={busy}
+                  onChanged={async () => {
+                    onSaved();
+                    await refresh();
+                  }}
+                />
+              </>
             )}
           </TabsContent>
 
@@ -1350,7 +1503,7 @@ export function ClientDetailView({
 
               <Button
                 onClick={() => void saveMembership()}
-                disabled={saving}
+                disabled={busy}
                 className="w-full"
               >
                 {saving ? (

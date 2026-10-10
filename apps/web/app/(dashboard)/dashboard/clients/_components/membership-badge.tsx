@@ -64,22 +64,3 @@ export function MembershipBadge({
     </Badge>
   );
 }
-
-/**
- * I filtri dell'elenco: prima la tessera, poi l'account.
- *
- * Sono nella stessa fila perché lo staff cerca sempre «chi devo sistemare», e
- * la risposta a volte è una quota da incassare e a volte un invito da mandare.
- */
-export const MEMBERSHIP_FILTERS = [
-  { value: "all", label: "Tutti" },
-  { value: "unpaid", label: "Da pagare" },
-  { value: "expired", label: "Scadute" },
-  { value: "expiring", label: "In scadenza" },
-  { value: "none", label: "Senza tessera" },
-  { value: "active", label: "In regola" },
-  { value: "no-account", label: "Senza account" },
-  { value: "invited", label: "Invitati" },
-] as const;
-
-export type MembershipFilter = (typeof MEMBERSHIP_FILTERS)[number]["value"];

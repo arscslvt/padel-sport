@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LEVEL_RANGES } from "@/lib/levels";
-
+import { LevelSelect } from "./level-select";
 import {
   EMPTY_OPTIONAL,
   OptionalFields,
@@ -134,9 +134,13 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        {/* Da telefono solo l'icona: la riga è già della ricerca e dei filtri. */}
+        <Button
+          aria-label="Crea cliente"
+          className="size-10 shrink-0 px-0 sm:h-10 sm:w-auto sm:px-4"
+        >
           <UserPlus className="size-4" />
-          Crea cliente
+          <span className="hidden sm:inline">Crea cliente</span>
         </Button>
       </DialogTrigger>
 
@@ -239,21 +243,11 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="new-level">Livello</Label>
-            <Select
-              value={String(levelIndex)}
-              onValueChange={(value) => setLevelIndex(Number(value))}
-            >
-              <SelectTrigger id="new-level" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LEVEL_RANGES.map((range, index) => (
-                  <SelectItem key={range.label} value={String(index)}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <LevelSelect
+              id="new-level"
+              value={levelIndex}
+              onValueChange={setLevelIndex}
+            />
           </div>
         </div>
 

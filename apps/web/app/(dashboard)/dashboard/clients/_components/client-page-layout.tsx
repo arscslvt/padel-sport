@@ -117,7 +117,10 @@ export function ClientPageLayout({
                     : undefined
                 }
               />
-              <AccountBadge state={client.account.state} />
+              <AccountBadge
+                state={client.account.state}
+                suspended={Boolean(client.suspension)}
+              />
               {client.code && (
                 <Badge variant="outline" className="font-mono">
                   #{client.code}

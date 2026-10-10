@@ -62,12 +62,15 @@ export async function GET(
       );
     }
 
-    // Email e foto vivono su Clerk quando un account c'è: la scheda le mostra
-    // anche prima che l'elenco le abbia ricopiate su Convex (lib/clients.ts).
-    // Una scheda aperta allo sportello non ha niente da chiedere a Clerk.
-    const identity = client.clerkUserId
-      ? (await clerkIdentities([client.clerkUserId])).get(client.clerkUserId)
-      : undefined;
+    // Email e foto vivono su Clerk quando un account c'è, ma l'elenco le
+    // ricopia su Convex ogni volta che si apre (lib/clients.ts): a Clerk si
+    // chiede solo se la copia non c'è ancora, e sono duecento millisecondi
+    // risparmiati a ogni scheda. Una scheda aperta allo sportello non ha
+    // niente da chiedere a Clerk in ogni caso.
+    const identity =
+      client.clerkUserId && !client.email
+        ? (await clerkIdentities([client.clerkUserId])).get(client.clerkUserId)
+        : undefined;
 
     const email = client.email ?? identity?.email;
 

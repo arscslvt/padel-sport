@@ -45,12 +45,22 @@ export async function GET(request: Request) {
   const includeStaff = params.get("staff") === "1";
 
   try {
-    const staffIds = new Set(await staffClerkUserIds());
+    // Le due domande non dipendono l'una dall'altra: chi è dello staff lo sa
+    // Clerk, i clienti Convex. Insieme invece che in fila, e lo staff si toglie
+    // dopo — sono una decina di righe.
+    const [staffList, everyone] = await Promise.all([
+      staffClerkUserIds(),
+      gate.convex.query(api.modules.clients.list.default, {
+        secret: gate.secret,
+      }),
+    ]);
 
-    const clients = await gate.convex.query(api.modules.clients.list.default, {
-      secret: gate.secret,
-      excludeClerkUserIds: includeStaff ? [] : [...staffIds],
-    });
+    const staffIds = new Set(staffList);
+    const clients = includeStaff
+      ? everyone
+      : everyone.filter(
+          (client) => !client.clerkUserId || !staffIds.has(client.clerkUserId),
+        );
 
     // Quello che Convex non sa: chi si è registrato dall'app non ha mai
     // scritto qui la propria email, che vive sull'account. Le schede aperte

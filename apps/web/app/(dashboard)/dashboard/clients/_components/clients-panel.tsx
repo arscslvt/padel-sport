@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { AlertCircle, Search, UserRoundX, Users } from "lucide-react";
+import { AlertCircle, Loader2, Search, UserRoundX, Users } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -15,7 +15,6 @@ import {
 } from "@/app/(dashboard)/_components/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyDescription,
@@ -30,10 +29,22 @@ import { AccountBadge } from "./account-badge";
 import { ClientSheet } from "./client-sheet";
 import { CreateClientDialog } from "./create-client-dialog";
 import {
-  MEMBERSHIP_FILTERS,
-  MembershipBadge,
-  type MembershipFilter,
-} from "./membership-badge";
+  activeCount,
+  type ClientFilters,
+  DEFAULT_FILTERS,
+  facetCounts,
+  matchesAccount,
+  matchesMembership,
+} from "./filters";
+import { FiltersToolbar } from "./filters-toolbar";
+import { MembershipBadge } from "./membership-badge";
+import {
+  ActiveFilterChips,
+  MobileFiltersButton,
+  MobileFiltersDrawer,
+} from "./mobile-filters";
+import { PointsBadge } from "./points-badge";
+import { type ClientSort, DEFAULT_SORT, sortClients } from "./sort-menu";
 import type { Client } from "./types";
 
 /**
@@ -93,17 +104,20 @@ function ClientRow({
           </p>
         </div>
 
-        {client.account.state !== "active" && (
+        {(client.account.state !== "active" || client.suspension) && (
           <AccountBadge
             state={client.account.state}
+            suspended={Boolean(client.suspension)}
             className="hidden shrink-0 md:inline-flex"
           />
         )}
 
         {client.points > 0 && (
-          <span className="text-muted-foreground hidden shrink-0 text-xs tabular-nums sm:inline">
-            {client.points} pt
-          </span>
+          <PointsBadge
+            points={client.points}
+            frozen={Boolean(client.suspension)}
+            className="hidden shrink-0 sm:inline-flex"
+          />
         )}
 
         <MembershipBadge
@@ -122,10 +136,12 @@ function ClientRow({
 
 export function ClientsPanel() {
   const [clients, setClients] = useState<Client[] | null>(null);
+  /** Una richiesta in volo: la ricerca passa dal server, e lo si deve vedere. */
+  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<MembershipFilter>("all");
-  /** Lo staff è nascosto di norma: si mostra per gestire chi è anche socio. */
-  const [showStaff, setShowStaff] = useState(false);
+  const [filters, setFilters] = useState<ClientFilters>(DEFAULT_FILTERS);
+  const [sort, setSort] = useState<ClientSort>(DEFAULT_SORT);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   /**
    * `?client=` apre direttamente la scheda: è dove atterra chi tocca una
    * notifica che parla di quella persona. Si legge una volta sola — dopo,
@@ -136,37 +152,35 @@ export function ClientsPanel() {
     searchParams.get("client"),
   );
 
-  const load = useCallback(
-    async (search: string) => {
-      const params = new URLSearchParams();
-      if (search) params.set("q", search);
-      if (showStaff) params.set("staff", "1");
-      const qs = params.toString();
+  // Lo staff arriva sempre, marcato con `isStaff`: «Mostra staff» filtra qui
+  // come i filtri della tessera, senza tornare al server.
+  const load = useCallback(async (search: string) => {
+    const params = new URLSearchParams({ staff: "1" });
+    if (search) params.set("q", search);
 
-      try {
-        const response = await fetch(
-          `/api/dashboard/clients${qs ? `?${qs}` : ""}`,
-        );
-        const payload = await response.json().catch(() => null);
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/dashboard/clients?${params}`);
+      const payload = await response.json().catch(() => null);
 
-        if (!response.ok) {
-          toast.error("Clienti non caricati", {
-            description: payload?.error ?? "Riprova fra poco.",
-          });
-          setClients([]);
-          return;
-        }
-
-        setClients(payload.clients ?? []);
-      } catch {
+      if (!response.ok) {
         toast.error("Clienti non caricati", {
-          description: "Controlla la connessione e riprova.",
+          description: payload?.error ?? "Riprova fra poco.",
         });
         setClients([]);
+        return;
       }
-    },
-    [showStaff],
-  );
+
+      setClients(payload.clients ?? []);
+    } catch {
+      toast.error("Clienti non caricati", {
+        description: "Controlla la connessione e riprova.",
+      });
+      setClients([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // La ricerca aspetta che si smetta di scrivere: ogni tasto è una chiamata.
   useEffect(() => {
@@ -174,15 +188,32 @@ export function ClientsPanel() {
     return () => clearTimeout(timer);
   }, [query, load]);
 
-  const visible = useMemo(() => {
+  /** L'elenco su cui lavorano i filtri: lo staff c'è solo se richiesto. */
+  const scoped = useMemo(() => {
     if (!clients) return [];
-    if (filter === "all") return clients;
-    if (filter === "no-account" || filter === "invited") {
-      const state = filter === "no-account" ? "none" : "invited";
-      return clients.filter((client) => client.account.state === state);
-    }
-    return clients.filter((client) => client.membershipState === filter);
-  }, [clients, filter]);
+    return filters.showStaff
+      ? clients
+      : clients.filter((client) => !client.isStaff);
+  }, [clients, filters.showStaff]);
+
+  const visible = useMemo(
+    () =>
+      sortClients(
+        scoped.filter(
+          (client) =>
+            matchesMembership(client, filters.membership) &&
+            matchesAccount(client, filters.account),
+        ),
+        sort,
+      ),
+    [scoped, filters.membership, filters.account, sort],
+  );
+
+  /** Quanti ne dà ogni scelta: barra e drawer li mostrano prima del clic. */
+  const filterCounts = useMemo(
+    () => facetCounts(scoped, filters),
+    [scoped, filters],
+  );
 
   const counts = useMemo(() => {
     // I contatori parlano dei clienti: lo staff mostrato col filtro non li gonfia.
@@ -240,7 +271,12 @@ export function ClientsPanel() {
         </Card>
       </section>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+      {/*
+       * Da telefono la barra è una riga sola — ricerca, filtri, nuovo
+       * cliente — e i filtri vivono nel drawer. Da 768px in su tornano in
+       * fila sotto la ricerca, dove c'è spazio per vederli tutti.
+       */}
+      <div className="mt-6 flex items-center gap-2 md:gap-3">
         <div className="relative min-w-0 flex-1">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
@@ -249,31 +285,52 @@ export function ClientsPanel() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
+          {loading && clients !== null && (
+            <Loader2
+              aria-label="Ricerca in corso"
+              className="text-muted-foreground absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin"
+            />
+          )}
+        </div>
+        <div className="md:hidden">
+          <MobileFiltersButton
+            activeCount={activeCount(filters, sort)}
+            onClick={() => setFiltersOpen(true)}
+          />
         </div>
         <CreateClientDialog onCreated={() => void load(query.trim())} />
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {MEMBERSHIP_FILTERS.map((option) => (
-          <Button
-            key={option.value}
-            size="sm"
-            variant={filter === option.value ? "default" : "outline"}
-            className="rounded-full"
-            onClick={() => setFilter(option.value)}
-          >
-            {option.label}
-          </Button>
-        ))}
-        <Button
-          size="sm"
-          variant={showStaff ? "default" : "outline"}
-          className="rounded-full"
-          aria-pressed={showStaff}
-          onClick={() => setShowStaff((value) => !value)}
-        >
-          Mostra staff
-        </Button>
+      <div className="md:hidden">
+        <ActiveFilterChips
+          filters={filters}
+          onFiltersChange={setFilters}
+          sort={sort}
+          onSortChange={setSort}
+        />
+      </div>
+
+      <MobileFiltersDrawer
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        filters={filters}
+        onFiltersChange={setFilters}
+        sort={sort}
+        onSortChange={setSort}
+        counts={filterCounts}
+        resultCount={visible.length}
+      />
+
+      <div className="hidden md:block">
+        <FiltersToolbar
+          filters={filters}
+          onFiltersChange={setFilters}
+          sort={sort}
+          onSortChange={setSort}
+          counts={filterCounts}
+          resultCount={visible.length}
+          totalCount={scoped.length}
+        />
       </div>
 
       <div className="mt-4 overflow-hidden rounded-lg border">
@@ -318,6 +375,7 @@ export function ClientsPanel() {
 
       <ClientSheet
         playerId={openClient}
+        preview={clients?.find((client) => client.id === openClient)}
         open={openClient !== null}
         onOpenChange={(open) => !open && setOpenClient(null)}
         onSaved={() => void load(query.trim())}

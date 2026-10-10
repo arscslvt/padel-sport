@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Gift, Loader2, Minus, Plus, Trash2 } from "lucide-react";
+import { Gift, Loader2, Minus, Plus, Snowflake, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -39,6 +39,8 @@ interface PointsDetail {
     via?: "online" | "desk";
   };
   balance: number;
+  /** Account sospeso: niente carichi, rimozioni o adesioni finché dura. */
+  frozen: boolean;
   transactions: {
     id: string;
     delta: number;
@@ -350,7 +352,21 @@ export function PointsTab({
         )}
       </div>
 
-      {detail.program.state !== "joined" && (
+      {detail.frozen && (
+        <section className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-950">
+          <Snowflake className="mt-0.5 size-4 shrink-0" />
+          <div>
+            <p className="font-medium">Punti congelati</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-red-900/80">
+              L'account è sospeso: il saldo resta del cliente ma non si caricano
+              né si tolgono punti fino alla riattivazione. I premi già
+              riscattati si consegnano lo stesso.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {!detail.frozen && detail.program.state !== "joined" && (
         <ProgramNotice
           state={detail.program.state}
           busy={pending === "program"}
@@ -359,106 +375,114 @@ export function PointsTab({
         />
       )}
 
-      <section className="space-y-2">
-        <h3 className="text-sm font-semibold">Preset</h3>
-        {presets.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            Nessun preset: li crei da Punti e premi.
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {presets.map((preset) => (
-              <Button
-                key={preset.id}
-                variant="outline"
-                size="sm"
-                disabled={pending !== null}
-                onClick={() =>
-                  void submit(`preset-${preset.id}`, {
-                    presetId: preset.id,
-                  })
-                }
-              >
-                {pending === `preset-${preset.id}` ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : null}
-                {preset.label}
-                <span
-                  className={cn(
-                    "font-mono tabular-nums",
-                    preset.points > 0 ? "text-emerald-600" : "text-destructive",
-                  )}
+      {!detail.frozen && (
+        <>
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold">Preset</h3>
+            {presets.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                Nessun preset: li crei da Punti e premi.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {presets.map((preset) => (
+                  <Button
+                    key={preset.id}
+                    variant="outline"
+                    size="sm"
+                    disabled={pending !== null}
+                    onClick={() =>
+                      void submit(`preset-${preset.id}`, {
+                        presetId: preset.id,
+                      })
+                    }
+                  >
+                    {pending === `preset-${preset.id}` ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : null}
+                    {preset.label}
+                    <span
+                      className={cn(
+                        "font-mono tabular-nums",
+                        preset.points > 0
+                          ? "text-emerald-600"
+                          : "text-destructive",
+                      )}
+                    >
+                      {signedPoints(preset.points)}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-3 rounded-lg border p-3">
+            <h3 className="text-sm font-semibold">Movimento a mano</h3>
+
+            <div className="grid grid-cols-[auto_1fr] gap-2">
+              <div className="flex rounded-md border p-0.5">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={sign === 1 ? "default" : "ghost"}
+                  className="size-8"
+                  aria-label="Aggiungi punti"
+                  aria-pressed={sign === 1}
+                  onClick={() => setSign(1)}
                 >
-                  {signedPoints(preset.points)}
-                </span>
-              </Button>
-            ))}
-          </div>
-        )}
-      </section>
+                  <Plus className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={sign === -1 ? "default" : "ghost"}
+                  className="size-8"
+                  aria-label="Togli punti"
+                  aria-pressed={sign === -1}
+                  // A un conto non attivo non si tolgono punti: si annulla il
+                  // movimento in attesa sbagliato.
+                  disabled={detail.program.state !== "joined"}
+                  onClick={() => setSign(-1)}
+                >
+                  <Minus className="size-4" />
+                </Button>
+              </div>
+              <Input
+                aria-label="Punti"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                placeholder="Punti"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+              />
+            </div>
 
-      <section className="space-y-3 rounded-lg border p-3">
-        <h3 className="text-sm font-semibold">Movimento a mano</h3>
+            <div className="space-y-1.5">
+              <Label htmlFor="points-label">Motivo</Label>
+              <Input
+                id="points-label"
+                placeholder="Es. torneo sociale, correzione"
+                value={label}
+                onChange={(event) => setLabel(event.target.value)}
+              />
+            </div>
 
-        <div className="grid grid-cols-[auto_1fr] gap-2">
-          <div className="flex rounded-md border p-0.5">
             <Button
-              type="button"
-              size="icon"
-              variant={sign === 1 ? "default" : "ghost"}
-              className="size-8"
-              aria-label="Aggiungi punti"
-              aria-pressed={sign === 1}
-              onClick={() => setSign(1)}
+              className="w-full"
+              disabled={pending !== null}
+              onClick={() => void submitManual()}
             >
-              <Plus className="size-4" />
+              {pending === "manual" && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
+              {sign === 1 ? "Aggiungi punti" : "Togli punti"}
             </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant={sign === -1 ? "default" : "ghost"}
-              className="size-8"
-              aria-label="Togli punti"
-              aria-pressed={sign === -1}
-              // A un conto non attivo non si tolgono punti: si annulla il
-              // movimento in attesa sbagliato.
-              disabled={detail.program.state !== "joined"}
-              onClick={() => setSign(-1)}
-            >
-              <Minus className="size-4" />
-            </Button>
-          </div>
-          <Input
-            aria-label="Punti"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            step={1}
-            placeholder="Punti"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="points-label">Motivo</Label>
-          <Input
-            id="points-label"
-            placeholder="Es. torneo sociale, correzione"
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-          />
-        </div>
-
-        <Button
-          className="w-full"
-          disabled={pending !== null}
-          onClick={() => void submitManual()}
-        >
-          {pending === "manual" && <Loader2 className="size-4 animate-spin" />}
-          {sign === 1 ? "Aggiungi punti" : "Togli punti"}
-        </Button>
-      </section>
+          </section>
+        </>
+      )}
 
       {detail.program.state === "joined" && detail.program.acceptedAt && (
         <p className="text-muted-foreground text-xs">

@@ -65,6 +65,8 @@ export interface Client {
   points: number;
   /** Fa parte dello staff: compare solo con il filtro «Mostra staff». */
   isStaff?: boolean;
+  /** Account sospeso: non entra né dal sito né dall'app, punti congelati. */
+  suspension?: { reason: string; suspendedAt: number };
   missingFields: string[];
   account: AccountInfo;
   membership: Membership | null;

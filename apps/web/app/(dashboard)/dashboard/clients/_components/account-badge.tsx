@@ -1,4 +1,4 @@
-import { KeyRound, MailCheck, UserRoundCheck } from "lucide-react";
+import { Ban, KeyRound, MailCheck, UserRoundCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -34,14 +34,27 @@ const STATES: Record<
   },
 };
 
+/** La sospensione prevale sullo stato: l'account c'è, ma è chiuso. */
+const SUSPENDED = {
+  label: "Sospeso",
+  icon: Ban,
+  className: "border-red-200 bg-red-50 text-red-900",
+};
+
 export function AccountBadge({
   state,
+  suspended = false,
   className,
 }: {
   state: AccountState;
+  suspended?: boolean;
   className?: string;
 }) {
-  const { label, icon: Icon, className: tone } = STATES[state];
+  const {
+    label,
+    icon: Icon,
+    className: tone,
+  } = suspended ? SUSPENDED : STATES[state];
 
   return (
     <Badge variant="outline" className={cn("font-normal", tone, className)}>
