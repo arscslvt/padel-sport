@@ -25,7 +25,7 @@ export function ResidenceFields({
 
   return (
     <>
-      <div className="space-y-1.5 sm:col-span-2">
+      <div className="col-span-full space-y-2">
         <Label htmlFor={`${idPrefix}-address`}>Indirizzo di residenza</Label>
         <Input
           id={`${idPrefix}-address`}
@@ -36,7 +36,7 @@ export function ResidenceFields({
         />
       </div>
 
-      <div className="space-y-1.5">
+      <div className="min-w-0 space-y-2">
         <Label htmlFor={`${idPrefix}-city`}>Città</Label>
         <Input
           id={`${idPrefix}-city`}
@@ -47,7 +47,7 @@ export function ResidenceFields({
         />
       </div>
 
-      <div className="space-y-1.5">
+      <div className="min-w-0 space-y-2">
         <Label htmlFor={`${idPrefix}-postalCode`}>CAP</Label>
         <Input
           id={`${idPrefix}-postalCode`}

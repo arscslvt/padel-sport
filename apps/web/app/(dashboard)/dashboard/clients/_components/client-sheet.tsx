@@ -14,7 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Tabs,
@@ -618,6 +618,131 @@ export function ClientDetailView({
 
   const isPage = variant === "page";
 
+  /**
+   * L'anagrafica, in tre gruppi nell'ordine in cui la si chiede allo
+   * sportello: chi è, come si raggiunge, dove abita. I campi corti stanno a
+   * due a due anche da telefono (nome e cognome, città e CAP) e il facoltativo
+   * resta richiuso in fondo. Fra un gruppo e l'altro c'è più aria che fra i
+   * campi: è questo che fa leggere i gruppi senza bisogno di riquadri.
+   *
+   * Da telefono i campi sono alti 44px, il bersaglio di un pollice; da
+   * desktop tornano alla misura del resto della dashboard. Le etichette si
+   * uniformano da qui, comprese quelle dei campi condivisi (residenza,
+   * facoltativi).
+   */
+  const profileForm = (
+    <div className="space-y-8 [&_[data-slot=input]]:h-11 [&_[data-slot=label]]:font-normal [&_[data-slot=label]]:text-muted-foreground [&_[data-slot=select-trigger]]:h-11 md:[&_[data-slot=input]]:h-9 md:[&_[data-slot=select-trigger]]:h-9">
+      <FormSection title="Persona">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-5">
+          <FormField label="Nome" htmlFor="sheet-firstName">
+            <Input
+              id="sheet-firstName"
+              autoComplete="given-name"
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
+            />
+          </FormField>
+          <FormField label="Cognome" htmlFor="sheet-lastName">
+            <Input
+              id="sheet-lastName"
+              autoComplete="family-name"
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+            />
+          </FormField>
+          <FormField label="Sesso" htmlFor="sheet-gender">
+            <Select
+              value={gender}
+              onValueChange={(value) => setGender(value as Gender)}
+            >
+              <SelectTrigger id="sheet-gender" className="w-full">
+                <SelectValue placeholder="Non indicato" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(GENDER_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+          <FormField label="Livello" htmlFor="sheet-level">
+            <LevelSelect
+              id="sheet-level"
+              value={findLevelRangeIndex(level)}
+              onValueChange={(index) => setLevel(LEVEL_RANGES[index].level)}
+            />
+          </FormField>
+          <FormField label="Data di nascita" htmlFor="sheet-birth">
+            <Input
+              id="sheet-birth"
+              type="date"
+              value={birthDate}
+              onChange={(event) => setBirthDate(event.target.value)}
+            />
+          </FormField>
+          <FormField label="Luogo di nascita" htmlFor="sheet-birthPlace">
+            <Input
+              id="sheet-birthPlace"
+              value={birthPlace}
+              onChange={(event) => setBirthPlace(event.target.value)}
+            />
+          </FormField>
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="Contatti"
+        note={
+          client.account.state === "none"
+            ? "L'email si può ancora correggere: diventerà l'identità dell'account quando lo inviterai."
+            : "L'email appartiene all'account e si cambia da lì."
+        }
+      >
+        <div className="grid gap-x-3 gap-y-5 sm:grid-cols-2">
+          <FormField label="Telefono" htmlFor="sheet-phone">
+            <Input
+              id="sheet-phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+            />
+          </FormField>
+          <FormField label="Email" htmlFor="sheet-email">
+            <Input
+              id="sheet-email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              disabled={client.account.state !== "none"}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </FormField>
+        </div>
+      </FormSection>
+
+      <FormSection title="Residenza">
+        <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-x-3 gap-y-5">
+          <ResidenceFields
+            value={residence}
+            onChange={setResidence}
+            idPrefix="sheet"
+          />
+        </div>
+      </FormSection>
+
+      <OptionalFields
+        value={optional}
+        onChange={setOptional}
+        idPrefix="sheet"
+      />
+    </div>
+  );
+
   const tabs = (
     <Tabs
       defaultValue="profile"
@@ -675,109 +800,14 @@ export function ClientDetailView({
             : "min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))]",
         )}
       >
-        <TabsContent value="profile" className="space-y-4 pt-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="sheet-firstName">Nome</Label>
-              <Input
-                id="sheet-firstName"
-                value={firstName}
-                onChange={(event) => setFirstName(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sheet-lastName">Cognome</Label>
-              <Input
-                id="sheet-lastName"
-                value={lastName}
-                onChange={(event) => setLastName(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sheet-phone">Telefono</Label>
-              <Input
-                id="sheet-phone"
-                type="tel"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sheet-birth">Data di nascita</Label>
-              <Input
-                id="sheet-birth"
-                type="date"
-                value={birthDate}
-                onChange={(event) => setBirthDate(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="sheet-email">Email</Label>
-              <Input
-                id="sheet-email"
-                type="email"
-                inputMode="email"
-                value={email}
-                disabled={client.account.state !== "none"}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sheet-birthPlace">Luogo di nascita</Label>
-              <Input
-                id="sheet-birthPlace"
-                value={birthPlace}
-                onChange={(event) => setBirthPlace(event.target.value)}
-              />
-            </div>
+        <TabsContent value="profile" className="space-y-8 pt-5">
+          {profileForm}
 
-            <ResidenceFields
-              value={residence}
-              onChange={setResidence}
-              idPrefix="sheet"
-            />
-
-            <div className="space-y-1.5">
-              <Label htmlFor="sheet-gender">Sesso</Label>
-              <Select
-                value={gender}
-                onValueChange={(value) => setGender(value as Gender)}
-              >
-                <SelectTrigger id="sheet-gender" className="w-full">
-                  <SelectValue placeholder="Non indicato" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(GENDER_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sheet-level">Livello</Label>
-              <LevelSelect
-                id="sheet-level"
-                value={findLevelRangeIndex(level)}
-                onValueChange={(index) => setLevel(LEVEL_RANGES[index].level)}
-              />
-            </div>
-          </div>
-
-          <p className="text-muted-foreground text-xs leading-relaxed">
-            {client.account.state === "none"
-              ? "L'email si può ancora correggere: diventerà l'identità dell'account quando lo inviterai."
-              : "L'email e la foto appartengono all'account e si cambiano da lì."}
-          </p>
-
-          <OptionalFields
-            value={optional}
-            onChange={setOptional}
-            idPrefix="sheet"
-          />
-
-          <Button onClick={() => void saveProfile()} disabled={busy}>
+          <Button
+            className="h-11 w-full rounded-xl md:h-9 md:w-auto md:rounded-md"
+            onClick={() => void saveProfile()}
+            disabled={busy}
+          >
             {saving ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
@@ -1173,109 +1203,14 @@ export function ClientDetailView({
               : "min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))]",
           )}
         >
-          <TabsContent value="profile" className="space-y-4 pt-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="sheet-firstName">Nome</Label>
-                <Input
-                  id="sheet-firstName"
-                  value={firstName}
-                  onChange={(event) => setFirstName(event.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sheet-lastName">Cognome</Label>
-                <Input
-                  id="sheet-lastName"
-                  value={lastName}
-                  onChange={(event) => setLastName(event.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sheet-phone">Telefono</Label>
-                <Input
-                  id="sheet-phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sheet-birth">Data di nascita</Label>
-                <Input
-                  id="sheet-birth"
-                  type="date"
-                  value={birthDate}
-                  onChange={(event) => setBirthDate(event.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="sheet-email">Email</Label>
-                <Input
-                  id="sheet-email"
-                  type="email"
-                  inputMode="email"
-                  value={email}
-                  disabled={client.account.state !== "none"}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sheet-birthPlace">Luogo di nascita</Label>
-                <Input
-                  id="sheet-birthPlace"
-                  value={birthPlace}
-                  onChange={(event) => setBirthPlace(event.target.value)}
-                />
-              </div>
+          <TabsContent value="profile" className="space-y-8 pt-5">
+            {profileForm}
 
-              <ResidenceFields
-                value={residence}
-                onChange={setResidence}
-                idPrefix="sheet"
-              />
-
-              <div className="space-y-1.5">
-                <Label htmlFor="sheet-gender">Sesso</Label>
-                <Select
-                  value={gender}
-                  onValueChange={(value) => setGender(value as Gender)}
-                >
-                  <SelectTrigger id="sheet-gender" className="w-full">
-                    <SelectValue placeholder="Non indicato" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(GENDER_LABELS).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sheet-level">Livello</Label>
-                <LevelSelect
-                  id="sheet-level"
-                  value={findLevelRangeIndex(level)}
-                  onValueChange={(index) => setLevel(LEVEL_RANGES[index].level)}
-                />
-              </div>
-            </div>
-
-            <p className="text-muted-foreground text-xs leading-relaxed">
-              {client.account.state === "none"
-                ? "L'email si può ancora correggere: diventerà l'identità dell'account quando lo inviterai."
-                : "L'email e la foto appartengono all'account e si cambiano da lì."}
-            </p>
-
-            <OptionalFields
-              value={optional}
-              onChange={setOptional}
-              idPrefix="sheet"
-            />
-
-            <Button onClick={() => void saveProfile()} disabled={busy}>
+            <Button
+              className="h-11 w-full rounded-xl md:h-9 md:w-auto md:rounded-md"
+              onClick={() => void saveProfile()}
+              disabled={busy}
+            >
               {saving ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -1576,5 +1511,44 @@ export function ClientDetailView({
         </div>
       </Tabs>
     </>
+  );
+}
+
+/** Un gruppo del modulo: titolo, campi, e la nota che li riguarda tutti. */
+function FormSection({
+  title,
+  note,
+  children,
+}: {
+  title: string;
+  note?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <h3 className="text-[15px] font-semibold tracking-[-0.01em]">{title}</h3>
+      {children}
+      {note && (
+        <p className="text-muted-foreground text-xs leading-relaxed">{note}</p>
+      )}
+    </section>
+  );
+}
+
+/** Etichetta sopra, campo sotto, sempre alla stessa distanza. */
+function FormField({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0 space-y-2">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {children}
+    </div>
   );
 }
