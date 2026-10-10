@@ -79,6 +79,18 @@ function SheetContent({
             "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
           side === "left" &&
             "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+          /*
+           * Da desktop il pannello laterale fluttua: staccato dai bordi, con
+           * gli angoli tondi. Lo scorrimento parte un po' oltre il 100%,
+           * altrimenti a fine corsa resterebbe a vista la striscia larga
+           * quanto il distacco.
+           */
+          (side === "right" || side === "left") &&
+            "md:inset-y-3 md:h-auto md:rounded-2xl md:border md:shadow-2xl",
+          side === "right" &&
+            "md:right-3 md:data-[state=closed]:slide-out-to-right-[110%] md:data-[state=open]:slide-in-from-right-[110%]",
+          side === "left" &&
+            "md:left-3 md:data-[state=closed]:slide-out-to-left-[110%] md:data-[state=open]:slide-in-from-left-[110%]",
           side === "top" &&
             "inset-x-0 top-0 h-auto border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
           side === "bottom" &&
