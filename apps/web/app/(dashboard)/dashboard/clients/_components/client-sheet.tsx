@@ -59,7 +59,13 @@ import {
 } from "./optional-fields";
 import { PointsTab } from "./points-tab";
 import { ResidenceFields, residencePayload } from "./residence-fields";
-import type { Client, ClientDetail, Gender, Residence } from "./types";
+import type {
+  Client,
+  ClientDetail,
+  ClientTab,
+  Gender,
+  Residence,
+} from "./types";
 
 /**
  * La scheda del cliente: anagrafica, account, tessera e punti.
@@ -221,6 +227,7 @@ export function ClientSheet({
 export function ClientDetailView({
   playerId,
   preview,
+  initialTab = "profile",
   active,
   variant,
   onSaved,
@@ -228,6 +235,8 @@ export function ClientDetailView({
 }: {
   playerId: string | null;
   preview?: Client;
+  /** La linguetta da cui partire: dai punti si arriva direttamente su Punti. */
+  initialTab?: ClientTab;
   /** Falso a pannello chiuso: niente da caricare. */
   active: boolean;
   variant: "sheet" | "page";
@@ -745,7 +754,7 @@ export function ClientDetailView({
 
   const tabs = (
     <Tabs
-      defaultValue="profile"
+      defaultValue={initialTab}
       className={cn("flex flex-col gap-0", isPage ? "" : "min-h-0 flex-1")}
     >
       {/*
@@ -1156,7 +1165,7 @@ export function ClientDetailView({
       </SheetHeader>
 
       <Tabs
-        defaultValue="profile"
+        defaultValue={initialTab}
         className={cn("flex flex-col gap-0", isPage ? "" : "min-h-0 flex-1")}
       >
         <div

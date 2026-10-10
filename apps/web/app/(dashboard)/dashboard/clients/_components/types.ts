@@ -95,3 +95,16 @@ export interface ClientDetail extends Omit<Client, "membership"> {
   /** Note interne dello staff: non escono mai verso il cliente. */
   clubNotes?: string;
 }
+
+/**
+ * Le linguette della scheda cliente. Stanno qui e non nel componente perché
+ * le legge anche la pagina server (`?tab=`), che da un modulo client
+ * riceverebbe un riferimento e non l'elenco.
+ */
+export const CLIENT_TABS = [
+  "profile",
+  "account",
+  "membership",
+  "points",
+] as const;
+export type ClientTab = (typeof CLIENT_TABS)[number];
