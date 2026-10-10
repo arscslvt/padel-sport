@@ -81,6 +81,9 @@ export const payload = internalQuery({
           ? { bookedBy: partner.bookedBy, players: partner.players }
           : undefined,
       bookerClerkUserId: creator?.clerkUserId,
+      // La copia in anagrafica: chi non ha un account (la prenotazione presa
+      // dallo staff a nome di un socio dello sportello) la mail la riceve qui.
+      bookerEmail: creator?.email,
       guests: guests
         .filter((guest) => guest.email)
         .map((guest) => ({ name: guest.name, email: guest.email as string })),

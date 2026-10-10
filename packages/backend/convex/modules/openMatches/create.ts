@@ -16,6 +16,7 @@ import {
   MATCH_DURATION_MINUTES,
   MAX_PLAYERS,
   normalizePhone,
+  PRICE_PER_PLAYER,
   requirePlayer,
   SLOT_INTERVAL_MS,
 } from "./lib";
@@ -208,7 +209,7 @@ export default mutation({
       level: levelLabel(args.levelMin, args.levelMax),
       bookForAll: false,
       slot: slot._id,
-      pricePerPlayer: 7,
+      pricePerPlayer: PRICE_PER_PLAYER,
       paymentMode: "on_site",
       status: "pending_on_site_payment",
       createdAt: Date.now(),

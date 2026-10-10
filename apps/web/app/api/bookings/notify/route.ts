@@ -38,6 +38,8 @@ const payloadSchema = z.object({
   bookedBy: z.string(),
   players: z.array(z.string()),
   bookerClerkUserId: z.string().optional(),
+  /** L'indirizzo in anagrafica, per chi non ha un account. */
+  bookerEmail: z.string().optional(),
   guests: z.array(z.object({ name: z.string(), email: z.email() })),
   /** Il gruppo con cui si divide il campo, quando la struttura ha unito due prenotazioni. */
   partner: z
@@ -76,13 +78,14 @@ export async function POST(request: Request) {
 
   const booking = parsed.data;
 
-  // L'indirizzo di chi ha prenotato vive su Clerk: Convex ne conosce solo l'id.
-  let bookerEmail: string | undefined;
+  // L'indirizzo di chi ha prenotato vive su Clerk quando c'è un account; senza,
+  // vale la copia in anagrafica che arriva da Convex.
+  let bookerEmail: string | undefined = booking.bookerEmail;
   if (booking.bookerClerkUserId) {
     try {
       const clerk = await clerkClient();
       const user = await clerk.users.getUser(booking.bookerClerkUserId);
-      bookerEmail = user.primaryEmailAddress?.emailAddress;
+      bookerEmail = user.primaryEmailAddress?.emailAddress ?? bookerEmail;
     } catch (error) {
       console.error("Email di chi ha prenotato non recuperata:", error);
     }

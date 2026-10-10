@@ -2,7 +2,7 @@
 
 import { api } from "@padel-sport/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { CalendarCheck, Search, Users, X } from "lucide-react";
+import { CalendarCheck, Plus, Search, Users, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -36,6 +36,7 @@ import {
   matchesSearch,
   stripDays,
 } from "./lib";
+import { NewBookingSheet } from "./new-booking-sheet";
 import { useAgenda } from "./use-agenda";
 
 /**
@@ -63,6 +64,7 @@ export function Agenda() {
     () => searchParams.get("tab") === "merge",
   );
   const [searching, setSearching] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState("");
 
   const courtNames = useMemo(
@@ -163,21 +165,35 @@ export function Agenda() {
       title="Agenda"
       description="Le prenotazioni da confermare, la giornata per orario e campo, i campi da completare."
       actions={
-        <Button
-          variant="secondary"
-          size="icon"
-          className="size-10 rounded-full"
-          aria-label={
-            searching ? "Chiudi la ricerca" : "Cerca una prenotazione"
-          }
-          aria-pressed={searching}
-          onClick={() => {
-            setSearching((value) => !value);
-            setQuery("");
-          }}
-        >
-          {searching ? <X className="size-5" /> : <Search className="size-5" />}
-        </Button>
+        <>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="size-10 rounded-full"
+            aria-label={
+              searching ? "Chiudi la ricerca" : "Cerca una prenotazione"
+            }
+            aria-pressed={searching}
+            onClick={() => {
+              setSearching((value) => !value);
+              setQuery("");
+            }}
+          >
+            {searching ? (
+              <X className="size-5" />
+            ) : (
+              <Search className="size-5" />
+            )}
+          </Button>
+          <Button
+            size="icon"
+            className="size-10 rounded-full"
+            aria-label="Nuova prenotazione"
+            onClick={() => setCreating(true)}
+          >
+            <Plus className="size-5" />
+          </Button>
+        </>
       }
     />
   );
@@ -329,6 +345,17 @@ export function Agenda() {
         onAccept={(booking) => void askAccept(booking)}
         onCancel={(booking) => void askCancel(booking)}
         onSplit={(booking) => void askSplit(booking)}
+      />
+
+      <NewBookingSheet
+        open={creating}
+        onOpenChange={setCreating}
+        initialDay={selectedDay}
+        onCreated={(day) => {
+          setSearching(false);
+          setSelectedDay(day);
+          void reload();
+        }}
       />
 
       <ResponsiveDrawer open={mergeOpen} setOpen={setMergeOpen}>

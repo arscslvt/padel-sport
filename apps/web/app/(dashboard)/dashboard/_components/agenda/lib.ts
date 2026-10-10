@@ -90,6 +90,25 @@ export function stripDays(bookings: readonly Booking[], now = Date.now()) {
   return keys;
 }
 
+/** I prossimi `count` giorni da oggi, per scegliere quando prenotare. */
+export function nextDays(count: number, now = Date.now()): string[] {
+  const keys: string[] = [];
+  const start = noonOf(dayKey(now)).getTime();
+  for (let index = 0; keys.length < count && index < count + 2; index++) {
+    const key = dayKey(start + index * DAY_MS);
+    if (!keys.includes(key)) keys.push(key);
+  }
+  return keys;
+}
+
+/** Il livello della prenotazione a partire da quello del cliente (1–5). */
+export function levelFromRating(rating?: number): Booking["level"] {
+  if (rating === undefined) return "intermedio";
+  if (rating < 2.5) return "principiante";
+  if (rating < 3.5) return "intermedio";
+  return "avanzato";
+}
+
 export function isPending(booking: Booking): boolean {
   return booking.status === "pending_on_site_payment";
 }

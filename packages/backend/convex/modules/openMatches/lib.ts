@@ -83,6 +83,9 @@ function overlaps(startA: number, endA: number, startB: number, endB: number) {
   return startA < endB && endA > startB;
 }
 
+/** Quota a testa di una partita, pagata in struttura. */
+export const PRICE_PER_PLAYER = 7;
+
 /**
  * Trova un campo libero per l'orario richiesto.
  * Stessa logica di disponibilità di bookings/create.ts (flusso web, invariato),
@@ -99,6 +102,22 @@ export async function findAvailableSlot(
   ctx: QueryCtx,
   bookingDate: number,
 ): Promise<Doc<"slots"> | null> {
+  const { free, blocked } = await courtsAt(ctx, bookingDate);
+  return free.length - blocked > 0 ? free[0] : null;
+}
+
+/**
+ * I campi liberi a un'ora, e quanti ne tolgono gli appuntamenti esterni.
+ *
+ * È il cuore di `findAvailableSlot`, separato perché la dashboard ne ha
+ * bisogno intero: lo staff può scegliere *quale* campo, e allora va saputo
+ * quali sono liberi, non solo se ce n'è uno. `blocked` resta un numero e non
+ * un elenco: degli appuntamenti presi su SumUp non sappiamo il campo.
+ */
+export async function courtsAt(
+  ctx: QueryCtx,
+  bookingDate: number,
+): Promise<{ free: Doc<"slots">[]; blocked: number }> {
   const activeSlots = (await ctx.db.query("slots").collect())
     .filter((slot) => slot.active)
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -114,7 +133,7 @@ export async function findAvailableSlot(
 
   const bookingEnd = bookingDate + MATCH_DURATION_MS;
 
-  const freeSlots = activeSlots.filter((slot) => {
+  const free = activeSlots.filter((slot) => {
     return !possibleOverlaps.some((existingBooking) => {
       if (existingBooking.status === "cancelled") {
         return false;
@@ -137,11 +156,7 @@ export async function findAvailableSlot(
     bookingEnd,
   );
 
-  if (freeSlots.length - externalBlocks.length <= 0) {
-    return null;
-  }
-
-  return freeSlots[0];
+  return { free, blocked: externalBlocks.length };
 }
 
 /** Mappa un range numerico di livello sul livello testuale delle prenotazioni web. */
