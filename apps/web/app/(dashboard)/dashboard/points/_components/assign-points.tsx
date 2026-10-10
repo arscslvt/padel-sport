@@ -82,14 +82,14 @@ export function AssignPoints() {
 
       <ResponsiveDrawer open={open} setOpen={setOpen}>
         <ResponsiveDrawerContent className="bg-background sm:max-w-md md:max-h-[90dvh] md:overflow-y-auto">
-          {open && <Panel />}
+          {open && <Panel onDone={() => setOpen(false)} />}
         </ResponsiveDrawerContent>
       </ResponsiveDrawer>
     </>
   );
 }
 
-function Panel() {
+function Panel({ onDone }: { onDone: () => void }) {
   const [clients, setClients] = useState<Client[] | null>(null);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [query, setQuery] = useState("");
@@ -131,6 +131,7 @@ function Panel() {
         client={selected}
         presets={presets}
         onBack={() => setSelected(null)}
+        onDone={onDone}
       />
     );
   }
@@ -212,10 +213,13 @@ function ClientWallet({
   client,
   presets,
   onBack,
+  onDone,
 }: {
   client: Client;
   presets: Preset[];
   onBack: () => void;
+  /** Punti assegnati: il pannello ha finito, e la conferma resta nel toast. */
+  onDone: () => void;
 }) {
   const reduce = useReducedMotion();
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -260,23 +264,18 @@ function ClientWallet({
         return false;
       }
 
+      // Il pannello si chiude: un'assegnazione è un gesto concluso, e il
+      // toast dice cosa è successo e il saldo nuovo.
       if (payload?.pending) {
-        setWallet((current) =>
-          current
-            ? { ...current, pendingPoints: current.pendingPoints + delta }
-            : current,
-        );
         toast.success(`${signed(delta)} punti in attesa`, {
           description: `${firstName} li riceve quando aderisce al programma.`,
         });
       } else {
-        setWallet((current) =>
-          current ? { ...current, balance: payload.balance } : current,
-        );
         toast.success(`${signed(delta)} punti a ${firstName}`, {
           description: `Nuovo saldo: ${payload.balance} punti.`,
         });
       }
+      onDone();
       return true;
     } catch {
       toast.error("Punti non assegnati", {
@@ -292,12 +291,7 @@ function ClientWallet({
 
   const submitManual = async () => {
     const delta = sign * amount;
-    if (await submit("manual", { delta, label: reason.trim() }, delta)) {
-      setManualOpen(false);
-      setSign(1);
-      setAmount(1);
-      setReason("");
-    }
+    await submit("manual", { delta, label: reason.trim() }, delta);
   };
 
   return (
