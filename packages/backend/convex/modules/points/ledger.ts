@@ -48,6 +48,8 @@ export const detail = query({
         via: player.pointsProgram?.via,
       },
       balance: balanceOf(player),
+      /** Account sospeso: i punti sono congelati (lib.ts). */
+      frozen: Boolean(player.suspension),
       transactions: transactions.map((row) => ({
         id: row._id,
         delta: row.delta,

@@ -4,7 +4,7 @@ import type { Doc } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
 import { requirePlayer } from "../openMatches/lib";
-import { creditPending } from "./lib";
+import { assertPointsUnfrozen, creditPending } from "./lib";
 import { POINTS_TERMS_VERSION } from "./version";
 
 export { POINTS_TERMS_VERSION };
@@ -85,6 +85,9 @@ export const recordAtDesk = mutation({
 
     const player = await ctx.db.get(playerId);
     if (!player) throw new Error("Cliente non trovato.");
+    // L'adesione accredita i punti in attesa: da sospeso resterebbero fermi
+    // lo stesso, ed è più chiaro registrarla alla riattivazione.
+    assertPointsUnfrozen(player);
 
     await ctx.db.patch(playerId, {
       pointsProgram: {

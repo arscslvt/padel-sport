@@ -131,6 +131,20 @@ const players = defineTable({
       recordedByClerkUserId: v.optional(v.string()),
     }),
   ),
+  /**
+   * Account sospeso dallo staff (modules/clients/suspension.ts).
+   *
+   * Finché c'è, la persona non entra né dal sito né dall'app — l'accesso lo
+   * chiude Clerk — e i punti restano fermi: suoi, ma non si caricano né si
+   * spendono. Il motivo è quello che le abbiamo scritto nella mail.
+   */
+  suspension: v.optional(
+    v.object({
+      reason: v.string(),
+      suspendedAt: v.float64(),
+      suspendedByClerkUserId: v.optional(v.string()),
+    }),
+  ),
 })
   .index("by_clerk_user_id", ["clerkUserId"])
   .index("by_code", ["code"])

@@ -22,6 +22,19 @@ export function balanceOf(player: Doc<"players">): number {
   return player.points ?? 0;
 }
 
+/**
+ * Con l'account sospeso i punti sono congelati: restano della persona, ma non
+ * se ne caricano, non se ne tolgono e non si spendono finché lo staff non la
+ * riattiva. È quello che le promette la mail di sospensione.
+ */
+export function assertPointsUnfrozen(player: Doc<"players">) {
+  if (player.suspension) {
+    throw new Error(
+      "L'account di questa persona è sospeso: i suoi punti sono congelati fino alla riattivazione.",
+    );
+  }
+}
+
 interface ApplyPointsArgs {
   playerId: Id<"players">;
   delta: number;
@@ -64,6 +77,11 @@ export async function applyPoints(
 
   const player = await ctx.db.get(args.playerId);
   if (!player) throw new Error("Cliente non trovato.");
+
+  // Annullare un riscatto restituisce punti che erano già suoi: da sospeso
+  // non li perde, e il premio non consegnato non deve portarseli via.
+  const isRefund = Boolean(args.redemptionId) && args.delta > 0;
+  if (!isRefund) assertPointsUnfrozen(player);
 
   // La restituzione di un riscatto annullato passa sempre: quei punti erano
   // già della persona, che per riscattare aveva per forza aderito.

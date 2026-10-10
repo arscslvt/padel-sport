@@ -35,6 +35,7 @@ import type * as modules_clients_lib from "../modules/clients/lib.js";
 import type * as modules_clients_list from "../modules/clients/list.js";
 import type * as modules_clients_membership from "../modules/clients/membership.js";
 import type * as modules_clients_profile from "../modules/clients/profile.js";
+import type * as modules_clients_suspension from "../modules/clients/suspension.js";
 import type * as modules_courtCalendar_client from "../modules/courtCalendar/client.js";
 import type * as modules_courtCalendar_data from "../modules/courtCalendar/data.js";
 import type * as modules_courtCalendar_lib from "../modules/courtCalendar/lib.js";
@@ -179,6 +180,7 @@ declare const fullApi: ApiFromModules<{
   "modules/clients/list": typeof modules_clients_list;
   "modules/clients/membership": typeof modules_clients_membership;
   "modules/clients/profile": typeof modules_clients_profile;
+  "modules/clients/suspension": typeof modules_clients_suspension;
   "modules/courtCalendar/client": typeof modules_courtCalendar_client;
   "modules/courtCalendar/data": typeof modules_courtCalendar_data;
   "modules/courtCalendar/lib": typeof modules_courtCalendar_lib;

@@ -39,6 +39,12 @@ function toRow(player: Doc<"players">) {
     consents: player.consents,
     createdAt: player.createdAt,
     points: player.points ?? 0,
+    suspension: player.suspension
+      ? {
+          reason: player.suspension.reason,
+          suspendedAt: player.suspension.suspendedAt,
+        }
+      : undefined,
     missingFields: missingProfileFields(player),
   };
 }

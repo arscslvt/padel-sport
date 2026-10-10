@@ -6,6 +6,7 @@ import { displayName } from "../clients/lib";
 import { requirePlayer } from "../openMatches/lib";
 import {
   applyPoints,
+  assertPointsUnfrozen,
   balanceOf,
   generateRedemptionCode,
   redemptionExpiry,
@@ -26,6 +27,7 @@ export const redeem = mutation({
   args: { rewardId: v.id("rewards") },
   handler: async (ctx, { rewardId }) => {
     const player = await requirePlayer(ctx);
+    assertPointsUnfrozen(player);
 
     if (programState(player) !== "joined") {
       throw new Error("Accetta il regolamento del programma punti per riscattare.");
