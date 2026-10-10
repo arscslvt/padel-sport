@@ -1,28 +1,38 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-
 import { ClientDetailView } from "../_components/client-sheet";
+import { hasClientsReturn } from "../_components/clients-panel";
 
 /**
- * La scheda di un cliente a tutta pagina. Il ritorno porta all'elenco con la
- * stessa persona in evidenza, così chi era partito da lì ritrova il filo.
+ * La scheda di un cliente a tutta pagina: da telefono è dove porta il tocco
+ * su una riga dell'elenco, da desktop il tasto che allarga il pannello.
+ *
+ * «Clienti» torna indietro davvero quando si arriva dall'elenco: così si
+ * ritrova la lista com'era (ricerca, filtri, punto di scorrimento) e il gesto
+ * di sistema fa la stessa cosa del tasto. Arrivando da un link diretto non
+ * c'è niente dietro, e il tasto porta all'elenco.
  */
 export function ClientPage({ playerId }: { playerId: string }) {
   const router = useRouter();
 
+  const backToList = () => {
+    if (hasClientsReturn()) router.back();
+    else router.push("/dashboard/clients");
+  };
+
   return (
     <>
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
-        <Link href="/dashboard/clients">
-          <ArrowLeft className="size-4" />
-          Clienti
-        </Link>
-      </Button>
+      <button
+        type="button"
+        onClick={backToList}
+        className="text-muted-foreground hover:text-foreground -ml-1 inline-flex min-h-10 items-center gap-0.5 text-[15px] transition-colors"
+      >
+        <ChevronLeft className="size-5" />
+        Clienti
+      </button>
 
       <ClientDetailView
         playerId={playerId}

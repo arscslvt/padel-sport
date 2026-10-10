@@ -3,7 +3,7 @@
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { AlertCircle, Loader2, Search, UserRoundX, Users } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -23,6 +23,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Input } from "../../../_components/input";
 import { AccountBadge } from "./account-badge";
@@ -134,13 +135,47 @@ function ClientRow({
   );
 }
 
+/**
+ * L'elenco com'era quando lo si è lasciato per la pagina di un cliente.
+ *
+ * Da telefono un cliente si apre a tutta pagina, non nel pannello laterale:
+ * tornando indietro l'elenco ripartirebbe da zero — ricerca, filtri, ordine e
+ * scorrimento persi, e la lista da ricaricare. Vive in memoria e non nel
+ * browser: serve per il viaggio di andata e ritorno, non per la prossima
+ * visita.
+ */
+interface ReturnSnapshot {
+  clients: Client[] | null;
+  query: string;
+  filters: ClientFilters;
+  sort: ClientSort;
+  scrollY: number;
+}
+
+let returnSnapshot: ReturnSnapshot | null = null;
+
+/** C'è un elenco a cui tornare: la pagina del cliente torna indietro. */
+export function hasClientsReturn(): boolean {
+  return returnSnapshot !== null;
+}
+
 export function ClientsPanel() {
-  const [clients, setClients] = useState<Client[] | null>(null);
+  // Il ritorno dalla pagina di un cliente: si riparte da dove si era.
+  const [restored] = useState(() => returnSnapshot);
+  const [clients, setClients] = useState<Client[] | null>(
+    () => restored?.clients ?? null,
+  );
   /** Una richiesta in volo: la ricerca passa dal server, e lo si deve vedere. */
   const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState<ClientFilters>(DEFAULT_FILTERS);
-  const [sort, setSort] = useState<ClientSort>(DEFAULT_SORT);
+  const [query, setQuery] = useState(() => restored?.query ?? "");
+  const [filters, setFilters] = useState<ClientFilters>(
+    () => restored?.filters ?? DEFAULT_FILTERS,
+  );
+  const [sort, setSort] = useState<ClientSort>(
+    () => restored?.sort ?? DEFAULT_SORT,
+  );
+  const router = useRouter();
+  const isMobile = useIsMobile();
   const [filtersOpen, setFiltersOpen] = useState(false);
   /**
    * `?client=` apre direttamente la scheda: è dove atterra chi tocca una
@@ -151,6 +186,38 @@ export function ClientsPanel() {
   const [openClient, setOpenClient] = useState<string | null>(() =>
     searchParams.get("client"),
   );
+
+  // Lo scorrimento torna dov'era appena l'elenco è di nuovo a video; poi lo
+  // stato salvato non serve più.
+  useEffect(() => {
+    if (!restored) return;
+    returnSnapshot = null;
+    requestAnimationFrame(() => window.scrollTo(0, restored.scrollY));
+  }, [restored]);
+
+  // Da telefono il link di una notifica (`?client=`) va alla pagina intera,
+  // come il tocco su una riga. Il controllo è diretto e non da `isMobile`,
+  // che al primo disegno non è ancora noto.
+  useEffect(() => {
+    const target = searchParams.get("client");
+    if (!target || !window.matchMedia("(max-width: 767px)").matches) return;
+    setOpenClient(null);
+    router.replace(`/dashboard/clients/${target}`);
+  }, [searchParams, router]);
+
+  /**
+   * Da desktop il pannello laterale tiene l'elenco accanto; da telefono il
+   * pannello coprirebbe tutto comunque, e una pagina vera si naviga meglio —
+   * indietro con il gesto di sistema, e l'elenco ritrovato com'era.
+   */
+  const openClientFromList = (id: string) => {
+    if (!isMobile) {
+      setOpenClient(id);
+      return;
+    }
+    returnSnapshot = { clients, query, filters, sort, scrollY: window.scrollY };
+    router.push(`/dashboard/clients/${id}`);
+  };
 
   // Lo staff arriva sempre, marcato con `isStaff`: «Mostra staff» filtra qui
   // come i filtri della tessera, senza tornare al server.
@@ -366,7 +433,7 @@ export function ClientsPanel() {
               <ClientRow
                 key={client.id}
                 client={client}
-                onOpen={setOpenClient}
+                onOpen={openClientFromList}
               />
             ))}
           </ul>
