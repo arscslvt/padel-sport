@@ -6,13 +6,6 @@ import { AlertCircle, Loader2, Search, UserRoundX, Users } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/app/(dashboard)/_components/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,10 +17,10 @@ import {
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
 import { Input } from "../../../_components/input";
 import { AccountBadge } from "./account-badge";
 import { ClientSheet } from "./client-sheet";
+import { ClientsSummary } from "./clients-summary";
 import { CreateClientDialog } from "./create-client-dialog";
 import {
   activeCount,
@@ -165,6 +158,10 @@ export function ClientsPanel() {
   const [clients, setClients] = useState<Client[] | null>(
     () => restored?.clients ?? null,
   );
+  /** L'ultimo elenco completo, senza ricerca: è quello che il riepilogo conta. */
+  const [allClients, setAllClients] = useState<Client[] | null>(() =>
+    restored && !restored.query ? restored.clients : null,
+  );
   /** Una richiesta in volo: la ricerca passa dal server, e lo si deve vedere. */
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState(() => restored?.query ?? "");
@@ -239,6 +236,7 @@ export function ClientsPanel() {
       }
 
       setClients(payload.clients ?? []);
+      if (!search) setAllClients(payload.clients ?? []);
     } catch {
       toast.error("Clienti non caricati", {
         description: "Controlla la connessione e riprova.",
@@ -282,61 +280,30 @@ export function ClientsPanel() {
     [scoped, filters],
   );
 
-  const counts = useMemo(() => {
-    // I contatori parlano dei clienti: lo staff mostrato col filtro non li gonfia.
-    const list = (clients ?? []).filter((client) => !client.isStaff);
-    return {
-      total: list.length,
-      toFix: list.filter((client) =>
-        ["unpaid", "expired", "none"].includes(client.membershipState),
-      ).length,
-      incomplete: list.filter((client) => client.missingFields.length > 0)
-        .length,
-      noAccount: list.filter((client) => client.account.state === "none")
-        .length,
-    };
-  }, [clients]);
+  // Il riepilogo parla dell'anagrafica intera, non della ricerca in corso:
+  // cercando «Mario» non deve dire «1 cliente». Lo staff resta fuori.
+  const summarySource = useMemo(
+    () => (allClients ?? []).filter((client) => !client.isStaff),
+    [allClients],
+  );
 
   return (
     <>
-      <section className="grid gap-4 grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardDescription>Clienti</CardDescription>
-            <CardTitle className="text-3xl">{counts.total}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Profili registrati, staff escluso.
-          </CardContent>
-        </Card>
-
-        <Card
-          className={cn(counts.toFix > 0 && "border-amber-300 bg-amber-50")}
-        >
-          <CardHeader>
-            <CardDescription
-              className={cn(counts.toFix > 0 && "font-medium text-amber-600")}
-            >
-              Tessere da sistemare
-            </CardDescription>
-            <CardTitle className="text-3xl">{counts.toFix}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Scadute, mai aperte o ancora da pagare.
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-2 lg:col-span-1">
-          <CardHeader>
-            <CardDescription>Senza account</CardDescription>
-            <CardTitle className="text-3xl">{counts.noAccount}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Soci registrati che non prenotano online: {counts.incomplete} hanno
-            anche dei dati da completare.
-          </CardContent>
-        </Card>
-      </section>
+      {allClients === null ? (
+        // La forma del riepilogo mentre arriva: un «0 clienti» di passaggio
+        // direbbe una cosa falsa.
+        <div className="space-y-3" aria-busy="true">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-2.5 w-full rounded-full" />
+          <Skeleton className="h-5 w-64" />
+        </div>
+      ) : (
+        <ClientsSummary
+          clients={summarySource}
+          filters={filters}
+          onFiltersChange={setFilters}
+        />
+      )}
 
       {/*
        * Da telefono la barra è una riga sola — ricerca, filtri, nuovo
