@@ -83,7 +83,10 @@ export function AssignPoints() {
       </Button>
 
       <ResponsiveDrawer open={open} setOpen={setOpen}>
-        <ResponsiveDrawerContent className="bg-background sm:max-w-md md:max-h-[90dvh] md:overflow-y-auto">
+        {/* Da telefono alto e fisso: ricerca e cliente hanno la stessa altezza,
+            il pannello non salta fra un passaggio e l'altro e il contenuto
+            scorre dentro. `dvh` è l'altezza davvero visibile su Safari. */}
+        <ResponsiveDrawerContent className="bg-background data-[vaul-drawer-direction=bottom]:h-[88dvh] data-[vaul-drawer-direction=bottom]:max-h-[88dvh] sm:max-w-md md:max-h-[90dvh] md:overflow-y-auto">
           {open && <Panel onDone={() => setOpen(false)} />}
         </ResponsiveDrawerContent>
       </ResponsiveDrawer>
