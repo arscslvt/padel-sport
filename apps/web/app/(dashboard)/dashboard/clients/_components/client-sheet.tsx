@@ -623,10 +623,18 @@ export function ClientDetailView({
       defaultValue="profile"
       className={cn("flex flex-col gap-0", isPage ? "" : "min-h-0 flex-1")}
     >
+      {/*
+       * A tutta pagina, da telefono, le linguette restano in alto mentre si
+       * scorre il modulo: con l'anagrafica lunga, cambiare linguetta non deve
+       * voler dire tornare su. Il fondo è traslucido e arriva ai bordi
+       * (`-mx-4`), come la barra in basso.
+       */}
       <div
         className={cn(
           "shrink-0",
-          isPage ? "border-b px-5 pt-4 pb-3" : "px-4 pt-3 pb-1",
+          isPage
+            ? "dashboard-material bg-background/85 sticky top-0 z-20 -mx-4 px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-3 backdrop-blur-xl md:static md:mx-0 md:border-b md:bg-transparent md:px-5 md:pt-4 md:backdrop-blur-none"
+            : "px-4 pt-3 pb-1",
         )}
       >
         <TabsList className={cn(!isPage && "md:w-full")}>
@@ -663,7 +671,7 @@ export function ClientDetailView({
       <div
         className={cn(
           isPage
-            ? "px-5 pb-6"
+            ? "pb-6 md:px-5"
             : "min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))]",
         )}
       >
