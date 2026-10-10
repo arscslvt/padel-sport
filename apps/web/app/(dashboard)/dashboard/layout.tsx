@@ -19,6 +19,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import main_icon from "@/public/favicon/black-icon.png";
 import { BottomTabBar } from "../_components/bottom-tab-bar";
+import { DASHBOARD_CHROME_COLOR } from "../_components/chrome";
 import DashboardNav from "../_components/dashboard-nav";
 import UserCard from "../_components/user-card";
 import ConfirmProvider from "../_providers/confirm.provider";
@@ -35,7 +36,7 @@ export const metadata = {
 
 export const viewport: Viewport = {
   // Lo stesso grigio chiarissimo del fondo: la barra di stato non fa stacco.
-  themeColor: "#fafafa",
+  themeColor: DASHBOARD_CHROME_COLOR,
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
