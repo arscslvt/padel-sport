@@ -23,7 +23,6 @@ import { DURATION, EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 import { AccountBadge } from "./account-badge";
-import { MembershipBadge } from "./membership-badge";
 import type { ClientDetail, Membership, MembershipState } from "./types";
 
 /**
@@ -44,6 +43,10 @@ import type { ClientDetail, Membership, MembershipState } from "./types";
  * muoversi mentre ci si lavora.
  */
 
+/**
+ * La tessera in una parola, per la fascia dei numeri: deve stare nella stessa
+ * misura di «3» e «2.5» senza andare a capo. Il dettaglio va nella riga sotto.
+ */
 const MEMBERSHIP_SUMMARY: Record<
   MembershipState,
   { label: string; tone: string }
@@ -52,7 +55,7 @@ const MEMBERSHIP_SUMMARY: Record<
   expiring: { label: "In scadenza", tone: "text-warning-foreground" },
   unpaid: { label: "Da pagare", tone: "text-danger-foreground" },
   expired: { label: "Scaduta", tone: "text-danger-foreground" },
-  none: { label: "Non iscritto", tone: "text-muted-foreground" },
+  none: { label: "Nessuna", tone: "text-muted-foreground" },
 };
 
 const CONSENT_LABELS = {
@@ -122,9 +125,15 @@ export function ClientPageLayout({
 
   return (
     <div className="space-y-6">
-      <motion.header {...rise(0)} className={SURFACE}>
-        <div className="flex items-center gap-4 md:p-6">
-          <Avatar className="size-16 shrink-0 text-lg md:size-20 md:text-xl">
+      {/*
+       * Un asse solo: tutto parte dal margine della pagina, e testo e chip
+       * dalla stessa colonna accanto all'avatar. Un ritmo solo: 16px fra i
+       * blocchi della testata. Tasti e numeri stanno su due fasce della stessa
+       * tinta, larghe quanto la pagina, con celle identiche dentro.
+       */}
+      <motion.header {...rise(0)} className={cn("space-y-4 md:p-6", SURFACE)}>
+        <div className="flex items-center gap-3.5">
+          <Avatar className="size-14 shrink-0 text-base md:size-16 md:text-lg">
             {client.avatarUrl && <AvatarImage src={client.avatarUrl} />}
             <AvatarFallback>
               {client.name.slice(0, 2).toUpperCase()}
@@ -132,17 +141,16 @@ export function ClientPageLayout({
           </Avatar>
 
           <div className="min-w-0 flex-1">
-            <h1 className="text-[1.625rem] leading-tight font-semibold tracking-[-0.02em] text-balance md:text-3xl">
+            <h1 className="truncate text-2xl leading-tight font-semibold tracking-[-0.02em] md:text-3xl">
               {client.name}
             </h1>
-            <p className="text-muted-foreground mt-0.5 text-[13px]">
-              {client.code && (
-                <span className="font-mono">#{client.code} · </span>
-              )}
-              cliente da {since}
+            <p className="text-muted-foreground mt-0.5 truncate text-[13px] tabular-nums">
+              {[client.code && `#${client.code}`, `cliente da ${since}`]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
-            {/* Da desktop i recapiti stanno anche qui, da leggere; da telefono
-                ci sono i tasti sotto, da toccare. */}
+            {/* Da desktop i recapiti si leggono qui; da telefono ci sono i
+                tasti sotto, da toccare. */}
             <p className="text-muted-foreground mt-0.5 hidden truncate text-sm md:block">
               {[client.email, client.phone].filter(Boolean).join(" · ") ||
                 "Nessun recapito"}
@@ -150,38 +158,34 @@ export function ClientPageLayout({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-1.5 md:mt-0 md:px-6 md:pb-5">
-          <MembershipBadge
-            state={client.membershipState}
-            until={
-              current
-                ? format(current.endsAt, "d MMM yyyy", { locale: it })
-                : undefined
-            }
-          />
-          <AccountBadge
-            state={client.account.state}
-            suspended={Boolean(client.suspension)}
-          />
-          {client.isStaff && <Badge variant="secondary">Staff</Badge>}
-        </div>
+        {/* Solo gli stati da notare: un account attivo è la normalità e non
+            ha bisogno di un'etichetta, e la tessera sta già fra i numeri. */}
+        {(client.account.state !== "active" ||
+          client.suspension ||
+          client.isStaff) && (
+          <div className="flex flex-wrap gap-1.5">
+            {(client.account.state !== "active" || client.suspension) && (
+              <AccountBadge
+                state={client.account.state}
+                suspended={Boolean(client.suspension)}
+              />
+            )}
+            {client.isStaff && <Badge variant="secondary">Staff</Badge>}
+          </div>
+        )}
 
-        {/* I gesti di chi ha il telefono in mano: a un tocco, grandi quanto
-            un pollice. Spenti quando manca il recapito, ma sempre al loro
-            posto: dove stanno non deve cambiare da un cliente all'altro. */}
-        <nav
-          aria-label="Contatta"
-          className="mt-5 grid grid-cols-3 gap-2 md:hidden"
-        >
+        {/* I gesti di chi ha il telefono in mano. Spenti quando manca il
+            recapito, ma sempre al loro posto. */}
+        <nav aria-label="Contatta" className="grid grid-cols-3 gap-2 md:hidden">
           {contacts.map((contact) => {
             const body = (
               <>
-                <span className="bg-muted flex size-12 items-center justify-center rounded-full transition-transform group-active:scale-90">
-                  <contact.icon className="size-5" />
-                </span>
-                <span className="text-xs font-medium">{contact.label}</span>
+                <contact.icon className="size-4" />
+                {contact.label}
               </>
             );
+            const classes =
+              "bg-muted/70 flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-medium";
 
             return contact.href ? (
               <a
@@ -189,7 +193,10 @@ export function ClientPageLayout({
                 href={contact.href}
                 target={contact.external ? "_blank" : undefined}
                 rel={contact.external ? "noopener noreferrer" : undefined}
-                className="group flex flex-col items-center gap-1.5 py-1"
+                className={cn(
+                  classes,
+                  "active:bg-muted transition-[background-color,transform] active:scale-[0.97]",
+                )}
               >
                 {body}
               </a>
@@ -198,7 +205,7 @@ export function ClientPageLayout({
                 key={contact.key}
                 aria-disabled="true"
                 title={`${contact.label}: recapito non indicato`}
-                className="text-muted-foreground flex flex-col items-center gap-1.5 py-1 opacity-40"
+                className={cn(classes, "text-muted-foreground opacity-50")}
               >
                 {body}
               </span>
@@ -206,34 +213,25 @@ export function ClientPageLayout({
           })}
         </nav>
 
-        {/* Tre numeri, separati da righe sottili invece che chiusi in caselle:
-            da telefono le caselle si mangiano metà della larghezza. */}
-        <dl className="mt-5 grid grid-cols-3 divide-x border-y md:mt-0 md:border-b-0">
-          <Stat label="Punti">
-            <span className="text-2xl leading-none font-semibold tabular-nums">
-              {client.points}
-            </span>
+        <dl className="bg-muted/70 divide-foreground/10 grid grid-cols-3 divide-x rounded-2xl py-3.5">
+          <Stat label="Punti" detail="saldo attuale">
+            <span className="tabular-nums">{client.points}</span>
           </Stat>
-          <Stat label="Livello">
-            <span className="flex items-center gap-1.5">
-              <span className="text-2xl leading-none font-semibold tabular-nums">
-                {client.level.toFixed(1)}
-              </span>
-              <LevelBars filled={levelIndex + 1} />
-            </span>
-            <span className="text-muted-foreground mt-1 block text-xs">
-              {LEVEL_RANGES[levelIndex].label}
-            </span>
+          <Stat label="Livello" detail={LEVEL_RANGES[levelIndex].label}>
+            <span className="tabular-nums">{client.level.toFixed(1)}</span>
+            <LevelBars filled={levelIndex + 1} />
           </Stat>
-          <Stat label="Tessera">
-            <span className={cn("text-[15px] font-semibold", membership.tone)}>
+          <Stat
+            label="Tessera"
+            detail={
+              current && client.membershipState !== "none"
+                ? `${client.membershipState === "expired" ? "dal" : "fino al"} ${format(current.endsAt, "d MMM", { locale: it })}`
+                : "non iscritto"
+            }
+          >
+            <span className={cn("truncate", membership.tone)}>
               {membership.label}
             </span>
-            {current && client.membershipState !== "none" && (
-              <span className="text-muted-foreground mt-1 block text-xs">
-                fino al {format(current.endsAt, "d MMM", { locale: it })}
-              </span>
-            )}
           </Stat>
         </dl>
       </motion.header>
@@ -351,11 +349,29 @@ export function ClientPageLayout({
   );
 }
 
-function Stat({ label, children }: { label: string; children: ReactNode }) {
+/**
+ * Una cella della fascia dei numeri. Tutte uguali: etichetta, valore della
+ * stessa misura sulla stessa riga di base, e un dettaglio sempre presente —
+ * una cella con una riga in meno disallineerebbe le altre.
+ */
+function Stat({
+  label,
+  detail,
+  children,
+}: {
+  label: string;
+  detail: string;
+  children: ReactNode;
+}) {
   return (
-    <div className="px-3 py-3.5 first:pl-0 md:px-6 md:py-4 md:first:pl-6">
+    <div className="min-w-0 px-3.5">
       <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className="mt-1.5">{children}</dd>
+      <dd className="mt-1 flex h-7 items-center gap-1.5 text-xl leading-none font-semibold">
+        {children}
+      </dd>
+      <dd className="text-muted-foreground mt-0.5 truncate text-xs">
+        {detail}
+      </dd>
     </div>
   );
 }
@@ -458,9 +474,9 @@ function ContactRow({
 export function ClientPageSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true">
-      <div className={cn("space-y-5 md:p-6", SURFACE)}>
-        <div className="flex items-center gap-4">
-          <Skeleton className="size-16 rounded-full md:size-20" />
+      <div className={cn("space-y-4 md:p-6", SURFACE)}>
+        <div className="flex items-center gap-3.5">
+          <Skeleton className="size-14 rounded-full md:size-16" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-7 w-48" />
             <Skeleton className="h-4 w-36" />
@@ -468,10 +484,10 @@ export function ClientPageSkeleton() {
         </div>
         <div className="grid grid-cols-3 gap-2 md:hidden">
           {["a", "b", "c"].map((key) => (
-            <Skeleton key={key} className="mx-auto size-12 rounded-full" />
+            <Skeleton key={key} className="h-11 rounded-xl" />
           ))}
         </div>
-        <Skeleton className="h-16 w-full rounded-xl" />
+        <Skeleton className="h-[5.25rem] w-full rounded-2xl" />
       </div>
       <Skeleton className="h-10 w-full rounded-lg" />
       <Skeleton className="h-96 w-full rounded-2xl" />
