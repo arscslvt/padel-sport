@@ -105,7 +105,7 @@ function AttentionDot() {
   return (
     <span
       aria-hidden
-      className="ml-1.5 size-1.5 shrink-0 rounded-full bg-amber-500"
+      className="bg-warning ml-1.5 size-1.5 shrink-0 rounded-full"
     />
   );
 }
@@ -639,11 +639,40 @@ export function ClientDetailView({
    * uniformano da qui, comprese quelle dei campi condivisi (residenza,
    * facoltativi).
    */
+  /**
+   * I campi che fanno scattare «Dati incompleti» (missingProfileFields, sul
+   * backend). Il pallino si basa su quello che c'è *nel modulo*: sparisce
+   * appena il campo è compilato, così si vede subito cosa resta; l'avviso
+   * nell'elenco si toglie al salvataggio, quando il server ricalcola.
+   */
+  const missing = {
+    nome: client.missingFields.includes("nome") && !firstName.trim(),
+    cognome: client.missingFields.includes("cognome") && !lastName.trim(),
+    sesso: client.missingFields.includes("sesso") && !gender,
+    nascita: client.missingFields.includes("data di nascita") && !birthDate,
+    telefono: client.missingFields.includes("telefono") && !phone.trim(),
+    email: client.missingFields.includes("email") && !email.trim(),
+  };
+  const missingCount = Object.values(missing).filter(Boolean).length;
+
   const profileForm = (
     <div className="space-y-8 [&_[data-slot=input]]:h-11 [&_[data-slot=label]]:font-normal [&_[data-slot=label]]:text-muted-foreground [&_[data-slot=select-trigger]]:h-11 md:[&_[data-slot=input]]:h-9 md:[&_[data-slot=select-trigger]]:h-9">
+      {missingCount > 0 && (
+        <p className="text-warning-foreground flex items-center gap-2 text-[13px]">
+          <span aria-hidden className="bg-warning size-1.5 rounded-full" />
+          {missingCount === 1
+            ? "Manca un dato: compilalo e salva per togliere l'avviso."
+            : `Mancano ${missingCount} dati: compilali e salva per togliere l'avviso.`}
+        </p>
+      )}
+
       <FormSection title="Persona">
         <div className="grid grid-cols-2 gap-x-3 gap-y-5">
-          <FormField label="Nome" htmlFor="sheet-firstName">
+          <FormField
+            label="Nome"
+            missing={missing.nome}
+            htmlFor="sheet-firstName"
+          >
             <Input
               id="sheet-firstName"
               autoComplete="given-name"
@@ -651,7 +680,11 @@ export function ClientDetailView({
               onChange={(event) => setFirstName(event.target.value)}
             />
           </FormField>
-          <FormField label="Cognome" htmlFor="sheet-lastName">
+          <FormField
+            label="Cognome"
+            missing={missing.cognome}
+            htmlFor="sheet-lastName"
+          >
             <Input
               id="sheet-lastName"
               autoComplete="family-name"
@@ -659,7 +692,11 @@ export function ClientDetailView({
               onChange={(event) => setLastName(event.target.value)}
             />
           </FormField>
-          <FormField label="Sesso" htmlFor="sheet-gender">
+          <FormField
+            label="Sesso"
+            missing={missing.sesso}
+            htmlFor="sheet-gender"
+          >
             <Select
               value={gender}
               onValueChange={(value) => setGender(value as Gender)}
@@ -683,7 +720,11 @@ export function ClientDetailView({
               onValueChange={(index) => setLevel(LEVEL_RANGES[index].level)}
             />
           </FormField>
-          <FormField label="Data di nascita" htmlFor="sheet-birth">
+          <FormField
+            label="Data di nascita"
+            missing={missing.nascita}
+            htmlFor="sheet-birth"
+          >
             <Input
               id="sheet-birth"
               type="date"
@@ -710,7 +751,11 @@ export function ClientDetailView({
         }
       >
         <div className="grid gap-x-3 gap-y-5 sm:grid-cols-2">
-          <FormField label="Telefono" htmlFor="sheet-phone">
+          <FormField
+            label="Telefono"
+            missing={missing.telefono}
+            htmlFor="sheet-phone"
+          >
             <Input
               id="sheet-phone"
               type="tel"
@@ -720,7 +765,11 @@ export function ClientDetailView({
               onChange={(event) => setPhone(event.target.value)}
             />
           </FormField>
-          <FormField label="Email" htmlFor="sheet-email">
+          <FormField
+            label="Email"
+            missing={missing.email}
+            htmlFor="sheet-email"
+          >
             <Input
               id="sheet-email"
               type="email"
@@ -1548,15 +1597,26 @@ function FormSection({
 function FormField({
   label,
   htmlFor,
+  missing = false,
   children,
 }: {
   label: string;
   htmlFor: string;
+  /** Uno dei dati che fanno scattare «Dati incompleti», e ancora vuoto. */
+  missing?: boolean;
   children: ReactNode;
 }) {
   return (
     <div className="min-w-0 space-y-2">
-      <Label htmlFor={htmlFor}>{label}</Label>
+      <Label htmlFor={htmlFor} className="gap-0">
+        {label}
+        {missing && (
+          <>
+            <AttentionDot />
+            <span className="sr-only">, da completare</span>
+          </>
+        )}
+      </Label>
       {children}
     </div>
   );
