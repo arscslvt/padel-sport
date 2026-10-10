@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import { useCounts } from "../_providers/counts.provider";
+import { CountBadge } from "./count-badge";
 import { activeHref, type NavItem, PRIMARY_NAV, SECONDARY_NAV } from "./nav";
 
 /**
@@ -43,9 +44,10 @@ export default function DashboardNav() {
             <span>{item.name}</span>
           </Link>
         </SidebarMenuButton>
+        {/* `SidebarMenuBadge` solo per la posizione: l'aspetto è di CountBadge. */}
         {count ? (
-          <SidebarMenuBadge className="bg-danger text-white tabular-nums">
-            {count > 99 ? "99+" : count}
+          <SidebarMenuBadge className="p-0">
+            <CountBadge count={count} />
           </SidebarMenuBadge>
         ) : null}
       </SidebarMenuItem>

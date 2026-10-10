@@ -121,7 +121,11 @@ function TabLink({
       <span className="relative">
         <item.icon className="size-5" strokeWidth={active ? 2.25 : 2} />
         {count ? (
-          <CountBadge count={count} className="absolute -top-1.5 left-3.5" />
+          <CountBadge
+            count={count}
+            size="sm"
+            className="absolute -top-1.5 left-3.5"
+          />
         ) : null}
       </span>
       <span>{label}</span>
