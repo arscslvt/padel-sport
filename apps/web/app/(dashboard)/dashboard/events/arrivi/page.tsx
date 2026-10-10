@@ -1,7 +1,7 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-
-import { Button } from "@/components/ui/button";
+import {
+  PageBody,
+  PageHeader,
+} from "@/app/(dashboard)/_components/page-header";
 import { requireStaffMember } from "@/lib/staff";
 import { client } from "@/sanity/client";
 import { EVENTS_WITH_RSVP_QUERY } from "@/sanity/queries";
@@ -19,24 +19,14 @@ export default async function EventArrivalsPage() {
   );
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <section className="space-y-2">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link href="/dashboard/events">
-            <ArrowLeft className="size-4" />
-            Eventi
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-semibold">Arrivi</h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          L'appello all'ingresso: si spunta chi si presenta, l'iscritto e i suoi
-          accompagnatori — uno per uno, o tutto il gruppo in un tocco se
-          arrivano insieme. Le spunte si salvano da sole, quindi la pagina si
-          può ricaricare o passare a un altro telefono senza perdere niente. Da
-          qui non si annulla nessuna iscrizione.
-        </p>
-      </section>
-      <Arrivals events={events} />
-    </div>
+    <>
+      <PageHeader
+        title="Arrivi"
+        description="L'appello all'ingresso: le spunte si salvano da sole, anche fra più telefoni."
+      />
+      <PageBody>
+        <Arrivals events={events} />
+      </PageBody>
+    </>
   );
 }

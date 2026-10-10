@@ -52,6 +52,24 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-card: var(--radius-surface);
   --radius-frame: var(--radius-frame-size);
+
+  /* Stati (dashboard): quattro toni, ognuno con fondo, bordo e testo. */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-border: var(--success-border);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-border: var(--warning-border);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-border: var(--info-border);
 }
 
 :root {
@@ -96,6 +114,29 @@
   --border: var(--n-200);
   --input: var(--n-200);
   --ring: var(--brand-ring);
+
+  /*
+   * Stati. Ogni tono ha quattro valori: il colore pieno (icone, numeri), il
+   * testo da usare sopra il fondo tenue, il fondo tenue e il suo bordo. Il
+   * colore resta sempre accompagnato da un'etichetta o da un'icona: da solo
+   * non dice niente a chi non distingue il rosso dal verde.
+   */
+  --success: oklch(0.6 0.14 152);
+  --success-foreground: oklch(0.36 0.08 152);
+  --success-subtle: oklch(0.97 0.03 152);
+  --success-border: oklch(0.9 0.06 152);
+  --warning: oklch(0.72 0.15 70);
+  --warning-foreground: oklch(0.42 0.09 60);
+  --warning-subtle: oklch(0.975 0.035 85);
+  --warning-border: oklch(0.9 0.08 85);
+  --danger: oklch(0.6 0.2 27);
+  --danger-foreground: oklch(0.42 0.14 27);
+  --danger-subtle: oklch(0.97 0.02 27);
+  --danger-border: oklch(0.9 0.05 27);
+  --info: oklch(0.58 0.15 255);
+  --info-foreground: oklch(0.4 0.1 255);
+  --info-subtle: oklch(0.97 0.02 255);
+  --info-border: oklch(0.9 0.05 255);
 
   /* Banda scura (sezione "Prossimi Eventi"). */
   --ink: oklch(0.16 0 0);
@@ -342,4 +383,15 @@
  */
 [data-sonner-toaster] {
   pointer-events: auto;
+}
+
+/*
+ * Le superfici traslucide della dashboard (barra in basso, intestazioni):
+ * con «riduci trasparenza» diventano piene, senza sfocatura.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  .dashboard-material {
+    background-color: var(--background);
+    backdrop-filter: none;
+  }
 }

@@ -14,7 +14,9 @@ export default async function DashboardClientPage({
   const { playerId } = await params;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4 p-4 md:p-6">
+    // In alto lo spazio dell'incavo dell'iPhone: la dashboard si disegna fin
+    // sotto la barra di stato, e il «Clienti» per tornare non ci deve finire.
+    <div className="mx-auto w-full max-w-6xl space-y-4 p-4 pt-[calc(env(safe-area-inset-top)+1rem)] md:p-6">
       <ClientPage playerId={playerId} />
     </div>
   );

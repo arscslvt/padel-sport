@@ -1,81 +1,68 @@
 "use client";
 
-import {
-  CalendarDays,
-  Gift,
-  Inbox,
-  LayoutDashboard,
-  type LucideIcon,
-  Settings,
-  Users,
-} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
 
-const routes: ReadonlyArray<{ name: string; href: string; icon: LucideIcon }> =
-  [
-    { name: "Riepilogo", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Richieste", href: "/dashboard/requests", icon: Inbox },
-    { name: "Clienti", href: "/dashboard/clients", icon: Users },
-    { name: "Punti e premi", href: "/dashboard/points", icon: Gift },
-    { name: "Eventi", href: "/dashboard/events", icon: CalendarDays },
-    { name: "Configurazione", href: "/dashboard/settings", icon: Settings },
-  ];
+import { useCounts } from "../_providers/counts.provider";
+import { activeHref, type NavItem, PRIMARY_NAV, SECONDARY_NAV } from "./nav";
 
 /**
- * Quale voce è accesa.
- *
- * Il prefisso conta, così `/dashboard/events/arrivi` tiene acceso «Eventi» —
- * chi è in una sottopagina deve vedere da dove ci è arrivato. «Riepilogo» fa
- * eccezione perché la sua rotta è la radice di tutte le altre: senza il
- * confronto esatto resterebbe accesa ovunque, e due voci accese non indicano
- * più niente.
+ * La barra laterale da desktop. Le voci sono le stesse della barra in basso
+ * del telefono (nav.ts): le quattro di tutti i giorni in cima, poi eventi e
+ * club. Il numero accanto a una voce è quante cose ci aspettano.
  */
-function isActiveRoute(pathname: string, href: string) {
-  if (href === "/dashboard") return pathname === "/dashboard";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
 export default function DashboardNav() {
-  const { isMobile, setOpenMobile } = useSidebar();
   const pathname = usePathname();
+  const active = activeHref(pathname);
+  const { counts } = useCounts();
+
+  const renderItem = (item: NavItem) => {
+    const count = item.count ? counts?.[item.count] : undefined;
+
+    return (
+      <SidebarMenuItem key={item.href}>
+        {/*
+         * `tooltip`: a barra stretta resta solo l'icona, e senza l'etichetta
+         * al passaggio del mouse le icone diventano quadratini da indovinare.
+         */}
+        <SidebarMenuButton
+          asChild
+          isActive={active === item.href}
+          tooltip={item.name}
+        >
+          <Link href={item.href}>
+            <item.icon />
+            <span>{item.name}</span>
+          </Link>
+        </SidebarMenuButton>
+        {count ? (
+          <SidebarMenuBadge className="bg-danger text-white tabular-nums">
+            {count > 99 ? "99+" : count}
+          </SidebarMenuBadge>
+        ) : null}
+      </SidebarMenuItem>
+    );
+  };
 
   return (
-    <SidebarGroup>
-      <SidebarMenu>
-        {routes.map((route) => (
-          <SidebarMenuItem key={route.href}>
-            {/*
-             * `tooltip` non è un vezzo: a barra stretta resta solo l'icona, e
-             * senza l'etichetta al passaggio del mouse «Inbox» e «Impostazioni»
-             * diventano due quadratini da indovinare.
-             */}
-            <SidebarMenuButton
-              asChild
-              isActive={isActiveRoute(pathname, route.href)}
-              tooltip={route.name}
-              className="h-11 md:h-8"
-            >
-              <Link
-                href={route.href}
-                onClick={() => {
-                  if (isMobile) setOpenMobile(false);
-                }}
-              >
-                <route.icon />
-                <span>{route.name}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
-    </SidebarGroup>
+    <>
+      <SidebarGroup>
+        <SidebarMenu>{PRIMARY_NAV.map(renderItem)}</SidebarMenu>
+      </SidebarGroup>
+      {SECONDARY_NAV.map((group) => (
+        <SidebarGroup key={group.title}>
+          <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+          <SidebarMenu>{group.items.map(renderItem)}</SidebarMenu>
+        </SidebarGroup>
+      ))}
+    </>
   );
 }
