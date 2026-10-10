@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ChevronLeft,
   ChevronRight,
   Coins,
   Loader2,
@@ -303,20 +302,16 @@ function ClientWallet({
 
   return (
     <>
-      <SheetHeader title="Assegna punti" />
+      {/* Secondo passaggio del pannello: il titolo è la persona, e la freccia
+          a sinistra torna alla ricerca. */}
+      <SheetHeader
+        title={client.name}
+        back={{ label: "Cambia cliente", onClick: onBack }}
+      />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:px-0 md:pb-0">
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-muted-foreground hover:text-foreground -ml-1 inline-flex min-h-9 items-center gap-0.5 text-sm transition-colors"
-        >
-          <ChevronLeft className="size-4" />
-          Cambia cliente
-        </button>
-
-        {/* Chi è e quanto ha, sulla stessa riga: il saldo si legge senza
+        {/* Il recapito e il saldo, sulla stessa riga: il saldo si legge senza
             cercarlo, allineato a destra come un importo. */}
-        <div className="flex items-center gap-3 pt-2 pb-4">
+        <div className="flex items-center gap-3 pb-4">
           <Avatar className="size-11 shrink-0">
             {client.avatarUrl && <AvatarImage src={client.avatarUrl} />}
             <AvatarFallback className="bg-foreground/[0.07]">
@@ -324,12 +319,14 @@ function ClientWallet({
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[17px] leading-tight font-semibold">
-              {client.name}
-            </p>
             <p className="text-muted-foreground truncate text-[13px]">
               {client.phone ?? client.email ?? "Nessun recapito"}
             </p>
+            {client.code && (
+              <p className="text-muted-foreground truncate text-[13px] tabular-nums">
+                #{client.code}
+              </p>
+            )}
           </div>
           <div className="shrink-0 text-right">
             {wallet ? (
