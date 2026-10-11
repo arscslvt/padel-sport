@@ -1,8 +1,5 @@
 import { Suspense } from "react";
-import {
-  PageBody,
-  PageHeader,
-} from "@/app/_components/page-header";
+import { PageBody, PageHeader } from "@/app/_components/page-header";
 import { requireStaffMember } from "@/lib/staff";
 import { RequestsPanel } from "./_components/requests-panel";
 
@@ -16,10 +13,10 @@ export default async function DashboardRequestsPage() {
     <>
       <PageHeader
         title="Richieste"
-        description="Assistenza e ricerca compagni arrivate dal sito: qui chi aspetta ancora una risposta."
+        description="Assistenza, ricerca compagni e segnalazioni sui punti arrivate dal sito: qui chi aspetta ancora una risposta."
       />
       <PageBody>
-        {/* Il pannello legge `?support=` e `?match=` per aprirsi già sulla
+        {/* Il pannello legge `?support=`, `?match=` e `?report=` per aprirsi già sulla
           richiesta che la notifica indicava, e Next vuole `useSearchParams`
           dentro un confine di Suspense. */}
         <Suspense fallback={null}>

@@ -1,7 +1,14 @@
+import type { api } from "@padel-sport/backend/convex/_generated/api";
 import type { Doc } from "@padel-sport/backend/convex/_generated/dataModel";
+import type { FunctionReturnType } from "convex/server";
 
 export type SupportRequest = Doc<"supportRequests">;
 export type MatchRequest = Doc<"matchRequests">;
+
+/** La segnalazione con scheda del cliente e movimento già affiancati. */
+export type PointReport = FunctionReturnType<
+  typeof api.modules.pointReports.list.default
+>[number];
 
 export type SupportStatus = SupportRequest["status"];
 export type MatchStatus = MatchRequest["status"];
@@ -37,3 +44,9 @@ export const isOpenSupport = (request: SupportRequest) =>
 
 export const isOpenMatch = (request: MatchRequest) =>
   request.status === "new" || request.status === "in_progress";
+
+/** Le segnalazioni si chiudono come l'assistenza: stessi stati, stesse parole. */
+export const isOpenReport = (report: PointReport) =>
+  report.status === "new" || report.status === "in_progress";
+
+export { CATEGORY_LABELS as REPORT_CATEGORY_LABELS } from "@padel-sport/backend/convex/modules/pointReports/lib";

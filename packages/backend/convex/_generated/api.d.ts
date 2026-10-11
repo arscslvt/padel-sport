@@ -89,6 +89,10 @@ import type * as modules_openMatches_players from "../modules/openMatches/player
 import type * as modules_openMatches_publish from "../modules/openMatches/publish.js";
 import type * as modules_openMatches_recipients from "../modules/openMatches/recipients.js";
 import type * as modules_openMatches_requests from "../modules/openMatches/requests.js";
+import type * as modules_pointReports_create from "../modules/pointReports/create.js";
+import type * as modules_pointReports_lib from "../modules/pointReports/lib.js";
+import type * as modules_pointReports_list from "../modules/pointReports/list.js";
+import type * as modules_pointReports_update from "../modules/pointReports/update.js";
 import type * as modules_points_expire from "../modules/points/expire.js";
 import type * as modules_points_ledger from "../modules/points/ledger.js";
 import type * as modules_points_lib from "../modules/points/lib.js";
@@ -136,6 +140,7 @@ import type * as tables_memberships from "../tables/memberships.js";
 import type * as tables_openMatches from "../tables/openMatches.js";
 import type * as tables_players from "../tables/players.js";
 import type * as tables_pointPresets from "../tables/pointPresets.js";
+import type * as tables_pointReports from "../tables/pointReports.js";
 import type * as tables_pointTransactions from "../tables/pointTransactions.js";
 import type * as tables_rewardRedemptions from "../tables/rewardRedemptions.js";
 import type * as tables_rewards from "../tables/rewards.js";
@@ -235,6 +240,10 @@ declare const fullApi: ApiFromModules<{
   "modules/openMatches/publish": typeof modules_openMatches_publish;
   "modules/openMatches/recipients": typeof modules_openMatches_recipients;
   "modules/openMatches/requests": typeof modules_openMatches_requests;
+  "modules/pointReports/create": typeof modules_pointReports_create;
+  "modules/pointReports/lib": typeof modules_pointReports_lib;
+  "modules/pointReports/list": typeof modules_pointReports_list;
+  "modules/pointReports/update": typeof modules_pointReports_update;
   "modules/points/expire": typeof modules_points_expire;
   "modules/points/ledger": typeof modules_points_ledger;
   "modules/points/lib": typeof modules_points_lib;
@@ -282,6 +291,7 @@ declare const fullApi: ApiFromModules<{
   "tables/openMatches": typeof tables_openMatches;
   "tables/players": typeof tables_players;
   "tables/pointPresets": typeof tables_pointPresets;
+  "tables/pointReports": typeof tables_pointReports;
   "tables/pointTransactions": typeof tables_pointTransactions;
   "tables/rewardRedemptions": typeof tables_rewardRedemptions;
   "tables/rewards": typeof tables_rewards;

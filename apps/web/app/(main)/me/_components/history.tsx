@@ -4,6 +4,7 @@ import { Heading } from "@/components/ui/heading";
 import { formatClubDate, signedPoints } from "@/lib/points";
 import { cn } from "@/lib/utils";
 
+import { ReportPoints } from "./report-points";
 import type { Wallet, WalletRedemption } from "./types";
 
 /**
@@ -93,9 +94,12 @@ export function History({ wallet }: { wallet: Wallet }) {
 
       {hasActivity && (
         <section aria-labelledby="activity-title" className="space-y-5">
-          <Heading as="h2" size="sub" id="activity-title">
-            Movimenti
-          </Heading>
+          <div className="flex items-center justify-between gap-4">
+            <Heading as="h2" size="sub" id="activity-title">
+              Movimenti
+            </Heading>
+            <ReportPoints transactions={wallet.transactions} />
+          </div>
 
           <ul className="divide-border divide-y">
             {wallet.transactions.map((transaction) => (

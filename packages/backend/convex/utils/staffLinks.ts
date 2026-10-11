@@ -67,5 +67,10 @@ export function staffMatchRequestUrl(requestId: string) {
   return `${BASE_URL}/requests?match=${encodeURIComponent(requestId)}`;
 }
 
+/** Le segnalazioni sui punti, con una già aperta. */
+export function staffPointReportUrl(reportId: string) {
+  return `${BASE_URL}/requests?report=${encodeURIComponent(reportId)}`;
+}
+
 /** La configurazione, dove si governano campi e orari. */
 export const STAFF_SETTINGS_URL = `${BASE_URL}/settings`;

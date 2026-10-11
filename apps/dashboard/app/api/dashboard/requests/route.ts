@@ -7,14 +7,15 @@ import { convexMessage } from "@/lib/clients";
 import { staffGate } from "@/lib/dashboard-api";
 
 /**
- * Le richieste che arrivano dai moduli del sito: assistenza e cerca-giocatori.
+ * Le richieste che arrivano dai moduli del sito: assistenza, cerca-giocatori
+ * e segnalazioni sui punti dall'area personale.
  *
  * Passa da qui e non da `useQuery` nel browser per la stessa ragione
  * dell'agenda: sono nomi, mail e numeri di telefono, e il deployment Convex ha
  * un URL pubblico — sta nel bundle del sito — quindi «la chiama solo la
  * dashboard» non è mai stata una protezione.
  *
- * Le due liste tornano insieme: la pagina le mostra affiancate, e due chiamate
+ * Le liste tornano insieme: la pagina le mostra affiancate, e due chiamate
  * vorrebbero dire due stati di caricamento per una sola schermata.
  */
 export async function GET() {
@@ -22,16 +23,19 @@ export async function GET() {
   if (!gate.ok) return gate.response;
 
   try {
-    const [support, matches] = await Promise.all([
+    const [support, matches, reports] = await Promise.all([
       gate.convex.query(api.modules.supportRequests.list.default, {
         secret: gate.secret,
       }),
       gate.convex.query(api.modules.matchRequests.list.default, {
         secret: gate.secret,
       }),
+      gate.convex.query(api.modules.pointReports.list.default, {
+        secret: gate.secret,
+      }),
     ]);
 
-    return NextResponse.json({ support, matches });
+    return NextResponse.json({ support, matches, reports });
   } catch (error) {
     console.error("Richieste non recuperate:", error);
     return NextResponse.json(
@@ -51,6 +55,11 @@ const patchSchema = z.discriminatedUnion("kind", [
     kind: z.literal("match"),
     requestId: z.string().min(1),
     status: z.enum(["new", "in_progress", "fulfilled", "cancelled"]),
+  }),
+  z.object({
+    kind: z.literal("report"),
+    requestId: z.string().min(1),
+    status: z.enum(["new", "in_progress", "resolved", "archived"]),
   }),
 ]);
 
@@ -73,10 +82,16 @@ export async function PATCH(request: Request) {
         requestId: requestId as Id<"supportRequests">,
         status,
       });
-    } else {
+    } else if (kind === "match") {
       await gate.convex.mutation(api.modules.matchRequests.update.default, {
         secret: gate.secret,
         requestId: requestId as Id<"matchRequests">,
+        status,
+      });
+    } else {
+      await gate.convex.mutation(api.modules.pointReports.update.default, {
+        secret: gate.secret,
+        reportId: requestId as Id<"pointReports">,
         status,
       });
     }

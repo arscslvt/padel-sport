@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Inbox, LifeBuoy, MailCheck, Users } from "lucide-react";
+import { Coins, Inbox, LifeBuoy, MailCheck, Users } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -35,8 +35,11 @@ import { RequestSheet, type Selection } from "./request-sheet";
 import { MatchStatusBadge, SupportStatusBadge } from "./status-badge";
 import {
   isOpenMatch,
+  isOpenReport,
   isOpenSupport,
   type MatchRequest,
+  type PointReport,
+  REPORT_CATEGORY_LABELS,
   type SupportRequest,
 } from "./types";
 
@@ -48,6 +51,8 @@ import {
  * senza risposta. Lo stato che le tabelle modellavano da sempre — presa in
  * carico, risolta, archiviata — comincia qui a servire a qualcosa.
  */
+
+type Tab = "support" | "matches" | "reports";
 
 function formatWhen(timestamp: number) {
   return format(timestamp, "d MMM yyyy, HH:mm", { locale: it });
@@ -106,6 +111,7 @@ function ListSkeleton() {
 export function RequestsPanel() {
   const [support, setSupport] = useState<SupportRequest[] | null>(null);
   const [matches, setMatches] = useState<MatchRequest[] | null>(null);
+  const [reports, setReports] = useState<PointReport[] | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -118,17 +124,20 @@ export function RequestsPanel() {
         });
         setSupport([]);
         setMatches([]);
+        setReports([]);
         return;
       }
 
       setSupport(payload.support ?? []);
       setMatches(payload.matches ?? []);
+      setReports(payload.reports ?? []);
     } catch {
       toast.error("Richieste non caricate", {
         description: "Controlla la connessione e riprova.",
       });
       setSupport([]);
       setMatches([]);
+      setReports([]);
     }
   }, []);
 
@@ -137,19 +146,24 @@ export function RequestsPanel() {
   }, [load]);
 
   /**
-   * `?support=` e `?match=` sono l'atterraggio delle notifiche: aprono la
+   * `?support=`, `?match=` e `?report=` sono l'atterraggio delle notifiche: aprono la
    * scheda giusta e scelgono da soli l'elenco in cui si trova.
    */
   const searchParams = useSearchParams();
   const linkedSupport = searchParams.get("support");
   const linkedMatch = searchParams.get("match");
+  const linkedReport = searchParams.get("report");
 
-  const [tab, setTab] = useState<"support" | "matches">(
-    linkedMatch && !linkedSupport ? "matches" : "support",
-  );
+  const [tab, setTab] = useState<Tab>(() => {
+    if (linkedSupport) return "support";
+    if (linkedMatch) return "matches";
+    if (linkedReport) return "reports";
+    return "support";
+  });
   const [selected, setSelected] = useState<Selection>(() => {
     if (linkedSupport) return { kind: "support", id: linkedSupport };
     if (linkedMatch) return { kind: "match", id: linkedMatch };
+    if (linkedReport) return { kind: "report", id: linkedReport };
     return null;
   });
 
@@ -162,13 +176,18 @@ export function RequestsPanel() {
     [matches],
   );
 
-  const loading = support === null || matches === null;
+  const openReports = useMemo(
+    () => (reports ?? []).filter(isOpenReport).length,
+    [reports],
+  );
+
+  const loading = support === null || matches === null || reports === null;
 
   return (
     <>
       <section
         data-tour="requests-summary"
-        className="grid gap-4 grid-cols-2 lg:grid-cols-3"
+        className="grid gap-4 grid-cols-2 lg:grid-cols-4"
       >
         <Card>
           <CardHeader>
@@ -196,7 +215,20 @@ export function RequestsPanel() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-2 lg:col-span-1">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Coins className="size-4" />
+              Punti
+            </CardTitle>
+            <CardDescription>Segnalazioni aperte</CardDescription>
+          </CardHeader>
+          <CardContent className="text-2xl font-semibold">
+            {loading ? <Skeleton className="h-8 w-10" /> : openReports}
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MailCheck className="size-4" />
@@ -208,7 +240,7 @@ export function RequestsPanel() {
             {loading ? (
               <Skeleton className="h-8 w-10" />
             ) : (
-              support.length + matches.length
+              support.length + matches.length + reports.length
             )}
           </CardContent>
         </Card>
@@ -216,7 +248,7 @@ export function RequestsPanel() {
 
       <Tabs
         value={tab}
-        onValueChange={(value) => setTab(value as "support" | "matches")}
+        onValueChange={(value) => setTab(value as Tab)}
         className="space-y-3"
       >
         <TabsList>
@@ -227,6 +259,10 @@ export function RequestsPanel() {
           <TabsTrigger value="matches">
             Giocatori
             <CountBadge count={openMatches} />
+          </TabsTrigger>
+          <TabsTrigger value="reports">
+            Punti
+            <CountBadge count={openReports} />
           </TabsTrigger>
         </TabsList>
 
@@ -306,12 +342,57 @@ export function RequestsPanel() {
             )}
           </div>
         </TabsContent>
+
+        <TabsContent value="reports">
+          <div className="overflow-hidden rounded-lg border">
+            {loading ? (
+              <ListSkeleton />
+            ) : reports.length === 0 ? (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Coins className="size-5" />
+                  </EmptyMedia>
+                  <EmptyTitle>Nessuna segnalazione</EmptyTitle>
+                  <EmptyDescription>
+                    Chi chiede conto dei suoi punti dall'area personale compare
+                    qui.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <ul className="divide-y bg-white">
+                {reports.map((report) => (
+                  <RequestRow
+                    key={report._id}
+                    active={
+                      selected?.kind === "report" && selected.id === report._id
+                    }
+                    onOpen={() =>
+                      setSelected({ kind: "report", id: report._id })
+                    }
+                    title={report.player?.name ?? "Cliente rimosso"}
+                    subtitle={[
+                      REPORT_CATEGORY_LABELS[report.category],
+                      report.transaction?.label,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    meta={formatWhen(report.createdAt)}
+                    badge={<SupportStatusBadge status={report.status} />}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
 
       <RequestSheet
         selection={selected}
         support={support ?? []}
         matches={matches ?? []}
+        reports={reports ?? []}
         onOpenChange={(open) => !open && setSelected(null)}
         onChanged={() => void load()}
       />

@@ -21,12 +21,14 @@ export async function GET() {
 
   const { convex, secret } = gate;
 
-  const [bookings, support, match, redemptions] = await Promise.allSettled([
-    convex.query(api.bookings.list.default, { secret, includePast: false }),
-    convex.query(api.modules.supportRequests.list.default, { secret }),
-    convex.query(api.modules.matchRequests.list.default, { secret }),
-    convex.query(api.modules.points.redemptions.pending, { secret }),
-  ]);
+  const [bookings, support, match, reports, redemptions] =
+    await Promise.allSettled([
+      convex.query(api.bookings.list.default, { secret, includePast: false }),
+      convex.query(api.modules.supportRequests.list.default, { secret }),
+      convex.query(api.modules.matchRequests.list.default, { secret }),
+      convex.query(api.modules.pointReports.list.default, { secret }),
+      convex.query(api.modules.points.redemptions.pending, { secret }),
+    ]);
 
   const value = <T>(result: PromiseSettledResult<T[]>): T[] =>
     result.status === "fulfilled" ? result.value : [];
@@ -37,7 +39,8 @@ export async function GET() {
     ).length,
     requests:
       value(support).filter((row) => OPEN.has(row.status)).length +
-      value(match).filter((row) => OPEN.has(row.status)).length,
+      value(match).filter((row) => OPEN.has(row.status)).length +
+      value(reports).filter((row) => OPEN.has(row.status)).length,
     points: value(redemptions).length,
   });
 }
