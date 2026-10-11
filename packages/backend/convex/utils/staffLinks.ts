@@ -17,11 +17,18 @@
 
 const SITE_URL = process.env.SITE_URL ?? "https://asdpadelsport.com";
 
-const BASE_URL = (
+const RAW_BASE_URL = (
   process.env.DASHBOARD_URL ??
   process.env.NEXT_PUBLIC_DASHBOARD_URL ??
   `${SITE_URL}/dashboard`
-).replace(/\/$/, "");
+)
+  .trim()
+  .replace(/\/+$/, "");
+
+// Scritta senza protocollo, un link nella notifica non si aprirebbe.
+const BASE_URL = /^https?:\/\//.test(RAW_BASE_URL)
+  ? RAW_BASE_URL
+  : `https://${RAW_BASE_URL}`;
 
 /** I tre elenchi della pagina prenotazioni, come li nomina la dashboard. */
 export type BookingsTab = "pending" | "merge" | "all";

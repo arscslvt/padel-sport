@@ -14,7 +14,9 @@
 export function dashboardUrl(): string {
   const url = process.env.NEXT_PUBLIC_DASHBOARD_URL;
 
-  if (url) return url.replace(/\/$/, "");
+  // Su Railway è facile scriverla senza protocollo: senza `https://` il
+  // redirect diventerebbe un percorso relativo sul sito stesso.
+  if (url) return withProtocol(url);
 
   if (process.env.NODE_ENV === "production") {
     throw new Error(
@@ -23,4 +25,9 @@ export function dashboardUrl(): string {
   }
 
   return "http://localhost:3001";
+}
+
+function withProtocol(url: string): string {
+  const trimmed = url.trim().replace(/\/+$/, "");
+  return /^https?:\/\//.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
