@@ -96,11 +96,10 @@ export function MyBookings() {
     <div>
       {bookings.length === 0 ? (
         <div>
-          <p className="text-sm font-medium">Nessuna prenotazione a tuo nome</p>
+          <p className="text-sm font-medium">Nessuna partita in programma</p>
           <p className="text-muted-foreground mt-1 max-w-[52ch] text-sm leading-relaxed">
-            Con questo account non risultano partite in programma. Se hai
-            prenotato con un altro indirizzo, esci e riprova con quello; se hai
-            prenotato senza account, la prenotazione è sul servizio esterno.
+            Hai prenotato con un'altra email? Esci ed entra con quella. Le
+            prenotazioni fatte su SumUp non compaiono qui.
           </p>
           <Button asChild size="pill-lg" className="mt-6">
             <Link href={BOOKING_LINK}>Prenota un campo</Link>
@@ -180,13 +179,13 @@ export function MyBookings() {
 
       {email && (
         <p className="text-muted-foreground mt-8 text-xs">
-          Stai guardando le prenotazioni di {email} ·{" "}
+          Accesso come {email} ·{" "}
           <button
             type="button"
             className="hover:text-foreground underline underline-offset-4"
             onClick={() => void signOut()}
           >
-            non sei tu?
+            esci
           </button>
         </p>
       )}

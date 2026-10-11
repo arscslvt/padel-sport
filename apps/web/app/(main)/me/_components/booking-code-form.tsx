@@ -27,10 +27,10 @@ export function BookingCodeForm() {
 
   return (
     <div className="rounded-card bg-muted p-6 sm:p-8">
-      <p className="text-sm font-medium">Hai già il codice?</p>
+      <p className="text-sm font-medium">Hai un codice di prenotazione?</p>
       <p className="text-muted-foreground mt-1 max-w-[52ch] text-sm">
-        Sono le sei cifre della conferma. Aprono il QR d'ingresso anche a chi
-        non ha un account: basta averlo ricevuto da chi ha prenotato.
+        Inseriscilo per vedere la partita e il QR d'ingresso. Non serve un
+        account.
       </p>
 
       <div className="mt-4 flex flex-col gap-2.5 sm:max-w-sm sm:flex-row">
