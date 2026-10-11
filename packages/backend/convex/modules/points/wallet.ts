@@ -47,7 +47,11 @@ export default query({
     // prendere. Se si possono prendere tutti, non c'è un prossimo.
     const next = rewards.find((reward) => !reward.unlocked) ?? null;
 
-    const transactions = await recentTransactions(ctx, player._id, HISTORY_LIMIT);
+    const transactions = await recentTransactions(
+      ctx,
+      player._id,
+      HISTORY_LIMIT,
+    );
 
     const redemptions = await ctx.db
       .query("rewardRedemptions")
@@ -66,6 +70,10 @@ export default query({
         version: POINTS_TERMS_VERSION,
       },
       firstName: player.firstName ?? player.name.split(" ")[0],
+      /** Il nome intero, stampato sulla tessera punti. */
+      fullName:
+        [player.firstName, player.lastName].filter(Boolean).join(" ") ||
+        player.name,
       balance,
       next: next
         ? {
