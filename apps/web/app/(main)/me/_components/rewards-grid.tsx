@@ -17,11 +17,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Heading } from "@/components/ui/heading";
 import { DURATION, EASE } from "@/lib/motion";
 import { pointsLabel } from "@/lib/points";
 import { cn } from "@/lib/utils";
 
+import { SectionTitle } from "./section-title";
 import type { WalletReward } from "./types";
 
 /**
@@ -48,11 +48,17 @@ export function RewardsGrid({
 
   return (
     <section aria-labelledby="rewards-title" className="space-y-6">
-      <Heading as="h2" size="sub" id="rewards-title">
-        Premi
-      </Heading>
+      <SectionTitle
+        id="rewards-title"
+        title="Da riscattare"
+        description={
+          canRedeem
+            ? "Si sbloccano quando hai i punti che servono. Tocca un premio per riscattarlo."
+            : "Aderisci al programma punti per poterli riscattare."
+        }
+      />
 
-      <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
         {rewards.map((reward, index) => (
           <motion.li
             key={reward.id}

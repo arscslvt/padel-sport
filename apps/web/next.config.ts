@@ -55,11 +55,11 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       {
-        // «Le tue prenotazioni» è diventata una sezione dell'area personale:
-        // il vecchio indirizzo è nei menu delle pagine già aperte e nei
-        // segnalibri, e deve continuare a portare lì.
+        // «Le tue prenotazioni» è diventata una sezione dell'area personale,
+        // con una rotta sua: il vecchio indirizzo è nei menu delle pagine già
+        // aperte e nei segnalibri, e deve continuare a portare lì.
         source: "/bookings",
-        destination: "/me#bookings",
+        destination: "/me/prenotazioni",
         permanent: false,
       },
       {

@@ -33,7 +33,11 @@ export default function MainLayout({
 			</main>
 			<Footer />
 			{modal}
-			<Toaster />
+			{/* Nell'area personale il dock occupa il fondo dello schermo: da
+			    telefono i toast salgono sopra, invece di coprirlo. */}
+			<Toaster
+				mobileOffset={pathname.startsWith("/me") ? { bottom: 96 } : undefined}
+			/>
 		</div>
 	);
 }

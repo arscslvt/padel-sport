@@ -13,10 +13,10 @@ export const BOOKING_LINK = "/book";
 /**
  * Recupero delle prenotazioni: ci si riconosce con la mail e si ritrovano
  * codice e QR. È la via d'uscita quando la conferma non arriva in casella.
- * Vive dentro l'area personale; `/bookings`, il vecchio indirizzo, ci rimanda
- * (next.config.ts).
+ * È una sezione dell'area personale; `/bookings` e `/me#bookings`, i vecchi
+ * indirizzi, ci rimandano (next.config.ts, me/_components/points-section.tsx).
  */
-export const MY_BOOKINGS_LINK = "/me#bookings" as Route;
+export const MY_BOOKINGS_LINK = "/me/prenotazioni" as Route;
 /**
  * Area personale del socio: prenotazioni e portafoglio punti in un posto solo.
  * È anche il link che le mail dei punti portano con sé.

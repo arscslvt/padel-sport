@@ -240,8 +240,11 @@ const DESCRIPTION =
 
 export function ReportPoints({
   transactions,
+  prominent = false,
 }: {
   transactions: Wallet["transactions"];
+  /** Bottone pieno, per la sezione Segnalazioni dove è l'azione principale. */
+  prominent?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   // Primo render uguale su server e client: il pannello è chiuso, quindi
@@ -257,16 +260,28 @@ export function ReportPoints({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => setOpen(true)}
-        className="text-muted-foreground hover:text-foreground"
-      >
-        <Flag className="size-3.5" />
-        Segnala
-      </Button>
+      {prominent ? (
+        <Button
+          type="button"
+          size="pill"
+          onClick={() => setOpen(true)}
+          className="active:scale-[0.97]"
+        >
+          <Flag className="size-4" />
+          Nuova
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setOpen(true)}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <Flag className="size-3.5" />
+          Segnala
+        </Button>
+      )}
 
       {isDesktop ? (
         <Sheet open={open} onOpenChange={setOpen}>

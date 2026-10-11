@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import { VerifyStep } from "@/components/booking/verify-step";
 import { Button } from "@/components/ui/button";
 import { formatClubDay, formatClubSlotRange, MAX_PLAYERS } from "@/lib/booking";
-import { BOOKING_LINK } from "@/lib/links";
 
 /**
  * Le prenotazioni di chi si è verificato, con codice e QR.
@@ -101,9 +100,6 @@ export function MyBookings() {
             Hai prenotato con un'altra email? Esci ed entra con quella. Le
             prenotazioni fatte su SumUp non compaiono qui.
           </p>
-          <Button asChild size="pill-lg" className="mt-6">
-            <Link href={BOOKING_LINK}>Prenota un campo</Link>
-          </Button>
         </div>
       ) : (
         /**
