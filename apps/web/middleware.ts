@@ -1,15 +1,12 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-const isDashboardRoute = createRouteMatcher([
-  "/dashboard(.*)",
-  "/management(.*)",
-]);
-
-export default clerkMiddleware(async (auth, req) => {
-  if (isDashboardRoute(req)) {
-    await auth.protect();
-  }
-});
+/**
+ * Nessuna rotta del sito è protetta qui: il sito è pubblico, e le pagine che
+ * vogliono una sessione (l'area personale, l'attivazione dell'account) la
+ * chiedono da sé. Il middleware serve perché `auth()` funzioni nelle route.
+ * Il gestionale, con le sue protezioni, è un'app a parte (`apps/dashboard`).
+ */
+export default clerkMiddleware();
 
 export const config = {
   matcher: [

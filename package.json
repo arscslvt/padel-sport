@@ -5,11 +5,14 @@
   "private": true,
   "scripts": {
     "dev:web": "bun run --cwd apps/web dev",
+    "dev:dashboard": "bun run --cwd apps/dashboard dev",
     "dev:mobile": "bun run --cwd apps/mobile dev",
     "dev:mobile:clean": "bun run --cwd apps/mobile dev:clean",
     "dev:backend": "bun run --cwd packages/backend dev",
     "build:web": "bun run --cwd apps/web build",
-    "start:web": "bun run --cwd apps/web start"
+    "build:dashboard": "bun run --cwd apps/dashboard build",
+    "start:web": "bun run --cwd apps/web start",
+    "start:dashboard": "bun run --cwd apps/dashboard start"
   },
   "workspaces": [
     "apps/*",

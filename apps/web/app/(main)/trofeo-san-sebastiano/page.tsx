@@ -1,13 +1,10 @@
+import { MessageCircle, PhoneCall } from "lucide-react";
 import type { Metadata } from "next";
 
-import LiveDot from "@/app/tournament/components/live-dot";
 import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
-import { TOURNAMENT_ANCHORS } from "@/lib/anchors";
 import { getInfo } from "@/lib/info";
-import { TOURNAMENT_LINK } from "@/lib/links";
-import TournamentFloatingCta from "./tournament-floating-cta";
 
 export const metadata: Metadata = {
 	title: "1° Torneo di Padel 'Trofeo San Sebastiano'",
@@ -124,7 +121,7 @@ export default function TrofeoSanSebastianoPage() {
 
 	return (
 		<section className="px-6 pb-20 lg:px-12">
-			<div id={TOURNAMENT_ANCHORS.shell} className="mx-auto max-w-5xl">
+			<div className="mx-auto max-w-5xl">
 				<header className="mb-10">
 					<p className="text-muted-foreground border-border mb-6 inline-flex rounded-full border px-3 py-1 text-xs tracking-[0.18em] uppercase">
 						Torneo
@@ -140,18 +137,6 @@ export default function TrofeoSanSebastianoPage() {
 						gironi e finali per vivere il padel con intensità, rispetto e
 						sportività.
 					</p>
-
-					<div id={TOURNAMENT_ANCHORS.ctaSource} className="mt-8">
-						<Button asChild size="pill">
-							<a
-								href={TOURNAMENT_LINK}
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<LiveDot /> Vedi risultati in diretta
-							</a>
-						</Button>
-					</div>
 				</header>
 
 				<div className="grid w-full gap-2.5 md:grid-cols-2">
@@ -185,12 +170,27 @@ export default function TrofeoSanSebastianoPage() {
 					))}
 				</div>
 
-				<TournamentFloatingCta
-					whatsappHref={whatsappHref}
-					phoneHref={phoneHref}
-					sourceId={TOURNAMENT_ANCHORS.ctaSource}
-					containerId={TOURNAMENT_ANCHORS.shell}
-				/>
+				{/*
+				 * Il torneo è finito e il tabellone in diretta (/tournament) non è
+				 * più online: dei pulsanti flottanti resta solo il contatto.
+				 */}
+				<div className="rounded-card border-border bg-background mt-10 border p-4 shadow-lg">
+					<p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
+						Come partecipare
+					</p>
+					<div className="mt-3 flex flex-col gap-2 sm:flex-row">
+						<Button asChild size="pill" className="sm:flex-1">
+							<a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+								<MessageCircle /> Scrivici su WhatsApp
+							</a>
+						</Button>
+						<Button asChild size="pill" variant="outline" className="sm:flex-1">
+							<a href={phoneHref}>
+								<PhoneCall /> Chiamaci al cellulare
+							</a>
+						</Button>
+					</div>
+				</div>
 			</div>
 		</section>
 	);

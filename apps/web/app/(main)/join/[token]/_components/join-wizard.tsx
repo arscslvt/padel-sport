@@ -4,17 +4,6 @@ import { useAuth } from "@clerk/nextjs";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  EMPTY_OPTIONAL,
-  OptionalFields,
-  type OptionalFieldsValue,
-  optionalPayload,
-} from "@/app/(dashboard)/dashboard/clients/_components/optional-fields";
-import {
-  ResidenceFields,
-  residencePayload,
-} from "@/app/(dashboard)/dashboard/clients/_components/residence-fields";
-import type { Residence } from "@/app/(dashboard)/dashboard/clients/_components/types";
 import { CodeFields, useEmailCode } from "@/components/booking/email-code";
 import {
   Chip,
@@ -33,6 +22,14 @@ import {
   LEVEL_RANGES,
 } from "@/lib/levels";
 import { BOOKING_LINK } from "@/lib/links";
+import type { Residence } from "./client-types";
+import {
+  EMPTY_OPTIONAL,
+  OptionalFields,
+  type OptionalFieldsValue,
+  optionalPayload,
+} from "./optional-fields";
+import { ResidenceFields, residencePayload } from "./residence-fields";
 
 /**
  * L'attivazione dell'account, dal link dell'invito.

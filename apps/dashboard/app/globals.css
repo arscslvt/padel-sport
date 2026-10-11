@@ -1,0 +1,318 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@source "../app";
+@source "../components";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--theme-font-heading);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-card: var(--radius-surface);
+  --radius-frame: var(--radius-frame-size);
+
+  /* Stati (dashboard): quattro toni, ognuno con fondo, bordo e testo. */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-border: var(--success-border);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-border: var(--warning-border);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-border: var(--info-border);
+
+  /* Il verde del club: l'unico accento delle pagine d'accesso. */
+  --color-club: var(--club);
+  --color-club-hover: var(--club-hover);
+  --color-club-foreground: var(--club-foreground);
+}
+
+:root {
+  /* ---------------------------------------------------------------
+   * BRAND — unica sezione da riscrivere quando arrivano i colori
+   * definitivi. Tutto il resto della palette deriva da qui.
+   * --------------------------------------------------------------- */
+  --brand: oklch(0.205 0 0);
+  --brand-foreground: oklch(0.985 0 0);
+  --brand-subtle: oklch(0.97 0 0);
+  --brand-ring: oklch(0.556 0 0);
+
+  /* Scala neutra: unico posto con valori grezzi. */
+  --n-0: oklch(1 0 0);
+  --n-50: oklch(0.985 0 0);
+  --n-100: oklch(0.967 0 0);
+  --n-200: oklch(0.94 0 0);
+  --n-300: oklch(0.9 0 0);
+  --n-500: oklch(0.556 0 0);
+  --n-700: oklch(0.37 0 0);
+  --n-900: oklch(0.205 0 0);
+  --n-950: oklch(0.145 0 0);
+
+  /* Token semantici. */
+  --background: var(--n-50);
+  --foreground: var(--n-950);
+  --surface: var(--n-100);
+  --surface-foreground: var(--n-950);
+  --card: var(--n-0);
+  --card-foreground: var(--n-950);
+  --popover: var(--n-0);
+  --popover-foreground: var(--n-950);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: var(--n-100);
+  --secondary-foreground: var(--n-900);
+  --muted: var(--n-100);
+  --muted-foreground: var(--n-500);
+  --accent: var(--n-100);
+  --accent-foreground: var(--n-900);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: var(--n-200);
+  --input: var(--n-200);
+  --ring: var(--brand-ring);
+
+  /*
+   * Stati. Ogni tono ha quattro valori: il colore pieno (icone, numeri), il
+   * testo da usare sopra il fondo tenue, il fondo tenue e il suo bordo. Il
+   * colore resta sempre accompagnato da un'etichetta o da un'icona: da solo
+   * non dice niente a chi non distingue il rosso dal verde.
+   */
+  --success: oklch(0.6 0.14 152);
+  --success-foreground: oklch(0.36 0.08 152);
+  --success-subtle: oklch(0.97 0.03 152);
+  --success-border: oklch(0.9 0.06 152);
+  --warning: oklch(0.72 0.15 70);
+  --warning-foreground: oklch(0.42 0.09 60);
+  --warning-subtle: oklch(0.975 0.035 85);
+  --warning-border: oklch(0.9 0.08 85);
+  --danger: oklch(0.6 0.2 27);
+  --danger-foreground: oklch(0.42 0.14 27);
+  --danger-subtle: oklch(0.97 0.02 27);
+  --danger-border: oklch(0.9 0.05 27);
+  --info: oklch(0.58 0.15 255);
+  --info-foreground: oklch(0.4 0.1 255);
+  --info-subtle: oklch(0.97 0.02 255);
+  --info-border: oklch(0.9 0.05 255);
+
+  /* Banda scura (sezione "Prossimi Eventi"). */
+  --ink: oklch(0.16 0 0);
+  --ink-foreground: var(--n-50);
+
+  /*
+   * Il verde profondo del marchio (lo stesso dell'immagine social del sito),
+   * con un passo più chiaro per l'hover.
+   */
+  --club: oklch(0.29 0.055 165);
+  --club-hover: oklch(0.34 0.06 165);
+  --club-foreground: oklch(0.985 0.005 140);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  --radius: 0.625rem;
+  --radius-surface: 1.25rem;
+  --radius-frame-size: 1.75rem;
+
+  --theme-font-heading: var(--font-geist-sans);
+
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  /*
+   * I link alle ancore (`/#support`) scorrono invece di saltare. Va su `html`
+   * perché l'elemento che scorre resta la viewport, anche con `overflow-x`
+   * nascosto sul body. Chi ha chiesto meno animazioni continua a saltare.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+  body {
+    @apply bg-background text-foreground;
+    @apply overflow-x-hidden;
+  }
+
+  /*
+   * I campi data su iOS.
+   *
+   * Safari li disegna come controllo nativo e in quella veste ignora la
+   * larghezza e l'altezza che gli diamo: si prende lo spazio che vuole, sfonda
+   * il contenitore e fa comparire una barra di scorrimento orizzontale nei
+   * pannelli stretti — la scheda cliente su telefono, per dirne una. Spento
+   * l'aspetto nativo il campo torna a rispettare il proprio box, e al tocco si
+   * apre lo stesso il selettore di sistema.
+   */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/**
+ * I toast restano cliccabili sopra un dialog o uno sheet.
+ *
+ * Radix, finché un layer modale è aperto, spegne i puntatori su tutto il
+ * `body` e li riaccende solo dentro il proprio contenuto. I toast però vivono
+ * in un portal a parte: ereditavano lo spegnimento, e un avviso con dei tasti
+ * — «Elimina questa scheda?», «Conferma prenotazione» — si vedeva ma non si
+ * poteva premere. Fuori dai modali non cambia niente: è il comportamento che
+ * avrebbero comunque.
+ */
+[data-sonner-toaster] {
+  pointer-events: auto;
+}
+
+/*
+ * Le superfici traslucide della dashboard (barra in basso, intestazioni):
+ * con «riduci trasparenza» diventano piene, senza sfocatura.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  .dashboard-material {
+    background-color: var(--background);
+    backdrop-filter: none;
+  }
+}
+
+/*
+ * Il tour della dashboard: arrivati su un riquadro, un'onda chiara parte una
+ * volta sola dal bordo, per dire «guarda qui». Una volta, non a ciclo: un
+ * richiamo che pulsa di continuo stanca e distrae dalla lettura. Parte quando
+ * la telecamera è quasi ferma. Chi ha chiesto meno animazioni non la vede
+ * (tour-overlay.tsx non la disegna).
+ */
+.tour-ping {
+  animation: tour-ping 900ms cubic-bezier(0.23, 1, 0.32, 1) 450ms both;
+}
+
+@keyframes tour-ping {
+  from {
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 0.7);
+  }
+  to {
+    box-shadow: 0 0 0 14px rgb(255 255 255 / 0);
+  }
+}
+
+/*
+ * L'entrata della pagina d'accesso: la foto del campo si posa (da poco più
+ * grande alla sua misura) mentre compare, poi il titolo sale sopra il verde.
+ * Succede una volta, all'apertura: è l'unico momento «scenico» del
+ * gestionale. CSS e non JS perché il primo caricamento è il momento in cui il
+ * thread principale è più occupato.
+ */
+.auth-photo {
+  animation: auth-photo-in 1100ms var(--ease-out) both;
+}
+
+.auth-rise {
+  animation: auth-rise 700ms var(--ease-out) both;
+  animation-delay: var(--auth-delay, 0ms);
+}
+
+@keyframes auth-photo-in {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Meno movimento: resta la dissolvenza, spariscono zoom e salita. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-photo,
+  .auth-rise {
+    animation-name: auth-fade;
+    animation-duration: 300ms;
+  }
+}
+
+@keyframes auth-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

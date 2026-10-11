@@ -34,14 +34,3 @@ export const ANCHORS: {
 export function anchorHref(anchor: (typeof ANCHORS)[keyof typeof ANCHORS]) {
   return `#${anchor}` as const;
 }
-
-/**
- * Bersagli di `getElementById` nella pagina del torneo: la CTA flottante li
- * misura per decidere quando staccarsi. Non sono ancore di URL, ma valgono le
- * stesse ragioni — devono essere stabili e condivisi fra chi li espone e chi li
- * cerca.
- */
-export const TOURNAMENT_ANCHORS = {
-  shell: "tournament-page-shell",
-  ctaSource: "tournament-cta-source",
-} as const;

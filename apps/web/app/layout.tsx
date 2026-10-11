@@ -1,11 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import {
-  Geist,
-  Geist_Mono,
-  Instrument_Serif,
-  Unbounded,
-} from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { CookieBanner } from "@/components/cookie-banner";
@@ -32,12 +27,6 @@ const display = Instrument_Serif({
   variable: "--font-instrument-serif",
   weight: "400",
   style: ["normal", "italic"],
-  subsets: ["latin"],
-});
-
-/** Display geometrico, ancora in uso su /tournament e /management. */
-const heading = Unbounded({
-  variable: "--font-unbounded",
   subsets: ["latin"],
 });
 
@@ -125,7 +114,7 @@ export default function RootLayout({
          * già scrollati di un centinaio di px.
          */
         data-scroll-behavior="smooth"
-        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${heading.variable}`}
+        className={`${geistSans.variable} ${geistMono.variable} ${display.variable}`}
       >
         <body className="font-sans antialiased">
           {/*

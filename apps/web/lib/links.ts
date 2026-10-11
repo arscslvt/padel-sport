@@ -29,7 +29,5 @@ export const SUMUP_BOOKING_URL =
 export const PRIVACY_LINK: Route = "/privacy";
 /** Regolamento del programma punti: va accettato prima di ricevere punti. */
 export const POINTS_TERMS_LINK = "/regolamento-punti" as Route;
-/** Tabellone con i risultati in diretta. */
-export const TOURNAMENT_LINK = "/tournament/trofeo-san-sebastiano" as Route;
 
 export const eventLink = (slug: string) => `${EVENTS_LINK}/${slug}` as Route;
