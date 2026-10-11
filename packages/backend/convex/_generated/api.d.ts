@@ -92,6 +92,8 @@ import type * as modules_openMatches_requests from "../modules/openMatches/reque
 import type * as modules_pointReports_create from "../modules/pointReports/create.js";
 import type * as modules_pointReports_lib from "../modules/pointReports/lib.js";
 import type * as modules_pointReports_list from "../modules/pointReports/list.js";
+import type * as modules_pointReports_mail from "../modules/pointReports/mail.js";
+import type * as modules_pointReports_mine from "../modules/pointReports/mine.js";
 import type * as modules_pointReports_update from "../modules/pointReports/update.js";
 import type * as modules_points_expire from "../modules/points/expire.js";
 import type * as modules_points_ledger from "../modules/points/ledger.js";
@@ -243,6 +245,8 @@ declare const fullApi: ApiFromModules<{
   "modules/pointReports/create": typeof modules_pointReports_create;
   "modules/pointReports/lib": typeof modules_pointReports_lib;
   "modules/pointReports/list": typeof modules_pointReports_list;
+  "modules/pointReports/mail": typeof modules_pointReports_mail;
+  "modules/pointReports/mine": typeof modules_pointReports_mine;
   "modules/pointReports/update": typeof modules_pointReports_update;
   "modules/points/expire": typeof modules_points_expire;
   "modules/points/ledger": typeof modules_points_ledger;

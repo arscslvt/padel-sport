@@ -26,6 +26,8 @@ const pointReports = defineTable({
   category: pointReportCategory,
   message: v.string(),
   status: supportRequestStatus,
+  /** Cosa lo staff ha risposto chiudendo la segnalazione: finisce nella mail. */
+  staffReply: v.optional(v.string()),
   createdAt: v.float64(),
 })
   .index("by_created", ["createdAt"])

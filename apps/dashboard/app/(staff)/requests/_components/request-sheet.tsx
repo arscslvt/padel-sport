@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { levelLabel, missingPlayersLabel } from "@/lib/match-request";
 import { cn } from "@/lib/utils";
 
@@ -107,6 +108,7 @@ function StatusField<Status extends string>({
   statuses,
   labels,
   disabled,
+  hint,
   onChange,
 }: {
   id: string;
@@ -114,6 +116,7 @@ function StatusField<Status extends string>({
   statuses: Status[];
   labels: Record<Status, string>;
   disabled: boolean;
+  hint?: string;
   onChange: (status: Status) => void;
 }) {
   return (
@@ -135,6 +138,7 @@ function StatusField<Status extends string>({
           ))}
         </SelectContent>
       </Select>
+      {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
     </div>
   );
 }
@@ -184,7 +188,25 @@ export function RequestSheet({
 
   const found = supportRequest ?? matchRequest ?? report;
 
-  const updateStatus = async (status: SupportStatus | MatchStatus) => {
+  /**
+   * Chiudere una segnalazione manda una mail al cliente: prima di salvare si
+   * passa da qui, per scrivergli cosa abbiamo trovato.
+   */
+  const [resolving, setResolving] = useState(false);
+  const [reply, setReply] = useState("");
+
+  // Ogni richiesta aperta riparte senza una chiusura a metà della precedente.
+  const [openedId, setOpenedId] = useState(selection?.id);
+  if (openedId !== selection?.id) {
+    setOpenedId(selection?.id);
+    setResolving(false);
+    setReply("");
+  }
+
+  const updateStatus = async (
+    status: SupportStatus | MatchStatus,
+    replyText?: string,
+  ) => {
     if (!selection) return;
 
     setSaving(true);
@@ -196,6 +218,7 @@ export function RequestSheet({
           kind: selection.kind,
           requestId: selection.id,
           status,
+          ...(replyText?.trim() ? { reply: replyText.trim() } : {}),
         }),
       });
 
@@ -208,7 +231,13 @@ export function RequestSheet({
         return;
       }
 
-      toast.success("Stato aggiornato");
+      toast.success("Stato aggiornato", {
+        description: payload?.notified
+          ? "Il cliente riceve una mail con il nuovo stato."
+          : undefined,
+      });
+      setResolving(false);
+      setReply("");
       onChanged();
     } catch {
       toast.error("Stato non aggiornato", {
@@ -438,14 +467,75 @@ export function RequestSheet({
                 </p>
               </Field>
 
+              {report.status === "resolved" && report.staffReply && (
+                <Field
+                  icon={<Mail className="size-3.5" />}
+                  label="Risposta inviata"
+                >
+                  <p className="bg-muted/40 rounded-lg border p-3 whitespace-pre-wrap">
+                    {report.staffReply}
+                  </p>
+                </Field>
+              )}
+
               <StatusField
                 id="report-status"
-                value={report.status}
+                value={resolving ? "resolved" : report.status}
                 statuses={SUPPORT_STATUSES}
                 labels={SUPPORT_STATUS_LABELS}
                 disabled={saving}
-                onChange={(status) => void updateStatus(status)}
+                hint="In carico e Risolta avvisano il cliente via mail."
+                onChange={(status) => {
+                  if (status === "resolved" && report.status !== "resolved") {
+                    setResolving(true);
+                    return;
+                  }
+                  setResolving(false);
+                  void updateStatus(status);
+                }}
               />
+
+              {resolving && (
+                <div className="space-y-3 rounded-lg border p-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="report-reply">
+                      Risposta per il cliente
+                    </Label>
+                    <Textarea
+                      id="report-reply"
+                      value={reply}
+                      onChange={(event) => setReply(event.target.value)}
+                      maxLength={1000}
+                      placeholder="Es. Hai ragione: abbiamo aggiunto il punto che mancava."
+                      className="min-h-24"
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      Facoltativa: la legge nella mail insieme al saldo
+                      aggiornato.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={saving}
+                      onClick={() => {
+                        setResolving(false);
+                        setReply("");
+                      }}
+                    >
+                      Annulla
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => void updateStatus("resolved", reply)}
+                    >
+                      Risolvi e avvisa
+                    </Button>
+                  </div>
+                </div>
+              )}
             </Body>
 
             {report.player && (

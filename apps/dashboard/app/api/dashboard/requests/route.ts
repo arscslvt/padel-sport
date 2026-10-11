@@ -60,6 +60,8 @@ const patchSchema = z.discriminatedUnion("kind", [
     kind: z.literal("report"),
     requestId: z.string().min(1),
     status: z.enum(["new", "in_progress", "resolved", "archived"]),
+    /** La risposta per il cliente, mandata con la mail di chiusura. */
+    reply: z.string().max(1000).optional(),
   }),
 ]);
 
@@ -74,6 +76,7 @@ export async function PATCH(request: Request) {
   }
 
   const { kind, requestId, status } = parsed.data;
+  let notified = false;
 
   try {
     if (kind === "support") {
@@ -89,14 +92,19 @@ export async function PATCH(request: Request) {
         status,
       });
     } else {
-      await gate.convex.mutation(api.modules.pointReports.update.default, {
-        secret: gate.secret,
-        reportId: requestId as Id<"pointReports">,
-        status,
-      });
+      const result = await gate.convex.mutation(
+        api.modules.pointReports.update.default,
+        {
+          secret: gate.secret,
+          reportId: requestId as Id<"pointReports">,
+          status,
+          reply: parsed.data.kind === "report" ? parsed.data.reply : undefined,
+        },
+      );
+      notified = result.notified;
     }
 
-    return NextResponse.json({ updated: true });
+    return NextResponse.json({ updated: true, notified });
   } catch (error) {
     console.error("Richiesta non aggiornata:", error);
     return NextResponse.json(
