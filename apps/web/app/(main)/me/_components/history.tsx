@@ -4,6 +4,7 @@ import { Heading } from "@/components/ui/heading";
 import { formatClubDate, signedPoints } from "@/lib/points";
 import { cn } from "@/lib/utils";
 
+import { MyReports } from "./my-reports";
 import { ReportPoints } from "./report-points";
 import type { Wallet, WalletRedemption } from "./types";
 
@@ -93,41 +94,46 @@ export function History({ wallet }: { wallet: Wallet }) {
       )}
 
       {hasActivity && (
-        <section aria-labelledby="activity-title" className="space-y-5">
-          <div className="flex items-center justify-between gap-4">
-            <Heading as="h2" size="sub" id="activity-title">
-              Movimenti
-            </Heading>
-            <ReportPoints transactions={wallet.transactions} />
-          </div>
+        // Le segnalazioni nascono dai movimenti: stanno nella stessa colonna.
+        <div className="space-y-12">
+          <section aria-labelledby="activity-title" className="space-y-5">
+            <div className="flex items-center justify-between gap-4">
+              <Heading as="h2" size="sub" id="activity-title">
+                Movimenti
+              </Heading>
+              <ReportPoints transactions={wallet.transactions} />
+            </div>
 
-          <ul className="divide-border divide-y">
-            {wallet.transactions.map((transaction) => (
-              <li
-                key={transaction.id}
-                className="flex items-baseline justify-between gap-4 py-3.5 first:pt-0"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm">{transaction.label}</p>
-                  <p className="text-muted-foreground mt-0.5 text-xs">
-                    {formatClubDate(transaction.createdAt)}
-                    {transaction.pending && " · in attesa della tua adesione"}
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    "shrink-0 font-mono text-sm tabular-nums",
-                    transaction.delta > 0
-                      ? "text-emerald-700 dark:text-emerald-400"
-                      : "text-muted-foreground",
-                  )}
+            <ul className="divide-border divide-y">
+              {wallet.transactions.map((transaction) => (
+                <li
+                  key={transaction.id}
+                  className="flex items-baseline justify-between gap-4 py-3.5 first:pt-0"
                 >
-                  {signedPoints(transaction.delta)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm">{transaction.label}</p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      {formatClubDate(transaction.createdAt)}
+                      {transaction.pending && " · in attesa della tua adesione"}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "shrink-0 font-mono text-sm tabular-nums",
+                      transaction.delta > 0
+                        ? "text-emerald-700 dark:text-emerald-400"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {signedPoints(transaction.delta)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <MyReports />
+        </div>
       )}
     </div>
   );
