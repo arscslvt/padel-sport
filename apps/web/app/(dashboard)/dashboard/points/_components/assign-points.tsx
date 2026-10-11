@@ -77,7 +77,11 @@ export function AssignPoints() {
 
   return (
     <>
-      <Button className="hidden md:inline-flex" onClick={() => setOpen(true)}>
+      <Button
+        data-tour="assign-points"
+        className="hidden md:inline-flex"
+        onClick={() => setOpen(true)}
+      >
         <Coins className="size-4" />
         Assegna punti
       </Button>

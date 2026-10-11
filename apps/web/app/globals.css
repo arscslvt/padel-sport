@@ -395,3 +395,23 @@
     backdrop-filter: none;
   }
 }
+
+/*
+ * Il tour della dashboard: arrivati su un riquadro, un'onda chiara parte una
+ * volta sola dal bordo, per dire «guarda qui». Una volta, non a ciclo: un
+ * richiamo che pulsa di continuo stanca e distrae dalla lettura. Parte quando
+ * la telecamera è quasi ferma. Chi ha chiesto meno animazioni non la vede
+ * (tour-overlay.tsx non la disegna).
+ */
+.tour-ping {
+  animation: tour-ping 900ms cubic-bezier(0.23, 1, 0.32, 1) 450ms both;
+}
+
+@keyframes tour-ping {
+  from {
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 0.7);
+  }
+  to {
+    box-shadow: 0 0 0 14px rgb(255 255 255 / 0);
+  }
+}

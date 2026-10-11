@@ -164,7 +164,7 @@ export function Agenda() {
       title="Agenda"
       description="Le prenotazioni da confermare, la giornata per orario e campo, i campi da completare."
       actions={
-        <>
+        <div data-tour="agenda-actions" className="flex items-center gap-2">
           <Button
             variant="secondary"
             size="icon"
@@ -192,7 +192,7 @@ export function Agenda() {
           >
             <Plus className="size-5" />
           </Button>
-        </>
+        </div>
       }
     />
   );

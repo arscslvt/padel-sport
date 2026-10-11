@@ -56,11 +56,11 @@ export default function DashboardNav() {
 
   return (
     <>
-      <SidebarGroup>
+      <SidebarGroup data-tour="nav">
         <SidebarMenu>{PRIMARY_NAV.map(renderItem)}</SidebarMenu>
       </SidebarGroup>
       {SECONDARY_NAV.map((group) => (
-        <SidebarGroup key={group.title}>
+        <SidebarGroup key={group.title} data-tour="more">
           <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
           <SidebarMenu>{group.items.map(renderItem)}</SidebarMenu>
         </SidebarGroup>

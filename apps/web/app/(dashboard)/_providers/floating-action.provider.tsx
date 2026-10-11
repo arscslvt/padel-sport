@@ -80,6 +80,8 @@ export default function FloatingActionProvider({
           {action && (
             <motion.button
               key={action.key}
+              // Il tour indica il pulsante col suo nome («assign-points»).
+              data-tour={action.key}
               type="button"
               onClick={action.onClick}
               initial={hidden}

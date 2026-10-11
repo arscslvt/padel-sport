@@ -166,7 +166,10 @@ export function RequestsPanel() {
 
   return (
     <>
-      <section className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+      <section
+        data-tour="requests-summary"
+        className="grid gap-4 grid-cols-2 lg:grid-cols-3"
+      >
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

@@ -3,6 +3,7 @@
 import { useAuth, useUser } from "@clerk/nextjs";
 import {
   ChevronRight,
+  CircleHelp,
   ExternalLink,
   LogOut,
   MoreHorizontal,
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils";
 
 import { useCounts } from "../_providers/counts.provider";
 import { useProfileDialog } from "../_providers/profile-dialog.provider";
+import { useDashboardTour } from "../_providers/tour.provider";
 import { CountBadge } from "./count-badge";
 import { ListGroup, ListRow } from "./list";
 import {
@@ -69,7 +71,10 @@ export function BottomTabBar() {
         // sopra evita il taglio netto dove il contenuto le scorre sotto.
         className="bg-background before:from-background fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:to-transparent md:hidden"
       >
-        <div className="dashboard-material bg-background/80 supports-[backdrop-filter]:bg-background/70 mx-auto flex max-w-md items-stretch rounded-[1.75rem] border p-1 shadow-[0_8px_30px_-12px_oklch(0.2_0_0/0.25)] backdrop-blur-xl backdrop-saturate-150">
+        <div
+          data-tour="nav"
+          className="dashboard-material bg-background/80 supports-[backdrop-filter]:bg-background/70 mx-auto flex max-w-md items-stretch rounded-[1.75rem] border p-1 shadow-[0_8px_30px_-12px_oklch(0.2_0_0/0.25)] backdrop-blur-xl backdrop-saturate-150"
+        >
           {PRIMARY_NAV.map((item) => (
             <TabLink
               key={item.href}
@@ -81,6 +86,7 @@ export function BottomTabBar() {
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
+            data-tour="more"
             aria-haspopup="dialog"
             aria-expanded={moreOpen}
             className={tabClass(moreActive)}
@@ -151,6 +157,7 @@ function MoreDrawer({
   const { user } = useUser();
   const { signOut } = useAuth();
   const { openProfile } = useProfileDialog();
+  const { start: startTour } = useDashboardTour();
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -193,6 +200,20 @@ function MoreDrawer({
               onClick={() => {
                 onOpenChange(false);
                 openProfile();
+              }}
+            />
+            <ListRow
+              leading={<CircleHelp className="size-5" />}
+              title="Guida della dashboard"
+              subtitle="Rivedi come funziona"
+              trailing={
+                <ChevronRight className="text-muted-foreground size-4" />
+              }
+              onClick={() => {
+                onOpenChange(false);
+                // Il tour parte a pannello chiuso: rimpicciolire la pagina
+                // con il pannello ancora sopra lo lascerebbe fuori cornice.
+                window.setTimeout(startTour, 350);
               }}
             />
             <ListRow

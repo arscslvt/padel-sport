@@ -339,7 +339,10 @@ export function ClientsPanel() {
        * cliente — e i filtri vivono nel drawer. Da 768px in su tornano in
        * fila sotto la ricerca, dove c'è spazio per vederli tutti.
        */}
-      <div className="mt-6 flex items-center gap-2 md:gap-3">
+      <div
+        data-tour="clients-search"
+        className="mt-6 flex items-center gap-2 md:gap-3"
+      >
         <div className="relative min-w-0 flex-1">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input

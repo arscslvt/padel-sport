@@ -21,6 +21,7 @@ import main_icon from "@/public/favicon/black-icon.png";
 import { BottomTabBar } from "../_components/bottom-tab-bar";
 import { DASHBOARD_CHROME_COLOR } from "../_components/chrome";
 import DashboardNav from "../_components/dashboard-nav";
+import { TourMenuButton } from "../_components/tour/tour-menu-button";
 import UserCard from "../_components/user-card";
 import ConfirmProvider from "../_providers/confirm.provider";
 import CountsProvider from "../_providers/counts.provider";
@@ -28,6 +29,7 @@ import FloatingActionProvider from "../_providers/floating-action.provider";
 import ProfileDialogProvider from "../_providers/profile-dialog.provider";
 import HapticsProvider from "../_providers/sound.provider";
 import InternalThemeProvider from "../_providers/theme.provider";
+import TourProvider from "../_providers/tour.provider";
 
 export const metadata = {
   title: "Dashboard",
@@ -66,63 +68,71 @@ export default async function DashboardLayout({
         <ProfileDialogProvider>
           <CountsProvider>
             <ConfirmProvider>
-              <FloatingActionProvider>
-                <SidebarProvider
-                  defaultOpen={defaultOpen}
-                  className="bg-background"
-                >
-                  <Sidebar collapsible="icon">
-                    <SidebarHeader>
-                      <SidebarMenu>
-                        <SidebarMenuItem className="flex items-center gap-1">
-                          <SidebarMenuButton
-                            size="lg"
-                            asChild
-                            className="flex-1"
-                          >
-                            <Link href="/dashboard">
-                              <Avatar className="size-8 shrink-0 border p-1">
-                                <AvatarImage
-                                  src={main_icon.src}
-                                  alt="Padel Sport Logo"
-                                />
-                              </Avatar>
-                              <span className="truncate font-semibold">
-                                Dashboard
-                              </span>
-                            </Link>
-                          </SidebarMenuButton>
-                          {/*
-                           * Chiudere si fa da qui; riaprire dal bordo (`SidebarRail`)
-                           * o con ⌘B, perché a barra stretta questo tasto non ci sta
-                           * accanto al logo senza rubargli il posto.
-                           */}
-                          <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
-                        </SidebarMenuItem>
-                      </SidebarMenu>
-                    </SidebarHeader>
+              {/*
+               * Il tour avvolge tutto ciò che si vede della dashboard, pulsante
+               * fluttuante compreso: durante la guida è questo blocco che si
+               * rimpicciolisce nella cornice.
+               */}
+              <TourProvider>
+                <FloatingActionProvider>
+                  <SidebarProvider
+                    defaultOpen={defaultOpen}
+                    className="bg-background"
+                  >
+                    <Sidebar collapsible="icon">
+                      <SidebarHeader>
+                        <SidebarMenu>
+                          <SidebarMenuItem className="flex items-center gap-1">
+                            <SidebarMenuButton
+                              size="lg"
+                              asChild
+                              className="flex-1"
+                            >
+                              <Link href="/dashboard">
+                                <Avatar className="size-8 shrink-0 border p-1">
+                                  <AvatarImage
+                                    src={main_icon.src}
+                                    alt="Padel Sport Logo"
+                                  />
+                                </Avatar>
+                                <span className="truncate font-semibold">
+                                  Dashboard
+                                </span>
+                              </Link>
+                            </SidebarMenuButton>
+                            {/*
+                             * Chiudere si fa da qui; riaprire dal bordo (`SidebarRail`)
+                             * o con ⌘B, perché a barra stretta questo tasto non ci sta
+                             * accanto al logo senza rubargli il posto.
+                             */}
+                            <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
+                          </SidebarMenuItem>
+                        </SidebarMenu>
+                      </SidebarHeader>
 
-                    <SidebarContent>
-                      <DashboardNav />
-                    </SidebarContent>
+                      <SidebarContent>
+                        <DashboardNav />
+                      </SidebarContent>
 
-                    <SidebarFooter>
-                      <UserCard />
-                    </SidebarFooter>
+                      <SidebarFooter>
+                        <TourMenuButton />
+                        <UserCard />
+                      </SidebarFooter>
 
-                    <SidebarRail />
-                  </Sidebar>
-                  {/*
-                   * Da telefono la barra laterale non c'è: la navigazione è la barra
-                   * in basso, e il fondo della pagina le lascia spazio perché
-                   * l'ultima riga non finisca sotto.
-                   */}
-                  <SidebarInset className="bg-background pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
-                    {children}
-                  </SidebarInset>
-                  <BottomTabBar />
-                </SidebarProvider>
-              </FloatingActionProvider>
+                      <SidebarRail />
+                    </Sidebar>
+                    {/*
+                     * Da telefono la barra laterale non c'è: la navigazione è la barra
+                     * in basso, e il fondo della pagina le lascia spazio perché
+                     * l'ultima riga non finisca sotto.
+                     */}
+                    <SidebarInset className="bg-background pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
+                      {children}
+                    </SidebarInset>
+                    <BottomTabBar />
+                  </SidebarProvider>
+                </FloatingActionProvider>
+              </TourProvider>
             </ConfirmProvider>
           </CountsProvider>
         </ProfileDialogProvider>
