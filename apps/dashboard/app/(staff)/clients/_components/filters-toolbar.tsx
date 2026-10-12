@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Users } from "lucide-react";
+import { ChevronDown, UserPen, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,7 @@ import {
   type ClientFilters,
   DEFAULT_FILTERS,
   type FacetCounts,
+  INCOMPLETE_LABEL,
   MEMBERSHIP_FILTERS,
   URGENT_MEMBERSHIP,
 } from "./filters";
@@ -32,7 +33,8 @@ import { type ClientSort, DEFAULT_SORT, SortMenu } from "./sort-menu";
  *
  * La tessera è la domanda di tutti i giorni, e sta in vista: un controllo a
  * segmenti con il conteggio dentro ogni voce, così si legge «3 da pagare»
- * prima ancora di cliccare. Account, staff e ordinamento sono domande
+ * prima ancora di cliccare. «Dati da completare» è un sì o no, e sta in un
+ * interruttore accanto. Account, staff e ordinamento sono domande
  * occasionali e stanno in due menu compatti a destra. Sotto, una riga dice
  * quanti se ne vedono e riporta tutto com'era con un clic.
  */
@@ -57,7 +59,8 @@ export function FiltersToolbar({
 }) {
   const filtered =
     filters.membership !== DEFAULT_FILTERS.membership ||
-    filters.account !== DEFAULT_FILTERS.account;
+    filters.account !== DEFAULT_FILTERS.account ||
+    filters.incomplete !== DEFAULT_FILTERS.incomplete;
   const changed =
     filtered ||
     filters.showStaff !== DEFAULT_FILTERS.showStaff ||
@@ -107,6 +110,29 @@ export function FiltersToolbar({
           </fieldset>
         </div>
 
+        {/* Un interruttore, non un menu: la domanda è sì o no. */}
+        <Button
+          variant="outline"
+          aria-pressed={filters.incomplete}
+          title={INCOMPLETE_LABEL}
+          onClick={() =>
+            onFiltersChange({ ...filters, incomplete: !filters.incomplete })
+          }
+          className={cn(
+            "h-10 shrink-0 bg-white",
+            filters.incomplete && "border-foreground/25 bg-muted",
+          )}
+        >
+          <UserPen className="size-4" />
+          {/*
+           * Con la barra laterale aperta lo spazio è poco fino a 1280px: lì va
+           * ai segmenti delle tessere, e qui restano icona e numero.
+           */}
+          <span className="sr-only xl:not-sr-only">{INCOMPLETE_LABEL}</span>
+          <span className="text-muted-foreground text-xs font-normal tabular-nums">
+            {counts.incomplete}
+          </span>
+        </Button>
         <AccountMenu
           filters={filters}
           onFiltersChange={onFiltersChange}

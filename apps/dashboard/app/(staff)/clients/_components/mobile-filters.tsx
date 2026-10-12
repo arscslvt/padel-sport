@@ -21,6 +21,7 @@ import {
   type ClientFilters,
   DEFAULT_FILTERS,
   type FacetCounts,
+  INCOMPLETE_LABEL,
   MEMBERSHIP_FILTERS,
   membershipLabel,
 } from "./filters";
@@ -158,6 +159,10 @@ export function ActiveFilterChips({
       label: accountLabel(filters.account),
       clear: () => onFiltersChange({ ...filters, account: "all" }),
     },
+    filters.incomplete && {
+      label: INCOMPLETE_LABEL,
+      clear: () => onFiltersChange({ ...filters, incomplete: false }),
+    },
     filters.showStaff && {
       label: "Staff incluso",
       clear: () => onFiltersChange({ ...filters, showStaff: false }),
@@ -214,6 +219,7 @@ export function MobileFiltersDrawer({
   const pristine =
     filters.membership === DEFAULT_FILTERS.membership &&
     filters.account === DEFAULT_FILTERS.account &&
+    filters.incomplete === DEFAULT_FILTERS.incomplete &&
     filters.showStaff === DEFAULT_FILTERS.showStaff &&
     sort.key === DEFAULT_SORT.key;
   const current = SORTS[sort.key];
@@ -264,6 +270,23 @@ export function MobileFiltersDrawer({
                   }
                 />
               ))}
+            </div>
+          </Group>
+
+          <Group title="Anagrafica">
+            <div className="grid grid-cols-2 gap-2">
+              <Tile
+                label={INCOMPLETE_LABEL}
+                count={counts.incomplete}
+                selected={filters.incomplete}
+                onSelect={() =>
+                  onFiltersChange({
+                    ...filters,
+                    incomplete: !filters.incomplete,
+                  })
+                }
+                className="col-span-2"
+              />
             </div>
           </Group>
 

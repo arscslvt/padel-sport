@@ -29,8 +29,7 @@ import {
   type ClientFilters,
   DEFAULT_FILTERS,
   facetCounts,
-  matchesAccount,
-  matchesMembership,
+  matchesFilters,
 } from "./filters";
 import { FiltersToolbar } from "./filters-toolbar";
 import { MembershipBadge } from "./membership-badge";
@@ -293,14 +292,10 @@ export function ClientsPanel() {
   const visible = useMemo(
     () =>
       sortClients(
-        scoped.filter(
-          (client) =>
-            matchesMembership(client, filters.membership) &&
-            matchesAccount(client, filters.account),
-        ),
+        scoped.filter((client) => matchesFilters(client, filters)),
         sort,
       ),
-    [scoped, filters.membership, filters.account, sort],
+    [scoped, filters, sort],
   );
 
   /** Quanti ne dà ogni scelta: barra e drawer li mostrano prima del clic. */

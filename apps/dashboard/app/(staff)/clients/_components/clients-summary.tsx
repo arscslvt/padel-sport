@@ -16,7 +16,8 @@ import type { Client, MembershipState } from "./types";
  * completare.
  *
  * La legenda è anche il filtro: toccare «Da pagare» mostra sotto chi deve
- * pagare, con lo stesso stato della barra dei filtri. Il colore non parla mai
+ * pagare, con lo stesso stato della barra dei filtri, e lo stesso vale per
+ * «senza account» e «con dati da completare». Il colore non parla mai
  * da solo: ogni segmento ha la sua voce con etichetta e numero, e i testi
  * restano nei colori del testo.
  */
@@ -73,6 +74,9 @@ export function ClientsSummary({
       ...filters,
       account: filters.account === account ? "all" : account,
     });
+
+  const toggleIncomplete = () =>
+    onFiltersChange({ ...filters, incomplete: !filters.incomplete });
 
   return (
     <section aria-label="Riepilogo clienti" className="space-y-3">
@@ -140,7 +144,7 @@ export function ClientsSummary({
           </div>
 
           {(noAccount > 0 || incomplete > 0) && (
-            <div className="text-muted-foreground -mx-1 flex flex-wrap items-center gap-x-1 text-sm">
+            <div className="-mx-1 flex flex-wrap gap-x-1 gap-y-0.5">
               {noAccount > 0 && (
                 <LegendButton
                   active={filters.account === "no-account"}
@@ -153,12 +157,15 @@ export function ClientsSummary({
                 </LegendButton>
               )}
               {incomplete > 0 && (
-                <span className="px-1">
+                <LegendButton
+                  active={filters.incomplete}
+                  onClick={toggleIncomplete}
+                >
                   <span className="text-foreground font-medium tabular-nums">
                     {incomplete}
-                  </span>{" "}
+                  </span>
                   con dati da completare
-                </span>
+                </LegendButton>
               )}
             </div>
           )}
