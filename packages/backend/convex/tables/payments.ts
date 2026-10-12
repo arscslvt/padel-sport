@@ -8,13 +8,16 @@ import { v } from "convex/values";
  * - `paid`: SumUp conferma l'incasso;
  * - `failed`: la carta è stata rifiutata, o il checkout non si è potuto creare;
  * - `expired`: la mezz'ora della pagina è passata senza pagamento, o il
- *   tentativo è stato sostituito da uno nuovo.
+ *   tentativo è stato sostituito da uno nuovo;
+ * - `refunded`: incassato e poi restituito per intero dallo staff
+ *   (modules/payments/refund.ts).
  */
 const paymentStatus = v.union(
   v.literal("pending"),
   v.literal("paid"),
   v.literal("failed"),
   v.literal("expired"),
+  v.literal("refunded"),
 );
 
 /**
@@ -49,6 +52,16 @@ const payments = defineTable({
   /** Il codice che SumUp mostra nel suo pannello e sulla ricevuta. */
   transactionCode: v.optional(v.string()),
   paidAt: v.optional(v.float64()),
+  refundedAt: v.optional(v.float64()),
+  /** L'utente Clerk dello staff che ha chiesto il rimborso. */
+  refundedBy: v.optional(v.string()),
+  /**
+   * Un rimborso partito e non ancora concluso: ferma un secondo operatore che
+   * premesse «Rimborsa» nello stesso momento.
+   */
+  refundStartedAt: v.optional(v.float64()),
+  /** Perché l'ultimo rimborso non è riuscito, come l'ha detto SumUp. */
+  refundError: v.optional(v.string()),
   /** Perché il tentativo si è chiuso male, quando lo sappiamo noi. */
   error: v.optional(v.string()),
   createdAt: v.float64(),

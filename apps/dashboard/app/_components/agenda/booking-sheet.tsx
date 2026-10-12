@@ -3,7 +3,7 @@
 import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Loader2, Mail, Phone, Unlink } from "lucide-react";
+import { Loader2, Mail, Phone, Undo2, Unlink } from "lucide-react";
 import { Fragment } from "react";
 import { FaWhatsapp } from "react-icons/fa";
 import { ListGroup, ListRow } from "@/app/_components/list";
@@ -34,6 +34,7 @@ import {
   needsRefund,
   onSiteTotal,
   timeRange,
+  wasRefunded,
   whatsappNumber,
 } from "./lib";
 
@@ -64,6 +65,7 @@ export function BookingSheet({
   onOpenChange,
   onAccept,
   onCancel,
+  onRefund,
   onSplit,
 }: {
   booking: Booking | null;
@@ -73,6 +75,7 @@ export function BookingSheet({
   onOpenChange: (open: boolean) => void;
   onAccept: (booking: Booking) => void;
   onCancel: (booking: Booking) => void;
+  onRefund: (booking: Booking, paymentId: string, amount: number) => void;
   onSplit: (booking: Booking) => void;
 }) {
   return (
@@ -86,6 +89,7 @@ export function BookingSheet({
             busy={busy}
             onAccept={onAccept}
             onCancel={onCancel}
+            onRefund={onRefund}
             onSplit={onSplit}
           />
         )}
@@ -101,6 +105,7 @@ function Body({
   busy,
   onAccept,
   onCancel,
+  onRefund,
   onSplit,
 }: {
   booking: Booking;
@@ -109,6 +114,7 @@ function Body({
   busy: boolean;
   onAccept: (booking: Booking) => void;
   onCancel: (booking: Booking) => void;
+  onRefund: (booking: Booking, paymentId: string, amount: number) => void;
   onSplit: (booking: Booking) => void;
 }) {
   const pending = isPending(booking);
@@ -143,6 +149,8 @@ function Body({
             <StatusBadge tone="danger">Da rimborsare</StatusBadge>
           ) : isPaidOnline(booking) ? (
             <StatusBadge tone="success">Pagata online</StatusBadge>
+          ) : wasRefunded(booking) ? (
+            <StatusBadge tone="neutral">Rimborsata</StatusBadge>
           ) : null}
         </div>
 
@@ -237,7 +245,7 @@ function Body({
           />
         </ListGroup>
 
-        <OnlinePayment booking={booking} />
+        <OnlinePayment booking={booking} busy={busy} onRefund={onRefund} />
 
         <Deliveries deliveries={booking.deliveries} />
 
@@ -380,18 +388,30 @@ function Deliveries({ deliveries }: { deliveries?: Delivery[] }) {
  * codice transazione è quello che SumUp mostra fra le Transazioni e sulla
  * ricevuta, gli id servono quando c'è da scrivere all'assistenza. Sono tutti
  * selezionabili con un tocco, per copiarli.
+ *
+ * Ogni incasso ancora valido ha il suo «Rimborsa»: vale a prenotazione
+ * annullata, confermata o in attesa, e con due incassi permette di
+ * restituire solo il doppione.
  */
-function OnlinePayment({ booking }: { booking: Booking }) {
-  if (!isPaidOnline(booking)) return null;
-
+function OnlinePayment({
+  booking,
+  busy,
+  onRefund,
+}: {
+  booking: Booking;
+  busy: boolean;
+  onRefund: (booking: Booking, paymentId: string, amount: number) => void;
+}) {
   const payments = booking.payments ?? [];
-  const refund = needsRefund(booking);
-  const duplicate = payments.length > 1;
+  if (!isPaidOnline(booking) && payments.length === 0) return null;
 
-  const footer = refund
-    ? "La prenotazione è annullata ma risulta pagata: rimborsala dal pannello SumUp, in Transazioni, cercando il codice."
-    : duplicate
-      ? "Risultano più pagamenti per la stessa prenotazione: quelli in più vanno rimborsati dal pannello SumUp."
+  const paid = payments.filter((payment) => payment.status === "paid");
+  const many = payments.length > 1;
+
+  const footer = needsRefund(booking)
+    ? "La prenotazione è annullata ma risulta pagata: rimborsala qui sotto."
+    : paid.length > 1
+      ? "Risultano più pagamenti validi per la stessa prenotazione: quelli in più vanno rimborsati."
       : "Per una controverifica, nel pannello SumUp apri Transazioni e cerca il codice transazione.";
 
   return (
@@ -405,12 +425,30 @@ function OnlinePayment({ booking }: { booking: Booking }) {
       {payments.map((payment, index) => (
         <Fragment key={payment.paymentId}>
           <ListRow
-            title={duplicate ? `Pagamento ${index + 1}` : "Importo pagato"}
+            title={many ? `Pagamento ${index + 1}` : "Importo pagato"}
             subtitle={format(payment.paidAt, "d MMM yyyy, HH:mm", {
               locale: it,
             })}
-            trailing={<Value>{formatEuro(payment.amount)}</Value>}
+            trailing={
+              payment.status === "refunded" ? (
+                <StatusBadge tone="neutral">Rimborsato</StatusBadge>
+              ) : (
+                <Value>{formatEuro(payment.amount)}</Value>
+              )
+            }
           />
+          {payment.status === "refunded" && payment.refundedAt && (
+            <ListRow
+              title="Rimborsato il"
+              trailing={
+                <Value>
+                  {format(payment.refundedAt, "d MMM yyyy, HH:mm", {
+                    locale: it,
+                  })}
+                </Value>
+              }
+            />
+          )}
           {payment.transactionCode && (
             <Reference
               label="Codice transazione"
@@ -424,6 +462,29 @@ function OnlinePayment({ booking }: { booking: Booking }) {
             <Reference label="ID checkout" value={payment.checkoutId} />
           )}
           <Reference label="Riferimento" value={payment.paymentId} />
+          {payment.status === "paid" && (
+            <ListRow
+              leading={
+                busy ? (
+                  <Loader2 className="size-5 animate-spin" />
+                ) : (
+                  <Undo2 className="size-5" />
+                )
+              }
+              title={`Rimborsa ${formatEuro(payment.amount)}`}
+              subtitle={
+                payment.refundError
+                  ? `Ultimo tentativo non riuscito: ${payment.refundError}`
+                  : undefined
+              }
+              tone="danger"
+              onClick={
+                busy
+                  ? undefined
+                  : () => onRefund(booking, payment.paymentId, payment.amount)
+              }
+            />
+          )}
         </Fragment>
       ))}
     </ListGroup>

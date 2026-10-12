@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@padel-sport/backend/convex/_generated/api";
+import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { useQuery } from "convex/react";
 import { CalendarCheck, Plus, Search, Users, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -31,6 +32,7 @@ import {
   dayKey,
   dayLabel,
   isCancelled,
+  isPaidOnline,
   isPending,
   matchesSearch,
   stripDays,
@@ -51,7 +53,8 @@ import { useAgenda } from "./use-agenda";
  * da completare (utils/staffLinks.ts sul backend).
  */
 export function Agenda() {
-  const { bookings, busyId, reload, accept, cancel, split } = useAgenda();
+  const { bookings, busyId, reload, accept, cancel, refund, split } =
+    useAgenda();
   const courts = useQuery(api.modules.settings.booking.courts, {});
   const confirm = useConfirm();
   const searchParams = useSearchParams();
@@ -126,7 +129,9 @@ export function Agenda() {
   const askAccept = async (booking: Booking) => {
     const result = await confirm({
       title: "Confermare la prenotazione?",
-      description: `${booking.bookedBy} pagherà in struttura all'arrivo.`,
+      description: isPaidOnline(booking)
+        ? `${booking.bookedBy} ha già pagato online ${formatEuro(booking.paidAmount ?? 0)}.`
+        : `${booking.bookedBy} pagherà in struttura all'arrivo.`,
       confirmLabel: "Conferma",
       checkbox: {
         label: "Avvisa il cliente su WhatsApp",
@@ -137,6 +142,7 @@ export function Agenda() {
   };
 
   const askCancel = async (booking: Booking) => {
+    const paid = isPaidOnline(booking);
     const result = await confirm({
       title: isPending(booking)
         ? "Rifiutare la prenotazione?"
@@ -145,8 +151,33 @@ export function Agenda() {
       confirmLabel: isPending(booking) ? "Rifiuta" : "Annulla prenotazione",
       cancelLabel: "Indietro",
       tone: "destructive",
+      // Spunta già messa: chi annulla una prenotazione pagata di solito
+      // restituisce i soldi. Togliendola si rimborsa dopo, dalla scheda.
+      checkbox: paid
+        ? {
+            label: `Rimborsa il pagamento online (${formatEuro(booking.paidAmount ?? 0)})`,
+            defaultChecked: true,
+          }
+        : undefined,
     });
-    if (result && (await cancel(booking))) setOpenId(null);
+    if (result && (await cancel(booking, paid && result.checked))) {
+      setOpenId(null);
+    }
+  };
+
+  const askRefund = async (
+    booking: Booking,
+    paymentId: string,
+    amount: number,
+  ) => {
+    const result = await confirm({
+      title: "Rimborsare il pagamento?",
+      description: `${formatEuro(amount)} tornano a ${booking.bookedBy} sulla carta con cui ha pagato. La commissione SumUp non viene restituita, e il rimborso non si può annullare.`,
+      confirmLabel: `Rimborsa ${formatEuro(amount)}`,
+      cancelLabel: "Indietro",
+      tone: "destructive",
+    });
+    if (result) await refund(booking, paymentId);
   };
 
   const askSplit = async (booking: Booking) => {
@@ -389,6 +420,9 @@ export function Agenda() {
         }}
         onAccept={(booking) => void askAccept(booking)}
         onCancel={(booking) => void askCancel(booking)}
+        onRefund={(booking, paymentId, amount) =>
+          void askRefund(booking, paymentId, amount)
+        }
         onSplit={(booking) => void askSplit(booking)}
       />
 

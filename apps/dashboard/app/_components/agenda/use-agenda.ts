@@ -1,13 +1,45 @@
 "use client";
 
 import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
+import type { RefundOutcome } from "@padel-sport/backend/convex/modules/payments/refund";
+import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { useCounts } from "@/app/_providers/counts.provider";
 import { PUSH_REFRESH_EVENT } from "@/lib/push";
 
-import type { Booking } from "./lib";
+import { type Booking, isPaidOnline } from "./lib";
+
+/**
+ * Racconta all'operatore com'è andato un rimborso: quanto è tornato al
+ * cliente, o perché non è tornato niente.
+ */
+function announceRefund(refund: RefundOutcome, cancelled: boolean) {
+  if (refund.failed.length === 0) {
+    toast.success(
+      cancelled
+        ? "Prenotazione annullata e rimborsata"
+        : "Pagamento rimborsato",
+      {
+        description: `Restituiti ${formatEuro(refund.amount)} sulla carta del cliente.`,
+      },
+    );
+    return;
+  }
+
+  toast.error(
+    refund.refunded > 0
+      ? "Rimborso riuscito solo in parte"
+      : cancelled
+        ? "Annullata, ma il rimborso non è riuscito"
+        : "Rimborso non riuscito",
+    {
+      description: `${refund.failed[0]} Riprova dalla scheda della prenotazione, o rimborsa dal pannello SumUp.`,
+      duration: 10_000,
+    },
+  );
+}
 
 /**
  * L'agenda e le azioni che la cambiano.
@@ -123,24 +155,76 @@ export function useAgenda() {
         }),
       {
         success: "Prenotazione confermata",
-        description: `${booking.bookedBy} pagherà in struttura all'arrivo.`,
+        description: isPaidOnline(booking)
+          ? `${booking.bookedBy} ha già pagato online.`
+          : `${booking.bookedBy} pagherà in struttura all'arrivo.`,
         error: "Prenotazione non confermata",
       },
     );
 
-  const cancel = (booking: Booking) =>
-    run(
-      booking._id,
-      () =>
-        request("/api/dashboard/bookings", "DELETE", {
-          bookingId: booking._id,
-        }),
-      {
-        success: "Prenotazione annullata",
-        description: `${booking.bookedBy} riceve l'avviso della cancellazione.`,
-        error: "Prenotazione non annullata",
-      },
-    );
+  /**
+   * Annulla, e con `refund` rimborsa anche il pagamento online. Il rimborso ha
+   * il suo avviso: un annullamento riuscito con rimborso fallito va detto.
+   */
+  const cancel = async (booking: Booking, refund = false) => {
+    setBusyId(booking._id);
+    try {
+      const payload = await request("/api/dashboard/bookings", "DELETE", {
+        bookingId: booking._id,
+        refund,
+      });
+
+      if (payload?.refund) {
+        announceRefund(payload.refund as RefundOutcome, true);
+      } else {
+        toast.success("Prenotazione annullata", {
+          description: `${booking.bookedBy} riceve l'avviso della cancellazione.`,
+        });
+      }
+
+      await load(true);
+      refreshCounts();
+      return true;
+    } catch (error) {
+      toast.error("Prenotazione non annullata", {
+        description:
+          error instanceof Error ? error.message : "Riprova fra poco.",
+      });
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  /** Rimborsa dalla scheda: un pagamento solo, o tutti quelli incassati. */
+  const refund = async (booking: Booking, paymentId?: string) => {
+    setBusyId(booking._id);
+    try {
+      const response = await fetch("/api/dashboard/bookings/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking._id, paymentId }),
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (payload?.outcome) {
+        announceRefund(payload.outcome as RefundOutcome, false);
+      } else if (!response.ok) {
+        throw new Error(payload?.error ?? "Riprova fra poco.");
+      }
+
+      await load(true);
+      return response.ok;
+    } catch (error) {
+      toast.error("Rimborso non riuscito", {
+        description:
+          error instanceof Error ? error.message : "Riprova fra poco.",
+      });
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const split = (booking: Booking) =>
     run(
@@ -162,6 +246,7 @@ export function useAgenda() {
     reload: () => load(true),
     accept,
     cancel,
+    refund,
     split,
   };
 }

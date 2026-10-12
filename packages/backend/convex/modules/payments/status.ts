@@ -59,6 +59,7 @@ export const forCode = query({
     ).sort((a, b) => b.createdAt - a.createdAt);
 
     const paid = attempts.find((attempt) => attempt.status === "paid");
+    const refunded = attempts.find((attempt) => attempt.status === "refunded");
     const latest = attempts[0];
     const enabled = await onlinePaymentsActive(ctx);
     const blocker = payBlocker(booking, now);
@@ -78,6 +79,14 @@ export const forCode = query({
             transactionCode: paid.transactionCode,
           }
         : null,
+      /** Un incasso restituito dallo staff: il cliente deve saperlo. */
+      refunded:
+        refunded && !paid
+          ? {
+              amount: refunded.amount,
+              refundedAt: refunded.refundedAt ?? refunded.updatedAt,
+            }
+          : null,
       /** L'ultimo tentativo: per dire «non è andato a buon fine» o «riprendi». */
       latest: latest
         ? { status: latest.status, open: isOpen(latest, now) }

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { paidPayments } from "../modules/payments/lib";
+import { onlinePayments } from "../modules/payments/lib";
 import { assertServer } from "../utils/serverSecret";
 
 /**
@@ -15,7 +15,7 @@ import { assertServer } from "../utils/serverSecret";
  * Con `withDeliveries` ogni prenotazione porta anche i suoi avvisi al cliente
  * (tables/bookingDeliveries.ts): è quello che la scheda mostra sotto
  * «Avvisi al cliente». E, se è stata pagata online, i riferimenti degli
- * incassi per ritrovarli su SumUp. Facoltativo perché i contatori della barra leggono la
+ * incassi — rimborsati compresi — per ritrovarli su SumUp. Facoltativo perché i contatori della barra leggono la
  * stessa lista ogni minuto e non se ne fanno niente.
  */
 export default query({
@@ -58,14 +58,15 @@ export default query({
           .withIndex("by_booking", (q) => q.eq("bookingId", booking._id))
           .collect();
 
+        // Anche una prenotazione tornata «in struttura» può avere un incasso
+        // rimborsato da mostrare: si legge per tutte, è un indice.
+        const payments = await onlinePayments(ctx, booking._id);
+
         return {
           ...booking,
           // L'id del provider serve ai webhook, non a chi guarda la scheda.
           deliveries: deliveries.map(({ providerId: _, ...delivery }) => delivery),
-          payments:
-            booking.paymentMode === "online"
-              ? await paidPayments(ctx, booking._id)
-              : undefined,
+          payments: payments.length > 0 ? payments : undefined,
         };
       }),
     );

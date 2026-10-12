@@ -106,8 +106,12 @@ export function paymentSummary(
 export interface PaymentReference {
   /** Il nostro `checkout_reference` su SumUp. */
   paymentId: Id<"payments">;
+  status: "paid" | "refunded";
   amount: number;
   paidAt: number;
+  refundedAt?: number;
+  /** L'ultimo rimborso tentato e non riuscito, da mostrare a chi riprova. */
+  refundError?: string;
   /** Il codice che SumUp mostra fra le transazioni e sulla ricevuta. */
   transactionCode?: string;
   transactionId?: string;
@@ -115,10 +119,11 @@ export interface PaymentReference {
 }
 
 /**
- * Gli incassi online di una prenotazione, dal primo. Di norma uno solo: più
- * di uno vuol dire un doppio pagamento da rimborsare.
+ * Gli incassi online di una prenotazione, rimborsati compresi, dal primo. Di
+ * norma uno solo: due incassi ancora validi vogliono dire un doppio pagamento
+ * da rimborsare.
  */
-export async function paidPayments(
+export async function onlinePayments(
   ctx: QueryCtx,
   bookingId: Id<"bookings">,
 ): Promise<PaymentReference[]> {
@@ -128,12 +133,19 @@ export async function paidPayments(
     .collect();
 
   return attempts
-    .filter((attempt) => attempt.status === "paid")
+    .flatMap((attempt) =>
+      attempt.status === "paid" || attempt.status === "refunded"
+        ? [{ ...attempt, status: attempt.status }]
+        : [],
+    )
     .sort((a, b) => (a.paidAt ?? 0) - (b.paidAt ?? 0))
     .map((attempt) => ({
       paymentId: attempt._id,
+      status: attempt.status,
       amount: attempt.amount,
       paidAt: attempt.paidAt ?? attempt.updatedAt,
+      refundedAt: attempt.refundedAt,
+      refundError: attempt.refundError,
       transactionCode: attempt.transactionCode,
       transactionId: attempt.transactionId,
       checkoutId: attempt.checkoutId,

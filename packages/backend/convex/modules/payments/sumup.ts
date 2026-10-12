@@ -154,6 +154,24 @@ export async function deactivateCheckout(
   );
 }
 
+/**
+ * Rimborsa per intero una transazione online. I soldi tornano sul metodo con
+ * cui il cliente ha pagato; la commissione del pagamento originale SumUp non
+ * la restituisce.
+ *
+ * Senza `amount` il rimborso è totale: è l'unico che offriamo.
+ */
+export async function refundTransaction(
+  config: SumupConfig,
+  transactionId: string,
+): Promise<void> {
+  await request<unknown>(
+    config,
+    `/v1.0/merchants/${encodeURIComponent(config.merchantCode)}/payments/${encodeURIComponent(transactionId)}/refunds`,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+}
+
 /** Quello che del checkout serve a noi: stato, importo e l'incasso, se c'è. */
 export interface CheckoutSnapshot {
   status: CheckoutStatus;

@@ -339,7 +339,15 @@ async function settle(
   payment: Doc<"payments"> | null,
 ): Promise<PaymentStatus | null> {
   if (!payment) return null;
-  if (!payment.checkoutId || payment.status === "paid") return payment.status;
+  // Incassato o già restituito: SumUp continuerebbe a dire PAID, e rileggerlo
+  // farebbe tornare «pagato» un pagamento rimborsato.
+  if (
+    !payment.checkoutId ||
+    payment.status === "paid" ||
+    payment.status === "refunded"
+  ) {
+    return payment.status;
+  }
 
   const config = sumupConfig();
   if (!config) return payment.status;
@@ -424,7 +432,9 @@ export const apply = internalMutation({
   handler: async (ctx, args): Promise<PaymentStatus | null> => {
     const payment = await ctx.db.get(args.paymentId);
     if (!payment) return null;
-    if (payment.status === "paid") return "paid";
+    if (payment.status === "paid" || payment.status === "refunded") {
+      return payment.status;
+    }
 
     const now = Date.now();
     const next = statusFromCheckout(args.status);

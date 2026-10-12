@@ -96,6 +96,7 @@ import type * as modules_openMatches_recipients from "../modules/openMatches/rec
 import type * as modules_openMatches_requests from "../modules/openMatches/requests.js";
 import type * as modules_payments_checkout from "../modules/payments/checkout.js";
 import type * as modules_payments_lib from "../modules/payments/lib.js";
+import type * as modules_payments_refund from "../modules/payments/refund.js";
 import type * as modules_payments_status from "../modules/payments/status.js";
 import type * as modules_payments_sumup from "../modules/payments/sumup.js";
 import type * as modules_pointReports_create from "../modules/pointReports/create.js";
@@ -270,6 +271,7 @@ declare const fullApi: ApiFromModules<{
   "modules/openMatches/requests": typeof modules_openMatches_requests;
   "modules/payments/checkout": typeof modules_payments_checkout;
   "modules/payments/lib": typeof modules_payments_lib;
+  "modules/payments/refund": typeof modules_payments_refund;
   "modules/payments/status": typeof modules_payments_status;
   "modules/payments/sumup": typeof modules_payments_sumup;
   "modules/pointReports/create": typeof modules_pointReports_create;

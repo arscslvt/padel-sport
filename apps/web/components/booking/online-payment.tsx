@@ -4,7 +4,7 @@ import { useAuth } from "@clerk/nextjs";
 import { api } from "@padel-sport/backend/convex/_generated/api";
 import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { useAction, useQuery } from "convex/react";
-import { CheckCircle2, CreditCard } from "lucide-react";
+import { CheckCircle2, CreditCard, Undo2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -127,37 +127,57 @@ export function BookingPayment({
     );
   }
 
+  // Il rimborso lo decide la struttura: chi l'ha ricevuto deve saperlo, anche
+  // se la prenotazione resta valida e si può ripagare.
+  const refunded = payment.refunded && (
+    <div className="border-border flex items-start gap-3 rounded-2xl border p-4 text-sm">
+      <Undo2 className="text-muted-foreground mt-0.5 size-5 shrink-0" />
+      <div>
+        <p className="font-medium">
+          Pagamento rimborsato · {formatEuro(payment.refunded.amount)}
+        </p>
+        <p className="text-muted-foreground mt-0.5 leading-relaxed">
+          La struttura ti ha restituito l'importo sulla carta con cui hai
+          pagato: può servire qualche giorno perché compaia.
+        </p>
+      </div>
+    </div>
+  );
+
   // `canPay` è falso anche quando il pagamento online è spento.
-  if (!payment.canPay) return null;
+  if (!payment.canPay) return refunded || null;
 
   const failed = payment.latest?.status === "failed";
   const resume = payment.latest?.open;
 
   return (
-    <div className="border-border rounded-2xl border p-4">
-      <p className="text-sm font-medium">Vuoi pagare adesso?</p>
-      <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-        {failed
-          ? "L'ultimo tentativo non è andato a buon fine e non ti è stato addebitato nulla. "
-          : ""}
-        Paghi {formatEuro(payment.amount)} per te e i compagni indicati, con
-        carta, Apple Pay o Google Pay sulla pagina sicura di SumUp. Altrimenti
-        si paga in struttura come sempre.
-      </p>
-      <Button
-        type="button"
-        size="pill"
-        className="mt-4"
-        disabled={starting !== null}
-        onClick={() => void pay(code)}
-      >
-        <CreditCard className="size-4" />
-        {starting
-          ? "Ti portiamo su SumUp…"
-          : resume
-            ? "Riprendi il pagamento"
-            : `Paga ora ${formatEuro(payment.amount)}`}
-      </Button>
+    <div className="flex flex-col gap-3">
+      {refunded}
+      <div className="border-border rounded-2xl border p-4">
+        <p className="text-sm font-medium">Vuoi pagare adesso?</p>
+        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+          {failed
+            ? "L'ultimo tentativo non è andato a buon fine e non ti è stato addebitato nulla. "
+            : ""}
+          Paghi {formatEuro(payment.amount)} per te e i compagni indicati, con
+          carta, Apple Pay o Google Pay sulla pagina sicura di SumUp. Altrimenti
+          si paga in struttura come sempre.
+        </p>
+        <Button
+          type="button"
+          size="pill"
+          className="mt-4"
+          disabled={starting !== null}
+          onClick={() => void pay(code)}
+        >
+          <CreditCard className="size-4" />
+          {starting
+            ? "Ti portiamo su SumUp…"
+            : resume
+              ? "Riprendi il pagamento"
+              : `Paga ora ${formatEuro(payment.amount)}`}
+        </Button>
+      </div>
     </div>
   );
 }

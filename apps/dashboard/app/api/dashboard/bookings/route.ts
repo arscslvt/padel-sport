@@ -73,7 +73,11 @@ export async function POST(request: Request) {
   }
 }
 
-const deleteSchema = z.object({ bookingId: z.string().min(1) });
+const deleteSchema = z.object({
+  bookingId: z.string().min(1),
+  /** La spunta «Rimborsa il pagamento online» della modale di annullamento. */
+  refund: z.boolean().optional(),
+});
 
 export async function DELETE(request: Request) {
   const gate = await staffGate();
@@ -84,13 +88,13 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Dati non validi." }, { status: 400 });
   }
 
+  const bookingId = parsed.data.bookingId as Id<"bookings">;
+
   try {
     await gate.convex.mutation(api.bookings.delete.default, {
       secret: gate.secret,
-      bookingId: parsed.data.bookingId as Id<"bookings">,
+      bookingId,
     });
-
-    return NextResponse.json({ cancelled: true });
   } catch (error) {
     console.error("Prenotazione non annullata:", error);
     return NextResponse.json(
@@ -99,5 +103,29 @@ export async function DELETE(request: Request) {
       },
       { status: 400 },
     );
+  }
+
+  if (!parsed.data.refund) return NextResponse.json({ cancelled: true });
+
+  // Prima si annulla, poi si rimborsa: un rimborso fallito lascia una
+  // prenotazione annullata e «da rimborsare», che si riprova dalla scheda. Al
+  // contrario resterebbe una prenotazione attiva con i soldi già restituiti.
+  try {
+    const refund = await gate.convex.action(
+      api.modules.payments.refund.default,
+      { secret: gate.secret, bookingId, staffUserId: gate.userId },
+    );
+
+    return NextResponse.json({ cancelled: true, refund });
+  } catch (error) {
+    console.error("Rimborso all'annullamento non riuscito:", error);
+    return NextResponse.json({
+      cancelled: true,
+      refund: {
+        refunded: 0,
+        amount: 0,
+        failed: [convexMessage(error, "Il rimborso non è riuscito.")],
+      },
+    });
   }
 }

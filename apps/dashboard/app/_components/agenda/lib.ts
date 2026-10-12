@@ -179,6 +179,13 @@ export function needsRefund(booking: Booking): boolean {
   return booking.status === "cancelled" && isPaidOnline(booking);
 }
 
+/** Ha avuto un incasso online poi restituito dallo staff. */
+export function wasRefunded(booking: Booking): boolean {
+  return (
+    booking.payments?.some((payment) => payment.status === "refunded") ?? false
+  );
+}
+
 /**
  * Il numero per WhatsApp: solo cifre, con il prefisso italiano quando manca.
  * Chi prenota dal sito scrive spesso «333 1234567», che `wa.me` non
