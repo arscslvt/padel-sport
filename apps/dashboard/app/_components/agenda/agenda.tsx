@@ -83,6 +83,11 @@ export function Agenda() {
   const [mergeOpen, setMergeOpen] = useState(
     () => searchParams.get("tab") === "merge",
   );
+  // Dal giorno in agenda si uniscono le coppie di quel giorno. Il link delle
+  // notifiche (`?tab=merge`) non dice quale giorno, e le mostra tutte.
+  const [mergeScope, setMergeScope] = useState<"day" | "all">(() =>
+    searchParams.get("tab") === "merge" ? "all" : "day",
+  );
   const [searching, setSearching] = useState(false);
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState("");
@@ -96,6 +101,10 @@ export function Agenda() {
   const list = bookings ?? [];
   const pending = useMemo(() => list.filter(isPending), [list]);
   const pairs = useMemo(() => mergeablePairs(list), [list]);
+  const pairsOfDay = useMemo(
+    () => pairs.filter((pair) => dayKey(pair.keep.bookingDate) === selectedDay),
+    [pairs, selectedDay],
+  );
   const days = useMemo(() => stripDays(list), [list]);
 
   const marks = useMemo(() => {
@@ -480,15 +489,19 @@ export function Agenda() {
                 )}
               </section>
 
-              {pairs.length > 0 && (
+              {/* Solo nel giorno che ha davvero una coppia da unire. */}
+              {pairsOfDay.length > 0 && (
                 <ListGroup footer="Due gruppi parziali alla stessa ora riempiono un campo, e l'altro torna prenotabile.">
                   <ListRow
                     leading={<Users className="size-5" />}
                     title="Campi da completare"
-                    subtitle={`${pairs.length} ${pairs.length === 1 ? "coppia da unire" : "coppie da unire"}`}
-                    trailing={<CountBadge count={pairs.length} />}
+                    subtitle={`${pairsOfDay.length} ${pairsOfDay.length === 1 ? "coppia da unire" : "coppie da unire"}`}
+                    trailing={<CountBadge count={pairsOfDay.length} />}
                     chevron
-                    onClick={() => setMergeOpen(true)}
+                    onClick={() => {
+                      setMergeScope("day");
+                      setMergeOpen(true);
+                    }}
                   />
                 </ListGroup>
               )}
@@ -531,11 +544,21 @@ export function Agenda() {
         <ResponsiveDrawerContent className="sm:max-w-2xl md:max-h-[90dvh] md:overflow-y-auto">
           <SheetHeader
             title="Campi da completare"
-            description="In cima le coppie dello stesso livello."
+            description={
+              mergeScope === "day"
+                ? `${dayLabel(selectedDay, today)}. In cima le coppie dello stesso livello.`
+                : "In cima le coppie dello stesso livello."
+            }
           />
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:-mx-1 md:px-1 md:pb-0">
             <MergePairs
-              bookings={list}
+              bookings={
+                mergeScope === "day"
+                  ? list.filter(
+                      (booking) => dayKey(booking.bookingDate) === selectedDay,
+                    )
+                  : list
+              }
               courts={(courts ?? []).map((court) => ({
                 id: court.id,
                 name: court.name,
