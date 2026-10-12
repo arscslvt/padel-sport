@@ -6,6 +6,7 @@ import type React from "react";
 import { SIGN_IN_PATH } from "@/lib/auth-routes";
 import { ConvexClientProvider } from "@/providers/convex.provider";
 import { DASHBOARD_CHROME_COLOR } from "./_components/chrome";
+import { StatusBarScrim } from "./_components/status-bar-scrim";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -90,6 +91,7 @@ export default function RootLayout({
           >
             <ConvexClientProvider>{children}</ConvexClientProvider>
           </ThemeProvider>
+          <StatusBarScrim />
         </body>
       </html>
     </ClerkProvider>
