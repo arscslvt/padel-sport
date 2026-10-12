@@ -291,6 +291,7 @@ export default mutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        category: "bookings",
         title:
           origin === "web"
             ? "Nuova prenotazione dal sito"

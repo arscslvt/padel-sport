@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { useCounts } from "@/app/_providers/counts.provider";
+import { PUSH_REFRESH_EVENT } from "@/lib/push";
 
 import type { Booking } from "./lib";
 
@@ -14,7 +15,8 @@ import type { Booking } from "./lib";
  * Arriva da una route e non da `useQuery`: contiene nomi e telefoni dei
  * clienti, e il deployment Convex ha un URL pubblico. Per non perdere del
  * tutto l'aggiornamento in tempo reale si ricarica quando si torna sulla
- * scheda e ogni minuto, oltre che dopo ogni azione.
+ * scheda, ogni minuto, dopo ogni azione e quando arriva una notifica push
+ * (push.provider.tsx).
  */
 
 const POLL_MS = 60_000;
@@ -73,10 +75,14 @@ export function useAgenda() {
       if (document.visibilityState === "visible") void load(true);
     }, POLL_MS);
 
+    const onPush = () => void load(true);
+
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener(PUSH_REFRESH_EVENT, onPush);
     return () => {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener(PUSH_REFRESH_EVENT, onPush);
     };
   }, [load]);
 

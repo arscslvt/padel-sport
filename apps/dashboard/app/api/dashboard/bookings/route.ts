@@ -26,6 +26,8 @@ export async function GET(request: Request) {
     const bookings = await gate.convex.query(api.bookings.list.default, {
       secret: gate.secret,
       includePast,
+      // Con gli avvisi al cliente: la scheda dice se la conferma è arrivata.
+      withDeliveries: true,
     });
 
     return NextResponse.json({ bookings });

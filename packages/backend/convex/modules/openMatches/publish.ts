@@ -83,6 +83,7 @@ export default mutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        category: "matches",
         title: "Partita aperta a tutti",
         message: `${player.name} ha reso aperta la partita del ${formatClubDateTime(
           match.matchDate,

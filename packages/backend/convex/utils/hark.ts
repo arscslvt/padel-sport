@@ -5,9 +5,13 @@
  * la spia che si accende sul telefono se il client di posta tarda. Per questo
  * non solleva mai — quando parte, il fatto è già a database, e far fallire
  * un'azione per una notifica sarebbe il baratto sbagliato. Conta soprattutto
- * nei tre punti dove `sendHark` è chiamata *dentro* un `catch`
- * (bookingMail, courtCalendar/push, courtCalendar/pull): lì sollevare
- * trasformerebbe un errore gestito in un fallimento dell'azione.
+ * nei due punti dove l'avviso parte *dentro* un `catch` (courtCalendar/push,
+ * courtCalendar/pull): lì sollevare trasformerebbe un errore gestito in un
+ * fallimento dell'azione.
+ *
+ * Dal backend non si chiama più da sola: passa da `notifications/alert`, che
+ * la manda insieme alle notifiche push del gestionale (modules/push/send.ts).
+ * Il sito ci ripiega quando Convex non risponde (apps/web/lib/staff-alert.ts).
  *
  * Un solo modulo per Convex e per il sito. Hark parla JSON, quindi qui non
  * serve niente di specifico a un runtime: né `Buffer` né i moduli di Node, che

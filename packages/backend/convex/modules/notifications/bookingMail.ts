@@ -2,9 +2,9 @@ import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
 import { internalAction, internalQuery } from "../../_generated/server";
+import { notificationKind } from "../../tables/bookingDeliveries";
+import type { DeliveryEntry } from "../deliveries/lib";
 import { MATCH_DURATION_MS } from "../openMatches/lib";
-import { formatClubDateTime } from "../../utils/clubTime";
-import { staffBookingUrl } from "../../utils/staffLinks";
 
 /**
  * Le mail che seguono una prenotazione dopo che è stata creata: la conferma
@@ -16,24 +16,57 @@ import { staffBookingUrl } from "../../utils/staffLinks";
  * annulla dalla dashboard è la struttura, non chi ha prenotato, e una query
  * leggibile dallo staff sarebbe una query leggibile da chiunque.
  *
- * Senza `SITE_URL` e `BOOKING_WEBHOOK_SECRET` non parte niente e resta solo una
- * riga nei log: l'accettazione e la disdetta restano valide, come sempre.
+ * Senza `SITE_URL` e `BOOKING_WEBHOOK_SECRET` non parte niente: restano una
+ * riga nei log e una nel registro degli avvisi, che lo staff vede nella
+ * scheda. L'accettazione e la disdetta restano valide, come sempre.
  */
 
 /**
- * Cosa è successo alla prenotazione. Il QR viaggia solo con `accepted`: è
- * quello a dire al cliente che il campo è suo per davvero — ed è la ragione per
- * cui `merged` è una mail a parte e non lo porta. Sapere con chi si gioca e
- * avere il campo confermato sono due notizie diverse, e arrivano in due momenti
- * diversi: la struttura unisce quando trova la coppia giusta, conferma quando
- * decide di incassare.
+ * Cosa è successo alla prenotazione (`notificationKind`). Il QR viaggia solo
+ * con `accepted`: è quello a dire al cliente che il campo è suo per davvero —
+ * ed è la ragione per cui `merged` è una mail a parte e non lo porta. Sapere
+ * con chi si gioca e avere il campo confermato sono due notizie diverse, e
+ * arrivano in due momenti diversi: la struttura unisce quando trova la coppia
+ * giusta, conferma quando decide di incassare.
+ *
+ * Ogni invio lascia le sue righe in `bookingDeliveries`, una per destinatario:
+ * è da lì che la scheda della prenotazione sa se il cliente l'ha ricevuta.
  */
-const notificationKind = v.union(
-  v.literal("accepted"),
-  v.literal("merged"),
-  v.literal("cancelled_by_club"),
-  v.literal("cancelled_by_player"),
-);
+
+/** Come risponde il sito (apps/web/app/api/bookings/notify), destinatario per destinatario. */
+type NotifyResult = {
+  role: "booker" | "guest";
+  email?: string;
+  /** L'id dell'email su Resend: è quello che i webhook riportano */
+  id?: string;
+  error?: string;
+  skipped?: string;
+};
+
+function toEntry(result: NotifyResult): DeliveryEntry {
+  if (result.id) {
+    return {
+      role: result.role,
+      recipient: result.email,
+      status: "queued",
+      providerId: result.id,
+    };
+  }
+  if (result.skipped) {
+    return {
+      role: result.role,
+      recipient: result.email,
+      status: "skipped",
+      detail: result.skipped,
+    };
+  }
+  return {
+    role: result.role,
+    recipient: result.email,
+    status: "failed",
+    detail: result.error ?? "Resend non l'ha accettata",
+  };
+}
 
 export const payload = internalQuery({
   args: { bookingId: v.id("bookings") },
@@ -104,6 +137,14 @@ export default internalAction({
 
     if (!data) return;
 
+    const record = (entries: DeliveryEntry[]) =>
+      ctx.runMutation(internal.modules.deliveries.record.default, {
+        bookingId,
+        kind,
+        channel: "email",
+        entries,
+      });
+
     const siteUrl = process.env.SITE_URL;
     const secret = process.env.BOOKING_WEBHOOK_SECRET;
 
@@ -116,11 +157,29 @@ export default internalAction({
       console.warn(
         `Mail della prenotazione non inviata: manca ${missing.join(" e ")} sul deployment Convex.`,
       );
+      await record([
+        {
+          role: "booker",
+          recipient: data.bookerEmail,
+          status: "failed",
+          detail: "Invio delle mail non configurato",
+        },
+      ]);
       return;
     }
 
-    // Nessuno a cui scrivere: né chi ha prenotato né ospiti con la mail.
-    if (!data.bookerClerkUserId && data.guests.length === 0) return;
+    // Nessuno a cui scrivere: né un account, né una mail in anagrafica, né
+    // ospiti con la mail.
+    if (
+      !data.bookerClerkUserId &&
+      !data.bookerEmail &&
+      data.guests.length === 0
+    ) {
+      await record([
+        { role: "booker", status: "skipped", detail: "Nessun indirizzo email" },
+      ]);
+      return;
+    }
 
     try {
       const response = await fetch(`${siteUrl}/api/bookings/notify`, {
@@ -132,27 +191,34 @@ export default internalAction({
         body: JSON.stringify({ ...data, kind }),
       });
 
+      const payload = (await response.json().catch(() => null)) as {
+        results?: NotifyResult[];
+        error?: string;
+      } | null;
+
       if (!response.ok) {
-        throw new Error(`${response.status}: ${await response.text()}`);
+        throw new Error(`${response.status}: ${payload?.error ?? "risposta non valida"}`);
+      }
+
+      // Un sito non ancora aggiornato risponde senza `results`: le mail sono
+      // partite, ma senza gli id non c'è niente da seguire.
+      if (payload?.results) {
+        await record(payload.results.map(toEntry));
       }
     } catch (error) {
       // Quel che doveva succedere è già successo: una mail che non parte non
-      // lo annulla, ma lo staff deve saperlo per avvisare a voce.
+      // lo annulla, ma lo staff deve saperlo per avvisare a voce — e la riga
+      // fallita fa partire l'avviso (deliveries/lib.ts).
       console.error("Mail della prenotazione non recapitata:", error);
 
-      await ctx.runAction(internal.modules.notifications.alert.default, {
-        title:
-          kind === "accepted"
-            ? "⚠️ Conferma non comunicata"
-            : kind === "merged"
-              ? "⚠️ Unione dei campi non comunicata"
-              : "⚠️ Disdetta non comunicata",
-        message: `${data.bookedBy}, ${formatClubDateTime(
-          data.start,
-        )}: avvisare a mano.`,
-        url: staffBookingUrl(bookingId),
-        idempotencyKey: `booking-mail-error-${bookingId}-${kind}`,
-      });
+      await record([
+        {
+          role: "booker",
+          recipient: data.bookerEmail,
+          status: "failed",
+          detail: "Il sito non ha spedito la mail",
+        },
+      ]);
     }
   },
 });

@@ -12,6 +12,7 @@ import {
   SLOT_INTERVAL_MS,
 } from "../modules/openMatches/lib";
 import { bookingSettings, isWithinOpeningHours } from "../modules/settings/lib";
+import { recordDeliveries } from "../modules/deliveries/lib";
 import { assertServer } from "../utils/serverSecret";
 
 /**
@@ -159,6 +160,14 @@ export default mutation({
             .sendConfirmationWithWhatsapp,
           { bookingId },
         );
+      } else {
+        await recordDeliveries(ctx, bookingId, "accepted", "whatsapp", [
+          {
+            role: "booker",
+            status: "skipped",
+            detail: "Nessun numero di telefono",
+          },
+        ]);
       }
     }
 

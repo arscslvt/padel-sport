@@ -56,6 +56,7 @@ export const request = mutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        category: "matches",
         title: "Richiesta di partecipazione",
         message: `${player.name} chiede di unirsi alla partita del ${formatClubDateTime(
           match.matchDate,

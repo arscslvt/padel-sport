@@ -21,6 +21,7 @@ import type * as bookings_update from "../bookings/update.js";
 import type * as crons from "../crons.js";
 import type * as events_list from "../events/list.js";
 import type * as events_new from "../events/new.js";
+import type * as http from "../http.js";
 import type * as modules_circles_create from "../modules/circles/create.js";
 import type * as modules_circles_dissolve from "../modules/circles/dissolve.js";
 import type * as modules_circles_get from "../modules/circles/get.js";
@@ -43,6 +44,8 @@ import type * as modules_courtCalendar_data from "../modules/courtCalendar/data.
 import type * as modules_courtCalendar_lib from "../modules/courtCalendar/lib.js";
 import type * as modules_courtCalendar_pull from "../modules/courtCalendar/pull.js";
 import type * as modules_courtCalendar_push from "../modules/courtCalendar/push.js";
+import type * as modules_deliveries_lib from "../modules/deliveries/lib.js";
+import type * as modules_deliveries_record from "../modules/deliveries/record.js";
 import type * as modules_eventCommunications_begin from "../modules/eventCommunications/begin.js";
 import type * as modules_eventCommunications_complete from "../modules/eventCommunications/complete.js";
 import type * as modules_eventCommunications_lib from "../modules/eventCommunications/lib.js";
@@ -75,6 +78,7 @@ import type * as modules_matchRequests_update from "../modules/matchRequests/upd
 import type * as modules_notifications_alert from "../modules/notifications/alert.js";
 import type * as modules_notifications_bookingMail from "../modules/notifications/bookingMail.js";
 import type * as modules_notifications_confirmation from "../modules/notifications/confirmation.js";
+import type * as modules_notifications_staff from "../modules/notifications/staff.js";
 import type * as modules_openMatches_cancel from "../modules/openMatches/cancel.js";
 import type * as modules_openMatches_create from "../modules/openMatches/create.js";
 import type * as modules_openMatches_get from "../modules/openMatches/get.js";
@@ -106,6 +110,9 @@ import type * as modules_points_rewards from "../modules/points/rewards.js";
 import type * as modules_points_terms from "../modules/points/terms.js";
 import type * as modules_points_version from "../modules/points/version.js";
 import type * as modules_points_wallet from "../modules/points/wallet.js";
+import type * as modules_push_preferences from "../modules/push/preferences.js";
+import type * as modules_push_send from "../modules/push/send.js";
+import type * as modules_push_subscriptions from "../modules/push/subscriptions.js";
 import type * as modules_settings_booking from "../modules/settings/booking.js";
 import type * as modules_settings_lib from "../modules/settings/lib.js";
 import type * as modules_supportRequests_create from "../modules/supportRequests/create.js";
@@ -122,6 +129,7 @@ import type * as modules_tournaments_matches_get from "../modules/tournaments/ma
 import type * as modules_tournaments_players_add from "../modules/tournaments/players/add.js";
 import type * as modules_tournaments_teams_get from "../modules/tournaments/teams/get.js";
 import type * as slots_listActive from "../slots/listActive.js";
+import type * as tables_bookingDeliveries from "../tables/bookingDeliveries.js";
 import type * as tables_bookingSettings from "../tables/bookingSettings.js";
 import type * as tables_bookings from "../tables/bookings.js";
 import type * as tables_circleInvites from "../tables/circleInvites.js";
@@ -140,20 +148,24 @@ import type * as tables_matchGuests from "../tables/matchGuests.js";
 import type * as tables_matchInvites from "../tables/matchInvites.js";
 import type * as tables_matchRequests from "../tables/matchRequests.js";
 import type * as tables_memberships from "../tables/memberships.js";
+import type * as tables_notificationPreferences from "../tables/notificationPreferences.js";
 import type * as tables_openMatches from "../tables/openMatches.js";
 import type * as tables_players from "../tables/players.js";
 import type * as tables_pointPresets from "../tables/pointPresets.js";
 import type * as tables_pointReports from "../tables/pointReports.js";
 import type * as tables_pointTransactions from "../tables/pointTransactions.js";
+import type * as tables_pushSubscriptions from "../tables/pushSubscriptions.js";
 import type * as tables_rewardRedemptions from "../tables/rewardRedemptions.js";
 import type * as tables_rewards from "../tables/rewards.js";
 import type * as tables_slots from "../tables/slots.js";
 import type * as tables_supportRequests from "../tables/supportRequests.js";
 import type * as utils_clubTime from "../utils/clubTime.js";
 import type * as utils_hark from "../utils/hark.js";
+import type * as utils_notificationCategories from "../utils/notificationCategories.js";
 import type * as utils_notification_client from "../utils/notification_client.js";
 import type * as utils_serverSecret from "../utils/serverSecret.js";
 import type * as utils_staffLinks from "../utils/staffLinks.js";
+import type * as utils_webhookSignatures from "../utils/webhookSignatures.js";
 
 import type {
   ApiFromModules,
@@ -175,6 +187,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   "events/list": typeof events_list;
   "events/new": typeof events_new;
+  http: typeof http;
   "modules/circles/create": typeof modules_circles_create;
   "modules/circles/dissolve": typeof modules_circles_dissolve;
   "modules/circles/get": typeof modules_circles_get;
@@ -197,6 +210,8 @@ declare const fullApi: ApiFromModules<{
   "modules/courtCalendar/lib": typeof modules_courtCalendar_lib;
   "modules/courtCalendar/pull": typeof modules_courtCalendar_pull;
   "modules/courtCalendar/push": typeof modules_courtCalendar_push;
+  "modules/deliveries/lib": typeof modules_deliveries_lib;
+  "modules/deliveries/record": typeof modules_deliveries_record;
   "modules/eventCommunications/begin": typeof modules_eventCommunications_begin;
   "modules/eventCommunications/complete": typeof modules_eventCommunications_complete;
   "modules/eventCommunications/lib": typeof modules_eventCommunications_lib;
@@ -229,6 +244,7 @@ declare const fullApi: ApiFromModules<{
   "modules/notifications/alert": typeof modules_notifications_alert;
   "modules/notifications/bookingMail": typeof modules_notifications_bookingMail;
   "modules/notifications/confirmation": typeof modules_notifications_confirmation;
+  "modules/notifications/staff": typeof modules_notifications_staff;
   "modules/openMatches/cancel": typeof modules_openMatches_cancel;
   "modules/openMatches/create": typeof modules_openMatches_create;
   "modules/openMatches/get": typeof modules_openMatches_get;
@@ -260,6 +276,9 @@ declare const fullApi: ApiFromModules<{
   "modules/points/terms": typeof modules_points_terms;
   "modules/points/version": typeof modules_points_version;
   "modules/points/wallet": typeof modules_points_wallet;
+  "modules/push/preferences": typeof modules_push_preferences;
+  "modules/push/send": typeof modules_push_send;
+  "modules/push/subscriptions": typeof modules_push_subscriptions;
   "modules/settings/booking": typeof modules_settings_booking;
   "modules/settings/lib": typeof modules_settings_lib;
   "modules/supportRequests/create": typeof modules_supportRequests_create;
@@ -276,6 +295,7 @@ declare const fullApi: ApiFromModules<{
   "modules/tournaments/players/add": typeof modules_tournaments_players_add;
   "modules/tournaments/teams/get": typeof modules_tournaments_teams_get;
   "slots/listActive": typeof slots_listActive;
+  "tables/bookingDeliveries": typeof tables_bookingDeliveries;
   "tables/bookingSettings": typeof tables_bookingSettings;
   "tables/bookings": typeof tables_bookings;
   "tables/circleInvites": typeof tables_circleInvites;
@@ -294,20 +314,24 @@ declare const fullApi: ApiFromModules<{
   "tables/matchInvites": typeof tables_matchInvites;
   "tables/matchRequests": typeof tables_matchRequests;
   "tables/memberships": typeof tables_memberships;
+  "tables/notificationPreferences": typeof tables_notificationPreferences;
   "tables/openMatches": typeof tables_openMatches;
   "tables/players": typeof tables_players;
   "tables/pointPresets": typeof tables_pointPresets;
   "tables/pointReports": typeof tables_pointReports;
   "tables/pointTransactions": typeof tables_pointTransactions;
+  "tables/pushSubscriptions": typeof tables_pushSubscriptions;
   "tables/rewardRedemptions": typeof tables_rewardRedemptions;
   "tables/rewards": typeof tables_rewards;
   "tables/slots": typeof tables_slots;
   "tables/supportRequests": typeof tables_supportRequests;
   "utils/clubTime": typeof utils_clubTime;
   "utils/hark": typeof utils_hark;
+  "utils/notificationCategories": typeof utils_notificationCategories;
   "utils/notification_client": typeof utils_notification_client;
   "utils/serverSecret": typeof utils_serverSecret;
   "utils/staffLinks": typeof utils_staffLinks;
+  "utils/webhookSignatures": typeof utils_webhookSignatures;
 }>;
 
 /**

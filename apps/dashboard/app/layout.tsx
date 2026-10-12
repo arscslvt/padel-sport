@@ -32,6 +32,14 @@ export const metadata: Metadata = {
       },
       { url: "/favicon/white-icon.png", media: "(prefers-color-scheme: dark)" },
     ],
+    apple: "/icons/apple-touch-icon.png",
+  },
+  // Aggiunto alla schermata Home di un iPhone si apre a tutto schermo, senza
+  // la barra di Safari: è anche la condizione perché riceva le notifiche push.
+  appleWebApp: {
+    capable: true,
+    title: "Gestionale",
+    statusBarStyle: "default",
   },
   // Il gestionale non ha niente da far trovare ai motori di ricerca.
   robots: { index: false, follow: false },

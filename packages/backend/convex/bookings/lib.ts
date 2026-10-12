@@ -55,6 +55,7 @@ export async function releaseMerge(
   }
 
   await ctx.scheduler.runAfter(0, internal.modules.notifications.alert.default, {
+    category: "cancellations",
     title: "⚠️ Campo unito non più completo",
     message: `${partner.bookedBy}, ${formatClubDateTime(
       partner.bookingDate,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Users } from "lucide-react";
+import { BellOff, Loader2, Users } from "lucide-react";
 
 import { StatusBadge } from "@/app/_components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 import {
   type Booking,
+  clientReach,
   clubTime,
   dayKey,
   isCancelled,
@@ -27,6 +28,9 @@ import {
  * cerca: «chi gioca alle 18:30?». Lo stato compare solo quando c'è qualcosa
  * da dire — da confermare, annullata — e una partita confermata è una riga
  * pulita. Il tocco apre il dettaglio.
+ *
+ * Accanto al nome, la campanella barrata dice che nessun avviso è arrivato a
+ * chi ha prenotato: è il caso in cui allo sportello conviene una telefonata.
  */
 export function BookingRow({
   booking,
@@ -72,6 +76,12 @@ export function BookingRow({
             <Users
               aria-label="Campo condiviso"
               className="text-info size-4 shrink-0"
+            />
+          )}
+          {clientReach(booking) === "unreached" && (
+            <BellOff
+              aria-label="Cliente non avvisato"
+              className="text-danger size-4 shrink-0"
             />
           )}
         </span>

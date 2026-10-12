@@ -25,6 +25,7 @@ import ConfirmProvider from "../_providers/confirm.provider";
 import CountsProvider from "../_providers/counts.provider";
 import FloatingActionProvider from "../_providers/floating-action.provider";
 import ProfileDialogProvider from "../_providers/profile-dialog.provider";
+import PushProvider from "../_providers/push.provider";
 import HapticsProvider from "../_providers/sound.provider";
 import InternalThemeProvider from "../_providers/theme.provider";
 import TourProvider from "../_providers/tour.provider";
@@ -59,64 +60,70 @@ export default async function StaffLayout({
                * rimpicciolisce nella cornice.
                */}
               <TourProvider>
-                <FloatingActionProvider>
-                  <SidebarProvider
-                    defaultOpen={defaultOpen}
-                    className="bg-background"
-                  >
-                    <Sidebar collapsible="icon">
-                      <SidebarHeader>
-                        <SidebarMenu>
-                          <SidebarMenuItem className="flex items-center gap-1">
-                            <SidebarMenuButton
-                              size="lg"
-                              asChild
-                              className="flex-1"
-                            >
-                              <Link href="/">
-                                <Avatar className="size-8 shrink-0 border p-1">
-                                  <AvatarImage
-                                    src={main_icon.src}
-                                    alt="Padel Sport Logo"
-                                  />
-                                </Avatar>
-                                <span className="truncate font-semibold">
-                                  Dashboard
-                                </span>
-                              </Link>
-                            </SidebarMenuButton>
-                            {/*
-                             * Chiudere si fa da qui; riaprire dal bordo (`SidebarRail`)
-                             * o con ⌘B, perché a barra stretta questo tasto non ci sta
-                             * accanto al logo senza rubargli il posto.
-                             */}
-                            <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
-                          </SidebarMenuItem>
-                        </SidebarMenu>
-                      </SidebarHeader>
+                {/*
+                 * Le notifiche push stanno dentro il tour: la richiesta di
+                 * attivarle aspetta che la guida sia finita.
+                 */}
+                <PushProvider>
+                  <FloatingActionProvider>
+                    <SidebarProvider
+                      defaultOpen={defaultOpen}
+                      className="bg-background"
+                    >
+                      <Sidebar collapsible="icon">
+                        <SidebarHeader>
+                          <SidebarMenu>
+                            <SidebarMenuItem className="flex items-center gap-1">
+                              <SidebarMenuButton
+                                size="lg"
+                                asChild
+                                className="flex-1"
+                              >
+                                <Link href="/">
+                                  <Avatar className="size-8 shrink-0 border p-1">
+                                    <AvatarImage
+                                      src={main_icon.src}
+                                      alt="Padel Sport Logo"
+                                    />
+                                  </Avatar>
+                                  <span className="truncate font-semibold">
+                                    Dashboard
+                                  </span>
+                                </Link>
+                              </SidebarMenuButton>
+                              {/*
+                               * Chiudere si fa da qui; riaprire dal bordo (`SidebarRail`)
+                               * o con ⌘B, perché a barra stretta questo tasto non ci sta
+                               * accanto al logo senza rubargli il posto.
+                               */}
+                              <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
+                            </SidebarMenuItem>
+                          </SidebarMenu>
+                        </SidebarHeader>
 
-                      <SidebarContent>
-                        <DashboardNav />
-                      </SidebarContent>
+                        <SidebarContent>
+                          <DashboardNav />
+                        </SidebarContent>
 
-                      <SidebarFooter>
-                        <TourMenuButton />
-                        <UserCard />
-                      </SidebarFooter>
+                        <SidebarFooter>
+                          <TourMenuButton />
+                          <UserCard />
+                        </SidebarFooter>
 
-                      <SidebarRail />
-                    </Sidebar>
-                    {/*
-                     * Da telefono la barra laterale non c'è: la navigazione è la barra
-                     * in basso, e il fondo della pagina le lascia spazio perché
-                     * l'ultima riga non finisca sotto.
-                     */}
-                    <SidebarInset className="bg-background pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
-                      {children}
-                    </SidebarInset>
-                    <BottomTabBar />
-                  </SidebarProvider>
-                </FloatingActionProvider>
+                        <SidebarRail />
+                      </Sidebar>
+                      {/*
+                       * Da telefono la barra laterale non c'è: la navigazione è la barra
+                       * in basso, e il fondo della pagina le lascia spazio perché
+                       * l'ultima riga non finisca sotto.
+                       */}
+                      <SidebarInset className="bg-background pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
+                        {children}
+                      </SidebarInset>
+                      <BottomTabBar />
+                    </SidebarProvider>
+                  </FloatingActionProvider>
+                </PushProvider>
               </TourProvider>
             </ConfirmProvider>
           </CountsProvider>

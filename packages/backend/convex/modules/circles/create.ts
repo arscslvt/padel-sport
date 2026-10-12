@@ -68,6 +68,7 @@ export default mutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        category: "matches",
         title: "Nuova cerchia",
         message: `${player.name} ha creato la cerchia "${trimmed}"${
           invited > 0 ? ` e ha invitato ${invited} giocatori.` : "."

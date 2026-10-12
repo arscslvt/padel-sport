@@ -1,5 +1,4 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
-import { sendHark } from "@padel-sport/backend/convex/utils/hark";
 import { staffEventFormUrl } from "@padel-sport/backend/convex/utils/staffLinks";
 import { render } from "@react-email/render";
 import { ConvexHttpClient } from "convex/browser";
@@ -19,6 +18,7 @@ import {
 import { loadRsvpForm, seatsLeftOf } from "@/lib/event-rsvp-form";
 import { formatEventDate } from "@/lib/events";
 import { EVENTS_LINK } from "@/lib/links";
+import { notifyStaff } from "@/lib/staff-alert";
 
 const CLUB_INBOX = process.env.EVENT_RSVP_INBOX ?? "supporto@asdpadelsport.com";
 const FROM =
@@ -210,7 +210,8 @@ export async function POST(request: Request) {
    * fallire la risposta. La push parte prima delle mail perché serve a coprirle
    * — se Resend è giù, il telefono suona lo stesso.
    */
-  await sendHark({
+  await notifyStaff({
+    category: "events",
     title: `Iscrizione: ${target.title}`,
     body: [
       `${values.name} — ${seats === 1 ? "1 persona" : `${seats} persone`}`,

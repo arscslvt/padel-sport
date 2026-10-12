@@ -74,6 +74,7 @@ export default mutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        category: "requests",
         title: `Punti: ${player.name}`,
         message: [
           CATEGORY_LABELS[args.category],

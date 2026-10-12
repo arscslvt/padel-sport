@@ -56,6 +56,7 @@ export default internalAction({
       console.error("Prenotazione non pubblicata sul calendario:", error);
 
       await ctx.runAction(internal.modules.notifications.alert.default, {
+        category: "system",
         title: "⚠️ Prenotazione non sincronizzata con SumUp",
         message: `${booking.bookedBy}, ${formatClubDateTime(
           booking.start,

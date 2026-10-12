@@ -1,5 +1,4 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
-import { sendHark } from "@padel-sport/backend/convex/utils/hark";
 import { staffEventFormUrl } from "@padel-sport/backend/convex/utils/staffLinks";
 import { ConvexHttpClient } from "convex/browser";
 import type { FunctionReturnType } from "convex/server";
@@ -7,6 +6,7 @@ import { ConvexError } from "convex/values";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { seatsLabel } from "@/lib/event-rsvp";
+import { notifyStaff } from "@/lib/staff-alert";
 
 const cancelSchema = z.object({
   token: z.string().min(8),
@@ -65,7 +65,8 @@ export async function POST(request: Request) {
   // Un posto che si libera interessa alla segreteria quanto uno che si occupa:
   // la push parte solo al primo annullamento, non ai clic successivi.
   if (!result.alreadyCancelled) {
-    await sendHark({
+    await notifyStaff({
+      category: "events",
       title: `Iscrizione annullata: ${result.eventTitle}`,
       body: [
         `${result.name} non partecipa più.`,

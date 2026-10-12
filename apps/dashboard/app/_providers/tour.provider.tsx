@@ -37,6 +37,12 @@ const AUTO_START_DELAY = 900;
 
 interface TourContextValue {
   start: () => void;
+  /**
+   * Il tour è aperto, o deve ancora partire la prima volta: chi vuole
+   * presentarsi da solo (la richiesta delle notifiche) aspetta che sia `false`
+   * invece di comparirgli sopra.
+   */
+  busy: boolean;
 }
 
 const TourContext = createContext<TourContextValue | null>(null);
@@ -59,9 +65,14 @@ export default function TourProvider({ children }: { children: ReactNode }) {
   const seenRemotely =
     Number(user?.unsafeMetadata?.dashboardTour ?? 0) >= TOUR_VERSION;
 
+  // La copia nel browser letta dopo il montaggio: sul server non c'è.
+  const [seenHere, setSeenHere] = useState(false);
+  useEffect(() => setSeenHere(seenLocally()), []);
+
   const start = useCallback(() => setOpen(true), []);
 
   const markSeen = useCallback(() => {
+    setSeenHere(true);
     try {
       window.localStorage.setItem(STORAGE_KEY, String(TOUR_VERSION));
     } catch {
@@ -109,7 +120,8 @@ export default function TourProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [isLoaded, user, seenRemotely, pathname]);
 
-  const value = useMemo(() => ({ start }), [start]);
+  const busy = open || !isLoaded || !(seenRemotely || seenHere);
+  const value = useMemo(() => ({ start, busy }), [start, busy]);
 
   return (
     <TourContext.Provider value={value}>

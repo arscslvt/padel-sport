@@ -44,6 +44,7 @@ export default internalAction({
       console.error("Sincronizzazione del calendario campi fallita:", error);
 
       await ctx.runAction(internal.modules.notifications.alert.default, {
+        category: "system",
         title: "⚠️ Calendario campi non sincronizzato",
         message:
           "Le prenotazioni prese su SumUp potrebbero non essere aggiornate sul sito.",

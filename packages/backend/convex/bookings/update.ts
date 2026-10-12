@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, mutation } from "../_generated/server";
 import { notificationStatus as notification } from "../tables/bookings";
 import { api, internal } from "../_generated/api";
+import { recordDeliveries } from "../modules/deliveries/lib";
 import { assertServer } from "../utils/serverSecret";
 
 export const notificationStatus = internalMutation({
@@ -73,6 +74,17 @@ export const accept = mutation({
             bookingId,
           },
         );
+    } else {
+      // Anche un WhatsApp non mandato va scritto: nella scheda deve leggersi
+      // «escluso alla conferma», non sembrare un invio perso.
+      await recordDeliveries(ctx, bookingId, "accepted", "whatsapp", [
+        {
+          role: "booker",
+          recipient: booking.phone,
+          status: "skipped",
+          detail: "Escluso alla conferma",
+        },
+      ]);
     }
 
     return true;

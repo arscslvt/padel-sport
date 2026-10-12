@@ -24,6 +24,11 @@ import { BOOKING_LINK } from "@/lib/links";
  * L'autenticazione è un segreto condiviso con il deployment Convex: qui non
  * arriva nessuna sessione utente, perché la disdetta può partire anche da un
  * cron o dall'app.
+ *
+ * La risposta dice com'è andata destinatario per destinatario (`results`):
+ * l'id che Resend assegna a ogni mail torna a Convex, che lo scrive nel
+ * registro degli avvisi e ci aggancia i webhook di consegna
+ * (modules/notifications/bookingMail.ts).
  */
 
 const FROM =
@@ -53,6 +58,16 @@ const payloadSchema = z.object({
     z.literal("cancelled_by_player"),
   ]),
 });
+
+type DeliveryResult = {
+  role: "booker" | "guest";
+  email?: string;
+  id?: string;
+  error?: string;
+  skipped?: string;
+};
+
+const NO_ADDRESS = "Nessun indirizzo email";
 
 export async function POST(request: Request) {
   const secret = process.env.BOOKING_WEBHOOK_SECRET;
@@ -102,8 +117,14 @@ export async function POST(request: Request) {
     })),
   ];
 
+  // Chi ha prenotato senza un indirizzo è un'informazione per lo staff, non un
+  // errore: la scheda lo mostra come avviso non partito.
+  const bookerMissing: DeliveryResult[] = bookerEmail
+    ? []
+    : [{ role: "booker", skipped: NO_ADDRESS }];
+
   if (recipients.length === 0) {
-    return NextResponse.json({ notified: 0 });
+    return NextResponse.json({ notified: 0, results: bookerMissing });
   }
 
   if (booking.kind === "accepted" && !booking.code) {
@@ -115,13 +136,22 @@ export async function POST(request: Request) {
   // ha disdetto nel frattempo. Meglio nessuna mail che una mail sbagliata.
   if (booking.kind === "merged" && !booking.partner) {
     console.warn("Unione senza l'altra prenotazione: mail non inviata.");
-    return NextResponse.json({ notified: 0 });
+    return NextResponse.json({ notified: 0, results: [] });
   }
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.error("RESEND_API_KEY non configurata: disdetta non comunicata.");
-    return NextResponse.json({ notified: 0 });
+    return NextResponse.json({
+      notified: 0,
+      results: recipients.map(
+        (recipient): DeliveryResult => ({
+          role: recipient.isBooker ? "booker" : "guest",
+          email: recipient.email,
+          error: "Invio delle mail non configurato",
+        }),
+      ),
+    });
   }
 
   const dayLabel = formatClubDay(booking.start);
@@ -230,9 +260,29 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ notified: sends.length - failed.length });
+    // `sends` è nello stesso ordine di `recipients`: Promise.all lo conserva.
+    const results: DeliveryResult[] = [
+      ...bookerMissing,
+      ...recipients.map((recipient, index): DeliveryResult => {
+        const send = sends[index];
+        return {
+          role: recipient.isBooker ? "booker" : "guest",
+          email: recipient.email,
+          id: send.data?.id,
+          error: send.error ? send.error.message : undefined,
+        };
+      }),
+    ];
+
+    return NextResponse.json({
+      notified: sends.length - failed.length,
+      results,
+    });
   } catch (error) {
     console.error("Mail della prenotazione non inviate:", error);
-    return NextResponse.json({ notified: 0 }, { status: 502 });
+    return NextResponse.json(
+      { notified: 0, error: "Invio delle mail non riuscito." },
+      { status: 502 },
+    );
   }
 }

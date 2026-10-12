@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Loader2, Phone, Unlink } from "lucide-react";
+import { Loader2, Mail, Phone, Unlink } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { ListGroup, ListRow } from "@/app/_components/list";
 import { SheetHeader } from "@/app/_components/sheet-header";
@@ -14,11 +14,16 @@ import {
   ResponsiveDrawerFooter,
 } from "@/components/ui/responsive-drawer";
 import { MAX_PLAYERS } from "@/lib/booking";
+import { cn } from "@/lib/utils";
 
 import {
   type Booking,
+  clientReach,
+  DELIVERY_KIND_LABELS,
+  type Delivery,
   dayKey,
   dayLabel,
+  deliveryBadge,
   isCancelled,
   isPartial,
   isPending,
@@ -127,6 +132,9 @@ function Body({
           ) : isPartial(booking) && !cancelled ? (
             <StatusBadge tone="warning">Cerca giocatori</StatusBadge>
           ) : null}
+          {clientReach(booking) === "unreached" && (
+            <StatusBadge tone="danger">Cliente non avvisato</StatusBadge>
+          )}
         </div>
 
         {/* Senza numero i due tasti restano, spenti: dove stanno non cambia. */}
@@ -215,6 +223,8 @@ function Body({
           />
         </ListGroup>
 
+        <Deliveries deliveries={booking.deliveries} />
+
         {booking.mergedWith && (
           <ListGroup
             title="Campo condiviso"
@@ -272,6 +282,80 @@ function Body({
         </ResponsiveDrawerFooter>
       )}
     </>
+  );
+}
+
+/**
+ * Gli avvisi mandati al cliente su questa prenotazione, dal più recente.
+ *
+ * Una riga per canale e destinatario: «la mail è partita» e «la mail è
+ * arrivata» sono due notizie diverse, e qui si legge la seconda. Il perché di
+ * un mancato invio va a capo invece di troncarsi: è l'informazione che serve
+ * per decidere se chiamare.
+ */
+function Deliveries({ deliveries }: { deliveries?: Delivery[] }) {
+  if (!deliveries || deliveries.length === 0) return null;
+
+  const sorted = [...deliveries].sort(
+    (a, b) =>
+      b.createdAt - a.createdAt ||
+      Number(a.role === "guest") - Number(b.role === "guest"),
+  );
+
+  return (
+    <ListGroup
+      title="Avvisi al cliente"
+      footer="Lo stato si aggiorna da solo man mano che email e WhatsApp vengono consegnati."
+    >
+      {sorted.map((delivery) => {
+        const badge = deliveryBadge(delivery);
+        const email = delivery.channel === "email";
+        return (
+          <div
+            key={delivery._id}
+            className="flex min-h-14 items-start gap-3 px-4 py-2.5"
+          >
+            <span className="text-muted-foreground flex h-[22px] shrink-0 items-center">
+              {email ? (
+                <Mail className="size-5" />
+              ) : (
+                <FaWhatsapp className="size-5" />
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] leading-snug">
+                {email ? "Email" : "WhatsApp"}
+                {delivery.role === "guest" && (
+                  <span className="text-muted-foreground"> · ospite</span>
+                )}
+              </span>
+              {delivery.recipient && (
+                <span className="text-muted-foreground mt-0.5 block truncate text-[13px] leading-snug">
+                  {delivery.recipient}
+                </span>
+              )}
+              <span className="text-muted-foreground mt-0.5 block text-[13px] leading-snug">
+                {DELIVERY_KIND_LABELS[delivery.kind]} ·{" "}
+                {format(delivery.updatedAt, "d MMM, HH:mm", { locale: it })}
+              </span>
+              {delivery.detail && (
+                <span
+                  className={cn(
+                    "mt-0.5 block text-[13px] leading-snug",
+                    delivery.status === "failed"
+                      ? "text-danger"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {delivery.detail}
+                </span>
+              )}
+            </span>
+            <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
+          </div>
+        );
+      })}
+    </ListGroup>
   );
 }
 

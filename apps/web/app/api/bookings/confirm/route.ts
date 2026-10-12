@@ -108,9 +108,9 @@ export async function POST(request: Request) {
   ];
   const missing = Math.max(0, MAX_PLAYERS - players.length);
 
-  // Nessuna push allo staff da qui: l'avviso su Hark parte già alla creazione
-  // della prenotazione (modules/openMatches/create.ts), e ripeterlo a ogni
-  // mail vorrebbe dire due notifiche per la stessa partita.
+  // Nessuna push allo staff da qui: l'avviso parte già alla creazione della
+  // prenotazione (modules/openMatches/create.ts), e ripeterlo a ogni mail
+  // vorrebbe dire due notifiche per la stessa partita.
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {

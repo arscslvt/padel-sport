@@ -1,5 +1,5 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
-import { excerpt, sendHark } from "@padel-sport/backend/convex/utils/hark";
+import { excerpt } from "@padel-sport/backend/convex/utils/hark";
 import { staffSupportUrl } from "@padel-sport/backend/convex/utils/staffLinks";
 import { render } from "@react-email/render";
 import { ConvexHttpClient } from "convex/browser";
@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { SupportRequestClubEmail } from "@/emails/support-request-club";
 import { SupportRequestCopyEmail } from "@/emails/support-request-copy";
+import { notifyStaff } from "@/lib/staff-alert";
 import {
   formatSupportDate,
   SUPPORT_HOURS,
@@ -67,7 +68,8 @@ export async function POST(request: Request) {
    * far fallire la risposta. La push parte prima delle mail proprio perché
    * serve a coprirle — se Resend è giù, il telefono suona lo stesso.
    */
-  await sendHark({
+  await notifyStaff({
+    category: "requests",
     title: `Assistenza: ${values.name}`,
     body: [
       values.memberId ? `Socio ${values.memberId}` : null,

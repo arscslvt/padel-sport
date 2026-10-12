@@ -5,7 +5,20 @@ import { internalAction } from "../../_generated/server";
 import { getMessagingClient } from "../../utils/notification_client";
 import { v } from "convex/values";
 import { formatClubDateTime } from "../../utils/clubTime";
+import {
+  type DeliveryEntry,
+  fromTwilioStatus,
+  twilioErrorDetail,
+} from "../deliveries/lib";
 
+/**
+ * Il WhatsApp di conferma, col template approvato su Twilio.
+ *
+ * Ogni tentativo lascia una riga in `bookingDeliveries`, anche quando non
+ * parte: chi guarda la scheda deve poter distinguere «non c'era il numero» da
+ * «Twilio l'ha rifiutato» da «consegnato». Dopo l'invio la riga matura da sola
+ * con lo `statusCallback` (http.ts), fino a «letto».
+ */
 export const sendConfirmationWithWhatsapp = internalAction({
   args: {
     bookingId: v.id("bookings"),
@@ -13,25 +26,56 @@ export const sendConfirmationWithWhatsapp = internalAction({
   handler: async (ctx, { bookingId }) => {
     const booking = await ctx.runQuery(api.bookings.get.getById, { bookingId });
 
-    try {
-      if (!booking) {
-        throw new Error("Can't send WhatsApp confirmation: booking not found.");
-      }
-      if (!booking.code) {
-        throw new Error(
-          "Can't send WhatsApp confirmation: booking code not found.",
-        );
-      }
-      // Le prenotazioni nate nell'app non raccolgono il recapito: senza, il
-      // messaggio partirebbe verso `whatsapp:undefined` a ogni tentativo. La
-      // conferma è comunque già andata via mail.
-      if (!booking.phone) {
-        throw new Error(
-          "Can't send WhatsApp confirmation: booking has no phone number.",
-        );
-      }
-    } catch (error) {
-      console.error(error);
+    const record = (entry: DeliveryEntry) =>
+      ctx.runMutation(internal.modules.deliveries.record.default, {
+        bookingId,
+        kind: "accepted",
+        channel: "whatsapp",
+        entries: [entry],
+      });
+
+    const markFailed = () =>
+      ctx.runMutation(internal.bookings.update.notificationStatus, {
+        bookingId,
+        newStatus: "failed_to_send_whatsapp",
+      });
+
+    if (!booking.code) {
+      console.error("WhatsApp di conferma non inviato: prenotazione senza codice.");
+      await record({
+        role: "booker",
+        recipient: booking.phone,
+        status: "failed",
+        detail: "Prenotazione senza codice",
+      });
+      await markFailed();
+      return;
+    }
+
+    // Le prenotazioni nate nell'app non raccolgono il recapito: senza, il
+    // messaggio partirebbe verso `whatsapp:undefined` a ogni tentativo. La
+    // conferma è comunque già andata via mail.
+    if (!booking.phone) {
+      await record({
+        role: "booker",
+        status: "skipped",
+        detail: "Nessun numero di telefono",
+      });
+      return;
+    }
+
+    const sender = process.env.TWILIO_PHONE_SENDER;
+    if (!sender || !process.env.TWILIO_SID || !process.env.TWILIO_AUTH) {
+      console.warn(
+        "WhatsApp di conferma non inviato: TWILIO_SID, TWILIO_AUTH o TWILIO_PHONE_SENDER mancanti.",
+      );
+      await record({
+        role: "booker",
+        recipient: booking.phone,
+        status: "failed",
+        detail: "Invio WhatsApp non configurato",
+      });
+      await markFailed();
       return;
     }
 
@@ -54,28 +98,53 @@ export const sendConfirmationWithWhatsapp = internalAction({
       "3": booking.code,
     };
 
-    if (!Object.values(vars).every(Boolean)) {
-      throw new Error(
-        `Incomplete variables for WhatsApp message: ${JSON.stringify(vars)}`,
-      );
+    // Twilio richiama qui a ogni passo del messaggio (inviato, consegnato,
+    // letto, non consegnato). Senza l'indirizzo del deployment il messaggio
+    // parte lo stesso, ma la riga si ferma a «in coda».
+    const siteUrl = process.env.CONVEX_SITE_URL;
+
+    try {
+      const client = getMessagingClient();
+      const message = await client.messages.create({
+        from: `whatsapp:${sender}`, // o numero business
+        to: `whatsapp:${booking.phone}`, // numero del cliente
+        // Sostituibile senza rilascio: cambiando il template su Twilio basta
+        // aggiornare la variabile d'ambiente.
+        contentSid:
+          process.env.TWILIO_BOOKING_TEMPLATE_SID ??
+          "HX59dcd979ad55c221765b52157430c98b",
+        contentVariables: JSON.stringify(vars),
+        ...(siteUrl ? { statusCallback: `${siteUrl}/webhooks/twilio` } : {}),
+      });
+
+      await record({
+        role: "booker",
+        recipient: booking.phone,
+        status: fromTwilioStatus(message.status) ?? "queued",
+        providerId: message.sid,
+      });
+
+      await ctx.runMutation(internal.bookings.update.notificationStatus, {
+        bookingId,
+        newStatus: "sent_with_whatsapp",
+      });
+    } catch (error) {
+      // Prima questo errore faceva fallire l'azione e basta: la prenotazione
+      // restava «in attesa» di un WhatsApp che non sarebbe mai partito, e
+      // nessuno lo sapeva. Ora resta scritto, e lo staff riceve l'avviso.
+      console.error("WhatsApp di conferma non inviato:", error);
+
+      await record({
+        role: "booker",
+        recipient: booking.phone,
+        status: "failed",
+        detail: twilioErrorDetail(
+          (error as { code?: unknown }).code,
+          "Twilio non ha accettato il messaggio",
+        ),
+      });
+      await markFailed();
     }
-
-    const client = getMessagingClient();
-    await client.messages.create({
-      from: `whatsapp:${process.env.TWILIO_PHONE_SENDER}`, // o numero business
-      to: `whatsapp:${booking.phone}`, // numero del cliente
-      // Sostituibile senza rilascio: cambiando il template su Twilio basta
-      // aggiornare la variabile d'ambiente.
-      contentSid:
-        process.env.TWILIO_BOOKING_TEMPLATE_SID ??
-        "HX59dcd979ad55c221765b52157430c98b",
-      contentVariables: JSON.stringify(vars),
-    });
-
-    await ctx.runMutation(internal.bookings.update.notificationStatus, {
-      bookingId,
-      newStatus: "sent_with_whatsapp",
-    });
 
     // await client.messages.create({
     //   messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,

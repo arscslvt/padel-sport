@@ -1,4 +1,5 @@
 import { defineSchema } from "convex/server";
+import bookingDeliveries from "./tables/bookingDeliveries";
 import bookingSettings from "./tables/bookingSettings";
 import bookings from "./tables/bookings";
 import circleInvites from "./tables/circleInvites";
@@ -15,12 +16,14 @@ import joinRequests from "./tables/joinRequests";
 import matchGuests from "./tables/matchGuests";
 import matchInvites from "./tables/matchInvites";
 import matchRequests from "./tables/matchRequests";
+import notificationPreferences from "./tables/notificationPreferences";
 import memberships from "./tables/memberships";
 import openMatches from "./tables/openMatches";
 import players from "./tables/players";
 import pointPresets from "./tables/pointPresets";
 import pointReports from "./tables/pointReports";
 import pointTransactions from "./tables/pointTransactions";
+import pushSubscriptions from "./tables/pushSubscriptions";
 import rewardRedemptions from "./tables/rewardRedemptions";
 import rewards from "./tables/rewards";
 import slots from "./tables/slots";
@@ -29,6 +32,7 @@ import supportRequests from "./tables/supportRequests";
 export default defineSchema({
   events,
   bookings,
+  bookingDeliveries,
   bookingSettings,
   externalBookings,
   slots,
@@ -53,4 +57,6 @@ export default defineSchema({
   rewards,
   rewardRedemptions,
   pointReports,
+  pushSubscriptions,
+  notificationPreferences,
 });

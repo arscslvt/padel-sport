@@ -2,6 +2,7 @@ import type { Doc } from "@padel-sport/backend/convex/_generated/dataModel";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
+import type { StatusTone } from "@/app/_components/status-badge";
 import { CLUB_TIME_ZONE, MATCH_DURATION_MS, MAX_PLAYERS } from "@/lib/booking";
 
 /**
@@ -13,7 +14,18 @@ import { CLUB_TIME_ZONE, MATCH_DURATION_MS, MAX_PLAYERS } from "@/lib/booking";
  * si confronta e si ordina come una stringa.
  */
 
-export type Booking = Doc<"bookings">;
+/**
+ * Un avviso al cliente (email o WhatsApp) e com'è andato. L'id del provider
+ * resta sul server: serve ai webhook, non a chi guarda.
+ */
+export type Delivery = Omit<Doc<"bookingDeliveries">, "providerId">;
+
+/**
+ * Una prenotazione dell'agenda. `deliveries` c'è quando arriva dalla route
+ * dell'agenda (api/dashboard/bookings); altrove, per esempio nell'unione dei
+ * campi, la prenotazione è quella nuda.
+ */
+export type Booking = Doc<"bookings"> & { deliveries?: Delivery[] };
 
 const dayKeyFormat = new Intl.DateTimeFormat("en-CA", {
   timeZone: CLUB_TIME_ZONE,
@@ -154,4 +166,77 @@ export function matchesSearch(booking: Booking, query: string): boolean {
   return [booking.bookedBy, booking.phone, booking.code, ...booking.players]
     .filter(Boolean)
     .some((value) => String(value).toLowerCase().includes(needle));
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              Avvisi al cliente                             */
+/* -------------------------------------------------------------------------- */
+
+export const DELIVERY_KIND_LABELS: Record<Delivery["kind"], string> = {
+  accepted: "Conferma",
+  merged: "Campo unito",
+  cancelled_by_club: "Disdetta",
+  cancelled_by_player: "Disdetta",
+};
+
+/**
+ * Lo stato di un avviso detto allo sportello. L'email accettata da Resend è
+ * già «inviata»: da lì in poi lo dicono i webhook. Il WhatsApp «in coda» è
+ * un'attesa vera di Twilio, di pochi secondi.
+ */
+export function deliveryBadge(delivery: Delivery): {
+  label: string;
+  tone: StatusTone;
+} {
+  const email = delivery.channel === "email";
+  switch (delivery.status) {
+    case "skipped":
+      return { label: email ? "Non inviata" : "Non inviato", tone: "neutral" };
+    case "queued":
+      return email
+        ? { label: "Inviata", tone: "info" }
+        : { label: "In coda", tone: "neutral" };
+    case "sent":
+      return { label: email ? "Inviata" : "Inviato", tone: "info" };
+    case "delayed":
+      return { label: "In ritardo", tone: "warning" };
+    case "delivered":
+      return { label: email ? "Consegnata" : "Consegnato", tone: "success" };
+    case "read":
+      return { label: "Letto", tone: "success" };
+    case "complained":
+      return { label: "Segnata come spam", tone: "warning" };
+    case "failed":
+      return {
+        label: email ? "Non recapitata" : "Non recapitato",
+        tone: "danger",
+      };
+  }
+}
+
+/**
+ * Il cliente lo sa? Si guarda l'ultimo avviso mandato a chi ha prenotato —
+ * la conferma, o la disdetta se è venuta dopo — su tutti i canali insieme:
+ * basta che uno sia arrivato.
+ *
+ * `null` quando non c'è niente da dire: prenotazioni da confermare, o
+ * confermate prima che esistesse il registro.
+ */
+export function clientReach(
+  booking: Booking,
+): "reached" | "pending" | "unreached" | null {
+  const booker = (booking.deliveries ?? []).filter(
+    (delivery) => delivery.role === "booker",
+  );
+  if (booker.length === 0) return null;
+
+  const latest = booker.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
+  const batch = booker.filter((delivery) => delivery.kind === latest.kind);
+
+  const has = (...statuses: Delivery["status"][]) =>
+    batch.some((delivery) => statuses.includes(delivery.status));
+
+  if (has("delivered", "read", "complained")) return "reached";
+  if (has("queued", "sent", "delayed")) return "pending";
+  return "unreached";
 }
