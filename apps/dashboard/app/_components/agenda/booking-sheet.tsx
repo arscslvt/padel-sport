@@ -4,7 +4,7 @@ import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { Loader2, Mail, Phone, Undo2, Unlink } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
 import { ListGroup, ListRow } from "@/app/_components/list";
 import { SheetHeader } from "@/app/_components/sheet-header";
@@ -134,6 +134,12 @@ function Body({
   // annidato. Da desktop è una modale, e il modulo si apre dentro.
   const { isDesktop } = useResponsiveDrawer();
   const savePlayers = (players: string[]) => onUpdatePlayers(booking, players);
+  // Chiuso il modulo, il fuoco torna sulla riga che l'aveva aperto.
+  const playersRow = useRef<HTMLButtonElement>(null);
+  const closePlayers = () => {
+    setEditingPlayers(false);
+    requestAnimationFrame(() => playersRow.current?.focus());
+  };
 
   const players = {
     title: "Giocatori",
@@ -234,10 +240,10 @@ function Body({
           ) : isDesktop ? (
             <ListRow
               {...players}
+              ref={playersRow}
               chevron
-              onClick={
-                editingPlayers ? undefined : () => setEditingPlayers(true)
-              }
+              aria-expanded={editingPlayers}
+              onClick={() => setEditingPlayers((open) => !open)}
             />
           ) : (
             <PlayersDrawer
@@ -288,7 +294,7 @@ function Body({
             booking={booking}
             busy={busy}
             onSave={savePlayers}
-            onClose={() => setEditingPlayers(false)}
+            onClose={closePlayers}
           />
         )}
 

@@ -1,8 +1,15 @@
 "use client";
 
-import { Loader2, Smartphone } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { Loader2, RotateCw, Smartphone, X } from "lucide-react";
+import {
+  type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
 import { ListGroup, ListRow } from "@/app/_components/list";
@@ -15,16 +22,17 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-import type { Booking } from "./lib";
+import { type Booking, dayKey, dayLabel, timeRange } from "./lib";
 
 /**
  * La squadra di una prenotazione, corretta dallo staff.
  *
- * Chi è entrato dall'app compare ma non si tocca: si toglie dall'app, uscendo
- * dalla partita. Gli altri sono nomi da scrivere, con tanti posti vuoti quanti
- * la prenotazione ne ha ancora. Le regole vere stanno in Convex
- * (bookings/players.ts): qui si evita solo di mandare un nome di una lettera.
+ * Chi si è unito dall'app compare ma non si tocca: esce dalla partita
+ * dall'app. Gli altri sono nomi da scrivere, con tanti posti vuoti quanti la
+ * prenotazione ne ha ancora. Le regole vere stanno in Convex
+ * (bookings/players.ts): qui si aiuta solo a scrivere bene, prima di inviare.
  *
  * Due forme, perché la scheda ne ha due. Da desktop la scheda è una modale
  * alta abbastanza, e il modulo si apre dentro (`PlayersEditor`). Da telefono è
@@ -32,11 +40,15 @@ import type { Booking } from "./lib";
  * tastiera sopra. Lì si apre un drawer annidato (`PlayersDrawer`).
  */
 
+const NAME_MIN = 2;
+
 interface EditData {
-  /** In partita con l'app: si vedono, non si cambiano. */
+  /** Si sono uniti dall'app: si vedono, non si cambiano. */
   locked: string[];
   /** Il massimo di nomi per questa prenotazione. */
   seats: number;
+  /** I nomi modificabili com'erano all'apertura: dicono se c'è da salvare. */
+  original: string[];
 }
 
 /** Toglie da `names` una occorrenza per ciascun nome di `remove`. */
@@ -49,14 +61,32 @@ function without(names: string[], remove: string[]): string[] {
   return rest;
 }
 
+const filledOf = (names: string[]) =>
+  names.map((name) => name.trim()).filter(Boolean);
+
+/** Il nome scritto non va: lo si dice accanto al campo, non in un avviso. */
+function nameError(name: string): string | null {
+  const trimmed = name.trim();
+  return trimmed.length > 0 && trimmed.length < NAME_MIN
+    ? "Scrivi almeno due lettere."
+    : null;
+}
+
 /** Legge i giocatori della prenotazione e tiene il modulo. */
 function usePlayersForm(booking: Booking) {
   const [data, setData] = useState<EditData | null>(null);
   const [names, setNames] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  /** I campi lasciati almeno una volta: l'errore compare dopo, non a metà parola. */
+  const [visited, setVisited] = useState<Set<number>>(new Set());
+  const [submitted, setSubmitted] = useState(false);
+  const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` serve a ricaricare con «Riprova».
   useEffect(() => {
     let alive = true;
+    setLoadError(null);
 
     void (async () => {
       try {
@@ -64,11 +94,7 @@ function usePlayersForm(booking: Booking) {
           `/api/dashboard/bookings/players?bookingId=${encodeURIComponent(booking._id)}`,
         );
         const payload = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(
-            payload?.error ?? "Non riesco a leggere i giocatori.",
-          );
-        }
+        if (!response.ok) throw new Error(payload?.error);
         if (!alive) return;
 
         const locked: string[] = payload.locked;
@@ -79,13 +105,11 @@ function usePlayersForm(booking: Booking) {
           ...editable,
           ...Array.from({ length: slots - editable.length }, () => ""),
         ]);
-        setData({ locked, seats: payload.seats });
-      } catch (caught) {
+        setData({ locked, seats: payload.seats, original: editable });
+      } catch {
         if (alive) {
-          setError(
-            caught instanceof Error
-              ? caught.message
-              : "Non riesco a leggere i giocatori.",
+          setLoadError(
+            "Non riesco a caricare i giocatori. Controlla la connessione e riprova.",
           );
         }
       }
@@ -94,83 +118,235 @@ function usePlayersForm(booking: Booking) {
     return () => {
       alive = false;
     };
-  }, [booking._id]);
+  }, [booking._id, attempt]);
 
   const setName = (index: number, value: string) =>
     setNames((current) =>
       current.map((name, position) => (position === index ? value : name)),
     );
 
-  /** I nomi da salvare, bloccati compresi, o `null` se il modulo non va. */
+  const errors = names.map((name, index) =>
+    submitted || visited.has(index) ? nameError(name) : null,
+  );
+
+  const filled = filledOf(names);
+  const total = (data?.locked.length ?? 0) + filled.length;
+  const dirty =
+    data !== null &&
+    filled.join("\u0000") !== filledOf(data.original).join("\u0000");
+  /** Nessun nome in tutta la prenotazione: chi ha prenotato non può sparire. */
+  const empty = submitted && data !== null && total === 0;
+
+  /** I nomi da salvare, bloccati compresi, o `null` portando al campo da sistemare. */
   const collect = (): string[] | null => {
     if (!data) return null;
+    setSubmitted(true);
 
-    const filled = names.map((name) => name.trim()).filter(Boolean);
-    if (filled.some((name) => name.length < 2)) {
-      toast.error("Ogni nome deve avere almeno due lettere.");
+    const firstInvalid = names.findIndex((name) => nameError(name) !== null);
+    if (firstInvalid !== -1) {
+      inputs.current[firstInvalid]?.focus();
       return null;
     }
-    if (data.locked.length + filled.length === 0) {
-      toast.error("Serve almeno il nome di chi ha prenotato.");
+    if (total === 0) {
+      inputs.current[0]?.focus();
       return null;
     }
 
     return [...data.locked, ...filled];
   };
 
-  return { data, names, error, setName, collect };
+  return {
+    data,
+    names,
+    loadError,
+    errors,
+    empty,
+    total,
+    dirty,
+    inputs,
+    setName,
+    visit: (index: number) =>
+      setVisited((current) => new Set(current).add(index)),
+    retry: () => setAttempt((current) => current + 1),
+    collect,
+  };
 }
 
 type PlayersForm = ReturnType<typeof usePlayersForm>;
 
-function PlayersFields({ form, title }: { form: PlayersForm; title?: string }) {
-  const { data, names, error, setName } = form;
+/** Il tocco sul pulsante si sente subito; chi riduce le animazioni non lo vede. */
+const PRESS =
+  "transition-[transform,background-color,opacity] duration-150 ease-out active:scale-[0.97] motion-reduce:transform-none";
+
+function PlayersFields({
+  form,
+  title,
+  busy,
+  touch,
+}: {
+  form: PlayersForm;
+  title?: string;
+  busy: boolean;
+  /** Da telefono: campi alti un pollice. */
+  touch?: boolean;
+}) {
+  const { data, names, loadError, errors, empty, total, inputs } = form;
+  const id = useId();
+
+  if (loadError) {
+    return (
+      <ListGroup title={title}>
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 px-4 py-3"
+        >
+          <p className="text-danger text-sm">{loadError}</p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className={PRESS}
+            onClick={form.retry}
+          >
+            <RotateCw aria-hidden />
+            Riprova
+          </Button>
+        </div>
+      </ListGroup>
+    );
+  }
+
+  if (!data) {
+    return (
+      <ListGroup title={title}>
+        <div aria-busy="true" className="space-y-3 p-4">
+          <output className="sr-only">Sto caricando i giocatori…</output>
+          <Skeleton className={cn("w-full", touch ? "h-11" : "h-9")} />
+          <Skeleton className={cn("w-full", touch ? "h-11" : "h-9")} />
+        </div>
+      </ListGroup>
+    );
+  }
 
   const footer =
-    data && data.locked.length === 0
-      ? "Il primo nome è chi ha prenotato. Un posto lasciato vuoto è un giocatore che manca."
-      : "Un posto lasciato vuoto è un giocatore che manca.";
+    data.locked.length > 0
+      ? "Chi si è unito dall'app può uscire solo dall'app. Se manca ancora qualcuno, lascia pure il posto vuoto."
+      : "Se manca ancora qualcuno, lascia pure il posto vuoto.";
+
+  // Invio passa al campo dopo, come in un modulo da telefono; sull'ultimo salva.
+  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (event.key !== "Enter" || index === names.length - 1) return;
+    event.preventDefault();
+    inputs.current[index + 1]?.focus();
+  };
 
   return (
-    <ListGroup title={title} footer={footer}>
-      {error ? (
-        <p className="text-danger px-4 py-3 text-sm">{error}</p>
-      ) : !data ? (
-        <div className="space-y-2 p-4">
-          <Skeleton className="h-9 w-full" />
-          <Skeleton className="h-9 w-full" />
-        </div>
-      ) : (
-        <>
-          {data.locked.map((name, index) => (
-            <ListRow
-              key={`locked-${index}-${name}`}
-              leading={<Smartphone className="size-5" />}
-              title={name}
-              subtitle="Entrato dall'app: si toglie solo dall'app"
-            />
-          ))}
-          {names.map((name, index) => (
-            // La posizione è l'identità del campo: i nomi cambiano mentre
-            // si scrive, e possono anche ripetersi.
+    <div className="space-y-2">
+      <ListGroup
+        title={title}
+        action={
+          // Si aggiorna mentre si scrive, e lo legge anche lo screen reader.
+          <span
+            aria-live="polite"
+            className="text-muted-foreground text-[13px] tabular-nums"
+          >
+            {total} di {data.seats} giocatori
+          </span>
+        }
+        footer={footer}
+      >
+        {data.locked.map((name, index) => (
+          <ListRow
+            key={`locked-${index}-${name}`}
+            leading={<Smartphone aria-hidden className="size-5" />}
+            title={name}
+            subtitle="Si è unito dall'app"
+          />
+        ))}
+
+        {names.map((name, index) => {
+          const position = data.locked.length + index + 1;
+          const booker = data.locked.length === 0 && index === 0;
+          const fieldId = `${id}-player-${index}`;
+          const errorId = `${fieldId}-error`;
+          const error =
+            errors[index] ??
+            (booker && empty ? "Scrivi il nome di chi ha prenotato." : null);
+
+          return (
+            // La posizione è l'identità del campo: i nomi cambiano mentre si
+            // scrive, e possono anche ripetersi.
             // biome-ignore lint/suspicious/noArrayIndexKey: posti fissi, non si riordinano.
-            <div key={index} className="px-4 py-2.5">
-              <Input
-                aria-label={`Giocatore ${data.locked.length + index + 1}`}
-                value={name}
-                maxLength={60}
-                placeholder={
-                  data.locked.length === 0 && index === 0
-                    ? "Chi ha prenotato"
-                    : "Nome del giocatore"
-                }
-                onChange={(event) => setName(index, event.target.value)}
-              />
+            <div key={index} className="px-4 py-3">
+              <label
+                htmlFor={fieldId}
+                className="mb-1.5 block text-[13px] font-medium"
+              >
+                {booker ? "Chi ha prenotato" : `Giocatore ${position}`}
+              </label>
+              <div className="relative">
+                <Input
+                  id={fieldId}
+                  ref={(element) => {
+                    inputs.current[index] = element;
+                  }}
+                  value={name}
+                  maxLength={60}
+                  disabled={busy}
+                  placeholder={booker ? "Nome e cognome" : "Posto libero"}
+                  autoComplete="off"
+                  autoCapitalize="words"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint={index === names.length - 1 ? "done" : "next"}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? errorId : undefined}
+                  className={cn("bg-card", touch ? "h-11 pr-11" : "h-9 pr-9")}
+                  onChange={(event) => form.setName(index, event.target.value)}
+                  onBlur={() => form.visit(index)}
+                  onKeyDown={(event) => onKeyDown(event, index)}
+                />
+                {name && !busy && (
+                  <button
+                    type="button"
+                    aria-label={`Svuota il posto di ${name.trim() || "questo giocatore"}`}
+                    className={cn(
+                      "text-muted-foreground hover:text-foreground focus-visible:text-foreground absolute inset-y-0 right-0 flex items-center justify-center rounded-r-lg outline-none",
+                      touch ? "w-11" : "w-9",
+                    )}
+                    onClick={() => {
+                      form.setName(index, "");
+                      inputs.current[index]?.focus();
+                    }}
+                  >
+                    <X aria-hidden className="size-4" />
+                  </button>
+                )}
+              </div>
+              {error && (
+                <p id={errorId} className="text-danger mt-1.5 text-[13px]">
+                  {error}
+                </p>
+              )}
             </div>
-          ))}
-        </>
-      )}
-    </ListGroup>
+          );
+        })}
+      </ListGroup>
+    </div>
+  );
+}
+
+function SaveLabel({ busy }: { busy: boolean }) {
+  return busy ? (
+    <>
+      <Loader2
+        aria-hidden
+        className="size-4 animate-spin motion-reduce:animate-none"
+      />
+      Salvataggio…
+    </>
+  ) : (
+    "Salva"
   );
 }
 
@@ -188,26 +364,54 @@ export function PlayersEditor({
   onClose: () => void;
 }) {
   const form = usePlayersForm(booking);
+  const container = useRef<HTMLFormElement>(null);
+  const focused = useRef(false);
 
-  const save = async () => {
+  // Aperto con un clic, il modulo deve farsi trovare: lo si porta in vista e
+  // il fuoco va sul primo posto libero, o sul primo nome da correggere.
+  useEffect(() => {
+    if (!form.data || focused.current) return;
+    focused.current = true;
+
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    container.current?.scrollIntoView({
+      block: "nearest",
+      behavior: reduce ? "auto" : "smooth",
+    });
+
+    const firstEmpty = form.names.findIndex((name) => !name.trim());
+    form.inputs.current[firstEmpty === -1 ? 0 : firstEmpty]?.focus({
+      preventScroll: true,
+    });
+  }, [form.data, form.names, form.inputs]);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
     const players = form.collect();
     if (players && (await onSave(players))) onClose();
   };
 
   return (
-    <div className="space-y-3">
-      <PlayersFields form={form} title="Modifica giocatori" />
+    <form ref={container} className="space-y-3" onSubmit={submit} noValidate>
+      <PlayersFields form={form} title="Modifica giocatori" busy={busy} />
 
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onClose} disabled={busy}>
+        <Button
+          type="button"
+          variant="ghost"
+          className={PRESS}
+          onClick={onClose}
+          disabled={busy}
+        >
           Annulla
         </Button>
-        <Button onClick={() => void save()} disabled={busy || !form.data}>
-          {busy && <Loader2 className="size-4 animate-spin" />}
-          Salva giocatori
+        <Button type="submit" className={PRESS} disabled={busy || !form.dirty}>
+          <SaveLabel busy={busy} />
         </Button>
       </div>
-    </div>
+    </form>
   );
 }
 
@@ -219,6 +423,9 @@ export function PlayersEditor({
  * da fuori: è così che Vaul avvisa la scheda sotto, che si rimpicciolisce
  * all'apertura e torna com'era alla chiusura. Dopo un salvataggio riuscito la
  * chiusura passa da un `Close` nascosto, per lo stesso motivo.
+ *
+ * Il fuoco non va da solo in un campo: da telefono aprirebbe la tastiera sopra
+ * il drawer prima ancora di averlo letto.
  */
 export function PlayersDrawer({
   booking,
@@ -242,7 +449,7 @@ export function PlayersDrawer({
       <DrawerContent>
         <SheetHeader
           title="Giocatori"
-          description={`${booking.bookedBy}: chi gioca davvero.`}
+          description={`Prenotazione di ${booking.bookedBy} · ${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
         />
         {/* Il contenuto del drawer si monta all'apertura e si smonta dopo
             l'animazione di chiusura: il modulo rilegge i nomi ogni volta, e
@@ -265,31 +472,37 @@ function DrawerForm({
   const form = usePlayersForm(booking);
   const close = useRef<HTMLButtonElement>(null);
 
-  const save = async () => {
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
     const players = form.collect();
     if (players && (await onSave(players))) close.current?.click();
   };
 
   return (
-    <>
+    <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit} noValidate>
       {/* Scorre solo il modulo: testata e bottoni restano fermi. */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1">
-        <PlayersFields form={form} />
+        <PlayersFields form={form} busy={busy} touch />
       </div>
 
+      {/* Da telefono il bottone principale sta sopra, a portata di pollice. */}
       <DrawerFooter className="flex flex-col-reverse gap-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <DrawerClose asChild>
-          <Button variant="ghost" className="h-12 rounded-xl" disabled={busy}>
+          <Button
+            type="button"
+            variant="ghost"
+            className={cn("h-12 rounded-xl", PRESS)}
+            disabled={busy}
+          >
             Annulla
           </Button>
         </DrawerClose>
         <Button
-          className="h-12 rounded-xl"
-          onClick={() => void save()}
-          disabled={busy || !form.data}
+          type="submit"
+          className={cn("h-12 rounded-xl", PRESS)}
+          disabled={busy || !form.dirty}
         >
-          {busy && <Loader2 className="size-4 animate-spin" />}
-          Salva giocatori
+          <SaveLabel busy={busy} />
         </Button>
         <DrawerClose
           ref={close}
@@ -298,6 +511,6 @@ function DrawerForm({
           aria-hidden
         />
       </DrawerFooter>
-    </>
+    </form>
   );
 }

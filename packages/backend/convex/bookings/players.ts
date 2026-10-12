@@ -140,18 +140,20 @@ export const update = mutation({
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
     if (booking.status === "cancelled") {
-      throw new Error("La prenotazione è annullata: non si modifica più.");
+      throw new Error(
+        "Questa prenotazione è stata annullata, quindi non si può più modificare.",
+      );
     }
 
     const names = players.map((name) => name.trim()).filter(Boolean);
 
     if (names.length === 0) {
-      throw new Error("Serve almeno il nome di chi ha prenotato.");
+      throw new Error("Scrivi almeno il nome di chi ha prenotato.");
     }
     for (const name of names) {
       if (name.length < NAME_MIN || name.length > NAME_MAX) {
         throw new Error(
-          `Ogni nome deve avere fra ${NAME_MIN} e ${NAME_MAX} caratteri.`,
+          `Ogni nome deve avere da ${NAME_MIN} a ${NAME_MAX} caratteri.`,
         );
       }
     }
@@ -160,8 +162,8 @@ export const update = mutation({
     if (names.length > seats) {
       throw new Error(
         seats < MAX_PLAYERS
-          ? `Il campo è condiviso: per questa prenotazione restano ${seats} posti.`
-          : `Al massimo ${MAX_PLAYERS} giocatori.`,
+          ? `Il campo è condiviso con un altro gruppo, quindi qui puoi inserire al massimo ${seats} giocatori.`
+          : `Puoi inserire al massimo ${MAX_PLAYERS} giocatori.`,
       );
     }
 
@@ -179,7 +181,7 @@ export const update = mutation({
     const guests = without(names, locked);
     if (guests === null) {
       throw new Error(
-        "Chi è entrato dall'app non si toglie da qui: deve uscire dalla partita dall'app.",
+        "Chi si è unito dall'app non si può togliere da qui. Può uscire dalla partita direttamente dall'app.",
       );
     }
 
@@ -188,7 +190,7 @@ export const update = mutation({
     const { total, guests: current } = await occupancyOf(ctx, match);
     if (total - current + guests.length > match.maxPlayers) {
       throw new Error(
-        "Ci sono inviti in attesa che tengono dei posti: non c'è spazio per tutti questi nomi.",
+        "Alcuni posti sono tenuti per chi è stato invitato e non ha ancora risposto, quindi non c'è spazio per tutti questi nomi.",
       );
     }
 

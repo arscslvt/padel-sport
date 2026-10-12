@@ -1,6 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { ComponentPropsWithRef, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -53,7 +53,17 @@ export function ListGroup({
 
 type Tone = "default" | "danger";
 
-interface ListRowProps {
+/**
+ * Gli attributi del pulsante che una riga può ricevere da chi la avvolge: un
+ * `Trigger` di Radix o di Vaul le passa `ref`, `aria-haspopup` e
+ * `aria-expanded`, ed è così che un lettore di schermo sa che apre un pannello.
+ */
+type ButtonPassthrough = Omit<
+  ComponentPropsWithRef<"button">,
+  "title" | "onClick" | "className" | "children"
+>;
+
+interface ListRowProps extends ButtonPassthrough {
   leading?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
@@ -84,6 +94,7 @@ export function ListRow({
   href,
   onClick,
   className,
+  ...button
 }: ListRowProps) {
   const interactive = Boolean(href || onClick);
 
@@ -144,7 +155,7 @@ export function ListRow({
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={classes}>
+      <button type="button" {...button} onClick={onClick} className={classes}>
         {body}
       </button>
     );
