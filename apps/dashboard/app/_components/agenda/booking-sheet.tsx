@@ -4,7 +4,7 @@ import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { Loader2, Mail, Phone, Undo2, Unlink } from "lucide-react";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
 import { ListGroup, ListRow } from "@/app/_components/list";
 import { SheetHeader } from "@/app/_components/sheet-header";
@@ -37,6 +37,7 @@ import {
   wasRefunded,
   whatsappNumber,
 } from "./lib";
+import { PlayersEditor } from "./players-editor";
 
 /**
  * I tasti di contatto: superficie bianca come le schede sotto, sempre.
@@ -66,6 +67,7 @@ export function BookingSheet({
   onAccept,
   onCancel,
   onRefund,
+  onUpdatePlayers,
   onSplit,
 }: {
   booking: Booking | null;
@@ -76,6 +78,7 @@ export function BookingSheet({
   onAccept: (booking: Booking) => void;
   onCancel: (booking: Booking) => void;
   onRefund: (booking: Booking, paymentId: string, amount: number) => void;
+  onUpdatePlayers: (booking: Booking, players: string[]) => Promise<boolean>;
   onSplit: (booking: Booking) => void;
 }) {
   return (
@@ -83,6 +86,8 @@ export function BookingSheet({
       <ResponsiveDrawerContent className="sm:max-w-md md:max-h-[90dvh] md:overflow-y-auto">
         {booking && (
           <Body
+            // Un'altra prenotazione riparte da capo: modulo dei giocatori chiuso.
+            key={booking._id}
             booking={booking}
             partner={partner}
             court={court}
@@ -90,6 +95,7 @@ export function BookingSheet({
             onAccept={onAccept}
             onCancel={onCancel}
             onRefund={onRefund}
+            onUpdatePlayers={onUpdatePlayers}
             onSplit={onSplit}
           />
         )}
@@ -106,6 +112,7 @@ function Body({
   onAccept,
   onCancel,
   onRefund,
+  onUpdatePlayers,
   onSplit,
 }: {
   booking: Booking;
@@ -115,11 +122,13 @@ function Body({
   onAccept: (booking: Booking) => void;
   onCancel: (booking: Booking) => void;
   onRefund: (booking: Booking, paymentId: string, amount: number) => void;
+  onUpdatePlayers: (booking: Booking, players: string[]) => Promise<boolean>;
   onSplit: (booking: Booking) => void;
 }) {
   const pending = isPending(booking);
   const cancelled = isCancelled(booking);
   const phone = booking.phone?.trim();
+  const [editingPlayers, setEditingPlayers] = useState(false);
 
   return (
     <>
@@ -211,6 +220,13 @@ function Body({
                 {booking.players.length} di {MAX_PLAYERS}
               </Value>
             }
+            // Allo sportello si scopre chi gioca davvero: un tocco e si corregge.
+            chevron={!cancelled}
+            onClick={
+              cancelled || editingPlayers
+                ? undefined
+                : () => setEditingPlayers(true)
+            }
           />
           <ListRow
             title="Livello"
@@ -244,6 +260,15 @@ function Body({
             }
           />
         </ListGroup>
+
+        {editingPlayers && (
+          <PlayersEditor
+            booking={booking}
+            busy={busy}
+            onSave={(players) => onUpdatePlayers(booking, players)}
+            onClose={() => setEditingPlayers(false)}
+          />
+        )}
 
         <OnlinePayment booking={booking} busy={busy} onRefund={onRefund} />
 

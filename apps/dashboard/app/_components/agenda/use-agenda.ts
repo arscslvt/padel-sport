@@ -226,6 +226,21 @@ export function useAgenda() {
     }
   };
 
+  const updatePlayers = (booking: Booking, players: string[]) =>
+    run(
+      booking._id,
+      () =>
+        request("/api/dashboard/bookings/players", "POST", {
+          bookingId: booking._id,
+          players,
+        }),
+      {
+        success: "Giocatori aggiornati",
+        description: players.join(", "),
+        error: "Giocatori non salvati",
+      },
+    );
+
   const split = (booking: Booking) =>
     run(
       booking._id,
@@ -247,6 +262,7 @@ export function useAgenda() {
     accept,
     cancel,
     refund,
+    updatePlayers,
     split,
   };
 }

@@ -53,8 +53,16 @@ import { useAgenda } from "./use-agenda";
  * da completare (utils/staffLinks.ts sul backend).
  */
 export function Agenda() {
-  const { bookings, busyId, reload, accept, cancel, refund, split } =
-    useAgenda();
+  const {
+    bookings,
+    busyId,
+    reload,
+    accept,
+    cancel,
+    refund,
+    updatePlayers,
+    split,
+  } = useAgenda();
   const courts = useQuery(api.modules.settings.booking.courts, {});
   const confirm = useConfirm();
   const searchParams = useSearchParams();
@@ -423,6 +431,7 @@ export function Agenda() {
         onRefund={(booking, paymentId, amount) =>
           void askRefund(booking, paymentId, amount)
         }
+        onUpdatePlayers={updatePlayers}
         onSplit={(booking) => void askSplit(booking)}
       />
 
