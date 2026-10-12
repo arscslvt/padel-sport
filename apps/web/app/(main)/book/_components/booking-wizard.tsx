@@ -84,6 +84,13 @@ export function BookingWizard() {
   const settings = useQuery(api.modules.settings.booking.get, {});
   const fullSquadRequired = settings?.fullSquadRequired ?? false;
 
+  // Il prezzo del listino con la stessa regola della prenotazione: la tariffa
+  // tesserati per chi prenota, se ha la tessera valida.
+  const pricing = useQuery(
+    api.modules.pricing.services.quote,
+    isSignedIn ? {} : "skip",
+  );
+
   // Giorni e orari liberi: stessa lettura del modulo «cerco giocatori» della
   // home, così le due griglie non possono divergere.
   const {
@@ -367,6 +374,7 @@ export function BookingWizard() {
             phone={values.phone}
             notes={values.notes?.trim() || undefined}
             partners={partners}
+            pricing={pricing}
             onEdit={setStep}
           />
         )}

@@ -18,7 +18,14 @@ const bookings = defineTable({
     v.literal("avanzato"),
   ),
   bookForAll: v.boolean(),
+  /** Euro a giocatore, dal listino del giorno in cui si è prenotato. */
   pricePerPlayer: v.float64(),
+  /**
+   * Quanto paga chi prenota, quando paga diverso dagli altri: la tariffa
+   * tesserati (modules/pricing/lib.ts). Assente: paga `pricePerPlayer` come
+   * tutti.
+   */
+  bookerPricePerPlayer: v.optional(v.float64()),
   paymentMode: v.literal("on_site"),
   status: v.union(
     v.literal("pending_on_site_payment"),

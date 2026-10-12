@@ -1,4 +1,8 @@
 import type { Doc } from "@padel-sport/backend/convex/_generated/dataModel";
+import {
+  bookingTotal,
+  formatEuro,
+} from "@padel-sport/backend/convex/modules/pricing/lib";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -144,8 +148,9 @@ export const LEVEL_LABELS: Record<Booking["level"], string> = {
   avanzato: "Avanzato",
 };
 
-export function totalPrice(booking: Booking): number {
-  return booking.pricePerPlayer * booking.players.length;
+/** "28 €": quanto vale la prenotazione per la squadra che c'è adesso. */
+export function totalPrice(booking: Booking): string {
+  return formatEuro(bookingTotal(booking));
 }
 
 /**

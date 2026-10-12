@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  Euro,
   Gift,
   Inbox,
   ListChecks,
@@ -65,7 +66,10 @@ export const SECONDARY_NAV: readonly { title: string; items: NavItem[] }[] = [
   },
   {
     title: "Club",
-    items: [{ name: "Configurazione", href: "/settings", icon: Settings }],
+    items: [
+      { name: "Listino", href: "/prices", icon: Euro },
+      { name: "Configurazione", href: "/settings", icon: Settings },
+    ],
   },
 ];
 

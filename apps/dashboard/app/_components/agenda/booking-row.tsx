@@ -105,7 +105,7 @@ export function BookingRow({
         <StatusBadge tone="danger">Annullata</StatusBadge>
       ) : (
         <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
-          {totalPrice(booking)} €
+          {totalPrice(booking)}
         </span>
       )}
     </button>
@@ -144,7 +144,7 @@ export function PendingCard({
             {booking.bookedBy}
           </span>
           <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
-            {totalPrice(booking)} €
+            {totalPrice(booking)}
           </span>
         </span>
         <span className="mt-1 block text-sm">

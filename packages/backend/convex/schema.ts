@@ -26,6 +26,7 @@ import pointTransactions from "./tables/pointTransactions";
 import pushSubscriptions from "./tables/pushSubscriptions";
 import rewardRedemptions from "./tables/rewardRedemptions";
 import rewards from "./tables/rewards";
+import services from "./tables/services";
 import slots from "./tables/slots";
 import supportRequests from "./tables/supportRequests";
 
@@ -59,4 +60,5 @@ export default defineSchema({
   pointReports,
   pushSubscriptions,
   notificationPreferences,
+  services,
 });

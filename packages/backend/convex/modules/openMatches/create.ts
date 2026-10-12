@@ -4,6 +4,7 @@ import type { Id } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
 import { membersOf, requireCircleMember } from "../circles/lib";
 import { isMembershipValid, membershipStatus } from "../clients/lib";
+import { matchPricing } from "../pricing/lib";
 import { bookingSettings, isWithinOpeningHours } from "../settings/lib";
 import { staffBookingUrl } from "../../utils/staffLinks";
 import { addGuestToMatch } from "./guests";
@@ -16,7 +17,6 @@ import {
   MATCH_DURATION_MINUTES,
   MAX_PLAYERS,
   normalizePhone,
-  PRICE_PER_PLAYER,
   requirePlayer,
   SLOT_INTERVAL_MS,
 } from "./lib";
@@ -201,6 +201,9 @@ export default mutation({
 
     const notes = args.notes?.trim() || undefined;
 
+    // Il prezzo del listino di oggi, con la tariffa tesserati per chi prenota.
+    const pricing = await matchPricing(ctx, player._id);
+
     const bookingId = await ctx.db.insert("bookings", {
       bookedBy: player.name,
       phone,
@@ -209,7 +212,7 @@ export default mutation({
       level: levelLabel(args.levelMin, args.levelMax),
       bookForAll: false,
       slot: slot._id,
-      pricePerPlayer: PRICE_PER_PLAYER,
+      ...pricing,
       paymentMode: "on_site",
       status: "pending_on_site_payment",
       createdAt: Date.now(),

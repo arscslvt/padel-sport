@@ -83,9 +83,6 @@ function overlaps(startA: number, endA: number, startB: number, endB: number) {
   return startA < endB && endA > startB;
 }
 
-/** Quota a testa di una partita, pagata in struttura. */
-export const PRICE_PER_PLAYER = 7;
-
 /**
  * Trova un campo libero per l'orario richiesto.
  * Stessa logica di disponibilità di bookings/create.ts (flusso web, invariato),

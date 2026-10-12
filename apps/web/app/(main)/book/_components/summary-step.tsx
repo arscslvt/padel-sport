@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  formatEuro,
+  type MatchPricing,
+  roundEuro,
+} from "@padel-sport/backend/convex/modules/pricing/lib";
+
 import { Hint, StepHeader, SummaryRow } from "@/components/booking/wizard-ui";
 import type { BookingDay } from "@/lib/booking";
 import { formatDayLong, formatSlotRange, MAX_PLAYERS } from "@/lib/booking";
@@ -17,6 +23,7 @@ export function SummaryStep({
   phone,
   notes,
   partners,
+  pricing,
   onEdit,
 }: {
   step: number;
@@ -28,6 +35,8 @@ export function SummaryStep({
   phone: string;
   notes?: string;
   partners: BookingPartner[];
+  /** Assente finché il listino non è arrivato: la riga del prezzo aspetta. */
+  pricing?: MatchPricing;
   onEdit: (step: number) => void;
 }) {
   const level = LEVEL_RANGES[levelIndex];
@@ -82,6 +91,14 @@ export function SummaryStep({
             onEdit={() => onEdit(4)}
           />
         )}
+        {pricing && (
+          <SummaryRow
+            label="Quota"
+            value={
+              <PriceSummary pricing={pricing} partners={partners.length} />
+            }
+          />
+        )}
       </div>
 
       {missing > 0 && (
@@ -93,5 +110,37 @@ export function SummaryStep({
         </Hint>
       )}
     </div>
+  );
+}
+
+/**
+ * Quanto si paga, con le parole di chi prenota: la sua quota, quella dei
+ * compagni indicati e il totale. Chi aggiunge il club in seguito paga la sua.
+ */
+function PriceSummary({
+  pricing,
+  partners,
+}: {
+  pricing: MatchPricing;
+  partners: number;
+}) {
+  const bookerPrice = pricing.bookerPricePerPlayer ?? pricing.pricePerPlayer;
+  const member = pricing.bookerPricePerPlayer !== undefined;
+  const total = roundEuro(bookerPrice + pricing.pricePerPlayer * partners);
+
+  return (
+    <ul className="flex flex-col gap-0.5">
+      <li>
+        {formatEuro(bookerPrice)} per te
+        {member ? " · tariffa tesserati" : ""}
+      </li>
+      {partners > 0 && (
+        <>
+          <li>{formatEuro(pricing.pricePerPlayer)} per ogni compagno</li>
+          <li className="font-medium">Totale {formatEuro(total)}</li>
+        </>
+      )}
+      <li className="text-muted-foreground">Si paga in struttura</li>
+    </ul>
   );
 }

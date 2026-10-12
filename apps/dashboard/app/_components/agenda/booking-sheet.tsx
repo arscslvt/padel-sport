@@ -201,7 +201,7 @@ function Body({
           />
           <ListRow
             title="Totale in struttura"
-            trailing={<Value>{totalPrice(booking)} €</Value>}
+            trailing={<Value>{totalPrice(booking)}</Value>}
           />
           <ListRow
             title="Telefono"

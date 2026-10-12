@@ -8,9 +8,9 @@ import {
   MATCH_DURATION_MINUTES,
   MAX_PLAYERS,
   normalizePhone,
-  PRICE_PER_PLAYER,
   SLOT_INTERVAL_MS,
 } from "../modules/openMatches/lib";
+import { matchPricing } from "../modules/pricing/lib";
 import { bookingSettings, isWithinOpeningHours } from "../modules/settings/lib";
 import { recordDeliveries } from "../modules/deliveries/lib";
 import { assertServer } from "../utils/serverSecret";
@@ -120,6 +120,10 @@ export default mutation({
 
     const code = await bookingCode(ctx);
 
+    // Il listino vale anche allo sportello: la tariffa tesserati scatta se
+    // la prenotazione è collegata a un cliente con la tessera valida.
+    const pricing = await matchPricing(ctx, player?._id);
+
     const bookingId = await ctx.db.insert("bookings", {
       bookedBy,
       phone,
@@ -128,7 +132,7 @@ export default mutation({
       level: args.level,
       bookForAll: players.length >= MAX_PLAYERS,
       slot: slotId,
-      pricePerPlayer: PRICE_PER_PLAYER,
+      ...pricing,
       paymentMode: "on_site",
       status: "accepted_on_site_payment",
       createdAt: Date.now(),
