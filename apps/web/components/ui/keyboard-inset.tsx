@@ -134,6 +134,8 @@ export function KeyboardInset() {
 
         root.style.setProperty("--keyboard-inset", `${inset}px`);
         root.style.setProperty("--visual-height", `${visible}px`);
+        // Per lo stile del fondo dei drawer mentre si scrive (globals.css).
+        root.toggleAttribute("data-keyboard-open", open);
 
         // Mentre si scrive lo spazio è poco: il drawer sale fin quasi in cima,
         // lasciando solo la barra di stato e un filo di margine. A tastiera
@@ -197,6 +199,7 @@ export function KeyboardInset() {
       root.style.removeProperty("--keyboard-inset");
       root.style.removeProperty("--visual-height");
       root.style.removeProperty("--drawer-max-height");
+      root.removeAttribute("data-keyboard-open");
     };
   }, []);
 
