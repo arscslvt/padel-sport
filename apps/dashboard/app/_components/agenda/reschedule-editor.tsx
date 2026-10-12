@@ -187,67 +187,72 @@ function TimeFields({
         {/* Radio veri, nascosti alla vista dentro etichette disegnate come
             bottoni: frecce, Tab e lettori di schermo funzionano come in ogni
             gruppo di scelte, senza codice nostro. */}
-        <fieldset ref={groupRef} disabled={busy} className="space-y-3 p-4">
-          <legend className="mb-3 text-[13px] font-medium">
+        <fieldset ref={groupRef} disabled={busy} className="min-w-0 p-4">
+          {/* Un `legend` il browser lo disegna sul bordo del fieldset,
+              ignorando il padding in alto: flottante a tutta larghezza torna
+              un'etichetta come le altre, e il contenuto riparte sotto. */}
+          <legend className="float-left w-full text-[13px] leading-snug font-medium">
             Scegli il nuovo orario
           </legend>
 
-          {choosable.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              Oggi non ci sono altri orari con un campo libero.
+          <div className="clear-both space-y-3 pt-3">
+            {choosable.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                Oggi non ci sono altri orari con un campo libero.
+              </p>
+            ) : null}
+
+            <div className="grid grid-cols-4 gap-2">
+              {options.times.map((option) => {
+                const checked = option.start === selected;
+                return (
+                  <label
+                    key={option.start}
+                    className={cn(
+                      "flex h-11 cursor-pointer items-center justify-center rounded-xl border text-[15px] tabular-nums",
+                      "has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px]",
+                      "has-[:disabled]:cursor-not-allowed",
+                      PRESS,
+                      checked
+                        ? "bg-foreground text-background border-foreground"
+                        : option.current
+                          ? "bg-muted border-dashed border-foreground/40"
+                          : "bg-card has-[:disabled]:line-through has-[:disabled]:opacity-35",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name={`${id}-time`}
+                      value={option.start}
+                      checked={checked}
+                      disabled={!option.available}
+                      onChange={() => form.setSelected(option.start)}
+                      className="sr-only"
+                    />
+                    {option.time}
+                    <span className="sr-only">
+                      {option.current
+                        ? ", orario attuale"
+                        : option.available
+                          ? ""
+                          : ", occupato"}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <p
+              aria-live="polite"
+              className="text-muted-foreground min-h-5 text-[13px] leading-relaxed"
+            >
+              {choice
+                ? choice.court
+                  ? `Alle ${choice.time} il ${options.currentCourt ?? "campo di adesso"} è occupato, quindi la partita passa al ${choice.court}.`
+                  : `La partita si sposta alle ${timeRange(choice.start)}, sullo stesso campo.`
+                : `Adesso è alle ${timeRange(options.current)}. L'orario tratteggiato è quello attuale.`}
             </p>
-          ) : null}
-
-          <div className="grid grid-cols-4 gap-2">
-            {options.times.map((option) => {
-              const checked = option.start === selected;
-              return (
-                <label
-                  key={option.start}
-                  className={cn(
-                    "flex h-11 cursor-pointer items-center justify-center rounded-xl border text-[15px] tabular-nums",
-                    "has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px]",
-                    "has-[:disabled]:cursor-not-allowed",
-                    PRESS,
-                    checked
-                      ? "bg-foreground text-background border-foreground"
-                      : option.current
-                        ? "bg-muted border-dashed border-foreground/40"
-                        : "bg-card has-[:disabled]:line-through has-[:disabled]:opacity-35",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name={`${id}-time`}
-                    value={option.start}
-                    checked={checked}
-                    disabled={!option.available}
-                    onChange={() => form.setSelected(option.start)}
-                    className="sr-only"
-                  />
-                  {option.time}
-                  <span className="sr-only">
-                    {option.current
-                      ? ", orario attuale"
-                      : option.available
-                        ? ""
-                        : ", occupato"}
-                  </span>
-                </label>
-              );
-            })}
           </div>
-
-          <p
-            aria-live="polite"
-            className="text-muted-foreground min-h-5 text-[13px] leading-relaxed"
-          >
-            {choice
-              ? choice.court
-                ? `Alle ${choice.time} il ${options.currentCourt ?? "campo di adesso"} è occupato, quindi la partita passa al ${choice.court}.`
-                : `La partita si sposta alle ${timeRange(choice.start)}, sullo stesso campo.`
-              : `Adesso è alle ${timeRange(options.current)}. L'orario tratteggiato è quello attuale.`}
-          </p>
         </fieldset>
       </ListGroup>
 
