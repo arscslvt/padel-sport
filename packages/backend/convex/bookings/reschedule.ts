@@ -44,13 +44,13 @@ function clubTime(minutes: number): string {
 /** Perché non si può spostare, o `null` se si può. */
 function moveBlocker(booking: Doc<"bookings">, now: number): string | null {
   if (booking.status === "cancelled") {
-    return "Questa prenotazione è stata annullata, quindi non si può più spostare.";
+    return "La prenotazione è stata annullata.";
   }
   if (booking.mergedWith) {
-    return "Questa prenotazione divide il campo con un altro gruppo. Separale prima di cambiare orario.";
+    return "Il campo è condiviso con un'altra prenotazione. Separale per cambiare orario.";
   }
   if (booking.bookingDate <= now) {
-    return "La partita è già cominciata, quindi l'orario non si può più cambiare.";
+    return "La partita è già iniziata.";
   }
   return null;
 }
@@ -152,13 +152,13 @@ export const move = mutation({
     if (blocker) throw new Error(blocker);
 
     if (bookingDate === booking.bookingDate) {
-      throw new Error("È già a quell'orario. Scegline un altro.");
+      throw new Error("Scegli un orario diverso da quello attuale.");
     }
     if (bookingDate % SLOT_INTERVAL_MS !== 0) {
-      throw new Error("L'orario va scelto a scaglioni di mezz'ora.");
+      throw new Error("Scegli uno degli orari proposti.");
     }
     if (bookingDate <= now) {
-      throw new Error("Quell'orario è già passato. Scegline uno più avanti.");
+      throw new Error("Questo orario è già passato.");
     }
 
     const before = clubMoment(booking.bookingDate);
@@ -168,19 +168,19 @@ export const move = mutation({
       Math.abs(bookingDate - booking.bookingDate) >= DAY_MS
     ) {
       throw new Error(
-        "Da qui si cambia solo l'orario. Per un altro giorno annulla la prenotazione e rifalla.",
+        "Puoi cambiare solo l'orario. Per un altro giorno, annulla la prenotazione e creane una nuova.",
       );
     }
 
     const settings = await bookingSettings(ctx);
     if (!isWithinOpeningHours(settings, bookingDate, MATCH_DURATION_MINUTES)) {
-      throw new Error("A quell'ora la struttura è chiusa. Scegli un altro orario.");
+      throw new Error("La struttura è chiusa a quest'ora.");
     }
 
     const court = await courtFor(ctx, booking, bookingDate);
     if (!court) {
       throw new Error(
-        "Quell'orario non è più libero. Scegline un altro tra quelli proposti.",
+        "Questo orario non è più disponibile. Scegline un altro.",
       );
     }
 
@@ -215,7 +215,7 @@ export const move = mutation({
         {
           role: "booker",
           status: "skipped",
-          detail: "L'operatore ha scelto di non avvisare il cliente",
+          detail: "Non avvisato per scelta dell'operatore",
         },
       ]);
     }

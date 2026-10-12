@@ -220,7 +220,7 @@ export async function POST(request: Request) {
             from: FROM,
             to: [recipient.email],
             replyTo: CLUB_INBOX,
-            subject: `Orario cambiato: ${dayLabel}, ${timeLabel}`,
+            subject: `Nuovo orario per la partita di ${dayLabel.charAt(0).toLowerCase()}${dayLabel.slice(1)}`,
             html: await render(
               BookingRescheduledEmail({
                 recipientName: recipient.name,

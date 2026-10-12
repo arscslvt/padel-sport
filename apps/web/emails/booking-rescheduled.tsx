@@ -42,25 +42,31 @@ export function BookingRescheduledEmail({
   const firstName = recipientName.split(" ")[0] || recipientName;
 
   return (
-    <EmailLayout preview={`Nuovo orario: ${dayLabel}, ${timeLabel}.`}>
-      <Text style={s.eyebrow}>Orario cambiato</Text>
-      <Text style={s.heading}>{firstName}, la partita cambia orario.</Text>
+    <EmailLayout
+      preview={`${dayLabel}, ${timeLabel}. Il giorno resta lo stesso.`}
+    >
+      <Text style={s.eyebrow}>Orario aggiornato</Text>
+      <Text style={s.heading}>
+        {isBooker
+          ? `${firstName}, la tua partita ha un nuovo orario.`
+          : `${firstName}, la partita ha un nuovo orario.`}
+      </Text>
       <Text style={s.paragraph}>
         {isBooker
-          ? "Abbiamo spostato l'orario della tua partita. Il giorno resta lo stesso."
-          : `Abbiamo spostato l'orario della partita prenotata da ${bookedBy}. Il giorno resta lo stesso.`}
+          ? "Abbiamo spostato la tua partita. Il giorno resta lo stesso."
+          : `Abbiamo spostato la partita prenotata da ${bookedBy}. Il giorno resta lo stesso.`}
       </Text>
 
       <Section style={s.panel}>
         <Detail label="Nuovo orario" value={`${dayLabel}, ${timeLabel}`} />
-        <Detail label="Prima era" value={previousTimeLabel} />
+        <Detail label="Orario precedente" value={previousTimeLabel} />
         {court && <Detail label="Campo" value={court} />}
       </Section>
 
       <Text style={s.paragraph}>
         {accepted
-          ? "Il codice QR che hai già ricevuto resta valido. Mostralo all'ingresso come sempre."
-          : "La prenotazione è ancora in attesa di conferma. Ti scriviamo appena è confermata, con il codice QR per entrare."}
+          ? "Il codice QR che hai ricevuto resta valido. Mostralo all'ingresso."
+          : "La prenotazione è in attesa di conferma. Riceverai il codice QR appena sarà confermata."}
       </Text>
 
       <Section style={{ paddingBottom: "8px" }}>
@@ -70,8 +76,7 @@ export function BookingRescheduledEmail({
       </Section>
 
       <Text style={s.paragraph}>
-        Il nuovo orario non ti va bene? Chiamaci al {phone} e troviamo insieme
-        un'altra soluzione.
+        Il nuovo orario non va bene? Chiamaci al {phone}.
       </Text>
     </EmailLayout>
   );

@@ -140,15 +140,13 @@ export const update = mutation({
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
     if (booking.status === "cancelled") {
-      throw new Error(
-        "Questa prenotazione è stata annullata, quindi non si può più modificare.",
-      );
+      throw new Error("La prenotazione è stata annullata.");
     }
 
     const names = players.map((name) => name.trim()).filter(Boolean);
 
     if (names.length === 0) {
-      throw new Error("Scrivi almeno il nome di chi ha prenotato.");
+      throw new Error("Inserisci almeno il nome di chi prenota.");
     }
     for (const name of names) {
       if (name.length < NAME_MIN || name.length > NAME_MAX) {
@@ -162,8 +160,8 @@ export const update = mutation({
     if (names.length > seats) {
       throw new Error(
         seats < MAX_PLAYERS
-          ? `Il campo è condiviso con un altro gruppo, quindi qui puoi inserire al massimo ${seats} giocatori.`
-          : `Puoi inserire al massimo ${MAX_PLAYERS} giocatori.`,
+          ? `Il campo è condiviso. Puoi inserire fino a ${seats} giocatori.`
+          : `Puoi inserire fino a ${MAX_PLAYERS} giocatori.`,
       );
     }
 
@@ -181,7 +179,7 @@ export const update = mutation({
     const guests = without(names, locked);
     if (guests === null) {
       throw new Error(
-        "Chi si è unito dall'app non si può togliere da qui. Può uscire dalla partita direttamente dall'app.",
+        "Chi si è unito dall'app può uscire solo dall'app.",
       );
     }
 
@@ -190,7 +188,7 @@ export const update = mutation({
     const { total, guests: current } = await occupancyOf(ctx, match);
     if (total - current + guests.length > match.maxPlayers) {
       throw new Error(
-        "Alcuni posti sono tenuti per chi è stato invitato e non ha ancora risposto, quindi non c'è spazio per tutti questi nomi.",
+        "Alcuni posti sono riservati a inviti in attesa di risposta.",
       );
     }
 

@@ -49,7 +49,7 @@ export function isStaffMade(booking: Booking): boolean {
 
 /**
  * La riga in fondo alla scheda: chi ha creato la prenotazione, da dove e
- * quando. «Creata da Mario Rossi dal gestionale il 12 ottobre alle 9:41.»
+ * quando. «Creata da Mario Rossi il 12 ottobre alle 9:41.»
  */
 export function authorLine(booking: Booking): string {
   const when = format(booking.createdAt, "d MMMM 'alle' H:mm", { locale: it });
@@ -57,12 +57,12 @@ export function authorLine(booking: Booking): string {
   switch (booking.origin) {
     case "staff":
       return booking.createdByStaff
-        ? `Creata da ${booking.createdByStaff.name} dal gestionale il ${when}.`
+        ? `Creata da ${booking.createdByStaff.name} il ${when}.`
         : `Creata dal gestionale il ${when}.`;
     case "web":
       return `Prenotata dal cliente sul sito il ${when}.`;
     case "app":
-      return `Prenotata dal cliente con l'app il ${when}.`;
+      return `Prenotata dal cliente nell'app il ${when}.`;
     case "client":
       return `Prenotata dal cliente il ${when}.`;
     default:

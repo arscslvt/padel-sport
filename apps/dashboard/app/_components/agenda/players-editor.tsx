@@ -67,7 +67,7 @@ const filledOf = (names: string[]) =>
 function nameError(name: string): string | null {
   const trimmed = name.trim();
   return trimmed.length > 0 && trimmed.length < NAME_MIN
-    ? "Scrivi almeno due lettere."
+    ? "Inserisci almeno due lettere."
     : null;
 }
 
@@ -108,7 +108,7 @@ function usePlayersForm(booking: Booking) {
       } catch {
         if (alive) {
           setLoadError(
-            "Non riesco a caricare i giocatori. Controlla la connessione e riprova.",
+            "Impossibile caricare i giocatori. Controlla la connessione e riprova.",
           );
         }
       }
@@ -215,7 +215,7 @@ function PlayersFields({
     return (
       <ListGroup title={title}>
         <div aria-busy="true" className="space-y-3 p-4">
-          <output className="sr-only">Sto caricando i giocatori…</output>
+          <output className="sr-only">Caricamento dei giocatori…</output>
           <Skeleton className={cn("w-full", touch ? "h-11" : "h-9")} />
           <Skeleton className={cn("w-full", touch ? "h-11" : "h-9")} />
         </div>
@@ -225,8 +225,8 @@ function PlayersFields({
 
   const footer =
     data.locked.length > 0
-      ? "Chi si è unito dall'app può uscire solo dall'app. Se manca ancora qualcuno, lascia pure il posto vuoto."
-      : "Se manca ancora qualcuno, lascia pure il posto vuoto.";
+      ? "Chi si è unito dall'app può uscire solo dall'app. Lascia vuoti i posti ancora liberi."
+      : "Lascia vuoti i posti ancora liberi.";
 
   // Invio passa al campo dopo, come in un modulo da telefono; sull'ultimo salva.
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>, index: number) => {
@@ -255,7 +255,7 @@ function PlayersFields({
             key={`locked-${index}-${name}`}
             leading={<Smartphone aria-hidden className="size-5" />}
             title={name}
-            subtitle="Si è unito dall'app"
+            subtitle="Dall'app"
           />
         ))}
 
@@ -266,7 +266,7 @@ function PlayersFields({
           const errorId = `${fieldId}-error`;
           const error =
             errors[index] ??
-            (booker && empty ? "Scrivi il nome di chi ha prenotato." : null);
+            (booker && empty ? "Inserisci il nome di chi prenota." : null);
 
           return (
             // La posizione è l'identità del campo: i nomi cambiano mentre si
@@ -277,7 +277,7 @@ function PlayersFields({
                 htmlFor={fieldId}
                 className="mb-1.5 block text-[13px] font-medium"
               >
-                {booker ? "Chi ha prenotato" : `Giocatore ${position}`}
+                {booker ? "Prenotato da" : `Giocatore ${position}`}
               </label>
               <div className="relative">
                 <Input
@@ -304,7 +304,7 @@ function PlayersFields({
                 {name && !busy && (
                   <button
                     type="button"
-                    aria-label={`Svuota il posto di ${name.trim() || "questo giocatore"}`}
+                    aria-label={`Cancella ${name.trim() || "il nome"}`}
                     className={cn(
                       "text-muted-foreground hover:text-foreground focus-visible:text-foreground absolute inset-y-0 right-0 flex items-center justify-center rounded-r-lg outline-none",
                       touch ? "w-11" : "w-9",
@@ -376,7 +376,7 @@ export function PlayersEditor({
 
   return (
     <form ref={container} className="space-y-3" onSubmit={submit} noValidate>
-      <PlayersFields form={form} title="Modifica giocatori" busy={busy} />
+      <PlayersFields form={form} title="Giocatori" busy={busy} />
 
       <div className="flex justify-end gap-2">
         <Button
@@ -423,7 +423,7 @@ export function PlayersDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title="Giocatori"
-      description={`Prenotazione di ${booking.bookedBy} · ${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
+      description={`${booking.bookedBy} · ${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
       trigger={children}
     >
       <DrawerForm booking={booking} busy={busy} onSave={onSave} />

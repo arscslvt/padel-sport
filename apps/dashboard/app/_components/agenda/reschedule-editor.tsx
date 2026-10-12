@@ -21,9 +21,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { MATCH_DURATION_MS } from "@/lib/booking";
 import { cn } from "@/lib/utils";
 
-import { type Booking, dayKey, dayLabel, timeRange } from "./lib";
+import { type Booking, clubTime, dayKey, dayLabel, timeRange } from "./lib";
 
 /**
  * L'orario di una prenotazione, spostato dallo staff nello stesso giorno.
@@ -79,7 +80,7 @@ function useRescheduleForm(booking: Booking) {
       } catch {
         if (alive) {
           setLoadError(
-            "Non riesco a caricare gli orari liberi. Controlla la connessione e riprova.",
+            "Impossibile caricare gli orari. Controlla la connessione e riprova.",
           );
         }
       }
@@ -107,19 +108,29 @@ function useRescheduleForm(booking: Booking) {
 
 type RescheduleForm = ReturnType<typeof useRescheduleForm>;
 
+/** «Dalle 19:00 alle 20:30 sul Campo 2. Il Campo 1 a quest'ora è occupato.» */
+function summary(choice: TimeOption, currentCourt?: string): string {
+  const range = `Dalle ${clubTime(choice.start)} alle ${clubTime(choice.start + MATCH_DURATION_MS)}`;
+
+  if (!choice.court) {
+    return currentCourt ? `${range} sul ${currentCourt}.` : `${range}.`;
+  }
+  return currentCourt
+    ? `${range} sul ${choice.court}. Il ${currentCourt} a quest'ora è occupato.`
+    : `${range} sul ${choice.court}.`;
+}
+
 function submitLabel(form: RescheduleForm): string {
   return form.choice ? `Sposta alle ${form.choice.time}` : "Sposta";
 }
 
 function TimeFields({
   form,
-  booking,
   busy,
   title,
   groupRef,
 }: {
   form: RescheduleForm;
-  booking: Booking;
   busy: boolean;
   title?: string;
   /** Il gruppo degli orari, per portarci il fuoco da desktop. */
@@ -155,7 +166,7 @@ function TimeFields({
     return (
       <ListGroup title={title}>
         <div aria-busy="true" className="grid grid-cols-4 gap-2 p-4">
-          <output className="sr-only">Sto cercando gli orari liberi…</output>
+          <output className="sr-only">Caricamento degli orari…</output>
           {Array.from({ length: 8 }, (_, index) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: segnaposto fissi.
             <Skeleton key={index} className="h-11 rounded-xl" />
@@ -176,13 +187,12 @@ function TimeFields({
   }
 
   const choosable = options.times.filter((option) => option.available);
-  const day = dayLabel(dayKey(booking.bookingDate));
 
   return (
     <div className="space-y-5">
       <ListGroup
         title={title}
-        footer={`Si gioca ${day.charAt(0).toLowerCase()}${day.slice(1)}. Per cambiare giorno annulla la prenotazione e rifalla.`}
+        footer="Per cambiare giorno, annulla la prenotazione e creane una nuova."
       >
         {/* Radio veri, nascosti alla vista dentro etichette disegnate come
             bottoni: frecce, Tab e lettori di schermo funzionano come in ogni
@@ -192,13 +202,13 @@ function TimeFields({
               ignorando il padding in alto: flottante a tutta larghezza torna
               un'etichetta come le altre, e il contenuto riparte sotto. */}
           <legend className="float-left w-full text-[13px] leading-snug font-medium">
-            Scegli il nuovo orario
+            Nuovo orario
           </legend>
 
           <div className="clear-both space-y-3 pt-3">
             {choosable.length === 0 ? (
               <p className="text-muted-foreground text-sm">
-                Oggi non ci sono altri orari con un campo libero.
+                Nessun altro orario disponibile in questo giorno.
               </p>
             ) : null}
 
@@ -229,14 +239,19 @@ function TimeFields({
                       onChange={() => form.setSelected(option.start)}
                       className="sr-only"
                     />
-                    {option.time}
-                    <span className="sr-only">
-                      {option.current
-                        ? ", orario attuale"
-                        : option.available
-                          ? ""
-                          : ", occupato"}
+                    {/* L'orario di adesso lo dice un'etichetta sul bottone, non
+                        una spiegazione sotto la griglia. */}
+                    <span className="flex flex-col items-center leading-none">
+                      <span>{option.time}</span>
+                      {option.current && (
+                        <span className="text-muted-foreground mt-1 text-[11px] font-medium">
+                          Attuale
+                        </span>
+                      )}
                     </span>
+                    {!option.current && !option.available && (
+                      <span className="sr-only">, occupato</span>
+                    )}
                   </label>
                 );
               })}
@@ -246,28 +261,25 @@ function TimeFields({
               aria-live="polite"
               className="text-muted-foreground min-h-5 text-[13px] leading-relaxed"
             >
-              {choice
-                ? choice.court
-                  ? `Alle ${choice.time} il ${options.currentCourt ?? "campo di adesso"} è occupato, quindi la partita passa al ${choice.court}.`
-                  : `La partita si sposta alle ${timeRange(choice.start)}, sullo stesso campo.`
-                : `Adesso è alle ${timeRange(options.current)}. L'orario tratteggiato è quello attuale.`}
+              {choice ? summary(choice, options.currentCourt) : null}
             </p>
           </div>
         </fieldset>
       </ListGroup>
 
-      <ListGroup>
+      <ListGroup
+        footer={
+          form.notify
+            ? "Il cliente riceverà un'email con il nuovo orario."
+            : "Il cliente non verrà avvisato."
+        }
+      >
         <label
           htmlFor={`${id}-notify`}
           className="flex min-h-14 cursor-pointer items-center gap-3 px-4 py-2.5"
         >
-          <span className="min-w-0 flex-1">
-            <span className="block text-[15px] leading-snug">
-              Avvisa il cliente via email
-            </span>
-            <span className="text-muted-foreground mt-0.5 block text-[13px] leading-snug">
-              Riceve una mail con il nuovo orario.
-            </span>
+          <span className="min-w-0 flex-1 text-[15px] leading-snug">
+            Avvisa il cliente
           </span>
           <Switch
             id={`${id}-notify`}
@@ -327,9 +339,8 @@ export function RescheduleEditor({
     <form ref={container} className="space-y-3" onSubmit={submit} noValidate>
       <TimeFields
         form={form}
-        booking={booking}
         busy={busy}
-        title="Cambia orario"
+        title="Nuovo orario"
         groupRef={group}
       />
 
@@ -377,7 +388,7 @@ export function RescheduleDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title="Cambia orario"
-      description={`Prenotazione di ${booking.bookedBy} · ${dayLabel(dayKey(booking.bookingDate))}`}
+      description={`${booking.bookedBy} · ${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
       trigger={children}
     >
       <DrawerForm booking={booking} busy={busy} onSave={onSave} />
@@ -410,7 +421,7 @@ function DrawerForm({
       canSubmit={form.selected !== null}
       submitLabel={submitLabel(form)}
     >
-      <TimeFields form={form} booking={booking} busy={busy} />
+      <TimeFields form={form} busy={busy} />
     </NestedDrawerForm>
   );
 }

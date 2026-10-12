@@ -237,7 +237,7 @@ export function useAgenda() {
       {
         success: "Giocatori aggiornati",
         description: players.join(", "),
-        error: "Giocatori non salvati",
+        error: "Impossibile salvare i giocatori",
       },
     );
 
@@ -251,11 +251,11 @@ export function useAgenda() {
           notify,
         }),
       {
-        success: "Orario spostato",
+        success: "Orario aggiornato",
         description: notify
-          ? `Ora si gioca alle ${timeRange(bookingDate)}. Abbiamo avvisato il cliente via email.`
-          : `Ora si gioca alle ${timeRange(bookingDate)}. Il cliente non è stato avvisato.`,
-        error: "Orario non spostato",
+          ? `${timeRange(bookingDate)}. Il cliente riceverà un'email.`
+          : `${timeRange(bookingDate)}. Il cliente non è stato avvisato.`,
+        error: "Impossibile cambiare l'orario",
       },
     );
 
