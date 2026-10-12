@@ -1,0 +1,115 @@
+diff --git a/node_modules/vaul/.bun-tag-7d9bf512b37845d9 b/.bun-tag-7d9bf512b37845d9
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/dist/index.js b/dist/index.js
+index 7f343be1fafe1cf302ee6afc7268c29490895e34..c193c8abd8e37b27957b8fc1744cc3971cf90430 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -206,7 +206,15 @@ let restore;
+ function preventScrollMobileSafari() {
+     let scrollable;
+     let lastY = 0;
++    // padel-sport: dove è cominciato il tocco e se il dito si è mosso. Uno
++    // scorrimento cominciato sopra un campo non deve dargli il fuoco.
++    let startX = 0;
++    let startY = 0;
++    let moved = false;
+     let onTouchStart = (e)=>{
++        startX = e.changedTouches[0].clientX;
++        startY = e.changedTouches[0].clientY;
++        moved = false;
+         // Store the nearest scrollable parent element from the element that the user touched.
+         scrollable = getScrollParent(e.target);
+         if (scrollable === document.documentElement && scrollable === document.body) {
+@@ -215,6 +223,9 @@ function preventScrollMobileSafari() {
+         lastY = e.changedTouches[0].pageY;
+     };
+     let onTouchMove = (e)=>{
++        if (!moved && Math.hypot(e.changedTouches[0].clientX - startX, e.changedTouches[0].clientY - startY) > 10) {
++            moved = true;
++        }
+         // Prevent scrolling the window.
+         if (!scrollable || scrollable === document.documentElement || scrollable === document.body) {
+             e.preventDefault();
+@@ -237,6 +248,9 @@ function preventScrollMobileSafari() {
+     };
+     let onTouchEnd = (e)=>{
+         let target = e.target;
++        // padel-sport: solo un tocco fermo dà il fuoco al campo, come fa il
++        // browser. Dopo uno scorrimento o un trascinamento il campo resta com'è.
++        if (moved) return;
+         // Apply this change if we're not already focused on the target element
+         if (isInput(target) && target !== document.activeElement) {
+             e.preventDefault();
+@@ -925,6 +939,15 @@ function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRe
+         }
+     });
+     const [hasBeenOpened, setHasBeenOpened] = React__namespace.default.useState(false);
++    // padel-sport: un drawer aperto da codice (prop `open`) conta come aperto,
++    // come quello aperto dal suo Trigger. Senza, `usePreventScroll` (che su iOS
++    // impedisce a Safari di far scorrere la vista quando si tocca un campo) e il
++    // blocco della pagina sotto non si attivano mai per i drawer aperti da codice.
++    React__namespace.default.useEffect(()=>{
++        if (isOpen) setHasBeenOpened(true);
++    }, [
++        isOpen
++    ]);
+     const [isDragging, setIsDragging] = React__namespace.default.useState(false);
+     const [justReleased, setJustReleased] = React__namespace.default.useState(false);
+     const overlayRef = React__namespace.default.useRef(null);
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 0dbbce5526681925a81804ced237a045a53c0355..1d861a60ccb7f35a6eeca79e66ef9e55244ec53d 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -184,7 +184,15 @@ let restore;
+ function preventScrollMobileSafari() {
+     let scrollable;
+     let lastY = 0;
++    // padel-sport: dove è cominciato il tocco e se il dito si è mosso. Uno
++    // scorrimento cominciato sopra un campo non deve dargli il fuoco.
++    let startX = 0;
++    let startY = 0;
++    let moved = false;
+     let onTouchStart = (e)=>{
++        startX = e.changedTouches[0].clientX;
++        startY = e.changedTouches[0].clientY;
++        moved = false;
+         // Store the nearest scrollable parent element from the element that the user touched.
+         scrollable = getScrollParent(e.target);
+         if (scrollable === document.documentElement && scrollable === document.body) {
+@@ -193,6 +201,9 @@ function preventScrollMobileSafari() {
+         lastY = e.changedTouches[0].pageY;
+     };
+     let onTouchMove = (e)=>{
++        if (!moved && Math.hypot(e.changedTouches[0].clientX - startX, e.changedTouches[0].clientY - startY) > 10) {
++            moved = true;
++        }
+         // Prevent scrolling the window.
+         if (!scrollable || scrollable === document.documentElement || scrollable === document.body) {
+             e.preventDefault();
+@@ -215,6 +226,9 @@ function preventScrollMobileSafari() {
+     };
+     let onTouchEnd = (e)=>{
+         let target = e.target;
++        // padel-sport: solo un tocco fermo dà il fuoco al campo, come fa il
++        // browser. Dopo uno scorrimento o un trascinamento il campo resta com'è.
++        if (moved) return;
+         // Apply this change if we're not already focused on the target element
+         if (isInput(target) && target !== document.activeElement) {
+             e.preventDefault();
+@@ -903,6 +917,15 @@ function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRe
+         }
+     });
+     const [hasBeenOpened, setHasBeenOpened] = React__default.useState(false);
++    // padel-sport: un drawer aperto da codice (prop `open`) conta come aperto,
++    // come quello aperto dal suo Trigger. Senza, `usePreventScroll` (che su iOS
++    // impedisce a Safari di far scorrere la vista quando si tocca un campo) e il
++    // blocco della pagina sotto non si attivano mai per i drawer aperti da codice.
++    React__default.useEffect(()=>{
++        if (isOpen) setHasBeenOpened(true);
++    }, [
++        isOpen
++    ]);
+     const [isDragging, setIsDragging] = React__default.useState(false);
+     const [justReleased, setJustReleased] = React__default.useState(false);
+     const overlayRef = React__default.useRef(null);

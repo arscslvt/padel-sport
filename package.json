@@ -17,5 +17,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "patchedDependencies": {
+    "vaul@1.1.2": "patches/vaul@1.1.2.patch"
+  }
 }
