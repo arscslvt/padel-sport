@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // In sviluppo, per provare il gestionale da telefono attraverso il tunnel
+  // ngrok (lo stesso del sito): senza, Next blocca gli script della pagina.
+  allowedDevOrigins: ["fluent-guinea-choice.ngrok-free.app"],
   experimental: {
     optimizePackageImports: ["lucide-react", "react-icons", "date-fns"],
   },
