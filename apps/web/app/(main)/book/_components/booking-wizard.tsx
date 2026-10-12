@@ -9,6 +9,7 @@ import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useStartPayment } from "@/components/booking/online-payment";
 import { VerifyStep } from "@/components/booking/verify-step";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -50,10 +51,17 @@ function convexErrorMessage(error: unknown): string {
   return match?.[1] ?? "Non siamo riusciti a completare la prenotazione.";
 }
 
-function primaryLabel(step: number, hasTime: boolean, submitting: boolean) {
+function primaryLabel(
+  step: number,
+  hasTime: boolean,
+  submitting: boolean,
+  payOnline: boolean,
+) {
   if (submitting) return "Prenotazione in corso…";
   if (step === 1) return hasTime ? "Continua" : "Scegli un orario";
-  if (step === TOTAL_STEPS) return "Conferma prenotazione";
+  if (step === TOTAL_STEPS) {
+    return payOnline ? "Prenota e paga" : "Conferma prenotazione";
+  }
   return "Continua";
 }
 
@@ -90,6 +98,13 @@ export function BookingWizard() {
     api.modules.pricing.services.quote,
     isSignedIn ? {} : "skip",
   );
+
+  // Il pagamento online si propone solo se il club l'ha attivato. Si parte da
+  // «in struttura», che è come si è sempre pagato: online è una scelta.
+  const onlineEnabled =
+    useQuery(api.modules.payments.status.enabled, {}) ?? false;
+  const [payOnline, setPayOnline] = useState(false);
+  const { pay } = useStartPayment();
 
   // Giorni e orari liberi: stessa lettura del modulo «cerco giocatori» della
   // home, così le due griglie non possono divergere.
@@ -280,11 +295,18 @@ export function BookingWizard() {
       setOutcome({ code, squadSize: 1 + partners.length });
 
       // Le mail non devono poter far fallire una prenotazione già scritta.
+      // `keepalive` le fa partire anche se subito dopo si va su SumUp.
       void fetch("/api/bookings/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ matchId }),
+        keepalive: true,
       }).catch(() => undefined);
+
+      // La prenotazione c'è già: se il pagamento non parte, l'esito la mostra
+      // con il pulsante per riprovare, e resta valida col pagamento in
+      // struttura.
+      if (onlineEnabled && payOnline) await pay(code);
     } catch (error) {
       const message = convexErrorMessage(error);
       toast.error("Prenotazione non riuscita", { description: message });
@@ -375,6 +397,11 @@ export function BookingWizard() {
             notes={values.notes?.trim() || undefined}
             partners={partners}
             pricing={pricing}
+            payment={
+              onlineEnabled
+                ? { online: payOnline, onChange: setPayOnline }
+                : undefined
+            }
             onEdit={setStep}
           />
         )}
@@ -385,7 +412,12 @@ export function BookingWizard() {
             size="pill-lg"
             disabled={submitting || (step === 1 && !values.time)}
           >
-            {primaryLabel(step, Boolean(values.time), submitting)}
+            {primaryLabel(
+              step,
+              Boolean(values.time),
+              submitting,
+              onlineEnabled && payOnline,
+            )}
           </Button>
 
           {step > 1 && (

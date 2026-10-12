@@ -25,6 +25,9 @@ import {
  *   `statusCallback` (notifications/confirmation.ts), e la firma si verifica
  *   con lo stesso `TWILIO_AUTH` che serve a spedire.
  *
+ * - `/webhooks/sumup` non si registra nemmeno: lo passa ogni checkout come
+ *   `return_url` (modules/payments/checkout.ts).
+ *
  * Rispondono 2xx anche agli eventi che non riguardano le prenotazioni: un
  * errore farebbe solo ritentare il provider per ore.
  */
@@ -124,6 +127,43 @@ http.route({
               )
             : undefined,
       });
+    }
+
+    return new Response(null, { status: 200 });
+  }),
+});
+
+http.route({
+  path: "/webhooks/sumup",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    // SumUp non firma i webhook, e il corpo dice solo *quale* checkout è
+    // cambiato: lo stato vero si rilegge dall'API con la nostra chiave. Chi
+    // chiamasse questo indirizzo a vuoto otterrebbe al più una rilettura.
+    let event: { event_type?: unknown; id?: unknown };
+    try {
+      event = await request.json();
+    } catch {
+      return new Response("Corpo non valido", { status: 400 });
+    }
+
+    // Altri tipi di evento possono arrivare senza preavviso: si ignorano.
+    if (
+      event.event_type !== "CHECKOUT_STATUS_CHANGED" ||
+      typeof event.id !== "string"
+    ) {
+      return new Response(null, { status: 200 });
+    }
+
+    // La rilettura avviene qui e non in differita: se SumUp non risponde, il
+    // 500 fa ritentare il webhook (dopo 1, 5, 20 minuti e 2 ore).
+    try {
+      await ctx.runAction(internal.modules.payments.checkout.syncCheckout, {
+        checkoutId: event.id,
+      });
+    } catch (error) {
+      console.error("Esito del checkout SumUp non riletto:", error);
+      return new Response("Rilettura non riuscita", { status: 500 });
     }
 
     return new Response(null, { status: 200 });

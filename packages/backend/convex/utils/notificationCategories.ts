@@ -39,6 +39,11 @@ export const NOTIFICATION_CATEGORIES = [
     description: "Iscrizioni e rinunce agli eventi.",
   },
   {
+    key: "payments",
+    label: "Pagamenti online",
+    description: "Prenotazioni pagate dal sito, e pagamenti da rimborsare.",
+  },
+  {
     key: "deliveries",
     label: "Avvisi non recapitati",
     description: "Quando una conferma o una disdetta non arriva al cliente per email o WhatsApp.",
@@ -56,6 +61,7 @@ export const notificationCategory = v.union(
   v.literal("matches"),
   v.literal("requests"),
   v.literal("events"),
+  v.literal("payments"),
   v.literal("deliveries"),
   v.literal("system"),
 );

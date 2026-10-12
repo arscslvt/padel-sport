@@ -6,7 +6,13 @@ import {
   roundEuro,
 } from "@padel-sport/backend/convex/modules/pricing/lib";
 
-import { Hint, StepHeader, SummaryRow } from "@/components/booking/wizard-ui";
+import {
+  ChoiceCard,
+  Hint,
+  SectionLabel,
+  StepHeader,
+  SummaryRow,
+} from "@/components/booking/wizard-ui";
 import type { BookingDay } from "@/lib/booking";
 import { formatDayLong, formatSlotRange, MAX_PLAYERS } from "@/lib/booking";
 import type { BookingPartner } from "@/lib/booking-form";
@@ -24,6 +30,7 @@ export function SummaryStep({
   notes,
   partners,
   pricing,
+  payment,
   onEdit,
 }: {
   step: number;
@@ -37,6 +44,8 @@ export function SummaryStep({
   partners: BookingPartner[];
   /** Assente finché il listino non è arrivato: la riga del prezzo aspetta. */
   pricing?: MatchPricing;
+  /** Assente quando il club non ha attivato il pagamento online. */
+  payment?: { online: boolean; onChange: (online: boolean) => void };
   onEdit: (step: number) => void;
 }) {
   const level = LEVEL_RANGES[levelIndex];
@@ -95,11 +104,35 @@ export function SummaryStep({
           <SummaryRow
             label="Quota"
             value={
-              <PriceSummary pricing={pricing} partners={partners.length} />
+              <PriceSummary
+                pricing={pricing}
+                partners={partners.length}
+                onSite={!payment}
+              />
             }
           />
         )}
       </div>
+
+      {payment && (
+        <div className="mt-8">
+          <SectionLabel>Come vuoi pagare?</SectionLabel>
+          <div className="flex flex-col gap-2.5">
+            <ChoiceCard
+              title="Online, adesso"
+              description="Con carta, Apple Pay o Google Pay sulla pagina sicura di SumUp, per te e i compagni indicati."
+              selected={payment.online}
+              onClick={() => payment.onChange(true)}
+            />
+            <ChoiceCard
+              title="In struttura"
+              description="Paghi all'arrivo, come sempre."
+              selected={!payment.online}
+              onClick={() => payment.onChange(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {missing > 0 && (
         <Hint>
@@ -120,9 +153,12 @@ export function SummaryStep({
 function PriceSummary({
   pricing,
   partners,
+  onSite,
 }: {
   pricing: MatchPricing;
   partners: number;
+  /** Senza pagamento online non c'è scelta: lo si dice qui. */
+  onSite: boolean;
 }) {
   const bookerPrice = pricing.bookerPricePerPlayer ?? pricing.pricePerPlayer;
   const member = pricing.bookerPricePerPlayer !== undefined;
@@ -140,7 +176,9 @@ function PriceSummary({
           <li className="font-medium">Totale {formatEuro(total)}</li>
         </>
       )}
-      <li className="text-muted-foreground">Si paga in struttura</li>
+      {onSite && (
+        <li className="text-muted-foreground">Si paga in struttura</li>
+      )}
     </ul>
   );
 }

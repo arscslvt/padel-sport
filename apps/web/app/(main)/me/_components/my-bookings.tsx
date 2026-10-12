@@ -3,12 +3,14 @@
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import { api } from "@padel-sport/backend/convex/_generated/api";
 import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
+import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { useQuery } from "convex/react";
-import { QrCode, Send } from "lucide-react";
+import { CreditCard, QrCode, Send } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useStartPayment } from "@/components/booking/online-payment";
 import { VerifyStep } from "@/components/booking/verify-step";
 import { Button } from "@/components/ui/button";
 import { formatClubDay, formatClubSlotRange, MAX_PLAYERS } from "@/lib/booking";
@@ -38,6 +40,7 @@ export function MyBookings() {
   );
 
   const [resending, setResending] = useState<string | null>(null);
+  const { pay, starting } = useStartPayment();
 
   const resend = async (matchId: Id<"openMatches">, code: string) => {
     setResending(code);
@@ -125,6 +128,7 @@ export function MyBookings() {
                   </p>
                   <p className="text-muted-foreground text-xs tracking-wide uppercase">
                     {STATUS_LABELS[booking.status]}
+                    {booking.payment.paid ? " · Pagata online" : ""}
                   </p>
                 </div>
 
@@ -149,6 +153,20 @@ export function MyBookings() {
                             : "Vedi la prenotazione"}
                         </Link>
                       </Button>
+
+                      {booking.payment.canPay && (
+                        <Button
+                          type="button"
+                          size="pill"
+                          disabled={starting !== null}
+                          onClick={() => void pay(code)}
+                        >
+                          <CreditCard className="size-4" />
+                          {starting === code
+                            ? "Ti portiamo su SumUp…"
+                            : `Paga ora ${formatEuro(booking.payment.amount)}`}
+                        </Button>
+                      )}
 
                       {matchId && (
                         <Button

@@ -1,5 +1,9 @@
 import { query } from "../_generated/server";
 import {
+  onlinePaymentsActive,
+  paymentSummary,
+} from "../modules/payments/lib";
+import {
   getIdentityPlayer,
   MATCH_DURATION_MS,
 } from "../modules/openMatches/lib";
@@ -22,7 +26,9 @@ export default query({
 
     // Una partita iniziata da poco vale ancora la pena di mostrarla: si entra
     // in struttura a ridosso dell'orario, non prima.
-    const from = Date.now() - MATCH_DURATION_MS;
+    const now = Date.now();
+    const from = now - MATCH_DURATION_MS;
+    const paymentsActive = await onlinePaymentsActive(ctx);
 
     const bookings = await ctx.db
       .query("bookings")
@@ -53,6 +59,7 @@ export default query({
             players: booking.players,
             status: booking.status,
             matchId: match?._id,
+            payment: paymentSummary(booking, now, paymentsActive),
           };
         }),
     );

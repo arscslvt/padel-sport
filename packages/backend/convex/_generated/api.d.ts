@@ -94,6 +94,10 @@ import type * as modules_openMatches_players from "../modules/openMatches/player
 import type * as modules_openMatches_publish from "../modules/openMatches/publish.js";
 import type * as modules_openMatches_recipients from "../modules/openMatches/recipients.js";
 import type * as modules_openMatches_requests from "../modules/openMatches/requests.js";
+import type * as modules_payments_checkout from "../modules/payments/checkout.js";
+import type * as modules_payments_lib from "../modules/payments/lib.js";
+import type * as modules_payments_status from "../modules/payments/status.js";
+import type * as modules_payments_sumup from "../modules/payments/sumup.js";
 import type * as modules_pointReports_create from "../modules/pointReports/create.js";
 import type * as modules_pointReports_lib from "../modules/pointReports/lib.js";
 import type * as modules_pointReports_list from "../modules/pointReports/list.js";
@@ -152,6 +156,7 @@ import type * as tables_matchRequests from "../tables/matchRequests.js";
 import type * as tables_memberships from "../tables/memberships.js";
 import type * as tables_notificationPreferences from "../tables/notificationPreferences.js";
 import type * as tables_openMatches from "../tables/openMatches.js";
+import type * as tables_payments from "../tables/payments.js";
 import type * as tables_players from "../tables/players.js";
 import type * as tables_pointPresets from "../tables/pointPresets.js";
 import type * as tables_pointReports from "../tables/pointReports.js";
@@ -263,6 +268,10 @@ declare const fullApi: ApiFromModules<{
   "modules/openMatches/publish": typeof modules_openMatches_publish;
   "modules/openMatches/recipients": typeof modules_openMatches_recipients;
   "modules/openMatches/requests": typeof modules_openMatches_requests;
+  "modules/payments/checkout": typeof modules_payments_checkout;
+  "modules/payments/lib": typeof modules_payments_lib;
+  "modules/payments/status": typeof modules_payments_status;
+  "modules/payments/sumup": typeof modules_payments_sumup;
   "modules/pointReports/create": typeof modules_pointReports_create;
   "modules/pointReports/lib": typeof modules_pointReports_lib;
   "modules/pointReports/list": typeof modules_pointReports_list;
@@ -321,6 +330,7 @@ declare const fullApi: ApiFromModules<{
   "tables/memberships": typeof tables_memberships;
   "tables/notificationPreferences": typeof tables_notificationPreferences;
   "tables/openMatches": typeof tables_openMatches;
+  "tables/payments": typeof tables_payments;
   "tables/players": typeof tables_players;
   "tables/pointPresets": typeof tables_pointPresets;
   "tables/pointReports": typeof tables_pointReports;

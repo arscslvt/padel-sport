@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import Link from "next/link";
 
 import { AddToCalendar } from "@/components/add-to-calendar";
+import { BookingPayment } from "@/components/booking/online-payment";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { formatClubDay, formatClubSlotRange, MAX_PLAYERS } from "@/lib/booking";
@@ -85,6 +86,12 @@ export function BookingOutcome({
           contattiamo se serve definire qualche dettaglio.
         </p>
       )}
+
+      {/* Chi ha scelto di pagare in struttura può ancora cambiare idea; chi ha
+          scelto online è già su SumUp, o ci torna da qui se non è partito. */}
+      <div className="mx-auto mt-8 max-w-sm text-left empty:hidden">
+        <BookingPayment code={code} />
+      </div>
 
       <div className="mx-auto mt-8 flex max-w-sm flex-col gap-2.5">
         <Button asChild size="pill-lg">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AddToCalendar } from "@/components/add-to-calendar";
+import { BookingPayment } from "@/components/booking/online-payment";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { formatClubDay, formatClubSlotRange, MAX_PLAYERS } from "@/lib/booking";
@@ -51,10 +52,14 @@ export async function generateMetadata({
 
 export default async function BookingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ code: string }>;
+  /** `pagamento=esito`: il cliente torna dalla pagina di pagamento di SumUp. */
+  searchParams: Promise<{ pagamento?: string | string[] }>;
 }) {
   const { code } = await params;
+  const { pagamento } = await searchParams;
   const booking = await loadBooking(code);
 
   if (!booking) notFound();
@@ -123,6 +128,16 @@ export default async function BookingPage({
           />
         )}
       </div>
+
+      {/* Solo il titolare vede il pagamento: per gli altri il blocco è vuoto. */}
+      {!cancelled && booking.code && (
+        <div className="mt-6 empty:hidden">
+          <BookingPayment
+            code={booking.code}
+            returning={pagamento === "esito"}
+          />
+        </div>
+      )}
 
       <dl className="border-border mt-8 border-t">
         <div className="border-border flex justify-between gap-6 border-b py-3.5">

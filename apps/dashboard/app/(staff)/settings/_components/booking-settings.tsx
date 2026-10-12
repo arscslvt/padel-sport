@@ -65,11 +65,13 @@ function TimeSelect({
 export function BookingSettings() {
   const settings = useQuery(api.modules.settings.booking.get, {});
   const courts = useQuery(api.modules.settings.booking.courts, {});
+  const payments = useQuery(api.modules.payments.status.setup, {});
 
   const [windows, setWindows] = useState<OpeningWindow[]>([]);
   const [bookableDays, setBookableDays] = useState(7);
   const [membershipRequired, setMembershipRequired] = useState(false);
   const [fullSquadRequired, setFullSquadRequired] = useState(false);
+  const [onlinePaymentsEnabled, setOnlinePaymentsEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // La configurazione arriva dopo il primo render: la copiamo in locale una
@@ -81,6 +83,7 @@ export function BookingSettings() {
     setBookableDays(settings.bookableDays);
     setMembershipRequired(settings.membershipRequired);
     setFullSquadRequired(settings.fullSquadRequired);
+    setOnlinePaymentsEnabled(settings.onlinePaymentsEnabled);
     setLoaded(true);
   }, [settings, loaded]);
 
@@ -113,6 +116,7 @@ export function BookingSettings() {
           bookableDays,
           membershipRequired,
           fullSquadRequired,
+          onlinePaymentsEnabled,
         }),
       });
       const payload = await response.json().catch(() => null);
@@ -292,6 +296,49 @@ export function BookingSettings() {
             </span>
           </span>
         </label>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">Pagamento online</h2>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Se chi prenota dal sito può pagare subito con SumUp.
+          </p>
+        </div>
+
+        <label
+          htmlFor="onlinePaymentsEnabled"
+          className="flex max-w-2xl cursor-pointer items-start gap-3 rounded-lg border p-3.5"
+        >
+          <Checkbox
+            id="onlinePaymentsEnabled"
+            checked={onlinePaymentsEnabled}
+            onCheckedChange={(checked) =>
+              setOnlinePaymentsEnabled(Boolean(checked))
+            }
+            className="mt-0.5"
+          />
+          <span>
+            <span className="block text-sm font-medium">
+              Accetta pagamenti online con SumUp
+            </span>
+            <span className="block text-sm text-muted-foreground">
+              Nel riepilogo della prenotazione e nell'area personale compare
+              «Paga ora»: si paga con carta, Apple Pay o Google Pay, al prezzo
+              del Listino. Resta sempre possibile pagare in struttura, e la
+              conferma della prenotazione resta vostra. Spegnendolo, i pagamenti
+              già avviati vengono comunque registrati.
+            </span>
+          </span>
+        </label>
+
+        {onlinePaymentsEnabled && payments && !payments.configured && (
+          <p className="max-w-2xl rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            Mancano le chiavi di SumUp sul server (<code>SUMUP_API_KEY</code> e{" "}
+            <code>SUMUP_MERCHANT_CODE</code>): finché non ci sono, ai clienti il
+            pagamento online non viene proposto.
+          </p>
+        )}
       </section>
 
       <section className="space-y-4">

@@ -10,6 +10,7 @@ const bodySchema = z.object({
   bookableDays: z.number().int().min(1).max(60),
   membershipRequired: z.boolean().optional(),
   fullSquadRequired: z.boolean().optional(),
+  onlinePaymentsEnabled: z.boolean().optional(),
   windows: z.array(
     z.object({
       weekday: z.number().int().min(0).max(6),

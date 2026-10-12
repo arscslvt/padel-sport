@@ -19,6 +19,7 @@ import matchRequests from "./tables/matchRequests";
 import notificationPreferences from "./tables/notificationPreferences";
 import memberships from "./tables/memberships";
 import openMatches from "./tables/openMatches";
+import payments from "./tables/payments";
 import players from "./tables/players";
 import pointPresets from "./tables/pointPresets";
 import pointReports from "./tables/pointReports";
@@ -61,4 +62,5 @@ export default defineSchema({
   pushSubscriptions,
   notificationPreferences,
   services,
+  payments,
 });

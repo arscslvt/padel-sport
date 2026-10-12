@@ -42,6 +42,14 @@ const bookingSettings = defineTable({
    * del campo.
    */
   fullSquadRequired: v.optional(v.boolean()),
+  /**
+   * Il pagamento online con SumUp si offre ai clienti (modules/payments).
+   *
+   * È l'interruttore del club, distinto dalle chiavi sul deployment: le chiavi
+   * dicono che il pagamento *si può* fare, questo che il club *vuole* farlo.
+   * Nasce spento, e opzionale come sopra.
+   */
+  onlinePaymentsEnabled: v.optional(v.boolean()),
   updatedAt: v.float64(),
 });
 

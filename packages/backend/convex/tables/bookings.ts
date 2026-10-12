@@ -26,7 +26,16 @@ const bookings = defineTable({
    * tutti.
    */
   bookerPricePerPlayer: v.optional(v.float64()),
-  paymentMode: v.literal("on_site"),
+  /**
+   * Come si paga: in struttura, o già pagata online (tables/payments.ts).
+   *
+   * Gli stati qui sotto si chiamano ancora «on_site» per ragioni storiche: la
+   * conferma resta dello staff anche quando il cliente ha pagato online, e
+   * rinominarli vorrebbe dire migrare ogni prenotazione esistente.
+   */
+  paymentMode: v.union(v.literal("on_site"), v.literal("online")),
+  /** Quanto è stato incassato online, in euro. Solo con `paymentMode: "online"`. */
+  paidAmount: v.optional(v.float64()),
   status: v.union(
     v.literal("pending_on_site_payment"),
     v.literal("accepted_on_site_payment"),

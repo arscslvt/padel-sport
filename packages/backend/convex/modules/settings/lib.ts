@@ -23,6 +23,8 @@ export interface BookingSettings {
   membershipRequired: boolean;
   /** La partita privata va prenotata con tutti e quattro i giocatori. */
   fullSquadRequired: boolean;
+  /** Il club offre il pagamento online (serve anche la chiave SumUp). */
+  onlinePaymentsEnabled: boolean;
 }
 
 const DEFAULT_DAY_WINDOWS = [
@@ -40,6 +42,8 @@ export const DEFAULT_SETTINGS: BookingSettings = {
   // Spento: finché il club non lo chiede, si prenota anche in due e la squadra
   // la completa la struttura.
   fullSquadRequired: false,
+  // Spento: si accende dal gestionale quando il club è pronto a incassare.
+  onlinePaymentsEnabled: false,
 };
 
 export async function bookingSettings(ctx: QueryCtx): Promise<BookingSettings> {
@@ -54,6 +58,7 @@ export async function bookingSettings(ctx: QueryCtx): Promise<BookingSettings> {
     bookableDays: row.bookableDays,
     membershipRequired: row.membershipRequired ?? false,
     fullSquadRequired: row.fullSquadRequired ?? false,
+    onlinePaymentsEnabled: row.onlinePaymentsEnabled ?? false,
   };
 }
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
+import { api } from "@padel-sport/backend/convex/_generated/api";
+import { useQuery } from "convex/react";
 import { ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,12 +17,21 @@ import { SUMUP_BOOKING_URL } from "@/lib/links";
  * subito, senza che rubi la scena a quella principale.
  *
  * Chi è già entrato l'account ce l'ha: per lui SumUp non è un ripiego ma un
- * altro modo di pagare, online e subito invece che in sede. Finché Clerk non
- * ha risposto non mostriamo niente, per non far lampeggiare il testo sbagliato.
+ * altro modo di pagare, online e subito invece che in sede. Quando il club ha
+ * acceso il pagamento online però si paga già dal modulo (components/booking/
+ * online-payment.tsx), e mandarlo su SumUp Bookings vorrebbe dire fargli
+ * perdere la prenotazione dall'area personale: il riquadro sparisce. A chi
+ * non ha un account resta sempre, perché per lui è l'unica strada.
+ *
+ * Finché Clerk e la configurazione non hanno risposto non mostriamo niente,
+ * per non far lampeggiare il testo sbagliato.
  */
 export function SumUpFallback() {
   const { isLoaded, isSignedIn } = useAuth();
+  const onlinePayments = useQuery(api.modules.payments.status.enabled, {});
+
   if (!isLoaded) return null;
+  if (isSignedIn && onlinePayments !== false) return null;
 
   return (
     <div className="border-border mt-2.5 flex flex-col gap-4 rounded-2xl border border-dashed px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
