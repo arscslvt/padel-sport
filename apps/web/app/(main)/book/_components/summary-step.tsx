@@ -82,8 +82,10 @@ export function SummaryStep({
           value={
             <ul className="flex flex-col gap-0.5">
               <li>{bookerName} · prenoti tu</li>
-              {partners.map((partner) => (
-                <li key={partner.name}>
+              {/* La posizione e non il nome: due compagni possono chiamarsi
+                  uguale, e l'elenco qui non si riordina. */}
+              {partners.map((partner, index) => (
+                <li key={`${index}-${partner.name}`}>
                   {partner.name}
                   {partner.email ? ` · ${partner.email}` : ""}
                 </li>

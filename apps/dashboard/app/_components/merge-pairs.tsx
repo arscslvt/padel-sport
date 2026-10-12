@@ -63,8 +63,14 @@ function GroupColumn({
       </p>
 
       <div className="flex flex-wrap gap-1.5 pt-1">
-        {booking.players.map((player) => (
-          <Badge key={player} variant="outline" className="bg-card font-normal">
+        {/* La posizione e non il nome: in una squadra ci possono essere due
+            omonimi. */}
+        {booking.players.map((player, index) => (
+          <Badge
+            key={`${index}-${player}`}
+            variant="outline"
+            className="bg-card font-normal"
+          >
             {player}
           </Badge>
         ))}
