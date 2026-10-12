@@ -3,10 +3,17 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
 import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { useQuery } from "convex/react";
-import { CalendarCheck, Plus, Search, Users, X } from "lucide-react";
+import {
+  CalendarCheck,
+  ChevronDown,
+  Plus,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { CountBadge } from "@/app/_components/count-badge";
 import { ListGroup, ListRow } from "@/app/_components/list";
 import { PageBody, PageHeader } from "@/app/_components/page-header";
@@ -39,6 +46,7 @@ import {
 } from "./lib";
 import { NewBookingSheet } from "./new-booking-sheet";
 import { useAgenda } from "./use-agenda";
+import { useHideCancelled } from "./use-hide-cancelled";
 
 /**
  * L'agenda: la prima pagina della dashboard e quella che lo staff apre di più.
@@ -107,13 +115,19 @@ export function Agenda() {
     () =>
       list
         .filter((booking) => dayKey(booking.bookingDate) === selectedDay)
-        .sort(
-          (a, b) =>
-            Number(isCancelled(a)) - Number(isCancelled(b)) ||
-            a.bookingDate - b.bookingDate,
-        ),
+        .sort((a, b) => a.bookingDate - b.bookingDate),
     [list, selectedDay],
   );
+
+  // Le annullate in un elenco a parte, più in basso: la giornata si legge
+  // senza, e chi le cerca le trova. Chiuderlo vale per tutti i giorni.
+  const playing = useMemo(
+    () => ofDay.filter((booking) => !isCancelled(booking)),
+    [ofDay],
+  );
+  const cancelledOfDay = useMemo(() => ofDay.filter(isCancelled), [ofDay]);
+  const [hideCancelled, setHideCancelled] = useHideCancelled();
+  const cancelledListId = useId();
 
   const results = useMemo(() => {
     if (!query.trim()) return [];
@@ -369,17 +383,15 @@ export function Agenda() {
                 <ListGroup
                   title={dayLabel(selectedDay, today)}
                   action={
-                    ofDay.length > 0 && (
+                    playing.length > 0 && (
                       <span className="text-muted-foreground text-[13px] tabular-nums">
-                        {ofDay.filter((row) => !isCancelled(row)).length}{" "}
-                        {ofDay.filter((row) => !isCancelled(row)).length === 1
-                          ? "partita"
-                          : "partite"}
+                        {playing.length}{" "}
+                        {playing.length === 1 ? "partita" : "partite"}
                       </span>
                     )
                   }
                 >
-                  {ofDay.length === 0 ? (
+                  {playing.length === 0 ? (
                     <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
                       <CalendarCheck className="text-muted-foreground/60 size-7" />
                       <p className="text-[15px] font-medium">
@@ -391,7 +403,7 @@ export function Agenda() {
                       </p>
                     </div>
                   ) : (
-                    ofDay.map((booking) => (
+                    playing.map((booking) => (
                       <BookingRow
                         key={booking._id}
                         booking={booking}
@@ -401,6 +413,71 @@ export function Agenda() {
                     ))
                   )}
                 </ListGroup>
+
+                {cancelledOfDay.length > 0 && (
+                  <section className="space-y-2 pt-3">
+                    <div className="flex items-center justify-between gap-3 px-1">
+                      <h2 className="text-muted-foreground text-[13px] font-medium">
+                        Annullate · {cancelledOfDay.length}
+                      </h2>
+                      <button
+                        type="button"
+                        aria-expanded={!hideCancelled}
+                        aria-controls={cancelledListId}
+                        onClick={() => setHideCancelled(!hideCancelled)}
+                        className="text-muted-foreground hover:text-foreground focus-visible:text-foreground -my-2 -mr-2 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-[13px] font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      >
+                        {hideCancelled ? "Mostra" : "Nascondi"}
+                        <ChevronDown
+                          aria-hidden
+                          className={cn(
+                            "size-4 transition-transform duration-200 ease-out motion-reduce:transition-none",
+                            hideCancelled && "-rotate-90",
+                          )}
+                        />
+                      </button>
+                    </div>
+                    <AnimatePresence initial={false}>
+                      {!hideCancelled && (
+                        <motion.div
+                          id={cancelledListId}
+                          key="cancelled"
+                          initial={
+                            reduce ? { opacity: 0 } : { opacity: 0, height: 0 }
+                          }
+                          animate={{
+                            opacity: 1,
+                            height: "auto",
+                            transition: {
+                              duration: UI_DURATION.enter,
+                              ease: EASE_OUT,
+                            },
+                          }}
+                          exit={{
+                            opacity: 0,
+                            ...(reduce ? {} : { height: 0 }),
+                            transition: {
+                              duration: UI_DURATION.exit,
+                              ease: EASE_OUT,
+                            },
+                          }}
+                          className="overflow-hidden"
+                        >
+                          <div className="bg-card overflow-hidden rounded-2xl border [&>*+*]:border-t">
+                            {cancelledOfDay.map((booking) => (
+                              <BookingRow
+                                key={booking._id}
+                                booking={booking}
+                                court={courtNames.get(booking.slot)}
+                                onOpen={() => openRow(booking)}
+                              />
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </section>
+                )}
               </section>
 
               {pairs.length > 0 && (
