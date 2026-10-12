@@ -121,8 +121,6 @@ export function NestedDrawer({
       open={open}
       onOpenChange={onOpenChange}
       dismissible={!dirty}
-      // La tastiera la gestisce `KeyboardInset` (components/ui/keyboard-inset.tsx).
-      repositionInputs={false}
     >
       <DrawerPrimitive.Trigger asChild>{trigger}</DrawerPrimitive.Trigger>
       <DrawerContent
