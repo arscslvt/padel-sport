@@ -12,13 +12,16 @@ import {
   clientReach,
   clubTime,
   dayKey,
+  dueOnSite,
   isCancelled,
+  isPaidOnline,
   isPartial,
   isPending,
   LEVEL_LABELS,
+  needsRefund,
+  onSiteTotal,
   shortDayLabel,
   timeRange,
-  totalPrice,
 } from "./lib";
 
 /**
@@ -96,16 +99,27 @@ export function BookingRow({
           {partial && (
             <span className="text-warning-foreground"> · cerca giocatori</span>
           )}
+          {/* Il badge a destra lo dice solo quando non resta niente da
+              incassare: negli altri casi lo si scrive qui. */}
+          {isPaidOnline(booking) &&
+            !cancelled &&
+            (isPending(booking) || dueOnSite(booking) > 0) && (
+              <span className="text-success-foreground"> · pagata online</span>
+            )}
         </span>
       </span>
 
       {isPending(booking) ? (
         <StatusBadge tone="warning">Da confermare</StatusBadge>
+      ) : needsRefund(booking) ? (
+        <StatusBadge tone="danger">Da rimborsare</StatusBadge>
       ) : cancelled ? (
         <StatusBadge tone="danger">Annullata</StatusBadge>
+      ) : isPaidOnline(booking) && dueOnSite(booking) === 0 ? (
+        <StatusBadge tone="success">Pagata online</StatusBadge>
       ) : (
         <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
-          {totalPrice(booking)}
+          {onSiteTotal(booking)}
         </span>
       )}
     </button>
@@ -143,9 +157,15 @@ export function PendingCard({
           <span className="truncate text-[15px] font-semibold">
             {booking.bookedBy}
           </span>
-          <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
-            {totalPrice(booking)}
-          </span>
+          {isPaidOnline(booking) ? (
+            <span className="text-success-foreground shrink-0 text-sm tabular-nums">
+              Pagata online
+            </span>
+          ) : (
+            <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
+              {onSiteTotal(booking)}
+            </span>
+          )}
         </span>
         <span className="mt-1 block text-sm">
           {shortDayLabel(dayKey(booking.bookingDate))},{" "}

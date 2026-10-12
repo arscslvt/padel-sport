@@ -1,8 +1,10 @@
 "use client";
 
+import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { Loader2, Mail, Phone, Unlink } from "lucide-react";
+import { Fragment } from "react";
 import { FaWhatsapp } from "react-icons/fa";
 import { ListGroup, ListRow } from "@/app/_components/list";
 import { SheetHeader } from "@/app/_components/sheet-header";
@@ -25,11 +27,13 @@ import {
   dayLabel,
   deliveryBadge,
   isCancelled,
+  isPaidOnline,
   isPartial,
   isPending,
   LEVEL_LABELS,
+  needsRefund,
+  onSiteTotal,
   timeRange,
-  totalPrice,
   whatsappNumber,
 } from "./lib";
 
@@ -135,6 +139,11 @@ function Body({
           {clientReach(booking) === "unreached" && (
             <StatusBadge tone="danger">Cliente non avvisato</StatusBadge>
           )}
+          {needsRefund(booking) ? (
+            <StatusBadge tone="danger">Da rimborsare</StatusBadge>
+          ) : isPaidOnline(booking) ? (
+            <StatusBadge tone="success">Pagata online</StatusBadge>
+          ) : null}
         </div>
 
         {/* Senza numero i due tasti restano, spenti: dove stanno non cambia. */}
@@ -201,7 +210,12 @@ function Body({
           />
           <ListRow
             title="Totale in struttura"
-            trailing={<Value>{totalPrice(booking)}</Value>}
+            subtitle={
+              isPaidOnline(booking)
+                ? `Già pagati online ${formatEuro(booking.paidAmount ?? 0)}`
+                : undefined
+            }
+            trailing={<Value>{onSiteTotal(booking)}</Value>}
           />
           <ListRow
             title="Telefono"
@@ -222,6 +236,8 @@ function Body({
             }
           />
         </ListGroup>
+
+        <OnlinePayment booking={booking} />
 
         <Deliveries deliveries={booking.deliveries} />
 
@@ -356,6 +372,73 @@ function Deliveries({ deliveries }: { deliveries?: Delivery[] }) {
         );
       })}
     </ListGroup>
+  );
+}
+
+/**
+ * L'incasso online, con quello che serve a ritrovarlo nel pannello SumUp: il
+ * codice transazione è quello che SumUp mostra fra le Transazioni e sulla
+ * ricevuta, gli id servono quando c'è da scrivere all'assistenza. Sono tutti
+ * selezionabili con un tocco, per copiarli.
+ */
+function OnlinePayment({ booking }: { booking: Booking }) {
+  if (!isPaidOnline(booking)) return null;
+
+  const payments = booking.payments ?? [];
+  const refund = needsRefund(booking);
+  const duplicate = payments.length > 1;
+
+  const footer = refund
+    ? "La prenotazione è annullata ma risulta pagata: rimborsala dal pannello SumUp, in Transazioni, cercando il codice."
+    : duplicate
+      ? "Risultano più pagamenti per la stessa prenotazione: quelli in più vanno rimborsati dal pannello SumUp."
+      : "Per una controverifica, nel pannello SumUp apri Transazioni e cerca il codice transazione.";
+
+  return (
+    <ListGroup title="Pagamento online" footer={footer}>
+      {payments.length === 0 && (
+        <ListRow
+          title="Importo pagato"
+          trailing={<Value>{formatEuro(booking.paidAmount ?? 0)}</Value>}
+        />
+      )}
+      {payments.map((payment, index) => (
+        <Fragment key={payment.paymentId}>
+          <ListRow
+            title={duplicate ? `Pagamento ${index + 1}` : "Importo pagato"}
+            subtitle={format(payment.paidAt, "d MMM yyyy, HH:mm", {
+              locale: it,
+            })}
+            trailing={<Value>{formatEuro(payment.amount)}</Value>}
+          />
+          {payment.transactionCode && (
+            <Reference
+              label="Codice transazione"
+              value={payment.transactionCode}
+            />
+          )}
+          {payment.transactionId && (
+            <Reference label="ID transazione" value={payment.transactionId} />
+          )}
+          {payment.checkoutId && (
+            <Reference label="ID checkout" value={payment.checkoutId} />
+          )}
+          <Reference label="Riferimento" value={payment.paymentId} />
+        </Fragment>
+      ))}
+    </ListGroup>
+  );
+}
+
+/** Un identificativo da copiare: intero, mai troncato, selezionabile. */
+function Reference({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-h-14 flex-col justify-center gap-0.5 px-4 py-2.5">
+      <span className="text-[15px] leading-snug">{label}</span>
+      <span className="text-muted-foreground font-mono text-[13px] break-all select-all">
+        {value}
+      </span>
+    </div>
   );
 }
 

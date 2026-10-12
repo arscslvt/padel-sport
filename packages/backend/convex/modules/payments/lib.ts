@@ -1,4 +1,4 @@
-import type { Doc } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
 import { bookingTotal } from "../pricing/lib";
 import { bookingSettings } from "../settings/lib";
@@ -96,6 +96,48 @@ export function paymentSummary(
     amount: paid ? (booking.paidAmount ?? 0) : bookingTotal(booking),
     canPay: active && payBlocker(booking, now) === null,
   };
+}
+
+/**
+ * I riferimenti di un incasso, per ritrovarlo nel pannello SumUp: lo staff li
+ * legge nella scheda della prenotazione per una controverifica, o per sapere
+ * quale transazione rimborsare.
+ */
+export interface PaymentReference {
+  /** Il nostro `checkout_reference` su SumUp. */
+  paymentId: Id<"payments">;
+  amount: number;
+  paidAt: number;
+  /** Il codice che SumUp mostra fra le transazioni e sulla ricevuta. */
+  transactionCode?: string;
+  transactionId?: string;
+  checkoutId?: string;
+}
+
+/**
+ * Gli incassi online di una prenotazione, dal primo. Di norma uno solo: più
+ * di uno vuol dire un doppio pagamento da rimborsare.
+ */
+export async function paidPayments(
+  ctx: QueryCtx,
+  bookingId: Id<"bookings">,
+): Promise<PaymentReference[]> {
+  const attempts = await ctx.db
+    .query("payments")
+    .withIndex("by_booking", (q) => q.eq("bookingId", bookingId))
+    .collect();
+
+  return attempts
+    .filter((attempt) => attempt.status === "paid")
+    .sort((a, b) => (a.paidAt ?? 0) - (b.paidAt ?? 0))
+    .map((attempt) => ({
+      paymentId: attempt._id,
+      amount: attempt.amount,
+      paidAt: attempt.paidAt ?? attempt.updatedAt,
+      transactionCode: attempt.transactionCode,
+      transactionId: attempt.transactionId,
+      checkoutId: attempt.checkoutId,
+    }));
 }
 
 export function statusFromCheckout(status: CheckoutStatus): PaymentStatus {

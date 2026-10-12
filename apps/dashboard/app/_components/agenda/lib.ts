@@ -1,7 +1,9 @@
 import type { Doc } from "@padel-sport/backend/convex/_generated/dataModel";
+import type { PaymentReference } from "@padel-sport/backend/convex/modules/payments/lib";
 import {
   bookingTotal,
   formatEuro,
+  roundEuro,
 } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -25,11 +27,15 @@ import { CLUB_TIME_ZONE, MATCH_DURATION_MS, MAX_PLAYERS } from "@/lib/booking";
 export type Delivery = Omit<Doc<"bookingDeliveries">, "providerId">;
 
 /**
- * Una prenotazione dell'agenda. `deliveries` c'è quando arriva dalla route
- * dell'agenda (api/dashboard/bookings); altrove, per esempio nell'unione dei
- * campi, la prenotazione è quella nuda.
+ * Una prenotazione dell'agenda. `deliveries` e `payments` ci sono quando
+ * arriva dalla route dell'agenda (api/dashboard/bookings); altrove, per
+ * esempio nell'unione dei campi, la prenotazione è quella nuda.
  */
-export type Booking = Doc<"bookings"> & { deliveries?: Delivery[] };
+export type Booking = Doc<"bookings"> & {
+  deliveries?: Delivery[];
+  /** Gli incassi online, con i riferimenti per ritrovarli su SumUp. */
+  payments?: PaymentReference[];
+};
 
 const dayKeyFormat = new Intl.DateTimeFormat("en-CA", {
   timeZone: CLUB_TIME_ZONE,
@@ -148,9 +154,29 @@ export const LEVEL_LABELS: Record<Booking["level"], string> = {
   avanzato: "Avanzato",
 };
 
-/** "28 €": quanto vale la prenotazione per la squadra che c'è adesso. */
-export function totalPrice(booking: Booking): string {
-  return formatEuro(bookingTotal(booking));
+/** Pagata online dal cliente (modules/payments). */
+export function isPaidOnline(booking: Booking): boolean {
+  return booking.paymentMode === "online";
+}
+
+/**
+ * Quanto resta da incassare allo sportello: la squadra di adesso, meno quel
+ * che il cliente ha già pagato online. Chi si è aggiunto dopo il pagamento
+ * paga la sua quota qui.
+ */
+export function dueOnSite(booking: Booking): number {
+  const paid = isPaidOnline(booking) ? (booking.paidAmount ?? 0) : 0;
+  return roundEuro(Math.max(0, bookingTotal(booking) - paid));
+}
+
+/** "28 €": quanto incassare in struttura. */
+export function onSiteTotal(booking: Booking): string {
+  return formatEuro(dueOnSite(booking));
+}
+
+/** Annullata dopo essere stata pagata online: i soldi vanno restituiti. */
+export function needsRefund(booking: Booking): boolean {
+  return booking.status === "cancelled" && isPaidOnline(booking);
 }
 
 /**
