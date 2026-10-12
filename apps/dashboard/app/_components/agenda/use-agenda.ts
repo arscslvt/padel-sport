@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useCounts } from "@/app/_providers/counts.provider";
 import { PUSH_REFRESH_EVENT } from "@/lib/push";
 
-import { type Booking, isPaidOnline } from "./lib";
+import { type Booking, isPaidOnline, timeRange } from "./lib";
 
 /**
  * Racconta all'operatore com'è andato un rimborso: quanto è tornato al
@@ -241,6 +241,24 @@ export function useAgenda() {
       },
     );
 
+  const reschedule = (booking: Booking, bookingDate: number, notify: boolean) =>
+    run(
+      booking._id,
+      () =>
+        request("/api/dashboard/bookings/reschedule", "POST", {
+          bookingId: booking._id,
+          bookingDate,
+          notify,
+        }),
+      {
+        success: "Orario spostato",
+        description: notify
+          ? `Ora si gioca alle ${timeRange(bookingDate)}. Abbiamo avvisato il cliente via email.`
+          : `Ora si gioca alle ${timeRange(bookingDate)}. Il cliente non è stato avvisato.`,
+        error: "Orario non spostato",
+      },
+    );
+
   const split = (booking: Booking) =>
     run(
       booking._id,
@@ -263,6 +281,7 @@ export function useAgenda() {
     cancel,
     refund,
     updatePlayers,
+    reschedule,
     split,
   };
 }

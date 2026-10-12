@@ -17,6 +17,7 @@ import type * as bookings_list from "../bookings/list.js";
 import type * as bookings_merge from "../bookings/merge.js";
 import type * as bookings_mine from "../bookings/mine.js";
 import type * as bookings_players from "../bookings/players.js";
+import type * as bookings_reschedule from "../bookings/reschedule.js";
 import type * as bookings_staffCreate from "../bookings/staffCreate.js";
 import type * as bookings_update from "../bookings/update.js";
 import type * as crons from "../crons.js";
@@ -193,6 +194,7 @@ declare const fullApi: ApiFromModules<{
   "bookings/merge": typeof bookings_merge;
   "bookings/mine": typeof bookings_mine;
   "bookings/players": typeof bookings_players;
+  "bookings/reschedule": typeof bookings_reschedule;
   "bookings/staffCreate": typeof bookings_staffCreate;
   "bookings/update": typeof bookings_update;
   crons: typeof crons;

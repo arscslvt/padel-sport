@@ -1,3 +1,4 @@
+import { currentUser } from "@clerk/nextjs/server";
 import { api } from "@padel-sport/backend/convex/_generated/api";
 import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
 import { NextResponse } from "next/server";
@@ -37,6 +38,13 @@ export async function POST(request: Request) {
 
   const { slotId, playerId, phone, ...rest } = parsed.data;
 
+  // Chi la prende resta scritto nella scheda: il nome com'è oggi su Clerk.
+  const user = await currentUser().catch(() => null);
+  const staffName =
+    user?.fullName?.trim() ||
+    user?.primaryEmailAddress?.emailAddress ||
+    "Operatore";
+
   try {
     const result = await gate.convex.mutation(
       api.bookings.staffCreate.default,
@@ -46,6 +54,7 @@ export async function POST(request: Request) {
         phone: phone || undefined,
         slotId: slotId ? (slotId as Id<"slots">) : undefined,
         playerId: playerId ? (playerId as Id<"players">) : undefined,
+        staff: { userId: gate.userId, name: staffName },
       },
     );
 

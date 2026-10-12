@@ -128,8 +128,10 @@ export default internalAction({
   args: {
     bookingId: v.id("bookings"),
     kind: notificationKind,
+    /** Con `rescheduled`: l'orario di prima, perché la mail dica cosa cambia. */
+    previousStart: v.optional(v.number()),
   },
-  handler: async (ctx, { bookingId, kind }) => {
+  handler: async (ctx, { bookingId, kind, previousStart }) => {
     const data = await ctx.runQuery(
       internal.modules.notifications.bookingMail.payload,
       { bookingId },
@@ -188,7 +190,7 @@ export default internalAction({
           "Content-Type": "application/json",
           "x-booking-webhook-secret": secret,
         },
-        body: JSON.stringify({ ...data, kind }),
+        body: JSON.stringify({ ...data, kind, previousStart }),
       });
 
       const payload = (await response.json().catch(() => null)) as {

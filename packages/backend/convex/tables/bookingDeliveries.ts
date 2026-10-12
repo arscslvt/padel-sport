@@ -10,6 +10,8 @@ const notificationKind = v.union(
   v.literal("merged"),
   v.literal("cancelled_by_club"),
   v.literal("cancelled_by_player"),
+  /** Lo staff ha spostato l'orario (bookings/reschedule.ts). */
+  v.literal("rescheduled"),
 );
 
 const deliveryChannel = v.union(v.literal("email"), v.literal("whatsapp"));

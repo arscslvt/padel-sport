@@ -169,6 +169,7 @@ const FAILURE_TITLES: Record<NotificationKind, string> = {
   merged: "⚠️ Unione dei campi non comunicata",
   cancelled_by_club: "⚠️ Disdetta non comunicata",
   cancelled_by_player: "⚠️ Disdetta non comunicata",
+  rescheduled: "⚠️ Cambio d'orario non comunicato",
 };
 
 const CHANNEL_LABELS: Record<DeliveryChannel, string> = {

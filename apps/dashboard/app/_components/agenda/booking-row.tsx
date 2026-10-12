@@ -1,6 +1,6 @@
 "use client";
 
-import { BellOff, Loader2, Users } from "lucide-react";
+import { BellOff, Building2, Loader2, UserRound, Users } from "lucide-react";
 
 import { StatusBadge } from "@/app/_components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,34 @@ import {
   isPaidOnline,
   isPartial,
   isPending,
+  isStaffMade,
   LEVEL_LABELS,
   needsRefund,
   onSiteTotal,
   shortDayLabel,
   timeRange,
 } from "./lib";
+
+/**
+ * Chi ha fatto la prenotazione, in un'icona accanto al nome: l'omino è il
+ * cliente che ha prenotato da sé, l'edificio lo staff dal gestionale. Discreta
+ * di proposito: è un'informazione da trovare quando serve, non da leggere a
+ * ogni riga. Con il puntatore il titolo la spiega; lo screen reader la legge.
+ */
+function OriginMark({ booking }: { booking: Booking }) {
+  if (!booking.origin) return null;
+
+  const staff = isStaffMade(booking);
+  const Icon = staff ? Building2 : UserRound;
+  const label = staff ? "Creata dal gestionale" : "Prenotata dal cliente";
+
+  return (
+    <span title={label} className="text-muted-foreground inline-flex shrink-0">
+      <Icon aria-hidden className="size-3.5" />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
 
 /**
  * Una partita nella giornata.
@@ -75,6 +97,7 @@ export function BookingRow({
           <span className="truncate text-[15px] font-medium">
             {booking.bookedBy}
           </span>
+          <OriginMark booking={booking} />
           {booking.mergedWith && (
             <Users
               aria-label="Campo condiviso"
@@ -154,8 +177,11 @@ export function PendingCard({
         className="w-full rounded-t-2xl px-4 pt-3.5 pb-3 text-left outline-none focus-visible:bg-muted/60"
       >
         <span className="flex items-center justify-between gap-3">
-          <span className="truncate text-[15px] font-semibold">
-            {booking.bookedBy}
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-[15px] font-semibold">
+              {booking.bookedBy}
+            </span>
+            <OriginMark booking={booking} />
           </span>
           {isPaidOnline(booking) ? (
             <span className="text-success-foreground shrink-0 text-sm tabular-nums">

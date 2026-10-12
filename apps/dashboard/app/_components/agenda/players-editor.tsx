@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, RotateCw, Smartphone, X } from "lucide-react";
+import { RotateCw, Smartphone, X } from "lucide-react";
 import {
   type FormEvent,
   type KeyboardEvent,
@@ -10,16 +10,15 @@ import {
   useRef,
   useState,
 } from "react";
-import { Drawer as DrawerPrimitive } from "vaul";
-
 import { ListGroup, ListRow } from "@/app/_components/list";
-import { SheetHeader } from "@/app/_components/sheet-header";
-import { Button } from "@/components/ui/button";
 import {
-  DrawerClose,
-  DrawerContent,
-  DrawerFooter,
-} from "@/components/ui/drawer";
+  NestedDrawer,
+  NestedDrawerForm,
+  PRESS,
+  SubmitLabel,
+  useCloseNested,
+} from "@/app/_components/nested-drawer";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -173,10 +172,6 @@ function usePlayersForm(booking: Booking) {
 }
 
 type PlayersForm = ReturnType<typeof usePlayersForm>;
-
-/** Il tocco sul pulsante si sente subito; chi riduce le animazioni non lo vede. */
-const PRESS =
-  "transition-[transform,background-color,opacity] duration-150 ease-out active:scale-[0.97] motion-reduce:transform-none";
 
 function PlayersFields({
   form,
@@ -336,20 +331,6 @@ function PlayersFields({
   );
 }
 
-function SaveLabel({ busy }: { busy: boolean }) {
-  return busy ? (
-    <>
-      <Loader2
-        aria-hidden
-        className="size-4 animate-spin motion-reduce:animate-none"
-      />
-      Salvataggio…
-    </>
-  ) : (
-    "Salva"
-  );
-}
-
 /** Da desktop: il modulo dentro la scheda, sotto i dati. */
 export function PlayersEditor({
   booking,
@@ -408,7 +389,7 @@ export function PlayersEditor({
           Annulla
         </Button>
         <Button type="submit" className={PRESS} disabled={busy || !form.dirty}>
-          <SaveLabel busy={busy} />
+          <SubmitLabel busy={busy} label="Salva" />
         </Button>
       </div>
     </form>
@@ -416,13 +397,7 @@ export function PlayersEditor({
 }
 
 /**
- * Da telefono: un drawer annidato sopra la scheda, come nell'esempio di Vaul
- * (`Drawer.NestedRoot` dentro il contenuto del drawer padre).
- *
- * Si apre dal suo `Trigger` e si chiude dai suoi `Close`, non cambiando `open`
- * da fuori: è così che Vaul avvisa la scheda sotto, che si rimpicciolisce
- * all'apertura e torna com'era alla chiusura. Dopo un salvataggio riuscito la
- * chiusura passa da un `Close` nascosto, per lo stesso motivo.
+ * Da telefono: un drawer annidato sopra la scheda (nested-drawer.tsx).
  *
  * Il fuoco non va da solo in un campo: da telefono aprirebbe la tastiera sopra
  * il drawer prima ancora di averlo letto.
@@ -440,23 +415,19 @@ export function PlayersDrawer({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (players: string[]) => Promise<boolean>;
-  /** La riga che lo apre: diventa il `Trigger`. */
+  /** La riga che lo apre. */
   children: ReactNode;
 }) {
   return (
-    <DrawerPrimitive.NestedRoot open={open} onOpenChange={onOpenChange}>
-      <DrawerPrimitive.Trigger asChild>{children}</DrawerPrimitive.Trigger>
-      <DrawerContent>
-        <SheetHeader
-          title="Giocatori"
-          description={`Prenotazione di ${booking.bookedBy} · ${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
-        />
-        {/* Il contenuto del drawer si monta all'apertura e si smonta dopo
-            l'animazione di chiusura: il modulo rilegge i nomi ogni volta, e
-            non sparisce mentre il drawer scende. */}
-        <DrawerForm booking={booking} busy={busy} onSave={onSave} />
-      </DrawerContent>
-    </DrawerPrimitive.NestedRoot>
+    <NestedDrawer
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Giocatori"
+      description={`Prenotazione di ${booking.bookedBy} · ${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
+      trigger={children}
+    >
+      <DrawerForm booking={booking} busy={busy} onSave={onSave} />
+    </NestedDrawer>
   );
 }
 
@@ -470,47 +441,22 @@ function DrawerForm({
   onSave: (players: string[]) => Promise<boolean>;
 }) {
   const form = usePlayersForm(booking);
-  const close = useRef<HTMLButtonElement>(null);
+  const close = useCloseNested();
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const players = form.collect();
-    if (players && (await onSave(players))) close.current?.click();
+    if (players && (await onSave(players))) close();
   };
 
   return (
-    <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit} noValidate>
-      {/* Scorre solo il modulo: testata e bottoni restano fermi. */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1">
-        <PlayersFields form={form} busy={busy} touch />
-      </div>
-
-      {/* Da telefono il bottone principale sta sopra, a portata di pollice. */}
-      <DrawerFooter className="flex flex-col-reverse gap-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <DrawerClose asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            className={cn("h-12 rounded-xl", PRESS)}
-            disabled={busy}
-          >
-            Annulla
-          </Button>
-        </DrawerClose>
-        <Button
-          type="submit"
-          className={cn("h-12 rounded-xl", PRESS)}
-          disabled={busy || !form.dirty}
-        >
-          <SaveLabel busy={busy} />
-        </Button>
-        <DrawerClose
-          ref={close}
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden
-        />
-      </DrawerFooter>
-    </form>
+    <NestedDrawerForm
+      onSubmit={submit}
+      busy={busy}
+      canSubmit={form.dirty}
+      submitLabel="Salva"
+    >
+      <PlayersFields form={form} busy={busy} touch />
+    </NestedDrawerForm>
   );
 }

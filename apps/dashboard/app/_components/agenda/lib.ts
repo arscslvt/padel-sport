@@ -35,7 +35,40 @@ export type Booking = Doc<"bookings"> & {
   deliveries?: Delivery[];
   /** Gli incassi online, con i riferimenti per ritrovarli su SumUp. */
   payments?: PaymentReference[];
+  /**
+   * Chi l'ha fatta: il cliente da sé (dal sito, dall'app, o non si sa più da
+   * dove) oppure lo staff dal gestionale (bookings/list.ts).
+   */
+  origin?: "web" | "app" | "client" | "staff";
 };
+
+/** Presa dallo staff, dal gestionale, invece che dal cliente da sé. */
+export function isStaffMade(booking: Booking): boolean {
+  return booking.origin === "staff";
+}
+
+/**
+ * La riga in fondo alla scheda: chi ha creato la prenotazione, da dove e
+ * quando. «Creata da Mario Rossi dal gestionale il 12 ottobre alle 9:41.»
+ */
+export function authorLine(booking: Booking): string {
+  const when = format(booking.createdAt, "d MMMM 'alle' H:mm", { locale: it });
+
+  switch (booking.origin) {
+    case "staff":
+      return booking.createdByStaff
+        ? `Creata da ${booking.createdByStaff.name} dal gestionale il ${when}.`
+        : `Creata dal gestionale il ${when}.`;
+    case "web":
+      return `Prenotata dal cliente sul sito il ${when}.`;
+    case "app":
+      return `Prenotata dal cliente con l'app il ${when}.`;
+    case "client":
+      return `Prenotata dal cliente il ${when}.`;
+    default:
+      return `Prenotata il ${when}.`;
+  }
+}
 
 const dayKeyFormat = new Intl.DateTimeFormat("en-CA", {
   timeZone: CLUB_TIME_ZONE,
@@ -215,6 +248,7 @@ export const DELIVERY_KIND_LABELS: Record<Delivery["kind"], string> = {
   merged: "Campo unito",
   cancelled_by_club: "Disdetta",
   cancelled_by_player: "Disdetta",
+  rescheduled: "Cambio d'orario",
 };
 
 /**

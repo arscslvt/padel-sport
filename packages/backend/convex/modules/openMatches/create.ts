@@ -203,6 +203,7 @@ export default mutation({
 
     // Il prezzo del listino di oggi, con la tariffa tesserati per chi prenota.
     const pricing = await matchPricing(ctx, player._id);
+    const origin = args.origin ?? "app";
 
     const bookingId = await ctx.db.insert("bookings", {
       bookedBy: player.name,
@@ -218,6 +219,7 @@ export default mutation({
       createdAt: Date.now(),
       code: bookingCode,
       createdByPlayer: player._id,
+      source: origin,
     });
 
     const matchId = await ctx.db.insert("openMatches", {
@@ -287,8 +289,6 @@ export default mutation({
       internal.modules.courtCalendar.push.default,
       { bookingId },
     );
-
-    const origin = args.origin ?? "app";
 
     await ctx.scheduler.runAfter(
       0,

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import type { Doc } from "../_generated/dataModel";
+import { type QueryCtx, query } from "../_generated/server";
 import { onlinePayments } from "../modules/payments/lib";
 import { assertServer } from "../utils/serverSecret";
 
@@ -18,6 +19,27 @@ import { assertServer } from "../utils/serverSecret";
  * incassi — rimborsati compresi — per ritrovarli su SumUp. Facoltativo perché i contatori della barra leggono la
  * stessa lista ogni minuto e non se ne fanno niente.
  */
+/**
+ * Chi ha fatto la prenotazione, per l'indicatore dell'agenda: il cliente da
+ * sé (dal sito, dall'app, o non si sa più da dove) oppure lo staff.
+ *
+ * Le prenotazioni nuove lo portano scritto (`source`). Per quelle di prima la
+ * si ricava dalla partita: sito e app ne creano sempre una, il gestionale mai.
+ */
+async function originOf(
+  ctx: QueryCtx,
+  booking: Doc<"bookings">,
+): Promise<"web" | "app" | "client" | "staff"> {
+  if (booking.source) return booking.source;
+
+  const match = await ctx.db
+    .query("openMatches")
+    .withIndex("by_booking", (q) => q.eq("bookingId", booking._id))
+    .first();
+
+  return match ? "client" : "staff";
+}
+
 export default query({
   args: {
     secret: v.string(),
@@ -67,6 +89,7 @@ export default query({
           // L'id del provider serve ai webhook, non a chi guarda la scheda.
           deliveries: deliveries.map(({ providerId: _, ...delivery }) => delivery),
           payments: payments.length > 0 ? payments : undefined,
+          origin: await originOf(ctx, booking),
         };
       }),
     );

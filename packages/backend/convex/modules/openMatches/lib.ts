@@ -114,6 +114,8 @@ export async function findAvailableSlot(
 export async function courtsAt(
   ctx: QueryCtx,
   bookingDate: number,
+  /** Una prenotazione da non contare: quella che si sta spostando. */
+  ignore?: Id<"bookings">,
 ): Promise<{ free: Doc<"slots">[]; blocked: number }> {
   const activeSlots = (await ctx.db.query("slots").collect())
     .filter((slot) => slot.active)
@@ -135,6 +137,7 @@ export async function courtsAt(
       if (existingBooking.status === "cancelled") {
         return false;
       }
+      if (existingBooking._id === ignore) return false;
 
       const existingStart = existingBooking.bookingDate;
       const existingEnd = existingStart + MATCH_DURATION_MS;

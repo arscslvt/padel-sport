@@ -20,6 +20,7 @@ import { MAX_PLAYERS } from "@/lib/booking";
 import { cn } from "@/lib/utils";
 
 import {
+  authorLine,
   type Booking,
   clientReach,
   DELIVERY_KIND_LABELS,
@@ -39,6 +40,7 @@ import {
   whatsappNumber,
 } from "./lib";
 import { PlayersDrawer, PlayersEditor } from "./players-editor";
+import { RescheduleDrawer, RescheduleEditor } from "./reschedule-editor";
 
 /**
  * I tasti di contatto: superficie bianca come le schede sotto, sempre.
@@ -69,6 +71,7 @@ export function BookingSheet({
   onCancel,
   onRefund,
   onUpdatePlayers,
+  onReschedule,
   onSplit,
 }: {
   booking: Booking | null;
@@ -80,6 +83,11 @@ export function BookingSheet({
   onCancel: (booking: Booking) => void;
   onRefund: (booking: Booking, paymentId: string, amount: number) => void;
   onUpdatePlayers: (booking: Booking, players: string[]) => Promise<boolean>;
+  onReschedule: (
+    booking: Booking,
+    bookingDate: number,
+    notify: boolean,
+  ) => Promise<boolean>;
   onSplit: (booking: Booking) => void;
 }) {
   return (
@@ -97,6 +105,7 @@ export function BookingSheet({
             onCancel={onCancel}
             onRefund={onRefund}
             onUpdatePlayers={onUpdatePlayers}
+            onReschedule={onReschedule}
             onSplit={onSplit}
           />
         )}
@@ -114,6 +123,7 @@ function Body({
   onCancel,
   onRefund,
   onUpdatePlayers,
+  onReschedule,
   onSplit,
 }: {
   booking: Booking;
@@ -124,12 +134,18 @@ function Body({
   onCancel: (booking: Booking) => void;
   onRefund: (booking: Booking, paymentId: string, amount: number) => void;
   onUpdatePlayers: (booking: Booking, players: string[]) => Promise<boolean>;
+  onReschedule: (
+    booking: Booking,
+    bookingDate: number,
+    notify: boolean,
+  ) => Promise<boolean>;
   onSplit: (booking: Booking) => void;
 }) {
   const pending = isPending(booking);
   const cancelled = isCancelled(booking);
   const phone = booking.phone?.trim();
   const [editingPlayers, setEditingPlayers] = useState(false);
+  const [editingTime, setEditingTime] = useState(false);
   // Da telefono la scheda è un drawer: i giocatori si correggono in uno
   // annidato. Da desktop è una modale, e il modulo si apre dentro.
   const { isDesktop } = useResponsiveDrawer();
@@ -139,6 +155,30 @@ function Body({
   const closePlayers = () => {
     setEditingPlayers(false);
     requestAnimationFrame(() => playersRow.current?.focus());
+  };
+
+  const saveTime = (bookingDate: number, notify: boolean) =>
+    onReschedule(booking, bookingDate, notify);
+  const timeRow = useRef<HTMLButtonElement>(null);
+  const closeTime = () => {
+    setEditingTime(false);
+    requestAnimationFrame(() => timeRow.current?.focus());
+  };
+
+  // Da desktop un modulo alla volta dentro la scheda: aprirne uno chiude
+  // l'altro, così si sa sempre cosa si sta modificando.
+  const toggleTime = () => {
+    setEditingPlayers(false);
+    setEditingTime((open) => !open);
+  };
+  const togglePlayers = () => {
+    setEditingTime(false);
+    setEditingPlayers((open) => !open);
+  };
+
+  const time = {
+    title: "Orario",
+    trailing: <Value>{timeRange(booking.bookingDate)}</Value>,
   };
 
   const players = {
@@ -229,6 +269,28 @@ function Body({
         </div>
 
         <ListGroup>
+          {/* L'orario si sposta nello stesso giorno: un tocco e si sceglie. */}
+          {cancelled ? (
+            <ListRow {...time} />
+          ) : isDesktop ? (
+            <ListRow
+              {...time}
+              ref={timeRow}
+              chevron
+              aria-expanded={editingTime}
+              onClick={toggleTime}
+            />
+          ) : (
+            <RescheduleDrawer
+              booking={booking}
+              busy={busy}
+              open={editingTime}
+              onOpenChange={setEditingTime}
+              onSave={saveTime}
+            >
+              <ListRow {...time} chevron />
+            </RescheduleDrawer>
+          )}
           <ListRow
             title="Campo"
             trailing={<Value>{court ?? "Da assegnare"}</Value>}
@@ -243,7 +305,7 @@ function Body({
               ref={playersRow}
               chevron
               aria-expanded={editingPlayers}
-              onClick={() => setEditingPlayers((open) => !open)}
+              onClick={togglePlayers}
             />
           ) : (
             <PlayersDrawer
@@ -279,15 +341,16 @@ function Body({
               trailing={<Value mono>{booking.code}</Value>}
             />
           )}
-          <ListRow
-            title="Prenotata il"
-            trailing={
-              <Value>
-                {format(booking.createdAt, "d MMM, HH:mm", { locale: it })}
-              </Value>
-            }
-          />
         </ListGroup>
+
+        {isDesktop && editingTime && (
+          <RescheduleEditor
+            booking={booking}
+            busy={busy}
+            onSave={saveTime}
+            onClose={closeTime}
+          />
+        )}
 
         {isDesktop && editingPlayers && (
           <PlayersEditor
@@ -322,6 +385,11 @@ function Body({
             />
           </ListGroup>
         )}
+
+        {/* Chi l'ha creata e quando: in fondo, per chi lo cerca. */}
+        <p className="text-muted-foreground px-1 pb-1 text-xs leading-relaxed">
+          {authorLine(booking)}
+        </p>
       </div>
 
       {!cancelled && (

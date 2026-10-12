@@ -227,6 +227,33 @@ export async function insertBooking(
   return created.id ?? null;
 }
 
+/**
+ * Sposta l'evento di una prenotazione a un altro orario, aggiornando il campo
+ * nel titolo. Dice `false` se l'evento non c'è più (qualcuno l'ha tolto a
+ * mano): allora va creato da capo.
+ */
+export async function moveBooking(
+  config: CalendarConfig,
+  eventId: string,
+  booking: { start: number; end: number; summary: string },
+): Promise<boolean> {
+  const response = await call(
+    config,
+    `${encodeURIComponent(config.writeCalendarId)}/events/${encodeURIComponent(eventId)}`,
+    {
+      method: "PATCH",
+      missingIsFine: true,
+      body: JSON.stringify({
+        summary: booking.summary,
+        start: { dateTime: new Date(booking.start).toISOString() },
+        end: { dateTime: new Date(booking.end).toISOString() },
+      }),
+    },
+  );
+
+  return response.ok;
+}
+
 /** Toglie l'evento di una prenotazione disdetta. Il 404 va bene: non c'è più. */
 export async function deleteBooking(
   config: CalendarConfig,

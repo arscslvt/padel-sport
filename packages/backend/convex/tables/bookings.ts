@@ -54,6 +54,21 @@ const bookings = defineTable({
   /** Giocatore dell'app mobile che ha creato la prenotazione (assente per il web) */
   createdByPlayer: v.optional(v.id("players")),
   /**
+   * Da dove arriva: il cliente da sé, dal sito o dall'app, oppure lo staff dal
+   * gestionale. Assente sulle prenotazioni più vecchie di questo campo: lì
+   * l'agenda la ricava dalla partita collegata (bookings/list.ts).
+   */
+  source: v.optional(
+    v.union(v.literal("web"), v.literal("app"), v.literal("staff")),
+  ),
+  /**
+   * L'operatore che l'ha creata dal gestionale. Il nome è quello del momento,
+   * da Clerk: la scheda deve poter dire chi è stato anche se poi lo cambia.
+   */
+  createdByStaff: v.optional(
+    v.object({ userId: v.string(), name: v.string() }),
+  ),
+  /**
    * Evento corrispondente sul calendario condiviso con SumUp: è così che una
    * prenotazione fatta da noi diventa un orario occupato anche là.
    */

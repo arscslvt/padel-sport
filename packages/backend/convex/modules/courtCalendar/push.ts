@@ -4,7 +4,12 @@ import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
-import { calendarConfig, deleteBooking, insertBooking } from "./client";
+import {
+  calendarConfig,
+  deleteBooking,
+  insertBooking,
+  moveBooking,
+} from "./client";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
 
@@ -63,6 +68,64 @@ export default internalAction({
         )}: bloccare l'orario su SumUp a mano.`,
         url: staffBookingUrl(bookingId),
         idempotencyKey: `calendar-push-error-${bookingId}`,
+      });
+    }
+  },
+});
+
+/**
+ * Sposta sul calendario una prenotazione a cui lo staff ha cambiato orario: il
+ * vecchio orario torna libero su SumUp, il nuovo si occupa.
+ *
+ * Si aggiorna l'evento che c'è invece di toglierlo e rimetterlo: due azioni in
+ * parallelo potrebbero incrociarsi e lasciare il calendario senza nessuno dei
+ * due. Se l'evento non c'è più, o non c'è mai stato, lo si crea da capo.
+ */
+export const move = internalAction({
+  args: { bookingId: v.id("bookings") },
+  handler: async (ctx, { bookingId }) => {
+    const config = calendarConfig();
+    if (!config) return;
+
+    const booking = await ctx.runQuery(
+      internal.modules.courtCalendar.data.bookingForCalendar,
+      { bookingId },
+    );
+    if (!booking || booking.status === "cancelled") return;
+
+    try {
+      const moved = booking.externalEventId
+        ? await moveBooking(config, booking.externalEventId, {
+            start: booking.start,
+            end: booking.end,
+            summary: `Padel · ${booking.court ?? "campo da assegnare"}`,
+          })
+        : false;
+
+      if (moved) return;
+
+      if (booking.externalEventId) {
+        await ctx.runMutation(internal.modules.courtCalendar.data.attachEvent, {
+          bookingId,
+          eventId: undefined,
+        });
+      }
+      await ctx.runAction(internal.modules.courtCalendar.push.default, {
+        bookingId,
+      });
+    } catch (error) {
+      // Come alla creazione: la prenotazione è già spostata, ma SumUp potrebbe
+      // offrire il nuovo orario a qualcun altro. Lo staff va avvisato.
+      console.error("Evento della prenotazione non spostato:", error);
+
+      await ctx.runAction(internal.modules.notifications.alert.default, {
+        category: "system",
+        title: "⚠️ Cambio d'orario non sincronizzato con SumUp",
+        message: `${booking.bookedBy}, ora alle ${formatClubDateTime(
+          booking.start,
+        )}: aggiorna l'orario su SumUp a mano.`,
+        url: staffBookingUrl(bookingId),
+        idempotencyKey: `calendar-move-error-${bookingId}-${booking.start}`,
       });
     }
   },

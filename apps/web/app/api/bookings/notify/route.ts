@@ -7,6 +7,7 @@ import { z } from "zod";
 import { BookingAcceptedEmail } from "@/emails/booking-accepted";
 import { BookingCancelledEmail } from "@/emails/booking-cancelled";
 import { BookingMergedEmail } from "@/emails/booking-merged";
+import { BookingRescheduledEmail } from "@/emails/booking-rescheduled";
 import { formatClubDay, formatClubSlotRange, MAX_PLAYERS } from "@/lib/booking";
 import { bookingQrPngUrl, bookingUrl, SITE_URL } from "@/lib/booking-links";
 import { bookingQrPng } from "@/lib/booking-qr";
@@ -56,7 +57,10 @@ const payloadSchema = z.object({
     z.literal("merged"),
     z.literal("cancelled_by_club"),
     z.literal("cancelled_by_player"),
+    z.literal("rescheduled"),
   ]),
+  /** Con `rescheduled`: l'orario di prima, per dire cosa cambia. */
+  previousStart: z.number().optional(),
 });
 
 type DeliveryResult = {
@@ -132,6 +136,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Codice mancante." }, { status: 400 });
   }
 
+  if (booking.kind === "rescheduled" && booking.previousStart === undefined) {
+    console.error("Cambio d'orario senza l'orario di prima: mail non inviata.");
+    return NextResponse.json(
+      { error: "Orario precedente mancante." },
+      { status: 400 },
+    );
+  }
+
   // L'unione senza l'altro gruppo non è una notizia: può succedere se quello
   // ha disdetto nel frattempo. Meglio nessuna mail che una mail sbagliata.
   if (booking.kind === "merged" && !booking.partner) {
@@ -197,6 +209,34 @@ export async function POST(request: Request) {
                 ),
               },
             ],
+          };
+        }
+
+        if (
+          booking.kind === "rescheduled" &&
+          booking.previousStart !== undefined
+        ) {
+          return {
+            from: FROM,
+            to: [recipient.email],
+            replyTo: CLUB_INBOX,
+            subject: `Orario cambiato: ${dayLabel}, ${timeLabel}`,
+            html: await render(
+              BookingRescheduledEmail({
+                recipientName: recipient.name,
+                isBooker: recipient.isBooker,
+                bookedBy: booking.bookedBy,
+                dayLabel,
+                timeLabel,
+                previousTimeLabel: formatClubSlotRange(booking.previousStart),
+                court: booking.court,
+                accepted: booking.accepted ?? false,
+                bookingUrl: booking.code
+                  ? bookingUrl(booking.code)
+                  : `${SITE_URL}${BOOKING_LINK}`,
+                phone: getInfo("cell") ?? "",
+              }),
+            ),
           };
         }
 

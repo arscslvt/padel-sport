@@ -69,6 +69,8 @@ export default mutation({
     players: v.array(v.string()),
     level: LEVEL,
     notify: v.boolean(),
+    /** L'operatore che la prende: resta scritto nella scheda. */
+    staff: v.optional(v.object({ userId: v.string(), name: v.string() })),
   },
   handler: async (ctx, args) => {
     assertServer(args.secret);
@@ -138,6 +140,8 @@ export default mutation({
       createdAt: Date.now(),
       code,
       createdByPlayer: player?._id,
+      source: "staff",
+      createdByStaff: args.staff,
     });
 
     // Senza l'evento sul calendario condiviso, su SumUp quel campo resterebbe
