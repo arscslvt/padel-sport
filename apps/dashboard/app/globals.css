@@ -316,3 +316,23 @@
     opacity: 1;
   }
 }
+
+/*
+ * Il fondo dei drawer mentre si scrive (`data-keyboard-open`, lo mette
+ * KeyboardInset). Il drawer allora tocca la tastiera, non il bordo dello
+ * schermo: il margine per la barra della Home è spazio sprecato. E i bottoni,
+ * di solito impilati, si affiancano: «Annulla» compatto a sinistra, l'azione
+ * principale larga a destra, come su iOS. Restano a portata senza chiudere la
+ * tastiera, e lasciano più spazio al modulo.
+ *
+ * Fuori da @layer di proposito: così vince sulle utility del footer. Non tocca
+ * i footer a griglia, dove `flex-direction` e `flex` non contano.
+ */
+[data-keyboard-open] [data-slot="drawer-footer"] {
+  flex-direction: row;
+  padding-bottom: 0.75rem;
+}
+
+[data-keyboard-open] [data-slot="drawer-footer"] > :last-child {
+  flex: 1 1 0%;
+}
