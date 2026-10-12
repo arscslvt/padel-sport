@@ -116,8 +116,14 @@ export default async function StaffLayout({
                        * Da telefono la barra laterale non c'è: la navigazione è la barra
                        * in basso, e il fondo della pagina le lascia spazio perché
                        * l'ultima riga non finisca sotto.
+                       *
+                       * `min-w-0` tiene la colonna larga quanto lo spazio accanto
+                       * alla barra: senza, un elemento flex non scende sotto la
+                       * larghezza del suo contenuto più largo, e una riga pensata
+                       * per scorrere di lato (i filtri dei clienti) allargava
+                       * tutta la pagina oltre il bordo destro.
                        */}
-                      <SidebarInset className="bg-background pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
+                      <SidebarInset className="bg-background min-w-0 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
                         {children}
                       </SidebarInset>
                       <BottomTabBar />
