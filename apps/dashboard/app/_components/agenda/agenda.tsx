@@ -3,14 +3,12 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { CalendarCheck, Plus, Search, Users, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CountBadge } from "@/app/_components/count-badge";
 import { ListGroup, ListRow } from "@/app/_components/list";
-import {
-  PageBody,
-  PageHeader,
-} from "@/app/_components/page-header";
+import { PageBody, PageHeader } from "@/app/_components/page-header";
 import { SheetHeader } from "@/app/_components/sheet-header";
 import { useConfirm } from "@/app/_providers/confirm.provider";
 import { Button } from "@/components/ui/button";
@@ -21,6 +19,8 @@ import {
 } from "@/components/ui/responsive-drawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { mergeablePairs, mergedPartnerOf } from "@/lib/booking-merge";
+import { EASE_OUT, UI_DURATION } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
 import MergePairs from "../merge-pairs";
 import { BookingRow, PendingCard } from "./booking-row";
@@ -65,6 +65,7 @@ export function Agenda() {
   const [searching, setSearching] = useState(false);
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState("");
+  const reduce = useReducedMotion();
 
   const courtNames = useMemo(
     () => new Map((courts ?? []).map((court) => [court.id, court.name])),
@@ -178,11 +179,26 @@ export function Agenda() {
               setQuery("");
             }}
           >
-            {searching ? (
-              <X className="size-5" />
-            ) : (
-              <Search className="size-5" />
-            )}
+            {/*
+             * Le due icone stanno una sopra l'altra e si scambiano: una si
+             * rimpicciolisce e sparisce mentre l'altra cresce al suo posto.
+             * È una transizione CSS, e un secondo tocco a metà riparte da dove
+             * si trova invece che da capo.
+             */}
+            <span className="grid *:col-start-1 *:row-start-1">
+              <Search
+                className={cn(
+                  ICON_SWAP,
+                  searching ? "scale-60 opacity-0" : "scale-100 opacity-100",
+                )}
+              />
+              <X
+                className={cn(
+                  ICON_SWAP,
+                  searching ? "scale-100 opacity-100" : "scale-60 opacity-0",
+                )}
+              />
+            </span>
           </Button>
           <Button
             size="icon"
@@ -208,129 +224,159 @@ export function Agenda() {
 
   const openRow = (booking: Booking) => setOpenId(booking._id);
 
+  /**
+   * Il passaggio fra agenda e ricerca.
+   *
+   * La ricerca scende di poco dall'alto, dal pulsante che l'ha aperta;
+   * l'agenda risale dal basso quando la si richiude. Le due viste si danno il
+   * cambio insieme, senza aspettarsi (`popLayout`): quella che esce si stacca
+   * dal flusso e sfuma mentre l'altra entra, così il tocco ha risposta
+   * subito. Con il movimento ridotto resta solo la dissolvenza.
+   */
+  const view = (from: "above" | "below") => {
+    const away = reduce
+      ? "translateY(0px)"
+      : `translateY(${from === "above" ? -8 : 8}px)`;
+    return {
+      initial: { opacity: 0, transform: away },
+      animate: {
+        opacity: 1,
+        transform: "translateY(0px)",
+        transition: { duration: UI_DURATION.enter, ease: EASE_OUT },
+      },
+      exit: {
+        opacity: 0,
+        transform: away,
+        transition: { duration: UI_DURATION.exit, ease: EASE_OUT },
+      },
+    };
+  };
+
   return (
     <>
       {header}
-      <PageBody>
-        {searching ? (
-          <div className="space-y-5">
-            <div className="relative">
-              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
-              <Input
-                autoFocus
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Nome, giocatore, telefono o codice"
-                className="bg-card h-11 rounded-xl pl-10 text-base"
-              />
-            </div>
-            {query.trim() &&
-              (results.length === 0 ? (
-                <p className="text-muted-foreground px-1 text-sm">
-                  Nessuna prenotazione trovata.
-                </p>
-              ) : (
+      <PageBody className="relative">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {searching ? (
+            <motion.div key="search" {...view("above")} className="space-y-5">
+              <div className="relative">
+                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
+                <Input
+                  autoFocus
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Nome, giocatore, telefono o codice"
+                  className="bg-card h-11 rounded-xl pl-10 text-base"
+                />
+              </div>
+              {query.trim() &&
+                (results.length === 0 ? (
+                  <p className="text-muted-foreground px-1 text-sm">
+                    Nessuna prenotazione trovata.
+                  </p>
+                ) : (
+                  <ListGroup
+                    title={`${results.length} ${results.length === 1 ? "prenotazione" : "prenotazioni"}`}
+                  >
+                    {results.map((booking) => (
+                      <div key={booking._id}>
+                        <p className="text-muted-foreground px-4 pt-2.5 text-xs font-medium">
+                          {dayLabel(dayKey(booking.bookingDate), today)}
+                        </p>
+                        <BookingRow
+                          booking={booking}
+                          court={courtNames.get(booking.slot)}
+                          onOpen={() => openRow(booking)}
+                        />
+                      </div>
+                    ))}
+                  </ListGroup>
+                ))}
+            </motion.div>
+          ) : (
+            <motion.div key="agenda" {...view("below")} className="space-y-6">
+              {pending.length > 0 && (
+                <section className="space-y-2">
+                  <h2 className="flex items-center gap-2 px-1 text-[13px] font-medium">
+                    <span className="text-muted-foreground">Da confermare</span>
+                    <CountBadge count={pending.length} />
+                  </h2>
+                  <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+                    {pending.map((booking) => (
+                      <PendingCard
+                        key={booking._id}
+                        booking={booking}
+                        court={courtNames.get(booking.slot)}
+                        busy={busyId === booking._id}
+                        onOpen={() => openRow(booking)}
+                        onAccept={() => void askAccept(booking)}
+                        onReject={() => void askCancel(booking)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <section className="space-y-3">
+                <DayStrip
+                  days={days}
+                  selected={selectedDay}
+                  onSelect={setSelectedDay}
+                  marks={marks}
+                />
+
                 <ListGroup
-                  title={`${results.length} ${results.length === 1 ? "prenotazione" : "prenotazioni"}`}
+                  title={dayLabel(selectedDay, today)}
+                  action={
+                    ofDay.length > 0 && (
+                      <span className="text-muted-foreground text-[13px] tabular-nums">
+                        {ofDay.filter((row) => !isCancelled(row)).length}{" "}
+                        {ofDay.filter((row) => !isCancelled(row)).length === 1
+                          ? "partita"
+                          : "partite"}
+                      </span>
+                    )
+                  }
                 >
-                  {results.map((booking) => (
-                    <div key={booking._id}>
-                      <p className="text-muted-foreground px-4 pt-2.5 text-xs font-medium">
-                        {dayLabel(dayKey(booking.bookingDate), today)}
+                  {ofDay.length === 0 ? (
+                    <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+                      <CalendarCheck className="text-muted-foreground/60 size-7" />
+                      <p className="text-[15px] font-medium">
+                        Nessuna partita in agenda
                       </p>
+                      <p className="text-muted-foreground max-w-[32ch] text-sm">
+                        Le prenotazioni di questo giorno compariranno qui appena
+                        arrivano.
+                      </p>
+                    </div>
+                  ) : (
+                    ofDay.map((booking) => (
                       <BookingRow
+                        key={booking._id}
                         booking={booking}
                         court={courtNames.get(booking.slot)}
                         onOpen={() => openRow(booking)}
                       />
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </ListGroup>
-              ))}
-          </div>
-        ) : (
-          <>
-            {pending.length > 0 && (
-              <section className="space-y-2">
-                <h2 className="flex items-center gap-2 px-1 text-[13px] font-medium">
-                  <span className="text-muted-foreground">Da confermare</span>
-                  <CountBadge count={pending.length} />
-                </h2>
-                <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-                  {pending.map((booking) => (
-                    <PendingCard
-                      key={booking._id}
-                      booking={booking}
-                      court={courtNames.get(booking.slot)}
-                      busy={busyId === booking._id}
-                      onOpen={() => openRow(booking)}
-                      onAccept={() => void askAccept(booking)}
-                      onReject={() => void askCancel(booking)}
-                    />
-                  ))}
-                </div>
               </section>
-            )}
 
-            <section className="space-y-3">
-              <DayStrip
-                days={days}
-                selected={selectedDay}
-                onSelect={setSelectedDay}
-                marks={marks}
-              />
-
-              <ListGroup
-                title={dayLabel(selectedDay, today)}
-                action={
-                  ofDay.length > 0 && (
-                    <span className="text-muted-foreground text-[13px] tabular-nums">
-                      {ofDay.filter((row) => !isCancelled(row)).length}{" "}
-                      {ofDay.filter((row) => !isCancelled(row)).length === 1
-                        ? "partita"
-                        : "partite"}
-                    </span>
-                  )
-                }
-              >
-                {ofDay.length === 0 ? (
-                  <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-                    <CalendarCheck className="text-muted-foreground/60 size-7" />
-                    <p className="text-[15px] font-medium">
-                      Nessuna partita in agenda
-                    </p>
-                    <p className="text-muted-foreground max-w-[32ch] text-sm">
-                      Le prenotazioni di questo giorno compariranno qui appena
-                      arrivano.
-                    </p>
-                  </div>
-                ) : (
-                  ofDay.map((booking) => (
-                    <BookingRow
-                      key={booking._id}
-                      booking={booking}
-                      court={courtNames.get(booking.slot)}
-                      onOpen={() => openRow(booking)}
-                    />
-                  ))
-                )}
-              </ListGroup>
-            </section>
-
-            {pairs.length > 0 && (
-              <ListGroup footer="Due gruppi parziali alla stessa ora riempiono un campo, e l'altro torna prenotabile.">
-                <ListRow
-                  leading={<Users className="size-5" />}
-                  title="Campi da completare"
-                  subtitle={`${pairs.length} ${pairs.length === 1 ? "coppia da unire" : "coppie da unire"}`}
-                  trailing={<CountBadge count={pairs.length} />}
-                  chevron
-                  onClick={() => setMergeOpen(true)}
-                />
-              </ListGroup>
-            )}
-          </>
-        )}
+              {pairs.length > 0 && (
+                <ListGroup footer="Due gruppi parziali alla stessa ora riempiono un campo, e l'altro torna prenotabile.">
+                  <ListRow
+                    leading={<Users className="size-5" />}
+                    title="Campi da completare"
+                    subtitle={`${pairs.length} ${pairs.length === 1 ? "coppia da unire" : "coppie da unire"}`}
+                    trailing={<CountBadge count={pairs.length} />}
+                    chevron
+                    onClick={() => setMergeOpen(true)}
+                  />
+                </ListGroup>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </PageBody>
 
       <BookingSheet
@@ -378,6 +424,13 @@ export function Agenda() {
     </>
   );
 }
+
+/**
+ * Lo scambio d'icona del pulsante di ricerca: veloce come la risposta a un
+ * tocco. Con il movimento ridotto le icone sfumano senza cambiare misura.
+ */
+const ICON_SWAP =
+  "size-5 transition-[opacity,scale] duration-150 ease-(--ease-out) motion-reduce:scale-100";
 
 /** La forma della pagina mentre arriva: striscia dei giorni e righe. */
 function AgendaSkeleton() {

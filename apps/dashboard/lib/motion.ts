@@ -13,6 +13,19 @@ export const DURATION = {
   slow: 0.8,
 } as const;
 
+/**
+ * La curva dei cambi di stato del gestionale: la stessa di `--ease-out` in
+ * globals.css, scritta per Motion. Più decisa di `EASE`, che accompagna i
+ * reveal delle pagine: qui l'interfaccia deve rispondere, non presentarsi.
+ */
+export const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+
+/** Durate dei cambi di stato: sotto i 300ms, l'uscita più svelta dell'entrata. */
+export const UI_DURATION = {
+  enter: 0.22,
+  exit: 0.15,
+} as const;
+
 /** Viewport per i reveal legati allo scroll: una volta sola, a un quarto di elemento visibile. */
 export const VIEWPORT = {
   once: true,
