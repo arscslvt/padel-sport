@@ -3,10 +3,11 @@
 import { useEffect } from "react";
 
 /**
- * Quanta parte dello schermo copre la tastiera, in due variabili CSS sulla
- * radice del documento: `--keyboard-inset` (lo spazio coperto in basso) e
- * `--visual-height` (l'altezza che resta visibile). I drawer le usano per
- * appoggiarsi sopra la tastiera (components/ui/drawer.tsx).
+ * Quanta parte dello schermo copre la tastiera, in variabili CSS sulla
+ * radice del documento: `--keyboard-inset` (lo spazio coperto in basso),
+ * `--visual-height` (l'altezza che resta visibile) e, solo mentre si scrive,
+ * `--drawer-max-height`. I drawer le usano per appoggiarsi sopra la tastiera
+ * e, mentre si scrive, allungarsi fin quasi in cima (components/ui/drawer.tsx).
  *
  * Prende il posto di `repositionInputs` di Vaul, che sposta il drawer
  * scrivendogli addosso altezza e posizione e indovina se la tastiera è
@@ -55,32 +56,64 @@ export function KeyboardInset() {
 
     const root = document.documentElement;
     let frame = 0;
-    let lastInset = -1;
+    let lastOpen = false;
     const timers = new Set<number>();
+
+    // L'altezza piena della pagina, per riconoscere la tastiera anche dove
+    // restringe tutta la pagina invece della sola area visibile (alcune PWA
+    // Android): lì lo spazio coperto in basso è zero, ma la pagina si accorcia.
+    // Si riparte a ogni cambio di larghezza, cioè di orientamento.
+    let fullHeight = window.innerHeight;
+    let fullWidth = window.innerWidth;
 
     const measure = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
+        if (window.innerWidth !== fullWidth) {
+          fullWidth = window.innerWidth;
+          fullHeight = window.innerHeight;
+        }
+
+        const active = document.activeElement;
+        const typing = isTextField(active);
+        // Senza un campo attivo la pagina più bassa è una barra del browser,
+        // non una tastiera: l'altezza piena si aggiorna solo allora.
+        if (!typing) fullHeight = Math.max(fullHeight, window.innerHeight);
+
         const visibleBottom = viewport.offsetTop + viewport.height;
         const covered = Math.max(0, window.innerHeight - visibleBottom);
         const inset = covered >= KEYBOARD_MIN ? Math.round(covered) : 0;
+        const shrunk = fullHeight - window.innerHeight >= KEYBOARD_MIN;
+        const open = inset > 0 || (typing && shrunk);
+        const visible = Math.round(viewport.height);
 
         root.style.setProperty("--keyboard-inset", `${inset}px`);
-        root.style.setProperty(
-          "--visual-height",
-          `${Math.round(viewport.height)}px`,
-        );
+        root.style.setProperty("--visual-height", `${visible}px`);
+
+        // Mentre si scrive lo spazio è poco: il drawer sale fin quasi in cima,
+        // lasciando solo la barra di stato e un filo di margine. A tastiera
+        // chiusa la variabile sparisce e torna il limite di sempre.
+        if (open) {
+          root.style.setProperty(
+            "--drawer-max-height",
+            `calc(${visible}px - env(safe-area-inset-top) - 0.5rem)`,
+          );
+        } else {
+          root.style.removeProperty("--drawer-max-height");
+        }
 
         // Appena la tastiera si apre, il campo attivo dentro un drawer resta
-        // in vista nel drawer rimpicciolito. Solo al cambio: rifarlo a ogni
-        // evento farebbe scattare lo scorrimento mentre si scrive.
-        if (inset !== lastInset && inset > 0) {
-          const active = document.activeElement;
-          if (isTextField(active) && active.closest("[data-vaul-drawer]")) {
-            active.scrollIntoView({ block: "nearest" });
-          }
+        // in vista. Solo all'apertura: rifarlo a ogni evento farebbe scattare
+        // lo scorrimento mentre si scrive.
+        if (
+          open &&
+          !lastOpen &&
+          typing &&
+          active.closest("[data-vaul-drawer]")
+        ) {
+          active.scrollIntoView({ block: "nearest" });
         }
-        lastInset = inset;
+        lastOpen = open;
       });
     };
 
@@ -117,6 +150,7 @@ export function KeyboardInset() {
       document.removeEventListener("focusout", measureSoon);
       root.style.removeProperty("--keyboard-inset");
       root.style.removeProperty("--visual-height");
+      root.style.removeProperty("--drawer-max-height");
     };
   }, []);
 

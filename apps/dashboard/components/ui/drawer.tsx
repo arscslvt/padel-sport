@@ -69,8 +69,9 @@ function DrawerContent({
           // Dal basso, il drawer si appoggia sopra la tastiera e non è mai più alto
           // di quel che resta visibile: `--keyboard-inset` e `--visual-height`
           // li tiene aggiornati `KeyboardInset`, e senza tastiera valgono zero
-          // e l'altezza dello schermo.
-          "data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-[var(--keyboard-inset,0px)] data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[min(80dvh,calc(var(--visual-height,100dvh)_-_1.5rem))] data-[vaul-drawer-direction=bottom]:rounded-t-lg data-[vaul-drawer-direction=bottom]:border-t",
+          // e l'altezza dello schermo. Mentre si scrive c'è anche
+          // `--drawer-max-height`, che lo allunga fin quasi in cima.
+          "data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-[var(--keyboard-inset,0px)] data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[var(--drawer-max-height,min(80dvh,calc(var(--visual-height,100dvh)_-_1.5rem)))] data-[vaul-drawer-direction=bottom]:rounded-t-lg data-[vaul-drawer-direction=bottom]:border-t",
           "data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-3/4 data-[vaul-drawer-direction=right]:border-l data-[vaul-drawer-direction=right]:sm:max-w-sm",
           "data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:border-r data-[vaul-drawer-direction=left]:sm:max-w-sm",
           className,
