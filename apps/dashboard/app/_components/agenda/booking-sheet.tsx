@@ -14,6 +14,7 @@ import {
   ResponsiveDrawer,
   ResponsiveDrawerContent,
   ResponsiveDrawerFooter,
+  useResponsiveDrawer,
 } from "@/components/ui/responsive-drawer";
 import { MAX_PLAYERS } from "@/lib/booking";
 import { cn } from "@/lib/utils";
@@ -37,7 +38,7 @@ import {
   wasRefunded,
   whatsappNumber,
 } from "./lib";
-import { PlayersEditor } from "./players-editor";
+import { PlayersDrawer, PlayersEditor } from "./players-editor";
 
 /**
  * I tasti di contatto: superficie bianca come le schede sotto, sempre.
@@ -129,6 +130,20 @@ function Body({
   const cancelled = isCancelled(booking);
   const phone = booking.phone?.trim();
   const [editingPlayers, setEditingPlayers] = useState(false);
+  // Da telefono la scheda è un drawer: i giocatori si correggono in uno
+  // annidato. Da desktop è una modale, e il modulo si apre dentro.
+  const { isDesktop } = useResponsiveDrawer();
+  const savePlayers = (players: string[]) => onUpdatePlayers(booking, players);
+
+  const players = {
+    title: "Giocatori",
+    subtitle: booking.players.join(", "),
+    trailing: (
+      <Value>
+        {booking.players.length} di {MAX_PLAYERS}
+      </Value>
+    ),
+  };
 
   return (
     <>
@@ -212,22 +227,29 @@ function Body({
             title="Campo"
             trailing={<Value>{court ?? "Da assegnare"}</Value>}
           />
-          <ListRow
-            title="Giocatori"
-            subtitle={booking.players.join(", ")}
-            trailing={
-              <Value>
-                {booking.players.length} di {MAX_PLAYERS}
-              </Value>
-            }
-            // Allo sportello si scopre chi gioca davvero: un tocco e si corregge.
-            chevron={!cancelled}
-            onClick={
-              cancelled || editingPlayers
-                ? undefined
-                : () => setEditingPlayers(true)
-            }
-          />
+          {/* Allo sportello si scopre chi gioca davvero: un tocco e si
+              corregge. */}
+          {cancelled ? (
+            <ListRow {...players} />
+          ) : isDesktop ? (
+            <ListRow
+              {...players}
+              chevron
+              onClick={
+                editingPlayers ? undefined : () => setEditingPlayers(true)
+              }
+            />
+          ) : (
+            <PlayersDrawer
+              booking={booking}
+              busy={busy}
+              open={editingPlayers}
+              onOpenChange={setEditingPlayers}
+              onSave={savePlayers}
+            >
+              <ListRow {...players} chevron />
+            </PlayersDrawer>
+          )}
           <ListRow
             title="Livello"
             trailing={<Value>{LEVEL_LABELS[booking.level]}</Value>}
@@ -261,11 +283,11 @@ function Body({
           />
         </ListGroup>
 
-        {editingPlayers && (
+        {isDesktop && editingPlayers && (
           <PlayersEditor
             booking={booking}
             busy={busy}
-            onSave={(players) => onUpdatePlayers(booking, players)}
+            onSave={savePlayers}
             onClose={() => setEditingPlayers(false)}
           />
         )}

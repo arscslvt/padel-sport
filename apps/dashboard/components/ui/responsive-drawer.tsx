@@ -36,6 +36,16 @@ const ResponsiveProviderContext = React.createContext<
   ResponsiveProviderContextProps | undefined
 >({} as ResponsiveProviderContextProps);
 
+/**
+ * Se il pannello aperto è la modale (desktop) o il drawer dal basso
+ * (telefono): serve a chi ci mette dentro un drawer annidato, che esiste solo
+ * nel secondo caso.
+ */
+export function useResponsiveDrawer(): { isDesktop: boolean } {
+  const context = React.useContext(ResponsiveProviderContext);
+  return { isDesktop: Boolean(context?.isDesktop) };
+}
+
 export type ResponsiveDrawerProps = ProviderProps & {
   open?: boolean;
   setOpen?: (open: boolean) => void;
