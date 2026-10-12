@@ -8,15 +8,10 @@ import { cn } from "@/lib/utils";
 function Drawer({
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  // La tastiera la gestisce `KeyboardInset` (components/ui/keyboard-inset.tsx):
-  // il riposizionamento di Vaul lascia il drawer alzato quando si chiude.
-  return (
-    <DrawerPrimitive.Root
-      data-slot="drawer"
-      repositionInputs={false}
-      {...props}
-    />
-  );
+  // `repositionInputs` resta acceso di proposito: su iOS è quello che impedisce
+  // a Safari di far scorrere la vista quando si tocca un campo. Dove sta il
+  // drawer con la tastiera lo decide `KeyboardInset`, non Vaul (vedi sotto).
+  return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
 }
 
 function DrawerTrigger({
@@ -71,7 +66,10 @@ function DrawerContent({
           // li tiene aggiornati `KeyboardInset`, e senza tastiera valgono zero
           // e l'altezza dello schermo. Mentre si scrive c'è anche
           // `--drawer-max-height`, che lo allunga fin quasi in cima.
-          "data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-[var(--keyboard-inset,0px)] data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[var(--drawer-max-height,min(80dvh,calc(var(--visual-height,100dvh)_-_1.5rem)))] data-[vaul-drawer-direction=bottom]:rounded-t-lg data-[vaul-drawer-direction=bottom]:border-t",
+          // `bottom` e `height` sono `!important` perché Vaul, con la tastiera,
+          // li scrive a mano sull'elemento e poi a volte se li dimentica: così
+          // quelle scritture non contano.
+          "data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-[var(--keyboard-inset,0px)]! data-[vaul-drawer-direction=bottom]:h-auto! data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[var(--drawer-max-height,min(80dvh,calc(var(--visual-height,100dvh)_-_1.5rem)))] data-[vaul-drawer-direction=bottom]:rounded-t-lg data-[vaul-drawer-direction=bottom]:border-t",
           "data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-3/4 data-[vaul-drawer-direction=right]:border-l data-[vaul-drawer-direction=right]:sm:max-w-sm",
           "data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:border-r data-[vaul-drawer-direction=left]:sm:max-w-sm",
           className,

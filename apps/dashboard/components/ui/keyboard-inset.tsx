@@ -9,13 +9,21 @@ import { useEffect } from "react";
  * `--drawer-max-height`. I drawer le usano per appoggiarsi sopra la tastiera
  * e, mentre si scrive, allungarsi fin quasi in cima (components/ui/drawer.tsx).
  *
- * Prende il posto di `repositionInputs` di Vaul, che sposta il drawer
- * scrivendogli addosso altezza e posizione e indovina se la tastiera è
- * aperta invertendo un interruttore a ogni salto del viewport. Basta un
- * evento perso — il campo che perde il fuoco prima che la tastiera si
- * chiuda, un sistema che annuncia la chiusura in ritardo — e quegli stili
+ * Prende il posto del riposizionamento di Vaul (`repositionInputs`), che
+ * sposta il drawer scrivendogli addosso altezza e posizione e indovina se la
+ * tastiera è aperta invertendo un interruttore a ogni salto del viewport.
+ * Basta un evento perso — il campo che perde il fuoco prima che la tastiera
+ * si chiuda, un sistema che annuncia la chiusura in ritardo — e quegli stili
  * restano: il drawer rimane alzato con uno spazio grigio sotto. Sono
  * segnalazioni aperte su Vaul (#514, #538, #615, #650) mai corrette.
+ *
+ * `repositionInputs` però resta acceso: su iOS è l'unica cosa che accende
+ * `usePreventScroll`, che impedisce a Safari di far scorrere tutta la vista
+ * quando si tocca un campo. Senza, iOS sposta la pagina, il drawer finisce
+ * mezzo sotto la tastiera e il conto qui sotto non torna. Le sue scritture su
+ * posizione e altezza le annullano le regole `!important` del drawer
+ * (components/ui/drawer.tsx): Vaul tiene ferma la vista, dove sta il drawer
+ * lo decide solo questo componente.
  *
  * Qui non c'è stato da perdere: ogni volta si rimisura da capo quel che si
  * vede, e a tastiera chiusa il conto torna zero da solo. La misura è lo
@@ -28,6 +36,36 @@ import { useEffect } from "react";
 
 /** Sotto questa soglia la differenza è una barra del browser, non una tastiera. */
 const KEYBOARD_MIN = 80;
+
+/** Lo spazio fra il campo attivo e il bordo del drawer, quando lo si porta in vista. */
+const REVEAL_MARGIN = 16;
+
+/**
+ * Porta il campo in vista scorrendo solo il contenuto del drawer, mai la
+ * pagina: `scrollIntoView` sposterebbe anche la vista, e su iOS è proprio
+ * quello che fa finire il drawer sotto la tastiera.
+ */
+function revealInDrawer(field: HTMLElement) {
+  let parent = field.parentElement;
+  while (parent && !parent.hasAttribute("data-vaul-drawer")) {
+    const { overflowY } = getComputedStyle(parent);
+    const scrollable =
+      (overflowY === "auto" || overflowY === "scroll") &&
+      parent.scrollHeight > parent.clientHeight;
+
+    if (scrollable) {
+      const box = parent.getBoundingClientRect();
+      const target = field.getBoundingClientRect();
+      if (target.bottom > box.bottom - REVEAL_MARGIN) {
+        parent.scrollTop += target.bottom - box.bottom + REVEAL_MARGIN;
+      } else if (target.top < box.top + REVEAL_MARGIN) {
+        parent.scrollTop -= box.top + REVEAL_MARGIN - target.top;
+      }
+      return;
+    }
+    parent = parent.parentElement;
+  }
+}
 
 const TEXT_INPUT_TYPES = new Set([
   "text",
@@ -80,11 +118,18 @@ export function KeyboardInset() {
         // non una tastiera: l'altezza piena si aggiorna solo allora.
         if (!typing) fullHeight = Math.max(fullHeight, window.innerHeight);
 
+        // Dove sta il fondo dell'area visibile rispetto a quello della pagina:
+        // è lì che il drawer si appoggia, anche se la vista è scorsa.
         const visibleBottom = viewport.offsetTop + viewport.height;
         const covered = Math.max(0, window.innerHeight - visibleBottom);
         const inset = covered >= KEYBOARD_MIN ? Math.round(covered) : 0;
+
+        // La tastiera è aperta se, con un campo attivo, l'area visibile è più
+        // corta della pagina (iOS, Chrome: qualunque sia lo scorrimento) o la
+        // pagina stessa si è accorciata (alcune PWA Android).
+        const shorter = window.innerHeight - viewport.height >= KEYBOARD_MIN;
         const shrunk = fullHeight - window.innerHeight >= KEYBOARD_MIN;
-        const open = inset > 0 || (typing && shrunk);
+        const open = inset > 0 || (typing && (shorter || shrunk));
         const visible = Math.round(viewport.height);
 
         root.style.setProperty("--keyboard-inset", `${inset}px`);
@@ -103,15 +148,16 @@ export function KeyboardInset() {
         }
 
         // Appena la tastiera si apre, il campo attivo dentro un drawer resta
-        // in vista. Solo all'apertura: rifarlo a ogni evento farebbe scattare
-        // lo scorrimento mentre si scrive.
+        // in vista. Solo all'apertura, e dopo che il drawer ha preso la nuova
+        // misura: rifarlo a ogni evento farebbe scattare lo scorrimento mentre
+        // si scrive.
         if (
           open &&
           !lastOpen &&
           typing &&
           active.closest("[data-vaul-drawer]")
         ) {
-          active.scrollIntoView({ block: "nearest" });
+          requestAnimationFrame(() => revealInDrawer(active));
         }
         lastOpen = open;
       });
