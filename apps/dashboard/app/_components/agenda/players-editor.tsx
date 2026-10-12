@@ -17,6 +17,7 @@ import {
   PRESS,
   SubmitLabel,
   useCloseNested,
+  useNestedDirty,
 } from "@/app/_components/nested-drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -442,6 +443,7 @@ function DrawerForm({
 }) {
   const form = usePlayersForm(booking);
   const close = useCloseNested();
+  useNestedDirty(form.dirty);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();

@@ -30,6 +30,9 @@ interface ResponsiveProviderContextProps {
   open: boolean;
   setOpen: (open: boolean) => void;
   isDesktop?: boolean;
+  /** Dati inseriti e non salvati: il pannello non si chiude da solo. */
+  dirty?: boolean;
+  onCloseAttempt?: () => void;
 }
 
 const ResponsiveProviderContext = React.createContext<
@@ -49,12 +52,22 @@ export function useResponsiveDrawer(): { isDesktop: boolean } {
 export type ResponsiveDrawerProps = ProviderProps & {
   open?: boolean;
   setOpen?: (open: boolean) => void;
+  /**
+   * Ci sono dati inseriti e non salvati. Il pannello allora non si chiude più
+   * da solo — trascinandolo, toccando fuori, con Esc — e chiama invece
+   * `onCloseAttempt`, che di norma chiede «Uscire senza salvare?». Senza dati
+   * si chiude come sempre: chiedere conferma per niente insegna a non leggere.
+   */
+  dirty?: boolean;
+  onCloseAttempt?: () => void;
 };
 
 export function ResponsiveDrawer({
   children,
   open = false,
   setOpen,
+  dirty = false,
+  onCloseAttempt,
 }: ResponsiveDrawerProps) {
   // Impostiamo initializeWithValue:false per avere un primo render deterministico (false) sia su server che client
   const isDesktop = useMediaQuery("(min-width: 768px)", {
@@ -62,13 +75,23 @@ export function ResponsiveDrawer({
   });
 
   const handleSetOpen = (open: boolean) => {
+    if (!open && dirty && onCloseAttempt) {
+      onCloseAttempt();
+      return;
+    }
     setOpen?.(open);
   };
 
   if (isDesktop) {
     return (
       <ResponsiveProviderContext.Provider
-        value={{ open, setOpen: handleSetOpen, isDesktop }}
+        value={{
+          open,
+          setOpen: handleSetOpen,
+          isDesktop,
+          dirty,
+          onCloseAttempt,
+        }}
       >
         <Dialog open={open} onOpenChange={handleSetOpen}>
           {children}
@@ -79,9 +102,9 @@ export function ResponsiveDrawer({
 
   return (
     <ResponsiveProviderContext.Provider
-      value={{ open, setOpen: handleSetOpen, isDesktop }}
+      value={{ open, setOpen: handleSetOpen, isDesktop, dirty, onCloseAttempt }}
     >
-      <Drawer open={open} onOpenChange={handleSetOpen}>
+      <Drawer open={open} onOpenChange={handleSetOpen} dismissible={!dirty}>
         {children}
       </Drawer>
     </ResponsiveProviderContext.Provider>
@@ -123,8 +146,17 @@ export function ResponsiveDrawerContent({
   className,
   ...props
 }: ResponsiveDrawerContentProps) {
-  const { open, setOpen, isDesktop } =
+  const { open, setOpen, isDesktop, dirty, onCloseAttempt } =
     React.useContext(ResponsiveProviderContext) || {};
+
+  // Con dati non salvati, un tocco fuori o Esc non chiudono: chiedono. Da
+  // telefono il drawer è anche non trascinabile (`dismissible`), perché Vaul
+  // chiuderebbe prima di poter chiedere.
+  const guardOutside = (event: Event) => {
+    if (!dirty || !onCloseAttempt) return;
+    event.preventDefault();
+    onCloseAttempt();
+  };
 
   // Gli altri attributi (per esempio `onPaste`) arrivano al contenitore vero,
   // modale o drawer che sia: è lui ad avere il fuoco quando si apre.
@@ -139,8 +171,13 @@ export function ResponsiveDrawerContent({
   }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerContent className={cn(className)} {...props}>
+    <Drawer open={open} onOpenChange={setOpen} dismissible={!dirty}>
+      <DrawerContent
+        className={cn(className)}
+        onPointerDownOutside={guardOutside}
+        onEscapeKeyDown={guardOutside}
+        {...props}
+      >
         {children}
       </DrawerContent>
     </Drawer>

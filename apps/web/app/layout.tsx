@@ -4,6 +4,7 @@ import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { CookieBanner } from "@/components/cookie-banner";
+import { KeyboardInset } from "@/components/ui/keyboard-inset";
 import { AmplitudeAnalytics } from "@/providers/amplitude.provider";
 import { ConsentProvider } from "@/providers/consent.provider";
 import Providers from "@/providers/provider";
@@ -127,6 +128,8 @@ export default function RootLayout({
             <AmplitudeAnalytics />
             <CookieBanner />
           </ConsentProvider>
+          {/* La tastiera misurata per i drawer: components/ui/keyboard-inset.tsx */}
+          <KeyboardInset />
           <Script
             id="structured-data"
             type="application/ld+json"

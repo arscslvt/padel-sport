@@ -6,11 +6,15 @@ import {
   type FormEvent,
   type ReactNode,
   useContext,
+  useEffect,
   useRef,
+  useState,
 } from "react";
+import { flushSync } from "react-dom";
 import { Drawer as DrawerPrimitive } from "vaul";
 
 import { SheetHeader } from "@/app/_components/sheet-header";
+import { useConfirmLeave } from "@/app/_providers/confirm.provider";
 import { Button } from "@/components/ui/button";
 import {
   DrawerClose,
@@ -34,15 +38,42 @@ import { cn } from "@/lib/utils";
  * chiusura: un modulo dentro riparte da capo ogni volta, e non sparisce
  * mentre il drawer scende.
  *
+ * Con dati non salvati (`useNestedDirty`) il drawer non si chiude per
+ * sbaglio: non si trascina, e toccare fuori, Esc o «Annulla» chiedono prima
+ * «Uscire senza salvare?».
+ *
  * Esiste solo dentro un drawer di Vaul: da desktop la scheda è una modale, e
  * lì il modulo si apre dentro (`useResponsiveDrawer` dice quale dei due).
  */
 
-const CloseContext = createContext<() => void>(() => {});
+interface NestedControls {
+  /** Chiude subito: dopo un salvataggio riuscito. */
+  close: () => void;
+  /** Chiude, chiedendo prima se ci sono dati non salvati: «Annulla». */
+  requestClose: () => void;
+  setDirty: (dirty: boolean) => void;
+}
+
+const NestedContext = createContext<NestedControls>({
+  close: () => {},
+  requestClose: () => {},
+  setDirty: () => {},
+});
 
 /** Chiude il drawer annidato da codice, avvisando la scheda sotto. */
 export function useCloseNested(): () => void {
-  return useContext(CloseContext);
+  return useContext(NestedContext).close;
+}
+
+/** Il modulo nel drawer annidato dice se ha dati inseriti e non salvati. */
+export function useNestedDirty(dirty: boolean): void {
+  const { setDirty } = useContext(NestedContext);
+
+  useEffect(() => {
+    setDirty(dirty);
+  }, [dirty, setDirty]);
+
+  useEffect(() => () => setDirty(false), [setDirty]);
 }
 
 /** Il tocco sul pulsante si sente subito; chi riduce le animazioni non lo vede. */
@@ -65,18 +96,45 @@ export function NestedDrawer({
   trigger: ReactNode;
   children: ReactNode;
 }) {
-  const close = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const [dirty, setDirty] = useState(false);
+  const confirmLeave = useConfirmLeave();
+
+  // Con dati non salvati Vaul rifiuta di chiudere (`dismissible`): il blocco
+  // si toglie subito, prima del `Close` nascosto, non al prossimo render.
+  const close = () => {
+    flushSync(() => setDirty(false));
+    closeButton.current?.click();
+  };
+  const requestClose = () => {
+    if (dirty) void confirmLeave(close);
+    else close();
+  };
+  const guardOutside = (event: Event) => {
+    if (!dirty) return;
+    event.preventDefault();
+    void confirmLeave(close);
+  };
 
   return (
-    <DrawerPrimitive.NestedRoot open={open} onOpenChange={onOpenChange}>
+    <DrawerPrimitive.NestedRoot
+      open={open}
+      onOpenChange={onOpenChange}
+      dismissible={!dirty}
+      // La tastiera la gestisce `KeyboardInset` (components/ui/keyboard-inset.tsx).
+      repositionInputs={false}
+    >
       <DrawerPrimitive.Trigger asChild>{trigger}</DrawerPrimitive.Trigger>
-      <DrawerContent>
+      <DrawerContent
+        onPointerDownOutside={guardOutside}
+        onEscapeKeyDown={guardOutside}
+      >
         <SheetHeader title={title} description={description} />
-        <CloseContext.Provider value={() => close.current?.click()}>
+        <NestedContext.Provider value={{ close, requestClose, setDirty }}>
           {children}
-        </CloseContext.Provider>
+        </NestedContext.Provider>
         <DrawerClose
-          ref={close}
+          ref={closeButton}
           className="sr-only"
           tabIndex={-1}
           aria-hidden
@@ -104,6 +162,8 @@ export function NestedDrawerForm({
   submitLabel: string;
   children: ReactNode;
 }) {
+  const { requestClose } = useContext(NestedContext);
+
   return (
     <form
       className="flex min-h-0 flex-1 flex-col"
@@ -113,16 +173,15 @@ export function NestedDrawerForm({
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1">{children}</div>
 
       <DrawerFooter className="flex flex-col-reverse gap-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <DrawerClose asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            className={cn("h-12 rounded-xl", PRESS)}
-            disabled={busy}
-          >
-            Annulla
-          </Button>
-        </DrawerClose>
+        <Button
+          type="button"
+          variant="ghost"
+          className={cn("h-12 rounded-xl", PRESS)}
+          disabled={busy}
+          onClick={requestClose}
+        >
+          Annulla
+        </Button>
         <Button
           type="submit"
           className={cn("h-12 rounded-xl", PRESS)}

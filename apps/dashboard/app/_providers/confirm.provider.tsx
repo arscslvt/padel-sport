@@ -58,6 +58,29 @@ export function useConfirm(): Confirm {
   return confirm;
 }
 
+/**
+ * «Uscire senza salvare?», per i pannelli con dati inseriti e non salvati
+ * (`dirty` in ResponsiveDrawer e NestedDrawer). `leave` parte solo se si
+ * conferma; altrimenti si resta dove si era, con i dati intatti.
+ */
+export function useConfirmLeave(): (leave: () => void) => Promise<void> {
+  const confirm = useConfirm();
+
+  return useCallback(
+    async (leave: () => void) => {
+      const result = await confirm({
+        title: "Uscire senza salvare?",
+        description: "I dati inseriti andranno persi.",
+        confirmLabel: "Esci senza salvare",
+        cancelLabel: "Continua a modificare",
+        tone: "destructive",
+      });
+      if (result) leave();
+    },
+    [confirm],
+  );
+}
+
 export default function ConfirmProvider({ children }: { children: ReactNode }) {
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
   const [open, setOpen] = useState(false);

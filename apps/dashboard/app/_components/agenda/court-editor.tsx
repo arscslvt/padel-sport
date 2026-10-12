@@ -17,6 +17,7 @@ import {
   PRESS,
   SubmitLabel,
   useCloseNested,
+  useNestedDirty,
 } from "@/app/_components/nested-drawer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -65,7 +66,16 @@ function useCourtForm(booking: Booking) {
         );
         const payload = await response.json().catch(() => null);
         if (!response.ok) throw new Error(payload?.error);
-        if (alive) setOptions(payload);
+        if (!alive) return;
+        setOptions(payload);
+        // Si parte dal campo di adesso, già spuntato: si cambia toccandone un
+        // altro, come in ogni elenco di scelte.
+        setSelected(
+          (current) =>
+            current ??
+            payload.courts?.find((court: CourtOption) => court.current)?.id ??
+            null,
+        );
       } catch {
         if (alive) {
           setLoadError(
@@ -80,13 +90,19 @@ function useCourtForm(booking: Booking) {
     };
   }, [booking._id, attempt]);
 
-  const choice = options?.courts.find((court) => court.id === selected) ?? null;
+  const currentId = options?.courts.find((court) => court.current)?.id;
+  /** Un campo diverso da quello di adesso: c'è qualcosa da salvare. */
+  const changed = selected !== null && selected !== currentId;
+  const choice = changed
+    ? (options?.courts.find((court) => court.id === selected) ?? null)
+    : null;
 
   return {
     options,
     loadError,
     selected,
     choice,
+    changed,
     setSelected,
     retry: () => setAttempt((current) => current + 1),
   };
@@ -185,7 +201,7 @@ function CourtFields({
                   name={`${id}-court`}
                   value={court.id}
                   checked={checked}
-                  disabled={!court.available}
+                  disabled={!court.available && !court.current}
                   onChange={() => form.setSelected(court.id)}
                   className="sr-only"
                 />
@@ -256,13 +272,13 @@ export function CourtEditor({
       behavior: reduce ? "auto" : "smooth",
     });
     group.current
-      ?.querySelector<HTMLInputElement>("input:not(:disabled)")
+      ?.querySelector<HTMLInputElement>("input:checked, input:not(:disabled)")
       ?.focus({ preventScroll: true });
   }, [form.options]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (form.selected === null) return;
+    if (!form.changed || form.selected === null) return;
     if (await onSave(form.selected)) onClose();
   };
 
@@ -283,7 +299,7 @@ export function CourtEditor({
         <Button
           type="submit"
           className={PRESS}
-          disabled={busy || form.selected === null}
+          disabled={busy || !form.changed}
         >
           <SubmitLabel busy={busy} label={submitLabel(form)} />
         </Button>
@@ -333,10 +349,11 @@ function DrawerForm({
 }) {
   const form = useCourtForm(booking);
   const close = useCloseNested();
+  useNestedDirty(form.changed);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (form.selected === null) return;
+    if (!form.changed || form.selected === null) return;
     if (await onSave(form.selected)) close();
   };
 
@@ -344,7 +361,7 @@ function DrawerForm({
     <NestedDrawerForm
       onSubmit={submit}
       busy={busy}
-      canSubmit={form.selected !== null}
+      canSubmit={form.changed}
       submitLabel={submitLabel(form)}
     >
       <CourtFields form={form} busy={busy} />

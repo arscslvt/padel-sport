@@ -17,6 +17,7 @@ import {
   PRESS,
   SubmitLabel,
   useCloseNested,
+  useNestedDirty,
 } from "@/app/_components/nested-drawer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,7 +77,11 @@ function useRescheduleForm(booking: Booking) {
         );
         const payload = await response.json().catch(() => null);
         if (!response.ok) throw new Error(payload?.error);
-        if (alive) setOptions(payload);
+        if (!alive) return;
+        setOptions(payload);
+        // Si parte dall'orario di adesso, già scelto: si cambia toccandone un
+        // altro.
+        setSelected((current) => current ?? payload.current ?? null);
       } catch {
         if (alive) {
           setLoadError(
@@ -91,14 +96,18 @@ function useRescheduleForm(booking: Booking) {
     };
   }, [booking._id, attempt]);
 
-  const choice =
-    options?.times.find((option) => option.start === selected) ?? null;
+  /** Un orario diverso da quello di adesso: c'è qualcosa da salvare. */
+  const changed = selected !== null && selected !== options?.current;
+  const choice = changed
+    ? (options?.times.find((option) => option.start === selected) ?? null)
+    : null;
 
   return {
     options,
     loadError,
     selected,
     choice,
+    changed,
     notify,
     setSelected,
     setNotify,
@@ -235,7 +244,7 @@ function TimeFields({
                       name={`${id}-time`}
                       value={option.start}
                       checked={checked}
-                      disabled={!option.available}
+                      disabled={!option.available && !option.current}
                       onChange={() => form.setSelected(option.start)}
                       className="sr-only"
                     />
@@ -244,7 +253,14 @@ function TimeFields({
                     <span className="flex flex-col items-center leading-none">
                       <span>{option.time}</span>
                       {option.current && (
-                        <span className="text-muted-foreground mt-1 text-[11px] font-medium">
+                        <span
+                          className={cn(
+                            "mt-1 text-[11px] font-medium",
+                            checked
+                              ? "text-background/70"
+                              : "text-muted-foreground",
+                          )}
+                        >
                           Attuale
                         </span>
                       )}
@@ -325,13 +341,13 @@ export function RescheduleEditor({
       behavior: reduce ? "auto" : "smooth",
     });
     group.current
-      ?.querySelector<HTMLInputElement>("input:not(:disabled)")
+      ?.querySelector<HTMLInputElement>("input:checked, input:not(:disabled)")
       ?.focus({ preventScroll: true });
   }, [form.options]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (form.selected === null) return;
+    if (!form.changed || form.selected === null) return;
     if (await onSave(form.selected, form.notify)) onClose();
   };
 
@@ -357,7 +373,7 @@ export function RescheduleEditor({
         <Button
           type="submit"
           className={PRESS}
-          disabled={busy || form.selected === null}
+          disabled={busy || !form.changed}
         >
           <SubmitLabel busy={busy} label={submitLabel(form)} />
         </Button>
@@ -407,10 +423,11 @@ function DrawerForm({
 }) {
   const form = useRescheduleForm(booking);
   const close = useCloseNested();
+  useNestedDirty(form.changed);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (form.selected === null) return;
+    if (!form.changed || form.selected === null) return;
     if (await onSave(form.selected, form.notify)) close();
   };
 
@@ -418,7 +435,7 @@ function DrawerForm({
     <NestedDrawerForm
       onSubmit={submit}
       busy={busy}
-      canSubmit={form.selected !== null}
+      canSubmit={form.changed}
       submitLabel={submitLabel(form)}
     >
       <TimeFields form={form} busy={busy} />

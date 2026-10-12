@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import type React from "react";
+import { KeyboardInset } from "@/components/ui/keyboard-inset";
 import { SIGN_IN_PATH } from "@/lib/auth-routes";
 import { ConvexClientProvider } from "@/providers/convex.provider";
 import { DASHBOARD_CHROME_COLOR } from "./_components/chrome";
@@ -92,6 +93,8 @@ export default function RootLayout({
             <ConvexClientProvider>{children}</ConvexClientProvider>
           </ThemeProvider>
           <StatusBarScrim />
+          {/* La tastiera misurata per i drawer: components/ui/keyboard-inset.tsx */}
+          <KeyboardInset />
         </body>
       </html>
     </ClerkProvider>

@@ -6,6 +6,7 @@ import { Loader2, UserRound, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { SheetHeader } from "@/app/_components/sheet-header";
+import { useConfirmLeave } from "@/app/_providers/confirm.provider";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,15 +73,35 @@ export function NewBookingSheet({
   initialDay: string;
   onCreated: (day: string) => void;
 }) {
+  // Con dati inseriti il drawer non si chiude per sbaglio: trascinarlo,
+  // toccare fuori o «Annulla» chiedono prima «Uscire senza salvare?».
+  const [dirty, setDirty] = useState(false);
+  const confirmLeave = useConfirmLeave();
+
+  const close = () => {
+    setDirty(false);
+    onOpenChange(false);
+  };
+  const requestClose = () => {
+    if (dirty) void confirmLeave(close);
+    else close();
+  };
+
   return (
-    <ResponsiveDrawer open={open} setOpen={onOpenChange}>
+    <ResponsiveDrawer
+      open={open}
+      setOpen={(next) => (next ? onOpenChange(true) : close())}
+      dirty={dirty}
+      onCloseAttempt={requestClose}
+    >
       <ResponsiveDrawerContent className="sm:max-w-lg md:max-h-[90dvh] md:overflow-y-auto">
         {open && (
           <Form
             initialDay={initialDay}
-            onCancel={() => onOpenChange(false)}
+            onDirtyChange={setDirty}
+            onCancel={requestClose}
             onCreated={(day) => {
-              onOpenChange(false);
+              close();
               onCreated(day);
             }}
           />
@@ -92,10 +113,13 @@ export function NewBookingSheet({
 
 function Form({
   initialDay,
+  onDirtyChange,
   onCancel,
   onCreated,
 }: {
   initialDay: string;
+  /** Si è cominciato a inserire dati: orario, cliente, nome, telefono, compagni. */
+  onDirtyChange: (dirty: boolean) => void;
   onCancel: () => void;
   onCreated: (day: string) => void;
 }) {
@@ -113,6 +137,16 @@ function Form({
   const [level, setLevel] = useState<Booking["level"]>("intermedio");
   const [notify, setNotify] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Il livello e la spunta dell'avviso hanno già un valore: cambiarli da soli
+  // non è «aver cominciato». Lo è scegliere un orario o scrivere qualcosa.
+  const dirty =
+    time !== null ||
+    client !== null ||
+    name.trim() !== "" ||
+    phone.trim() !== "" ||
+    others.some((other) => other.trim() !== "");
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
 
   // L'anagrafica, per collegare la prenotazione a un cliente. Si chiede una
   // volta all'apertura: sono poche centinaia di righe e si filtra qui.
