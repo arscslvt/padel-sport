@@ -7,6 +7,7 @@ import { recordDeliveries } from "../modules/deliveries/lib";
 import {
   courtsAt,
   MATCH_DURATION_MINUTES,
+  pickCourt,
   SLOT_INTERVAL_MINUTES,
   SLOT_INTERVAL_MS,
 } from "../modules/openMatches/lib";
@@ -55,16 +56,22 @@ function moveBlocker(booking: Doc<"bookings">, now: number): string | null {
   return null;
 }
 
-/** Il campo che toccherebbe all'orario nuovo: lo stesso, se è libero. */
+/**
+ * Il campo che toccherebbe all'orario nuovo: lo stesso, se è libero, perché
+ * chi ha prenotato se lo aspetta. Se no, quello che lascia meno buchi.
+ */
 async function courtFor(
   ctx: QueryCtx,
   booking: Doc<"bookings">,
   start: number,
 ): Promise<Doc<"slots"> | null> {
-  const { free, blocked } = await courtsAt(ctx, start, booking._id);
+  const { free, blocked } = await courtsAt(ctx, start, [booking._id]);
   if (free.length - blocked <= 0) return null;
 
-  return free.find((slot) => slot._id === booking.slot) ?? free[0];
+  return (
+    free.find((slot) => slot._id === booking.slot) ??
+    (await pickCourt(ctx, start, free, [booking._id]))
+  );
 }
 
 export const options = query({

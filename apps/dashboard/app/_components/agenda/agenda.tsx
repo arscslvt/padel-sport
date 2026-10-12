@@ -62,6 +62,7 @@ export function Agenda() {
     refund,
     updatePlayers,
     reschedule,
+    moveCourt,
     split,
   } = useAgenda();
   const courts = useQuery(api.modules.settings.booking.courts, {});
@@ -434,6 +435,7 @@ export function Agenda() {
         }
         onUpdatePlayers={updatePlayers}
         onReschedule={reschedule}
+        onMoveCourt={moveCourt}
         onSplit={(booking) => void askSplit(booking)}
       />
 

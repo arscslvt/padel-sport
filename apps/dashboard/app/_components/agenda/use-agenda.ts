@@ -259,6 +259,20 @@ export function useAgenda() {
       },
     );
 
+  const moveCourt = (booking: Booking, slotId: string) =>
+    run(
+      booking._id,
+      () =>
+        request("/api/dashboard/bookings/court", "POST", {
+          bookingId: booking._id,
+          slotId,
+        }),
+      {
+        success: "Campo aggiornato",
+        error: "Impossibile cambiare il campo",
+      },
+    );
+
   const split = (booking: Booking) =>
     run(
       booking._id,
@@ -282,6 +296,7 @@ export function useAgenda() {
     refund,
     updatePlayers,
     reschedule,
+    moveCourt,
     split,
   };
 }

@@ -9,6 +9,7 @@
  */
 
 import type * as bookings_availability from "../bookings/availability.js";
+import type * as bookings_court from "../bookings/court.js";
 import type * as bookings_delete from "../bookings/delete.js";
 import type * as bookings_get from "../bookings/get.js";
 import type * as bookings_getByCode from "../bookings/getByCode.js";
@@ -186,6 +187,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "bookings/availability": typeof bookings_availability;
+  "bookings/court": typeof bookings_court;
   "bookings/delete": typeof bookings_delete;
   "bookings/get": typeof bookings_get;
   "bookings/getByCode": typeof bookings_getByCode;

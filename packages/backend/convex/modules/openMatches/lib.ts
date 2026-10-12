@@ -1,6 +1,7 @@
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { externalBlocksBetween } from "../courtCalendar/lib";
+import { bookingSettings, clubMoment, toMinutes } from "../settings/lib";
 
 export const SLOT_INTERVAL_MINUTES = 30;
 export const MATCH_DURATION_MINUTES = 90;
@@ -83,6 +84,90 @@ function overlaps(startA: number, endA: number, startB: number, endB: number) {
   return startA < endB && endA > startB;
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** I campi come li legge una persona: «Campo 2» prima di «Campo 10». */
+function byCourtName(a: Doc<"slots">, b: Doc<"slots">): number {
+  return a.name.localeCompare(b.name, "it", { numeric: true });
+}
+
+/**
+ * Il campo da dare a una partita, fra quelli liberi a quell'ora.
+ *
+ * Non il primo libero e basta: quello che non lascia buchi, cioè spazi fra due
+ * partite troppo corti per giocarne un'altra (meno di 90 minuti). Il primo
+ * libero, da solo, li crea: con il Campo 1 occupato dalle 19:00 e il Campo 2
+ * dalle 18:30, una partita delle 17:00 sul Campo 1 lascerebbe mezz'ora
+ * inutilizzabile, sul Campo 2 finisce attaccata all'altra.
+ *
+ * A parità vince il primo campo in ordine: Campo 1, poi Campo 2. Così i campi
+ * si riempiono uno alla volta invece di spargere le partite, che è quello che
+ * succede quasi sempre.
+ *
+ * Gli appuntamenti di SumUp non contano: non sappiamo su che campo siano.
+ */
+export async function pickCourt(
+  ctx: QueryCtx,
+  bookingDate: number,
+  free: Doc<"slots">[],
+  ignore: readonly Id<"bookings">[] = [],
+): Promise<Doc<"slots"> | null> {
+  if (free.length <= 1) return free[0] ?? null;
+
+  const { weekday, minutes } = clubMoment(bookingDate);
+  const start = minutes;
+  const end = minutes + MATCH_DURATION_MINUTES;
+
+  // I bordi della fascia di apertura contano come una partita: mezz'ora fra
+  // l'apertura e la prima partita è un buco come un altro.
+  const settings = await bookingSettings(ctx);
+  const window = settings.windows.find(
+    (candidate) =>
+      candidate.weekday === weekday &&
+      toMinutes(candidate.start) <= start &&
+      end <= toMinutes(candidate.end),
+  );
+  const opens = window ? toMinutes(window.start) : 0;
+  const closes = window ? toMinutes(window.end) : 24 * 60;
+
+  const dayStart = bookingDate - minutes * 60_000;
+  const sameDay = await ctx.db
+    .query("bookings")
+    .withIndex("by_booking_date", (q) =>
+      q.gte("bookingDate", dayStart).lt("bookingDate", dayStart + DAY_MS),
+    )
+    .collect();
+
+  const scored = free.map((court, order) => {
+    let before = opens;
+    let after = closes;
+
+    for (const other of sameDay) {
+      if (
+        other.status === "cancelled" ||
+        other.slot !== court._id ||
+        ignore.includes(other._id)
+      ) {
+        continue;
+      }
+
+      const otherStart = start + (other.bookingDate - bookingDate) / 60_000;
+      const otherEnd = otherStart + MATCH_DURATION_MINUTES;
+      if (otherEnd <= start) before = Math.max(before, otherEnd);
+      if (otherStart >= end) after = Math.min(after, otherStart);
+    }
+
+    const wasted = [start - before, after - end]
+      .filter((gap) => gap > 0 && gap < MATCH_DURATION_MINUTES)
+      .reduce((sum, gap) => sum + gap, 0);
+
+    return { court, order, wasted };
+  });
+
+  scored.sort((a, b) => a.wasted - b.wasted || a.order - b.order);
+  return scored[0].court;
+}
+
 /**
  * Trova un campo libero per l'orario richiesto.
  * Stessa logica di disponibilità di bookings/create.ts (flusso web, invariato),
@@ -100,7 +185,9 @@ export async function findAvailableSlot(
   bookingDate: number,
 ): Promise<Doc<"slots"> | null> {
   const { free, blocked } = await courtsAt(ctx, bookingDate);
-  return free.length - blocked > 0 ? free[0] : null;
+  if (free.length - blocked <= 0) return null;
+
+  return await pickCourt(ctx, bookingDate, free);
 }
 
 /**
@@ -114,12 +201,15 @@ export async function findAvailableSlot(
 export async function courtsAt(
   ctx: QueryCtx,
   bookingDate: number,
-  /** Una prenotazione da non contare: quella che si sta spostando. */
-  ignore?: Id<"bookings">,
+  /**
+   * Prenotazioni da non contare: quella che si sta spostando, e la sua
+   * compagna quando dividono il campo.
+   */
+  ignore: readonly Id<"bookings">[] = [],
 ): Promise<{ free: Doc<"slots">[]; blocked: number }> {
   const activeSlots = (await ctx.db.query("slots").collect())
     .filter((slot) => slot.active)
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort(byCourtName);
 
   const possibleOverlaps = await ctx.db
     .query("bookings")
@@ -137,7 +227,7 @@ export async function courtsAt(
       if (existingBooking.status === "cancelled") {
         return false;
       }
-      if (existingBooking._id === ignore) return false;
+      if (ignore.includes(existingBooking._id)) return false;
 
       const existingStart = existingBooking.bookingDate;
       const existingEnd = existingStart + MATCH_DURATION_MS;

@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/responsive-drawer";
 import { MAX_PLAYERS } from "@/lib/booking";
 import { cn } from "@/lib/utils";
-
+import { CourtDrawer, CourtEditor } from "./court-editor";
 import {
   authorLine,
   type Booking,
@@ -72,6 +72,7 @@ export function BookingSheet({
   onRefund,
   onUpdatePlayers,
   onReschedule,
+  onMoveCourt,
   onSplit,
 }: {
   booking: Booking | null;
@@ -88,6 +89,7 @@ export function BookingSheet({
     bookingDate: number,
     notify: boolean,
   ) => Promise<boolean>;
+  onMoveCourt: (booking: Booking, slotId: string) => Promise<boolean>;
   onSplit: (booking: Booking) => void;
 }) {
   return (
@@ -106,6 +108,7 @@ export function BookingSheet({
             onRefund={onRefund}
             onUpdatePlayers={onUpdatePlayers}
             onReschedule={onReschedule}
+            onMoveCourt={onMoveCourt}
             onSplit={onSplit}
           />
         )}
@@ -124,6 +127,7 @@ function Body({
   onRefund,
   onUpdatePlayers,
   onReschedule,
+  onMoveCourt,
   onSplit,
 }: {
   booking: Booking;
@@ -139,41 +143,43 @@ function Body({
     bookingDate: number,
     notify: boolean,
   ) => Promise<boolean>;
+  onMoveCourt: (booking: Booking, slotId: string) => Promise<boolean>;
   onSplit: (booking: Booking) => void;
 }) {
   const pending = isPending(booking);
   const cancelled = isCancelled(booking);
   const phone = booking.phone?.trim();
-  const [editingPlayers, setEditingPlayers] = useState(false);
-  const [editingTime, setEditingTime] = useState(false);
-  // Da telefono la scheda è un drawer: i giocatori si correggono in uno
-  // annidato. Da desktop è una modale, e il modulo si apre dentro.
+  // Orario, campo e giocatori si modificano uno alla volta. Da telefono la
+  // scheda è un drawer e ognuno si apre in uno annidato; da desktop è una
+  // modale, e il modulo si apre dentro.
+  const [editing, setEditing] = useState<"time" | "court" | "players" | null>(
+    null,
+  );
   const { isDesktop } = useResponsiveDrawer();
-  const savePlayers = (players: string[]) => onUpdatePlayers(booking, players);
+
   // Chiuso il modulo, il fuoco torna sulla riga che l'aveva aperto.
+  const timeRow = useRef<HTMLButtonElement>(null);
+  const courtRow = useRef<HTMLButtonElement>(null);
   const playersRow = useRef<HTMLButtonElement>(null);
-  const closePlayers = () => {
-    setEditingPlayers(false);
-    requestAnimationFrame(() => playersRow.current?.focus());
+  const rowOf = { time: timeRow, court: courtRow, players: playersRow };
+
+  const toggle = (part: "time" | "court" | "players") =>
+    setEditing((current) => (current === part ? null : part));
+  const close = (part: "time" | "court" | "players") => {
+    setEditing(null);
+    requestAnimationFrame(() => rowOf[part].current?.focus());
   };
+  const openChange = (part: "time" | "court" | "players") => (open: boolean) =>
+    setEditing(open ? part : null);
 
   const saveTime = (bookingDate: number, notify: boolean) =>
     onReschedule(booking, bookingDate, notify);
-  const timeRow = useRef<HTMLButtonElement>(null);
-  const closeTime = () => {
-    setEditingTime(false);
-    requestAnimationFrame(() => timeRow.current?.focus());
-  };
+  const saveCourt = (slotId: string) => onMoveCourt(booking, slotId);
+  const savePlayers = (players: string[]) => onUpdatePlayers(booking, players);
 
-  // Da desktop un modulo alla volta dentro la scheda: aprirne uno chiude
-  // l'altro, così si sa sempre cosa si sta modificando.
-  const toggleTime = () => {
-    setEditingPlayers(false);
-    setEditingTime((open) => !open);
-  };
-  const togglePlayers = () => {
-    setEditingTime(false);
-    setEditingPlayers((open) => !open);
+  const courtRowProps = {
+    title: "Campo",
+    trailing: <Value>{court ?? "Da assegnare"}</Value>,
   };
 
   const time = {
@@ -277,24 +283,43 @@ function Body({
               {...time}
               ref={timeRow}
               chevron
-              aria-expanded={editingTime}
-              onClick={toggleTime}
+              aria-expanded={editing === "time"}
+              onClick={() => toggle("time")}
             />
           ) : (
             <RescheduleDrawer
               booking={booking}
               busy={busy}
-              open={editingTime}
-              onOpenChange={setEditingTime}
+              open={editing === "time"}
+              onOpenChange={openChange("time")}
               onSave={saveTime}
             >
               <ListRow {...time} chevron />
             </RescheduleDrawer>
           )}
-          <ListRow
-            title="Campo"
-            trailing={<Value>{court ?? "Da assegnare"}</Value>}
-          />
+          {/* Il campo si cambia alla stessa ora, per chiudere un buco o
+              accontentare il cliente. */}
+          {cancelled ? (
+            <ListRow {...courtRowProps} />
+          ) : isDesktop ? (
+            <ListRow
+              {...courtRowProps}
+              ref={courtRow}
+              chevron
+              aria-expanded={editing === "court"}
+              onClick={() => toggle("court")}
+            />
+          ) : (
+            <CourtDrawer
+              booking={booking}
+              busy={busy}
+              open={editing === "court"}
+              onOpenChange={openChange("court")}
+              onSave={saveCourt}
+            >
+              <ListRow {...courtRowProps} chevron />
+            </CourtDrawer>
+          )}
           {/* Allo sportello si scopre chi gioca davvero: un tocco e si
               corregge. */}
           {cancelled ? (
@@ -304,15 +329,15 @@ function Body({
               {...players}
               ref={playersRow}
               chevron
-              aria-expanded={editingPlayers}
-              onClick={togglePlayers}
+              aria-expanded={editing === "players"}
+              onClick={() => toggle("players")}
             />
           ) : (
             <PlayersDrawer
               booking={booking}
               busy={busy}
-              open={editingPlayers}
-              onOpenChange={setEditingPlayers}
+              open={editing === "players"}
+              onOpenChange={openChange("players")}
               onSave={savePlayers}
             >
               <ListRow {...players} chevron />
@@ -343,21 +368,30 @@ function Body({
           )}
         </ListGroup>
 
-        {isDesktop && editingTime && (
+        {isDesktop && editing === "time" && (
           <RescheduleEditor
             booking={booking}
             busy={busy}
             onSave={saveTime}
-            onClose={closeTime}
+            onClose={() => close("time")}
           />
         )}
 
-        {isDesktop && editingPlayers && (
+        {isDesktop && editing === "court" && (
+          <CourtEditor
+            booking={booking}
+            busy={busy}
+            onSave={saveCourt}
+            onClose={() => close("court")}
+          />
+        )}
+
+        {isDesktop && editing === "players" && (
           <PlayersEditor
             booking={booking}
             busy={busy}
             onSave={savePlayers}
-            onClose={closePlayers}
+            onClose={() => close("players")}
           />
         )}
 

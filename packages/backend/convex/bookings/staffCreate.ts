@@ -8,6 +8,7 @@ import {
   MATCH_DURATION_MINUTES,
   MAX_PLAYERS,
   normalizePhone,
+  pickCourt,
   SLOT_INTERVAL_MS,
 } from "../modules/openMatches/lib";
 import { matchPricing } from "../modules/pricing/lib";
@@ -112,7 +113,10 @@ export default mutation({
       throw new Error("A quell'ora non c'è un campo libero.");
     }
 
-    let slotId: Id<"slots"> = free[0]._id;
+    // «Automatico» sceglie come per i clienti: il campo che non lascia buchi.
+    let slotId: Id<"slots"> = (
+      (await pickCourt(ctx, args.bookingDate, free)) ?? free[0]
+    )._id;
     if (args.slotId) {
       if (!free.some((slot) => slot._id === args.slotId)) {
         throw new Error("Il campo scelto è già occupato a quell'ora.");
