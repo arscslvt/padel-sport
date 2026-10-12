@@ -67,6 +67,183 @@ function revealInDrawer(field: HTMLElement) {
   }
 }
 
+/**
+ * Quanto ci mettono i bottoni in fondo al drawer a cambiare posto, e con che
+ * curva: la stessa dei drawer di Vaul, che parte svelta e si posa piano.
+ */
+const MORPH_DURATION = 280;
+const MORPH_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
+
+/** Dove sta un bottone, rispetto all'angolo in basso a sinistra del suo fondo. */
+interface Place {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Le animazioni in corso su un fondo, e come rimetterlo com'era. */
+interface Morph {
+  animations: Animation[];
+  restore: () => void;
+}
+
+const morphs = new WeakMap<HTMLElement, Morph>();
+
+// Rispetto al fondo del footer, non alla pagina: mentre i bottoni cambiano
+// posto la tastiera sposta tutto il drawer, e quel salto non va animato.
+function placeIn(element: Element, footer: DOMRect): Place {
+  const rect = element.getBoundingClientRect();
+  return {
+    x: rect.left - footer.left,
+    y: rect.top - footer.bottom,
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+function samePlace(a: Place, b: Place) {
+  return (
+    Math.abs(a.x - b.x) < 0.5 &&
+    Math.abs(a.y - b.y) < 0.5 &&
+    Math.abs(a.width - b.width) < 0.5 &&
+    Math.abs(a.height - b.height) < 0.5
+  );
+}
+
+/** Ferma l'animazione di un fondo, se c'è, e gli toglie gli stili messi qui. */
+function settle(footer: HTMLElement) {
+  const morph = morphs.get(footer);
+  if (!morph) return;
+  morphs.delete(footer);
+  for (const animation of morph.animations) animation.cancel();
+  morph.restore();
+}
+
+/**
+ * Cambia la disposizione dei bottoni in fondo ai drawer (`update`) e li fa
+ * scivolare dal posto di prima a quello nuovo, invece di farli saltare.
+ *
+ * Si muovono i bottoni veri, non una loro fotografia: per tutta l'animazione
+ * restano nitidi e si possono toccare, e se il drawer si sposta o si chiude li
+ * porta con sé. Per la durata dell'animazione ognuno è fissato al suo posto
+ * nuovo e parte da quello vecchio; la larghezza cambia con lui, così la scritta
+ * resta al centro senza deformarsi. Se la tastiera cambia idea a metà, si
+ * riparte da dove sono in quel momento.
+ */
+function morphFooters(update: () => void) {
+  const footers = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      '[data-vaul-drawer] [data-slot="drawer-footer"]',
+    ),
+  );
+  const still =
+    footers.length === 0 ||
+    typeof Element.prototype.animate !== "function" ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (still) {
+    for (const footer of footers) settle(footer);
+    update();
+    return;
+  }
+
+  // Prima: dove si vedono adesso, anche se stanno ancora scivolando.
+  const before = footers.map((footer) => {
+    const box = footer.getBoundingClientRect();
+    const places = new Map<HTMLElement, Place>();
+    for (const child of Array.from(footer.children)) {
+      if (!(child instanceof HTMLElement)) continue;
+      const place = placeIn(child, box);
+      if (place.width > 0 && place.height > 0) places.set(child, place);
+    }
+    return { footer, places };
+  });
+
+  for (const footer of footers) settle(footer);
+  update();
+
+  // Dopo: il posto nuovo, e da lì all'indietro fino a quello di prima.
+  for (const { footer, places } of before) {
+    const box = footer.getBoundingClientRect();
+    if (box.width === 0 || box.height === 0) continue;
+
+    const moves: { child: HTMLElement; from: Place; to: Place }[] = [];
+    for (const [child, from] of places) {
+      if (child.parentElement !== footer) continue;
+      const to = placeIn(child, box);
+      if (to.width === 0 || to.height === 0) continue;
+      moves.push({ child, from, to });
+    }
+    if (moves.every(({ from, to }) => samePlace(from, to))) continue;
+
+    // Ogni bottone resta fermo al posto nuovo mentre l'animazione lo porta
+    // lì: senza, toccarne la misura sposterebbe anche gli altri.
+    const relative = getComputedStyle(footer).position === "static";
+    if (relative) footer.style.position = "relative";
+    footer.style.height = `${box.height}px`;
+    for (const { child, to } of moves) {
+      child.style.position = "absolute";
+      child.style.left = `${to.x - footer.clientLeft}px`;
+      child.style.top = `${box.height + to.y - footer.clientTop}px`;
+      child.style.width = `${to.width}px`;
+      child.style.height = `${to.height}px`;
+      child.style.margin = "0";
+    }
+
+    const animations = moves
+      .filter(({ from, to }) => !samePlace(from, to))
+      .map(({ child, from, to }) =>
+        child.animate(
+          [
+            {
+              transform: `translate(${from.x - to.x}px, ${from.y - to.y}px)`,
+              width: `${from.width}px`,
+              height: `${from.height}px`,
+            },
+            {
+              transform: "translate(0px, 0px)",
+              width: `${to.width}px`,
+              height: `${to.height}px`,
+            },
+          ],
+          { duration: MORPH_DURATION, easing: MORPH_EASING },
+        ),
+      );
+
+    const morph: Morph = {
+      animations,
+      restore: () => {
+        if (relative) footer.style.removeProperty("position");
+        footer.style.removeProperty("height");
+        for (const { child } of moves) {
+          for (const property of [
+            "position",
+            "left",
+            "top",
+            "width",
+            "height",
+            "margin",
+          ]) {
+            child.style.removeProperty(property);
+          }
+        }
+      },
+    };
+    morphs.set(footer, morph);
+
+    Promise.all(animations.map((animation) => animation.finished)).then(
+      () => {
+        if (morphs.get(footer) !== morph) return;
+        morphs.delete(footer);
+        morph.restore();
+      },
+      // Fermata da `settle`, che ha già rimesso tutto a posto.
+      () => {},
+    );
+  }
+}
+
 const TEXT_INPUT_TYPES = new Set([
   "text",
   "search",
@@ -132,22 +309,29 @@ export function KeyboardInset() {
         const open = inset > 0 || (typing && (shorter || shrunk));
         const visible = Math.round(viewport.height);
 
-        root.style.setProperty("--keyboard-inset", `${inset}px`);
-        root.style.setProperty("--visual-height", `${visible}px`);
-        // Per lo stile del fondo dei drawer mentre si scrive (globals.css).
-        root.toggleAttribute("data-keyboard-open", open);
+        const apply = () => {
+          root.style.setProperty("--keyboard-inset", `${inset}px`);
+          root.style.setProperty("--visual-height", `${visible}px`);
+          // Per lo stile del fondo dei drawer mentre si scrive (globals.css).
+          root.toggleAttribute("data-keyboard-open", open);
 
-        // Mentre si scrive lo spazio è poco: il drawer sale fin quasi in cima,
-        // lasciando solo la barra di stato e un filo di margine. A tastiera
-        // chiusa la variabile sparisce e torna il limite di sempre.
-        if (open) {
-          root.style.setProperty(
-            "--drawer-max-height",
-            `calc(${visible}px - env(safe-area-inset-top) - 0.5rem)`,
-          );
-        } else {
-          root.style.removeProperty("--drawer-max-height");
-        }
+          // Mentre si scrive lo spazio è poco: il drawer sale fin quasi in
+          // cima, lasciando solo la barra di stato e un filo di margine. A
+          // tastiera chiusa la variabile sparisce e torna il limite di sempre.
+          if (open) {
+            root.style.setProperty(
+              "--drawer-max-height",
+              `calc(${visible}px - env(safe-area-inset-top) - 0.5rem)`,
+            );
+          } else {
+            root.style.removeProperty("--drawer-max-height");
+          }
+        };
+
+        // Quando la tastiera si apre o si chiude i bottoni in fondo cambiano
+        // disposizione: scivolano al posto nuovo invece di saltarci.
+        if (open !== lastOpen) morphFooters(apply);
+        else apply();
 
         // Appena la tastiera si apre, il campo attivo dentro un drawer resta
         // in vista. Solo all'apertura, e dopo che il drawer ha preso la nuova
