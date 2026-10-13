@@ -2,7 +2,15 @@
 
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Gift, Loader2, Minus, Plus, Snowflake, Trash2 } from "lucide-react";
+import {
+  Gift,
+  Loader2,
+  LogOut,
+  Minus,
+  Plus,
+  Snowflake,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -35,9 +43,13 @@ interface PointsDetail {
   /** Punti caricati che aspettano l'adesione del cliente. */
   pendingPoints: number;
   program: {
-    state: "none" | "outdated" | "joined";
+    state: "none" | "outdated" | "joined" | "leaving" | "left";
     acceptedAt?: number;
     via?: "online" | "desk";
+    /** L'uscita confermata dal cliente: fino a `deadline` può riscattare. */
+    exit?: { requestedAt: number; deadline: number; via: "online" | "email" };
+    /** La mail per uscire, partita e non ancora confermata. */
+    exitRequest?: { email: string; sentAt: number; expiresAt: number };
   };
   balance: number;
   /** Account sospeso: niente carichi, rimozioni o adesioni finché dura. */
@@ -258,6 +270,70 @@ export function PointsTab({
     }
   };
 
+  /**
+   * Manda al cliente la mail per uscire dal programma. Non lo fa uscire: esce
+   * solo se conferma dal link (modules/points/exit.ts).
+   */
+  const sendExitRequest = async () => {
+    setPending("exit");
+
+    try {
+      const response = await fetch(
+        `/api/dashboard/clients/${playerId}/points/program/exit`,
+        { method: "POST" },
+      );
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        toast.error("Richiesta non inviata", {
+          description: payload?.error ?? "Riprova fra poco.",
+        });
+        return;
+      }
+
+      toast.success("Richiesta inviata", {
+        description: `Abbiamo scritto a ${payload.email}. Esce dal programma solo se conferma dal link.`,
+      });
+      await load();
+    } catch {
+      toast.error("Richiesta non inviata", {
+        description: "Controlla la connessione e riprova.",
+      });
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const confirmExitRequest = () => {
+    toast("Mandiamo la richiesta di uscita?", {
+      description: (
+        <>
+          Il cliente riceve una mail con un link. Esce dal programma solo se lo
+          apre e conferma, dopo aver letto cosa succede ai suoi punti.
+          <div className="mt-3 flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 bg-transparent"
+              onClick={() => toast.dismiss()}
+            >
+              Annulla
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => {
+                toast.dismiss();
+                void sendExitRequest();
+              }}
+            >
+              Invia la mail
+            </Button>
+          </div>
+        </>
+      ),
+      duration: Number.POSITIVE_INFINITY,
+    });
+  };
+
   /** Toglie un movimento in attesa caricato per sbaglio. */
   const removePending = async (transactionId: string) => {
     setPending(transactionId);
@@ -367,14 +443,39 @@ export function PointsTab({
         </section>
       )}
 
-      {!detail.frozen && detail.program.state !== "joined" && (
-        <ProgramNotice
-          state={detail.program.state}
-          busy={pending === "program"}
-          disabled={pending !== null}
-          onRecord={confirmDeskAdhesion}
-        />
+      {detail.program.state === "leaving" && detail.program.exit && (
+        <section className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+          <LogOut className="mt-0.5 size-4 shrink-0" />
+          <div>
+            <p className="font-medium">Sta uscendo dal programma</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-amber-900/80">
+              Ha confermato l'uscita il{" "}
+              {format(detail.program.exit.requestedAt, "d MMMM", {
+                locale: it,
+              })}
+              {detail.program.exit.via === "email"
+                ? " dal link della mail"
+                : " dalla sua area personale"}
+              . Può riscattare fino al{" "}
+              {format(detail.program.exit.deadline, "d MMMM", { locale: it })},
+              poi i punti non usati decadono. I punti che carichi restano in
+              attesa.
+            </p>
+          </div>
+        </section>
       )}
+
+      {!detail.frozen &&
+        (detail.program.state === "none" ||
+          detail.program.state === "outdated" ||
+          detail.program.state === "left") && (
+          <ProgramNotice
+            state={detail.program.state}
+            busy={pending === "program"}
+            disabled={pending !== null}
+            onRecord={confirmDeskAdhesion}
+          />
+        )}
 
       {!detail.frozen && (
         <>
@@ -442,8 +543,12 @@ export function PointsTab({
                   aria-label="Togli punti"
                   aria-pressed={sign === -1}
                   // A un conto non attivo non si tolgono punti: si annulla il
-                  // movimento in attesa sbagliato.
-                  disabled={detail.program.state !== "joined"}
+                  // movimento in attesa sbagliato. Chi sta uscendo ha ancora
+                  // il suo saldo, e un errore si corregge.
+                  disabled={
+                    detail.program.state !== "joined" &&
+                    detail.program.state !== "leaving"
+                  }
                   onClick={() => setSign(-1)}
                 >
                   <Minus className="size-4" />
@@ -494,6 +599,34 @@ export function PointsTab({
             : ", dalla sua area personale."}
         </p>
       )}
+
+      {!detail.frozen &&
+        (detail.program.state === "joined" ||
+          detail.program.state === "outdated") && (
+          <section className="space-y-2 rounded-lg border p-3">
+            <h3 className="text-sm font-semibold">Uscita dal programma</h3>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              {detail.program.exitRequest
+                ? `Mail inviata il ${format(detail.program.exitRequest.sentAt, "d MMMM", { locale: it })} a ${detail.program.exitRequest.email}. Il link vale fino al ${format(detail.program.exitRequest.expiresAt, "d MMMM", { locale: it })}: esce solo se conferma.`
+                : hasEmail
+                  ? "Se il cliente chiede di uscire, gli mandiamo una mail con un link. Esce solo se conferma, dopo aver letto cosa succede ai suoi punti."
+                  : "Per mandare la richiesta di uscita serve un'email sulla scheda. Con un account il cliente può uscire anche dalla sua area personale."}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!hasEmail || pending !== null}
+              onClick={confirmExitRequest}
+            >
+              {pending === "exit" && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
+              {detail.program.exitRequest
+                ? "Invia di nuovo la mail"
+                : "Invia richiesta di uscita"}
+            </Button>
+          </section>
+        )}
 
       {detail.redemptions.length > 0 && (
         <section className="space-y-2">
@@ -635,7 +768,7 @@ function ProgramNotice({
   disabled,
   onRecord,
 }: {
-  state: "none" | "outdated";
+  state: "none" | "outdated" | "left";
   busy: boolean;
   disabled: boolean;
   onRecord: () => void;
@@ -645,12 +778,16 @@ function ProgramNotice({
       <p className="font-medium">
         {state === "none"
           ? "Non ha ancora aderito al programma punti"
-          : "Deve accettare il nuovo regolamento"}
+          : state === "left"
+            ? "È uscito dal programma punti"
+            : "Deve accettare il nuovo regolamento"}
       </p>
       <p className="text-xs leading-relaxed">
         {state === "none"
           ? "Puoi caricargli punti lo stesso: restano in attesa, senza mail, e li riceve tutti appena accetta il regolamento dalla sua area personale o firmando il modulo allo sportello."
-          : "Il regolamento è cambiato dopo la sua adesione. I punti che ha restano suoi; quelli nuovi restano in attesa finché non accetta la nuova versione."}
+          : state === "left"
+            ? "I punti che carichi restano in attesa. Li riceve se aderisce di nuovo, dalla sua area personale o firmando il modulo allo sportello."
+            : "Il regolamento è cambiato dopo la sua adesione. I punti che ha restano suoi; quelli nuovi restano in attesa finché non accetta la nuova versione."}
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" disabled={disabled} onClick={onRecord}>

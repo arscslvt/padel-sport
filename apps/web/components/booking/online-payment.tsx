@@ -5,11 +5,13 @@ import { api } from "@padel-sport/backend/convex/_generated/api";
 import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { useAction, useQuery } from "convex/react";
 import { CheckCircle2, CreditCard, Undo2 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { convexMessage } from "@/lib/clients";
+import { BOOKING_TERMS_LINK } from "@/lib/links";
 
 /**
  * Il pagamento online di una prenotazione, dal lato del cliente.
@@ -49,6 +51,24 @@ export function useStartPayment() {
   };
 
   return { pay, starting };
+}
+
+/**
+ * La regola di disdetta dei pagamenti online, accanto a ogni pagamento: chi
+ * paga deve saperla prima, chi ha pagato deve ritrovarla qui.
+ */
+function RefundRule() {
+  return (
+    <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+      Puoi disdire e avere il rimborso fino a 24 ore prima della partita.{" "}
+      <Link
+        href={BOOKING_TERMS_LINK}
+        className="text-foreground underline underline-offset-2"
+      >
+        Condizioni di prenotazione
+      </Link>
+    </p>
+  );
 }
 
 /**
@@ -122,6 +142,7 @@ export function BookingPayment({
               : ""}
             . Chi si aggiunge dopo paga la sua quota in struttura.
           </p>
+          <RefundRule />
         </div>
       </div>
     );
@@ -163,6 +184,7 @@ export function BookingPayment({
           carta, Apple Pay o Google Pay sulla pagina sicura di SumUp. Altrimenti
           si paga in struttura come sempre.
         </p>
+        <RefundRule />
         <Button
           type="button"
           size="pill"

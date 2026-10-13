@@ -25,6 +25,7 @@ import { pointsLabel } from "@/lib/points";
  *
  * `outdated` è chi aveva aderito a una versione precedente: il saldo è suo e
  * glielo diciamo, ma per riceverne altri deve rileggere le regole nuove.
+ * `left` è chi è uscito: può aderire di nuovo, e riparte da zero.
  */
 export function JoinProgram({
   version,
@@ -33,7 +34,7 @@ export function JoinProgram({
   pendingPoints,
 }: {
   version: string;
-  state: "none" | "outdated";
+  state: "none" | "outdated" | "left";
   balance: number;
   /** Punti già caricati dal club che arrivano aderendo. */
   pendingPoints: number;
@@ -51,7 +52,9 @@ export function JoinProgram({
       toast.success(
         state === "none"
           ? "Benvenuto nel programma punti"
-          : "Regolamento accettato",
+          : state === "left"
+            ? "Bentornato nel programma punti"
+            : "Regolamento accettato",
         {
           description:
             result.points > 0
@@ -85,6 +88,10 @@ export function JoinProgram({
             <>
               Gioca, accumula, <em className="italic">ritira</em>.
             </>
+          ) : state === "left" ? (
+            <>
+              Sei <em className="italic">uscito</em> dal programma.
+            </>
           ) : (
             <>
               Il regolamento è <em className="italic">cambiato</em>.
@@ -100,7 +107,9 @@ export function JoinProgram({
         <p className="text-muted-foreground mt-4 max-w-[48ch] text-sm leading-relaxed">
           {state === "none"
             ? "Con il programma punti il club ti premia per le partite che giochi: i punti si accumulano qui e li cambi con i premi in segreteria. Aderire è gratuito e puoi uscire quando vuoi."
-            : `I tuoi ${pointsLabel(balance)} restano tuoi. Per ricevere i nuovi e riscattare i premi, leggi la nuova versione e accettala.`}
+            : state === "left"
+              ? "Puoi aderire di nuovo quando vuoi, con le regole in vigore oggi. I punti decaduti non tornano."
+              : `I tuoi ${pointsLabel(balance)} restano tuoi. Per ricevere i nuovi e riscattare i premi, leggi la nuova versione e accettala.`}
         </p>
       </div>
 
@@ -135,7 +144,11 @@ export function JoinProgram({
           onClick={() => void join()}
         >
           {loading && <Loader2 className="size-4 animate-spin" />}
-          {state === "none" ? "Aderisci al programma" : "Accetta e continua"}
+          {state === "none"
+            ? "Aderisci al programma"
+            : state === "left"
+              ? "Aderisci di nuovo"
+              : "Accetta e continua"}
         </Button>
       </div>
     </section>

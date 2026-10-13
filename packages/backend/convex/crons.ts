@@ -28,4 +28,15 @@ crons.interval(
   {},
 );
 
+/**
+ * I tempi di conservazione promessi dall'informativa privacy: richieste,
+ * iscrizioni agli eventi e il loro storico (modules/privacy/retention.ts).
+ */
+crons.interval(
+  "dati personali scaduti",
+  { hours: 24 },
+  internal.modules.privacy.retention.default,
+  {},
+);
+
 export default crons;

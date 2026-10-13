@@ -5,6 +5,7 @@ import { residence as residenceValidator } from "../../tables/players";
 import { assertServer } from "../../utils/serverSecret";
 import { getIdentityPlayer, requirePlayer } from "../openMatches/lib";
 import { displayName } from "./lib";
+import { HEALTH_CONSENT_REQUIRED } from "./profile";
 
 /**
  * L'anagrafica vista e corretta dalla persona stessa, dall'area personale.
@@ -17,6 +18,9 @@ import { displayName } from "./lib";
  * residenza, allergie e condizioni mediche. Nome, nascita e codice fiscale
  * sono i dati del tesseramento e li corregge lo staff con un documento
  * davanti.
+ *
+ * Dai dati sanitari passa anche il consenso esplicito (art. 9 GDPR): si dà e
+ * si revoca da qui, e senza consenso i dati sanitari non restano.
  */
 
 const MAX_HEALTH = 500;
@@ -42,6 +46,9 @@ export const me = query({
         allergies: player.health?.allergies,
         conditions: player.health?.conditions,
       },
+      // Dati sanitari scritti allo sportello valgono come consenso dato: lì
+      // la persona firma il modulo. La casella parte spuntata solo così.
+      healthConsent: Boolean(player.healthConsentAt || player.health),
     };
   },
 });
@@ -81,6 +88,11 @@ export const update = mutation({
       allergies: v.optional(v.string()),
       conditions: v.optional(v.string()),
     }),
+    /**
+     * Facoltativo solo per le pagine aperte prima che esistesse la casella:
+     * senza, vale il consenso già registrato.
+     */
+    healthConsent: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const player = await requirePlayer(ctx);
@@ -98,9 +110,25 @@ export const update = mutation({
       args.health.conditions,
       "Condizioni mediche",
     );
-    // La disabilità la registra lo staff allo sportello: qui non si vede e
-    // non si deve perdere.
-    const disability = player.health?.disability;
+
+    const healthConsent =
+      args.healthConsent ??
+      Boolean(player.healthConsentAt || player.health);
+
+    if ((allergies || conditions) && !healthConsent) {
+      throw new Error(HEALTH_CONSENT_REQUIRED);
+    }
+
+    // La disabilità la registra lo staff allo sportello: qui non si vede e,
+    // finché il consenso resta, non si deve perdere. Revocandolo se ne va
+    // con il resto, perché il no vale per tutti i dati sanitari.
+    const disability = healthConsent ? player.health?.disability : undefined;
+
+    // Chi ha dati sanitari scritti allo sportello ha il consenso sul modulo
+    // firmato: la casella spuntata qui lo conferma, non ne registra uno nuovo.
+    const healthConsentAt = !healthConsent
+      ? undefined
+      : (player.healthConsentAt ?? (player.health ? undefined : Date.now()));
 
     await ctx.db.patch(player._id, {
       phone,
@@ -110,6 +138,7 @@ export const update = mutation({
         allergies || conditions || disability
           ? { allergies, conditions, disability }
           : undefined,
+      healthConsentAt,
     });
   },
 });

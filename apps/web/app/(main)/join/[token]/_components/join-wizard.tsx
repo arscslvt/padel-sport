@@ -25,6 +25,8 @@ import { BOOKING_LINK } from "@/lib/links";
 import type { Residence } from "./client-types";
 import {
   EMPTY_OPTIONAL,
+  HEALTH_CONSENT_REQUIRED,
+  hasHealth,
   OptionalFields,
   type OptionalFieldsValue,
   optionalPayload,
@@ -66,7 +68,7 @@ const CONSENTS = [
   {
     key: "tracking",
     label: "Statistiche d'uso",
-    hint: "Ci lasci capire come usi il sito e l'app, per migliorarli. Nessun dato venduto a terzi.",
+    hint: "Ci lasci capire come usi l'app del club, per migliorarla. Sul sito decidi dal banner dei cookie.",
   },
 ] as const;
 
@@ -176,6 +178,10 @@ export function JoinWizard({
     }
     if (!gender) {
       setError("Scegli una delle opzioni: c'è anche «preferisco non dirlo».");
+      return;
+    }
+    if (hasHealth(optional) && !optional.healthConsent) {
+      setError(HEALTH_CONSENT_REQUIRED);
       return;
     }
 

@@ -29,9 +29,12 @@ const eventCommunicationDeliveries = defineTable({
   email: v.string(),
   sentAt: v.float64(),
 })
-  // L'unico indice che serve, ed è quello della domanda: le consegne di una
-  // comunicazione a un modulo. Da quelle righe si ricava sia chi manca sia chi
-  // ha già la sua riga e non va scritto due volte.
-  .index("by_document", ["documentId", "blockKey"]);
+  // L'indice della domanda: le consegne di una comunicazione a un modulo. Da
+  // quelle righe si ricava sia chi manca sia chi ha già la sua riga e non va
+  // scritto due volte.
+  .index("by_document", ["documentId", "blockKey"])
+  // Le consegne se ne vanno con l'iscrizione, quando scade il tempo di
+  // conservazione (modules/privacy/retention.ts).
+  .index("by_rsvp", ["rsvpId"]);
 
 export default eventCommunicationDeliveries;

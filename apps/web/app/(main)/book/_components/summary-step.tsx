@@ -5,6 +5,7 @@ import {
   type MatchPricing,
   roundEuro,
 } from "@padel-sport/backend/convex/modules/pricing/lib";
+import Link from "next/link";
 
 import {
   ChoiceCard,
@@ -17,6 +18,7 @@ import type { BookingDay } from "@/lib/booking";
 import { formatDayLong, formatSlotRange, MAX_PLAYERS } from "@/lib/booking";
 import type { BookingPartner } from "@/lib/booking-form";
 import { formatLevelRange, LEVEL_RANGES } from "@/lib/levels";
+import { BOOKING_TERMS_LINK } from "@/lib/links";
 
 /** Ultimo sguardo prima di occupare il campo. Ogni riga riporta al suo passo. */
 export function SummaryStep({
@@ -133,6 +135,10 @@ export function SummaryStep({
               onClick={() => payment.onChange(false)}
             />
           </div>
+          <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+            Se paghi online puoi disdire e avere il rimborso fino a 24 ore prima
+            della partita. Dopo la quota non è più rimborsabile.
+          </p>
         </div>
       )}
 
@@ -144,6 +150,20 @@ export function SummaryStep({
           definire gli ultimi dettagli.
         </Hint>
       )}
+
+      {/* Le informazioni che il Codice del Consumo chiede prima di un
+          contratto a distanza: stanno nella pagina, qui c'è la strada. */}
+      <p className="text-muted-foreground mt-6 text-xs leading-relaxed">
+        Confermando accetti le{" "}
+        <Link
+          href={BOOKING_TERMS_LINK}
+          target="_blank"
+          className="text-foreground underline underline-offset-2"
+        >
+          condizioni di prenotazione
+        </Link>
+        .
+      </p>
     </div>
   );
 }

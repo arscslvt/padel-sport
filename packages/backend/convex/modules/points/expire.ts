@@ -1,4 +1,5 @@
 import { internalMutation } from "../../_generated/server";
+import { closeExit } from "./lib";
 
 /**
  * Cancella i punti in attesa che nessuno ha mai reclamato.
@@ -23,6 +24,15 @@ export default internalMutation({
       await ctx.db.delete(row._id);
     }
 
-    return { removed: stale.length };
+    // Le uscite scadute che il loro timer non ha chiuso: è una rete di
+    // sicurezza, di norma non trova nessuno (exit.ts).
+    let closed = 0;
+    for (const player of await ctx.db.query("players").collect()) {
+      const exit = player.pointsProgram?.exit;
+      if (!exit || exit.closedAt) continue;
+      if (await closeExit(ctx, player._id)) closed += 1;
+    }
+
+    return { removed: stale.length, closed };
   },
 });

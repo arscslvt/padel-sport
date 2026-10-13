@@ -3,6 +3,7 @@ import { getIdentityPlayer } from "../openMatches/lib";
 import {
   activeRewards,
   balanceOf,
+  exitDeadline,
   pendingTransactions,
   recentTransactions,
   redemptionState,
@@ -60,14 +61,17 @@ export default query({
       .take(HISTORY_LIMIT);
 
     const pending = await pendingTransactions(ctx, player._id);
+    const exit = player.pointsProgram?.exit;
 
     return {
       /** Punti caricati dallo staff che arrivano aderendo al programma. */
       pendingPoints: pending.reduce((sum, row) => sum + row.delta, 0),
       /** Stato dell'adesione e regolamento da accettare: senza, la pagina chiede di aderire. */
       program: {
-        state: programState(player),
+        state: programState(player, now),
         version: POINTS_TERMS_VERSION,
+        /** Chi sta uscendo riscatta fino a qui; chi è uscito, da qui non ha più punti. */
+        exitDeadline: exit ? exitDeadline(exit) : undefined,
       },
       firstName: player.firstName ?? player.name.split(" ")[0],
       /** Il nome intero, stampato sulla tessera punti. */

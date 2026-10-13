@@ -21,6 +21,7 @@ import {
 } from "@/components/booking/email-code";
 import { FIELD_CLASS } from "@/components/booking/wizard-ui";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -104,17 +105,34 @@ function ContactsAndDetails({ profile }: { profile: Profile }) {
     residence: profile.residence ?? {},
     allergies: profile.health.allergies ?? "",
     conditions: profile.health.conditions ?? "",
+    healthConsent: profile.healthConsent,
   };
 
   const [phone, setPhone] = useState(initial.phone);
   const [residence, setResidence] = useState<Residence>(initial.residence);
   const [allergies, setAllergies] = useState(initial.allergies);
   const [conditions, setConditions] = useState(initial.conditions);
+  const [healthConsent, setHealthConsent] = useState(initial.healthConsent);
   const [saving, setSaving] = useState(false);
 
   const dirty =
-    JSON.stringify({ phone, residence, allergies, conditions }) !==
-    JSON.stringify(initial);
+    JSON.stringify({
+      phone,
+      residence,
+      allergies,
+      conditions,
+      healthConsent,
+    }) !== JSON.stringify(initial);
+
+  // Senza consenso i campi si svuotano e si chiudono: salvando, i dati
+  // sanitari se ne vanno tutti (modules/clients/self.ts).
+  const toggleHealthConsent = (checked: boolean) => {
+    setHealthConsent(checked);
+    if (!checked) {
+      setAllergies("");
+      setConditions("");
+    }
+  };
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -129,6 +147,7 @@ function ContactsAndDetails({ profile }: { profile: Profile }) {
           allergies: allergies.trim() || undefined,
           conditions: conditions.trim() || undefined,
         },
+        healthConsent,
       });
       toast.success("Dati aggiornati");
     } catch (error) {
@@ -188,12 +207,36 @@ function ContactsAndDetails({ profile }: { profile: Profile }) {
           description="Facoltativo. Lo legge solo lo staff, per sapere come aiutarti in campo."
         />
         <div className="rounded-card bg-muted space-y-6 p-6 sm:p-8">
+          <label
+            htmlFor="profile-health-consent"
+            className="flex cursor-pointer gap-3"
+          >
+            <Checkbox
+              id="profile-health-consent"
+              checked={healthConsent}
+              onCheckedChange={(checked) =>
+                toggleHealthConsent(checked === true)
+              }
+              className="bg-background mt-0.5"
+            />
+            <span>
+              <span className="block text-sm font-medium">
+                Acconsento al trattamento dei miei dati sanitari
+              </span>
+              <span className="text-muted-foreground block text-xs leading-relaxed">
+                {initial.healthConsent && !healthConsent
+                  ? "Salvando cancelliamo i dati sanitari che ci hai lasciato."
+                  : "Li usiamo solo per aiutarti in caso di malore. Puoi togliere il consenso quando vuoi."}
+              </span>
+            </span>
+          </label>
           <div className="space-y-2">
             <Label htmlFor="profile-allergies">Allergie e intolleranze</Label>
             <Textarea
               id="profile-allergies"
               value={allergies}
               maxLength={HEALTH_MAX}
+              disabled={!healthConsent}
               onChange={(event) => setAllergies(event.target.value)}
               placeholder="Es. allergia alle punture d'ape"
               className="bg-background border-border min-h-20 rounded-xl"
@@ -205,6 +248,7 @@ function ContactsAndDetails({ profile }: { profile: Profile }) {
               id="profile-conditions"
               value={conditions}
               maxLength={HEALTH_MAX}
+              disabled={!healthConsent}
               onChange={(event) => setConditions(event.target.value)}
               placeholder="Es. asma da sforzo, porto con me l'inalatore"
               className="bg-background border-border min-h-20 rounded-xl"

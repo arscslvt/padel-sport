@@ -108,6 +108,7 @@ import type * as modules_pointReports_list from "../modules/pointReports/list.js
 import type * as modules_pointReports_mail from "../modules/pointReports/mail.js";
 import type * as modules_pointReports_mine from "../modules/pointReports/mine.js";
 import type * as modules_pointReports_update from "../modules/pointReports/update.js";
+import type * as modules_points_exit from "../modules/points/exit.js";
 import type * as modules_points_expire from "../modules/points/expire.js";
 import type * as modules_points_ledger from "../modules/points/ledger.js";
 import type * as modules_points_lib from "../modules/points/lib.js";
@@ -120,6 +121,7 @@ import type * as modules_points_version from "../modules/points/version.js";
 import type * as modules_points_wallet from "../modules/points/wallet.js";
 import type * as modules_pricing_lib from "../modules/pricing/lib.js";
 import type * as modules_pricing_services from "../modules/pricing/services.js";
+import type * as modules_privacy_retention from "../modules/privacy/retention.js";
 import type * as modules_push_preferences from "../modules/push/preferences.js";
 import type * as modules_push_send from "../modules/push/send.js";
 import type * as modules_push_subscriptions from "../modules/push/subscriptions.js";
@@ -165,6 +167,7 @@ import type * as tables_players from "../tables/players.js";
 import type * as tables_pointPresets from "../tables/pointPresets.js";
 import type * as tables_pointReports from "../tables/pointReports.js";
 import type * as tables_pointTransactions from "../tables/pointTransactions.js";
+import type * as tables_pointsExitRequests from "../tables/pointsExitRequests.js";
 import type * as tables_pushSubscriptions from "../tables/pushSubscriptions.js";
 import type * as tables_rewardRedemptions from "../tables/rewardRedemptions.js";
 import type * as tables_rewards from "../tables/rewards.js";
@@ -286,6 +289,7 @@ declare const fullApi: ApiFromModules<{
   "modules/pointReports/mail": typeof modules_pointReports_mail;
   "modules/pointReports/mine": typeof modules_pointReports_mine;
   "modules/pointReports/update": typeof modules_pointReports_update;
+  "modules/points/exit": typeof modules_points_exit;
   "modules/points/expire": typeof modules_points_expire;
   "modules/points/ledger": typeof modules_points_ledger;
   "modules/points/lib": typeof modules_points_lib;
@@ -298,6 +302,7 @@ declare const fullApi: ApiFromModules<{
   "modules/points/wallet": typeof modules_points_wallet;
   "modules/pricing/lib": typeof modules_pricing_lib;
   "modules/pricing/services": typeof modules_pricing_services;
+  "modules/privacy/retention": typeof modules_privacy_retention;
   "modules/push/preferences": typeof modules_push_preferences;
   "modules/push/send": typeof modules_push_send;
   "modules/push/subscriptions": typeof modules_push_subscriptions;
@@ -343,6 +348,7 @@ declare const fullApi: ApiFromModules<{
   "tables/pointPresets": typeof tables_pointPresets;
   "tables/pointReports": typeof tables_pointReports;
   "tables/pointTransactions": typeof tables_pointTransactions;
+  "tables/pointsExitRequests": typeof tables_pointsExitRequests;
   "tables/pushSubscriptions": typeof tables_pushSubscriptions;
   "tables/rewardRedemptions": typeof tables_rewardRedemptions;
   "tables/rewards": typeof tables_rewards;

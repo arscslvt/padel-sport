@@ -29,5 +29,11 @@ export const SUMUP_BOOKING_URL =
 export const PRIVACY_LINK: Route = "/privacy";
 /** Regolamento del programma punti: va accettato prima di ricevere punti. */
 export const POINTS_TERMS_LINK = "/regolamento-punti" as Route;
+/**
+ * Condizioni di prenotazione: come si prenota, come si paga e, quando il club
+ * accetta pagamenti online, disdetta e rimborso. Le linka il riepilogo prima
+ * di confermare.
+ */
+export const BOOKING_TERMS_LINK = "/booking-terms" as Route;
 
 export const eventLink = (slug: string) => `${EVENTS_LINK}/${slug}` as Route;

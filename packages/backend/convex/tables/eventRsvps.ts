@@ -76,7 +76,8 @@ const eventRsvps = defineTable({
 })
   .index("by_form", ["eventId", "blockKey"])
   .index("by_email", ["email"])
-  .index("by_cancel_token", ["cancelToken"]);
+  .index("by_cancel_token", ["cancelToken"])
+  .index("by_created", ["createdAt"]);
 
 export default eventRsvps;
 export { eventRsvpStatus };

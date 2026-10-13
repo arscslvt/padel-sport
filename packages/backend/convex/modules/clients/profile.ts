@@ -75,6 +75,10 @@ function cleanHealth(
   return { allergies, conditions, disability };
 }
 
+/** Lo stesso messaggio dal sito e dal backend: i dati sanitari chiedono il sì. */
+export const HEALTH_CONSENT_REQUIRED =
+  "Per salvare i dati sanitari serve il tuo consenso. Spunta la casella o svuota i campi.";
+
 function assertLevel(level: number | undefined) {
   if (level === undefined) return;
 
@@ -396,6 +400,8 @@ export const complete = mutation({
     gender,
     level: v.float64(),
     consents: consentsValidator,
+    /** Il consenso esplicito ai dati sanitari (art. 9 GDPR), separato dagli altri. */
+    healthConsent: v.optional(v.boolean()),
     taxCode: v.optional(v.string()),
     residence: v.optional(residenceValidator),
     health: v.optional(healthValidator),
@@ -429,6 +435,13 @@ export const complete = mutation({
     const firstName = clean(args.firstName) ?? player.firstName;
     const lastName = clean(args.lastName) ?? player.lastName;
 
+    // I dati sanitari restano solo con il sì della persona: anche quelli che
+    // lo staff aveva scritto allo sportello, che qui vede e conferma.
+    const health = args.health ? cleanHealth(args.health) : player.health;
+    if (health && !args.healthConsent) {
+      throw new Error(HEALTH_CONSENT_REQUIRED);
+    }
+
     await ctx.db.patch(player._id, {
       name: displayName({ name: player.name, firstName, lastName }),
       firstName,
@@ -444,7 +457,8 @@ export const complete = mutation({
       residence: args.residence
         ? cleanResidence(args.residence)
         : player.residence,
-      health: args.health ? cleanHealth(args.health) : player.health,
+      health,
+      healthConsentAt: health ? Date.now() : undefined,
       clerkUserId: args.clerkUserId,
       avatarUrl: args.avatarUrl ?? player.avatarUrl,
       code: player.code ?? (await generatePlayerCode(ctx)),

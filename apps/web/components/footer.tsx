@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ANCHORS } from "@/lib/anchors";
 import { getInfo } from "@/lib/info";
 import {
+  BOOKING_TERMS_LINK,
   EVENTS_LINK,
   PERSONAL_AREA_LINK,
   POINTS_TERMS_LINK,
@@ -147,6 +148,15 @@ export default function Footer() {
                 className="hover:text-foreground transition-colors"
               >
                 Regolamento punti
+              </Link>
+              <span aria-hidden className="hidden sm:inline">
+                ·
+              </span>
+              <Link
+                href={BOOKING_TERMS_LINK}
+                className="hover:text-foreground transition-colors"
+              >
+                Condizioni di prenotazione
               </Link>
               <span aria-hidden className="hidden sm:inline">
                 ·

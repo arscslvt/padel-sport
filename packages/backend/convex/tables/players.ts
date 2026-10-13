@@ -105,6 +105,16 @@ const players = defineTable({
   taxCode: v.optional(v.string()),
   health: v.optional(health),
   /**
+   * Quando la persona ha dato online il consenso esplicito ai dati sanitari
+   * (art. 9 GDPR), dall'attivazione dell'account o dal profilo.
+   *
+   * Assente non vuol dire per forza «senza consenso»: i dati scritti dallo
+   * staff allo sportello hanno il consenso sul modulo firmato, che resta
+   * cartaceo. Revocandolo dal profilo il blocco `health` se ne va con lui
+   * (modules/clients/self.ts).
+   */
+  healthConsentAt: v.optional(v.float64()),
+  /**
    * Note interne del club sulla persona.
    *
    * Le scrive lo staff e le legge lo staff: non compaiono mai a chi attiva il
@@ -122,6 +132,13 @@ const players = defineTable({
    * Adesione al programma punti: senza, il conto resta chiuso
    * (modules/points/terms.ts). `version` è il regolamento accettato, `via` dice
    * se dall'area personale o con un modulo firmato allo sportello.
+   *
+   * `exit` è l'uscita confermata dalla persona (modules/points/exit.ts): per
+   * dieci giorni può ancora riscattare, poi i punti non usati decadono e
+   * `closedAt` segna la chiusura del conto. `via` dice se l'ha fatta dall'area
+   * personale o dal link che la segreteria le ha mandato via mail: lo staff
+   * da solo non può farla uscire. Aderire di nuovo riscrive tutto l'oggetto,
+   * uscita compresa.
    */
   pointsProgram: v.optional(
     v.object({
@@ -129,6 +146,13 @@ const players = defineTable({
       version: v.string(),
       via: v.union(v.literal("online"), v.literal("desk")),
       recordedByClerkUserId: v.optional(v.string()),
+      exit: v.optional(
+        v.object({
+          requestedAt: v.float64(),
+          via: v.union(v.literal("online"), v.literal("email")),
+          closedAt: v.optional(v.float64()),
+        }),
+      ),
     }),
   ),
   /**

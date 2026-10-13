@@ -1,4 +1,7 @@
-import { POINTS_TERMS_VERSION } from "@padel-sport/backend/convex/modules/points/version";
+import {
+  POINTS_TERMS_UPDATED,
+  POINTS_TERMS_VERSION,
+} from "@padel-sport/backend/convex/modules/points/version";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -22,7 +25,8 @@ export const metadata: Metadata = {
  * viene da `POINTS_TERMS_VERSION`, la stessa che il backend registra con
  * l'adesione. Cambiare il testo in modo sostanziale vuol dire cambiare anche
  * quella data, e chiedere a tutti di accettare di nuovo
- * (packages/backend/convex/modules/points/terms.ts).
+ * (packages/backend/convex/modules/points/terms.ts). Le modifiche a favore del
+ * socio spostano solo `POINTS_TERMS_UPDATED`, che compare accanto.
  *
  * Il tono è quello della pagina privacy: frasi piane, niente legalese dove non
  * serve. Prima della pubblicazione in produzione va riletto dal consulente del
@@ -72,6 +76,10 @@ export default function PointsTermsPage() {
   const version = formatClubDate(
     new Date(`${POINTS_TERMS_VERSION}T12:00:00`).getTime(),
   );
+  const updated =
+    POINTS_TERMS_UPDATED > POINTS_TERMS_VERSION
+      ? formatClubDate(new Date(`${POINTS_TERMS_UPDATED}T12:00:00`).getTime())
+      : null;
 
   return (
     <article className="mx-auto w-full max-w-3xl px-6 pb-24 lg:px-12">
@@ -85,6 +93,7 @@ export default function PointsTermsPage() {
         </p>
         <p className="text-muted-foreground/70 mt-3 text-xs">
           Versione in vigore dal {version}
+          {updated && ` · Aggiornata il ${updated}`}
         </p>
       </header>
 
@@ -127,9 +136,13 @@ export default function PointsTermsPage() {
           <p>
             I punti li assegna la segreteria, per le occasioni che il club
             stabilisce: per esempio <Term>3 punti per ogni partita vinta</Term>.
-            L'elenco delle occasioni e dei punti relativi può cambiare nel
-            tempo; le modifiche valgono per i punti assegnati da quel momento in
-            poi e non toccano quelli che hai già.
+          </p>
+          <p>
+            Il club può cambiare le occasioni e i punti relativi, per esempio
+            quando cambiano le attività o le tariffe. Ogni modifica la
+            comunichiamo sul sito o via email almeno <Term>7 giorni prima</Term>{" "}
+            che entri in vigore. Vale per i punti assegnati da quel momento in
+            poi e non tocca quelli che hai già.
           </p>
           <p>
             Il club può anche togliere punti, ad esempio per correggere un
@@ -195,10 +208,25 @@ export default function PointsTermsPage() {
 
         <Section number={8} title="Se vuoi uscire dal programma">
           <p>
-            Puoi uscire quando vuoi scrivendo a <MailLink />. Da quel momento
-            non ricevi più punti né comunicazioni sul programma; i{" "}
-            <Term>punti non usati decadono</Term>, mentre i premi già riscattati
-            restano utilizzabili fino alla loro scadenza.
+            Puoi uscire quando vuoi dalla tua{" "}
+            <Link href={PERSONAL_AREA_LINK} className={LINK_CLASS}>
+              area personale
+            </Link>
+            . Se preferisci chiederlo alla segreteria, anche scrivendo a{" "}
+            <MailLink />, ti mandiamo una mail con un link. Esci solo quando lo
+            apri e confermi. Il club non può farti uscire senza la tua conferma.
+          </p>
+          <p>
+            Da quel momento non ricevi più punti nuovi. I punti che hai non li
+            perdi subito. Puoi usarli per riscattare premi fino a{" "}
+            <Term>10 giorni dopo la tua conferma</Term>, e in questo tempo puoi
+            anche ripensarci e restare nel programma. Passato questo termine i
+            punti non usati decadono e non ricevi più comunicazioni sul
+            programma. I premi già riscattati restano utilizzabili fino alla
+            loro scadenza.
+          </p>
+          <p>
+            Puoi aderire di nuovo quando vuoi. I punti decaduti non tornano.
           </p>
         </Section>
 

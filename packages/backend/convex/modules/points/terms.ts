@@ -4,7 +4,12 @@ import type { Doc } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
 import { requirePlayer } from "../openMatches/lib";
-import { assertPointsUnfrozen, creditPending } from "./lib";
+import {
+  assertPointsUnfrozen,
+  closeExit,
+  creditPending,
+  exitDeadline,
+} from "./lib";
 import { POINTS_TERMS_VERSION } from "./version";
 
 export { POINTS_TERMS_VERSION };
@@ -25,6 +30,10 @@ export { POINTS_TERMS_VERSION };
  * chi aveva aderito alla versione precedente torna a vedere la richiesta di
  * adesione, e finché non accetta di nuovo i nuovi punti restano in attesa.
  * Quelli che ha già restano suoi.
+ *
+ * Dal programma si esce quando si vuole (exit.ts): per dieci giorni si può
+ * ancora riscattare, poi i punti non usati decadono. Si può aderire di nuovo
+ * in qualunque momento, e si riparte dalle regole in vigore.
  */
 
 export type ProgramState =
@@ -32,11 +41,27 @@ export type ProgramState =
   | "none"
   /** Ha aderito a un regolamento che nel frattempo è cambiato. */
   | "outdated"
-  | "joined";
+  | "joined"
+  /** Ha chiesto di uscire: niente punti nuovi, ma può ancora riscattare. */
+  | "leaving"
+  /** Uscito: i dieci giorni sono passati e il conto è chiuso. */
+  | "left";
 
-export function programState(player: Doc<"players">): ProgramState {
+export function programState(
+  player: Doc<"players">,
+  now: number = Date.now(),
+): ProgramState {
   const program = player.pointsProgram;
   if (!program) return "none";
+
+  // La scadenza conta anche prima che il conto venga chiuso: dal minuto dopo
+  // non si riscatta più, anche se il timer non è ancora passato.
+  if (program.exit) {
+    return program.exit.closedAt || now >= exitDeadline(program.exit)
+      ? "left"
+      : "leaving";
+  }
+
   return program.version === POINTS_TERMS_VERSION ? "joined" : "outdated";
 }
 
@@ -54,6 +79,10 @@ export const accept = mutation({
         "Il regolamento è stato aggiornato: ricarica la pagina e rileggilo.",
       );
     }
+
+    // Chi rientra dopo la scadenza dell'uscita perde prima i punti che non
+    // aveva usato: aderire di nuovo non deve restituirglieli.
+    await closeExit(ctx, player._id);
 
     await ctx.db.patch(player._id, {
       pointsProgram: {
@@ -88,6 +117,8 @@ export const recordAtDesk = mutation({
     // L'adesione accredita i punti in attesa: da sospeso resterebbero fermi
     // lo stesso, ed è più chiaro registrarla alla riattivazione.
     assertPointsUnfrozen(player);
+
+    await closeExit(ctx, playerId);
 
     await ctx.db.patch(playerId, {
       pointsProgram: {

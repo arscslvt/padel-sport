@@ -23,6 +23,7 @@ import payments from "./tables/payments";
 import players from "./tables/players";
 import pointPresets from "./tables/pointPresets";
 import pointReports from "./tables/pointReports";
+import pointsExitRequests from "./tables/pointsExitRequests";
 import pointTransactions from "./tables/pointTransactions";
 import pushSubscriptions from "./tables/pushSubscriptions";
 import rewardRedemptions from "./tables/rewardRedemptions";
@@ -59,6 +60,7 @@ export default defineSchema({
   rewards,
   rewardRedemptions,
   pointReports,
+  pointsExitRequests,
   pushSubscriptions,
   notificationPreferences,
   services,

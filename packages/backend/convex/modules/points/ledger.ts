@@ -5,6 +5,7 @@ import { assertServer } from "../../utils/serverSecret";
 import {
   applyPoints,
   balanceOf,
+  exitDeadline,
   pendingTransactions,
   recentTransactions,
   redemptionState,
@@ -38,14 +39,40 @@ export const detail = query({
     const now = Date.now();
 
     const pending = await pendingTransactions(ctx, playerId);
+    const exit = player.pointsProgram?.exit;
+
+    // La richiesta di uscita ancora aperta: lo staff deve sapere che la mail
+    // è partita, e fino a quando il link vale.
+    const exitRequest = (
+      await ctx.db
+        .query("pointsExitRequests")
+        .withIndex("by_player", (q) => q.eq("playerId", playerId))
+        .collect()
+    )
+      .filter((row) => row.status === "pending" && row.expiresAt > now)
+      .sort((a, b) => b.createdAt - a.createdAt)[0];
 
     return {
       /** Punti caricati ma non ancora accreditati: aspettano l'adesione. */
       pendingPoints: pending.reduce((sum, row) => sum + row.delta, 0),
       program: {
-        state: programState(player),
+        state: programState(player, now),
         acceptedAt: player.pointsProgram?.acceptedAt,
         via: player.pointsProgram?.via,
+        exit: exit
+          ? {
+              requestedAt: exit.requestedAt,
+              deadline: exitDeadline(exit),
+              via: exit.via,
+            }
+          : undefined,
+        exitRequest: exitRequest
+          ? {
+              email: exitRequest.email,
+              sentAt: exitRequest.createdAt,
+              expiresAt: exitRequest.expiresAt,
+            }
+          : undefined,
       },
       balance: balanceOf(player),
       /** Account sospeso: i punti sono congelati (lib.ts). */

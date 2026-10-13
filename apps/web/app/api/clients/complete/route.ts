@@ -30,6 +30,7 @@ const bodySchema = z.object({
     newsletter: z.boolean(),
     tracking: z.boolean(),
   }),
+  healthConsent: z.boolean().optional(),
   taxCode: z.string().trim().max(16).optional(),
   residence: z
     .object({

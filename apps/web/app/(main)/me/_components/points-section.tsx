@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useWallet } from "./area-context";
 import { JoinProgram } from "./join-program";
 import { Movements } from "./movements";
+import { LeaveProgram, LeavingNotice } from "./program-exit";
 import { WalletCard } from "./wallet-card";
 
 /**
@@ -25,20 +26,30 @@ export function PointsSection() {
     }
   }, [router]);
 
+  const { state } = wallet.program;
+
   return (
     <div className="space-y-14">
-      {wallet.program.state === "joined" ? (
+      {/* Chi sta uscendo vede ancora la tessera: i punti sono suoi finché
+          non scadono i dieci giorni, e deve sapere fino a quando. */}
+      {state === "leaving" && <LeavingNotice wallet={wallet} />}
+
+      {state === "joined" || state === "leaving" ? (
         <WalletCard wallet={wallet} />
       ) : (
         <JoinProgram
           version={wallet.program.version}
-          state={wallet.program.state}
+          state={state}
           balance={wallet.balance}
           pendingPoints={wallet.pendingPoints}
         />
       )}
 
       <Movements wallet={wallet} />
+
+      {(state === "joined" || state === "outdated") && (
+        <LeaveProgram wallet={wallet} />
+      )}
     </div>
   );
 }

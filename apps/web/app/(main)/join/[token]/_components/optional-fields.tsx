@@ -6,6 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,14 +22,30 @@ import type { Health } from "./client-types";
  *
  * Dentro ci sono **dati sanitari** — categoria particolare, non anagrafica: si
  * raccolgono perché servono a far giocare qualcuno in sicurezza, e per nessun
- * altro motivo. Le note del club sono un'altra cosa ancora: le scrive lo staff
- * per sé, e a chi attiva il proprio account non si mostrano mai.
+ * altro motivo, e chiedono un consenso esplicito e separato (art. 9 GDPR). Le
+ * note del club sono un'altra cosa ancora: le scrive lo staff per sé, e a chi
+ * attiva il proprio account non si mostrano mai.
  */
 
 export interface OptionalFieldsValue {
   taxCode: string;
   health: Health;
+  /** Il sì ai dati sanitari: senza, i campi sanitari devono restare vuoti. */
+  healthConsent: boolean;
   clubNotes?: string;
+}
+
+/** Lo stesso messaggio del backend (modules/clients/profile.ts). */
+export const HEALTH_CONSENT_REQUIRED =
+  "Per salvare i dati sanitari serve il tuo consenso. Spunta la casella o svuota i campi.";
+
+/** Ci sono dati sanitari da salvare? */
+export function hasHealth(value: OptionalFieldsValue) {
+  return [
+    value.health.allergies,
+    value.health.conditions,
+    value.health.disability,
+  ].some((field) => field?.trim());
 }
 
 export function OptionalFields({
@@ -123,10 +140,29 @@ export function OptionalFields({
             />
           </div>
 
-          <p className="text-muted-foreground text-xs leading-relaxed">
-            Allergie, condizioni e invalidità sono dati sanitari: li raccogliamo
-            solo per far giocare in sicurezza e li vede lo staff del club.
-          </p>
+          <label
+            htmlFor={`${idPrefix}-healthConsent`}
+            className="bg-background flex cursor-pointer gap-3 rounded-xl border p-3.5"
+          >
+            <Checkbox
+              id={`${idPrefix}-healthConsent`}
+              checked={value.healthConsent}
+              onCheckedChange={(checked) =>
+                onChange({ ...value, healthConsent: checked === true })
+              }
+              className="mt-0.5"
+            />
+            <span>
+              <span className="block text-sm font-medium">
+                Acconsento al trattamento dei miei dati sanitari
+              </span>
+              <span className="text-muted-foreground block text-xs leading-relaxed">
+                Allergie, condizioni e invalidità sono dati sanitari. Li
+                raccogliamo solo per far giocare in sicurezza e li vede solo lo
+                staff del club. Senza consenso lascia vuoti questi campi.
+              </span>
+            </span>
+          </label>
 
           {withClubNotes && (
             <div className="space-y-1.5 border-t pt-4">
@@ -155,6 +191,7 @@ export function OptionalFields({
 export const EMPTY_OPTIONAL: OptionalFieldsValue = {
   taxCode: "",
   health: {},
+  healthConsent: false,
   clubNotes: "",
 };
 
@@ -162,17 +199,16 @@ export const EMPTY_OPTIONAL: OptionalFieldsValue = {
 export function optionalPayload(value: OptionalFieldsValue) {
   const trim = (field?: string) => field?.trim() || undefined;
 
-  const health = {
-    allergies: trim(value.health.allergies),
-    conditions: trim(value.health.conditions),
-    disability: trim(value.health.disability),
-  };
-
-  const hasHealth = Object.values(health).some(Boolean);
-
+  // Il blocco sanitario parte sempre, anche vuoto: svuotare i campi che lo
+  // staff aveva compilato dev'essere un modo per toglierli.
   return {
     taxCode: trim(value.taxCode),
-    health: hasHealth ? health : undefined,
+    health: {
+      allergies: trim(value.health.allergies),
+      conditions: trim(value.health.conditions),
+      disability: trim(value.health.disability),
+    },
+    healthConsent: value.healthConsent,
     clubNotes: trim(value.clubNotes),
   };
 }

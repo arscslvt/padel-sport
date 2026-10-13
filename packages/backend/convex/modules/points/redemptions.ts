@@ -30,7 +30,14 @@ export const redeem = mutation({
     const player = await requirePlayer(ctx);
     assertPointsUnfrozen(player);
 
-    if (programState(player) !== "joined") {
+    // Chi sta uscendo riscatta ancora: ha dieci giorni per farlo.
+    const state = programState(player);
+    if (state === "left") {
+      throw new Error(
+        "Sei uscito dal programma punti. Per riscattare aderisci di nuovo.",
+      );
+    }
+    if (state !== "joined" && state !== "leaving") {
       throw new Error("Accetta il regolamento del programma punti per riscattare.");
     }
 

@@ -18,6 +18,17 @@ export const DEFAULT_PRESETS = [{ label: "Partita vinta", points: 3 }] as const;
 /** Tetto di un singolo movimento: oltre è quasi certamente un dito scivolato. */
 export const MAX_DELTA = 1000;
 
+/**
+ * Dopo la richiesta di uscita la persona ha dieci giorni per riscattare i
+ * punti che ha: è la promessa del regolamento (sezione 8).
+ */
+export const EXIT_WINDOW_MS = 10 * 24 * 60 * 60 * 1000;
+
+/** Fino a quando chi sta uscendo può riscattare. */
+export function exitDeadline(exit: { requestedAt: number }): number {
+  return exit.requestedAt + EXIT_WINDOW_MS;
+}
+
 export function balanceOf(player: Doc<"players">): number {
   return player.points ?? 0;
 }
@@ -84,11 +95,20 @@ export async function applyPoints(
   if (!isRefund) assertPointsUnfrozen(player);
 
   // La restituzione di un riscatto annullato passa sempre: quei punti erano
-  // già della persona, che per riscattare aveva per forza aderito.
-  if (programState(player) !== "joined" && !args.redemptionId) {
+  // già della persona, che per riscattare aveva per forza aderito. Chi sta
+  // uscendo tiene il saldo fino alla scadenza, e lo staff può ancora
+  // correggerlo; i punti nuovi invece restano in attesa, come per chi non ha
+  // aderito.
+  const state = programState(player);
+  const credited =
+    state === "joined" || (state === "leaving" && args.delta < 0);
+
+  if (!credited && !args.redemptionId) {
     if (args.delta < 0) {
       throw new Error(
-        "Questa persona non ha ancora aderito al programma: invece di togliere punti, annulla il movimento in attesa sbagliato.",
+        state === "left"
+          ? "Questa persona è uscita dal programma: non ha punti da togliere."
+          : "Questa persona non ha ancora aderito al programma: invece di togliere punti, annulla il movimento in attesa sbagliato.",
       );
     }
 
@@ -187,6 +207,49 @@ export async function creditPending(
     credited: rows.length,
     points: rows.reduce((sum, row) => sum + row.delta, 0),
   };
+}
+
+/**
+ * Chiude l'uscita dal programma: i punti non usati decadono.
+ *
+ * È l'unico movimento che non passa da `applyPoints`, perché è l'unico che
+ * non deve fare quel che fa `applyPoints`: niente mail, che il regolamento
+ * promette di fermare, e niente controllo sull'adesione, che a questo punto
+ * non c'è più. Il registro lo vede lo stesso, come un movimento in uscita.
+ *
+ * Non fa nulla se l'uscita non è arrivata a scadenza, è già chiusa o è stata
+ * annullata: la chiamano il timer dell'uscita, il controllo quotidiano e
+ * l'adesione di chi rientra, e solo uno dei tre deve chiudere davvero.
+ */
+export async function closeExit(
+  ctx: MutationCtx,
+  playerId: Id<"players">,
+  now: number = Date.now(),
+): Promise<{ forfeited: number } | null> {
+  const player = await ctx.db.get(playerId);
+  const program = player?.pointsProgram;
+  const exit = program?.exit;
+  if (!player || !program || !exit || exit.closedAt) return null;
+  if (now < exitDeadline(exit)) return null;
+
+  const forfeited = balanceOf(player);
+
+  if (forfeited > 0) {
+    await ctx.db.insert("pointTransactions", {
+      playerId,
+      delta: -forfeited,
+      label: "Punti decaduti con l'uscita dal programma",
+      balanceAfter: 0,
+      createdAt: now,
+    });
+  }
+
+  await ctx.db.patch(playerId, {
+    points: forfeited > 0 ? 0 : player.points,
+    pointsProgram: { ...program, exit: { ...exit, closedAt: now } },
+  });
+
+  return { forfeited };
 }
 
 /** Gli ultimi movimenti di un giocatore, dal più recente. */

@@ -9,12 +9,12 @@ import { getInfo } from "@/lib/info";
 export const metadata: Metadata = {
 	title: "Privacy e trattamento dei dati",
 	description:
-		"Come A.S.D. Padel Sport Melilli raccoglie, usa e conserva i dati personali inseriti sul sito: richieste di giocatori, assistenza, prenotazioni, iscrizioni agli eventi e navigazione.",
+		"Come A.S.D. Padel Sport Melilli raccoglie, usa e conserva i dati personali: scheda socio e tesseramento, prenotazioni e pagamenti, programma punti, richieste, iscrizioni agli eventi e navigazione.",
 	alternates: { canonical: "https://www.asdpadelsport.com/privacy" },
 };
 
 /** Data dell'ultima revisione dei contenuti di questa pagina. */
-const LAST_UPDATE = "2 ottobre 2026";
+const LAST_UPDATE = "13 ottobre 2026";
 
 /**
  * Fornitori che trattano dati per conto del club (art. 28 GDPR).
@@ -35,20 +35,32 @@ const PROCESSORS: ReadonlyArray<{
 	{
 		name: "Convex, Inc.",
 		purpose:
-			"Database in cui sono registrate le prenotazioni dei campi fatte dal sito, le iscrizioni agli eventi, le richieste di giocatori e di assistenza inviate dai moduli e il conto del programma punti; ospita anche le immagini dei premi",
+			"Database in cui sono registrate la scheda socio con i consensi, le prenotazioni dei campi fatte dal sito con l'esito dei pagamenti online, le iscrizioni agli eventi, le richieste di giocatori e di assistenza inviate dai moduli e il conto del programma punti; ospita anche le immagini dei premi",
 		place: "Stati Uniti",
 	},
 	{
 		name: "Resend (Plus Five Five, Inc.)",
 		purpose:
-			"Invio delle email: la notifica alla segreteria, la copia della richiesta a chi la manda, le comunicazioni della segreteria a chi si è iscritto a un evento e gli avvisi dei movimenti del programma punti",
+			"Invio delle email: la notifica alla segreteria, la copia della richiesta a chi la manda, le comunicazioni della segreteria a chi si è iscritto a un evento, gli avvisi delle prenotazioni e quelli dei movimenti del programma punti",
 		place: "Stati Uniti",
 	},
 	{
 		name: "SumUp",
 		purpose:
-			"Piattaforma esterna su cui prenotano i campi le persone senza un account del club",
+			"Pagamenti online delle prenotazioni, sulla sua pagina di pagamento, e piattaforma esterna su cui prenotano i campi le persone senza un account del club. Per i dati della carta e del pagamento è titolare autonomo",
 		place: "Unione Europea e Regno Unito",
+	},
+	{
+		name: "Twilio Inc.",
+		purpose:
+			"Invio delle conferme e degli avvisi delle prenotazioni su WhatsApp, tramite la piattaforma WhatsApp Business di Meta",
+		place: "Stati Uniti",
+	},
+	{
+		name: "Google Ireland Limited",
+		purpose:
+			"Calendario condiviso con SumUp, che tiene allineate le disponibilità dei campi. Per le prenotazioni fatte dal sito riporta giorno, orario, campo, nome di chi prenota e codice della prenotazione",
+		place: "Unione Europea e Stati Uniti",
 	},
 	{
 		name: "Clerk, Inc.",
@@ -78,23 +90,43 @@ const RETENTION: ReadonlyArray<{ what: string; how: string }> = [
 	},
 	{
 		what: "Richieste di assistenza",
-		how: "24 mesi dalla chiusura della richiesta",
+		how: "24 mesi dall'invio della richiesta",
 	},
 	{
 		what: "Iscrizioni agli eventi",
-		how: "12 mesi dalla data dell'evento, insieme allo storico delle comunicazioni inviate a chi vi si era iscritto",
+		how: "18 mesi dall'iscrizione, quindi comunque dopo la fine dell'evento, insieme allo storico delle comunicazioni inviate a chi vi si era iscritto",
 	},
 	{
 		what: "Email scambiate con la segreteria",
 		how: "24 mesi nella casella di posta del club",
 	},
 	{
+		what: "Scheda socio e tessere",
+		how: "Per tutta la durata del rapporto associativo e 12 mesi dalla sua cessazione. Le tessere, con le quote pagate, per 10 anni come richiesto dagli obblighi contabili",
+	},
+	{
+		what: "Dati sanitari",
+		how: "Finché resti socio e mantieni il consenso. Se lo revochi li cancelliamo subito",
+	},
+	{
+		what: "Consensi a comunicazioni promozionali e newsletter",
+		how: "Finché non li revochi o non cessa il rapporto associativo",
+	},
+	{
 		what: "Prenotazioni dei campi",
 		how: "Le prenotazioni fatte dal sito restano nel nostro database per il tempo necessario a gestire presenze e incassi, e comunque per i termini previsti dagli obblighi contabili; quelle fatte senza account restano nel gestionale SumUp, con gli stessi criteri",
 	},
 	{
+		what: "Pagamenti online",
+		how: "Esito, importo, data, codice della transazione e rimborsi per 10 anni, come richiesto dagli obblighi contabili",
+	},
+	{
+		what: "Avvisi delle prenotazioni",
+		how: "L'esito di email e messaggi WhatsApp resta insieme alla prenotazione a cui si riferisce",
+	},
+	{
 		what: "Programma punti",
-		how: "Saldo, movimenti e premi riscattati per tutta la durata della tua adesione al programma, e 12 mesi da quando esci dal programma o il programma termina. I punti in attesa di chi non ha aderito per 12 mesi dalla loro assegnazione. La prova della tua adesione (data e versione del regolamento accettato) la conserviamo fino a 10 anni, per poter dimostrare il consenso alle regole in caso di contestazione",
+		how: "Saldo, movimenti, premi riscattati e segnalazioni per tutta la durata della tua adesione al programma, e 12 mesi da quando esci dal programma o il programma termina. I punti in attesa di chi non ha aderito per 12 mesi dalla loro assegnazione. La prova della tua adesione (data e versione del regolamento accettato) la conserviamo fino a 10 anni, per poter dimostrare il consenso alle regole in caso di contestazione",
 	},
 	{
 		what: "Account dell'area riservata",
@@ -203,14 +235,73 @@ export default function PrivacyPage() {
 
 				<Section number={2} title="Che dati raccogliamo e perché">
 					<p>
-						I dati arrivano da quello che scrivi tu nei moduli del sito, più
-						i dati tecnici che qualunque server registra quando visiti una
-						pagina. C'è poi una sola raccolta «di sfondo», le statistiche di
-						utilizzo: non parte da sola, la attivi tu accettandola nel banner, e
-						si ferma appena la revochi.
+						I dati arrivano da quello che ci dai in segreteria e da quello che
+						scrivi tu nel sito, più i dati tecnici che qualunque server registra
+						quando visiti una pagina. C'è poi una sola raccolta «di sfondo», le
+						statistiche di utilizzo: non parte da sola, la attivi tu accettandola
+						nel banner, e si ferma appena la revochi.
+					</p>
+					<p>
+						Nome, contatti e dati del tesseramento servono a iscriverti e a
+						prenotare: senza, non possiamo farlo. Quello che è indicato come
+						facoltativo — dati sanitari, consensi, note — puoi non darcelo
+						senza conseguenze.
 					</p>
 
 					<div className="flex flex-col gap-6 pt-2">
+						<Block title="Scheda socio">
+							Quando ti iscrivi al club la segreteria apre la tua{" "}
+							<Term>scheda socio</Term> con nome e cognome, email, telefono, data
+							e luogo di nascita, genere, codice fiscale, residenza e livello di
+							gioco. Puoi confermarla e completarla tu attivando l'account dal
+							link che ti mandiamo. Sulla scheda registriamo anche le tessere
+							annuali, con data, importo e modalità di pagamento della quota. Lo
+							staff può aggiungere <Term>note interne</Term> utili a gestire il
+							rapporto con te: non le vedi nell'area personale, ma puoi chiederne
+							copia come per ogni altro dato. Servono a gestire l'iscrizione, le
+							prenotazioni e i contatti con te. Base giuridica: esecuzione del
+							rapporto associativo (art. 6.1.b GDPR) e, per quote e ricevute,
+							obblighi contabili e fiscali (art. 6.1.c GDPR).
+						</Block>
+
+						<Block title="Tesseramento al CSI">
+							Per i soci tesserati al <Term>Centro Sportivo Italiano (CSI)</Term>{" "}
+							tramite il club, comunichiamo al CSI nome, cognome e gli altri dati
+							anagrafici che il tesseramento richiede. Lo facciamo{" "}
+							<Term>solo per chi ha un tesseramento CSI attivo o richiesto</Term>
+							: i dati degli altri soci non escono dal club. Il CSI li tratta come
+							titolare autonomo, secondo la propria informativa. Base giuridica:
+							esecuzione del rapporto associativo e del tesseramento che ci chiedi
+							(art. 6.1.b GDPR).
+						</Block>
+
+						<Block title="Dati sanitari (solo col tuo consenso esplicito)">
+							Se vuoi, puoi indicarci{" "}
+							<Term>allergie, condizioni mediche e invalidità</Term> che lo staff
+							deve conoscere per aiutarti in caso di malore. Sono dati sanitari,
+							una categoria particolare di dati: li trattiamo solo con il tuo{" "}
+							<Term>consenso esplicito</Term> (art. 9.2.a GDPR), che dai con una
+							casella a parte quando attivi l'account o dal tuo profilo, oppure
+							firmando il modulo in segreteria. Sono facoltativi: senza, resti
+							socio a tutti gli effetti. Li vede solo lo staff del club, mai gli
+							altri giocatori. Puoi revocare il consenso quando vuoi dal profilo
+							o scrivendo a <MailLink />, e in quel caso li cancelliamo.
+						</Block>
+
+						<Block title="Comunicazioni promozionali e newsletter (solo col tuo consenso)">
+							Attivando l'account puoi scegliere, con caselle separate e non
+							spuntate, di ricevere <Term>comunicazioni promozionali</Term>{" "}
+							(offerte, tornei e iniziative del club) e la{" "}
+							<Term>newsletter</Term> con le novità del club. Le mandiamo solo a
+							chi ha detto sì, via email o messaggio. Base giuridica: il tuo
+							consenso (art. 6.1.a GDPR e art. 130 del Codice privacy). Puoi
+							revocarlo quando vuoi scrivendo a <MailLink />, senza conseguenze
+							sulla tua iscrizione. Nella stessa schermata ti chiediamo il
+							consenso alle statistiche d'uso dell'app del club. Sul sito le
+							statistiche dipendono solo dalla scelta che fai nel banner,
+							descritta al punto 8.
+						</Block>
+
 						<Block title="Richiesta di giocatori">
 							Il modulo «ti manca qualche giocatore?» raccoglie{" "}
 							<Term>nome, email e telefono</Term>, la data e l'ora della
@@ -252,10 +343,29 @@ export default function PrivacyPage() {
 							compagni di gioco e — se vuoi che ricevano anche loro il codice
 							d'ingresso — le loro email. Questi dati finiscono nel nostro
 							database e li vede la segreteria, che gestisce i campi e, quando
-							la squadra è incompleta, cerca i giocatori mancanti. Base
+							la squadra è incompleta, cerca i giocatori mancanti. Conferma e
+							avvisi sulla prenotazione ti arrivano via email e su{" "}
+							<Term>WhatsApp</Term>, al numero che ci lasci. Dei messaggi
+							WhatsApp registriamo se sono stati consegnati e letti, per sapere
+							se sei stato avvisato. Per non far prenotare lo stesso campo due
+							volte, giorno, orario, campo, nome di chi prenota e codice
+							finiscono anche nel calendario che condividiamo con SumUp. Base
 							giuridica: esecuzione del servizio che ci chiedi (art. 6.1.b
 							GDPR). Se comunichi il nome o l'email di un altro giocatore, ti
 							chiediamo di averlo avvisato.
+						</Block>
+
+						<Block title="Pagamento online">
+							Quando il club accetta pagamenti online puoi pagare la
+							prenotazione con carta, Apple Pay o Google Pay sulla{" "}
+							<Term>pagina di pagamento di SumUp</Term>. I dati della carta li
+							inserisci lì e non passano dal nostro sito: per quelli SumUp è
+							titolare autonomo del trattamento, secondo la propria
+							informativa. Da SumUp riceviamo l'esito, l'importo, la data e il
+							codice della transazione, che registriamo sulla prenotazione
+							insieme agli eventuali rimborsi. Base giuridica: esecuzione del
+							servizio che ci chiedi (art. 6.1.b GDPR) e obblighi contabili
+							(art. 6.1.c GDPR).
 						</Block>
 
 						<Block title="Prenotazione senza account">
@@ -284,16 +394,21 @@ export default function PrivacyPage() {
 							nella tua area personale e li vede la segreteria, che assegna i
 							punti e consegna i premi. Se ci hai lasciato un indirizzo email ti
 							scriviamo a ogni movimento: sono comunicazioni di servizio sul
-							programma, non promozionali. Non usiamo questi dati per profilarti
-							né per decidere qualcosa su di te in automatico. Base giuridica:
+							programma, non promozionali. Dall'area personale puoi anche
+							mandarci una <Term>segnalazione</Term> su un movimento: registriamo
+							il messaggio, il movimento a cui si riferisce e la risposta della
+							segreteria. Non usiamo questi dati per profilarti né per decidere
+							qualcosa su di te in automatico. Base giuridica:
 							esecuzione del regolamento che hai accettato aderendo (art. 6.1.b
 							GDPR). Se la segreteria ti assegna punti prima che tu abbia
 							aderito, li registriamo <Term>in attesa</Term> sulla tua scheda di
 							socio, senza mandarti nulla, per poterteli accreditare quando
 							aderisci: base giuridica il nostro legittimo interesse a non
 							perdere i punti che hai guadagnato (art. 6.1.f GDPR). Puoi
-							chiederci di cancellarli o uscire dal programma quando vuoi
-							scrivendo a <MailLink />.
+							chiederci di cancellarli scrivendo a <MailLink />. Puoi uscire
+							dal programma quando vuoi, dalla tua area personale o dal link
+							che ti mandiamo se lo chiedi alla segreteria: registriamo
+							quando hai confermato e da dove.
 						</Block>
 
 						<Block title="Navigazione del sito">
@@ -368,10 +483,10 @@ export default function PrivacyPage() {
 					</ol>
 					<p>
 						Non vendiamo, non cediamo e non scambiamo i tuoi dati con nessuno
-						per finalità di marketing, né nostre né di terzi. Non abbiamo una
-						newsletter e non ti iscriviamo a nessuna lista promozionale: se ti
-						sei iscritto a un evento, l'unica cosa che puoi ricevere sono le
-						comunicazioni su <em>quell'evento</em>, e puoi farle smettere in
+						per finalità di marketing di terzi. Comunicazioni promozionali e
+						newsletter le ricevi solo se ci hai dato il consenso, e puoi
+						revocarlo quando vuoi. Se ti sei iscritto a un evento, le
+						comunicazioni su <em>quell'evento</em> puoi farle smettere in
 						qualsiasi momento dal link in fondo a ognuna.
 					</p>
 				</Section>
@@ -402,10 +517,11 @@ export default function PrivacyPage() {
 						))}
 					</dl>
 					<p>
-						I dati possono inoltre essere comunicati alle autorità pubbliche
-						quando la legge lo impone, e ai professionisti che assistono il club
-						(per esempio il consulente contabile) nei limiti dei rispettivi
-						incarichi.
+						I dati dei soci tesserati al CSI sono comunicati al Centro Sportivo
+						Italiano, come spiegato al punto 2. Possono inoltre essere
+						comunicati alle autorità pubbliche quando la legge lo impone, e ai
+						professionisti che assistono il club (per esempio il consulente
+						contabile) nei limiti dei rispettivi incarichi.
 					</p>
 				</Section>
 

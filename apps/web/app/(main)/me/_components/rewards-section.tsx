@@ -22,7 +22,10 @@ export function RewardsSection() {
       <RewardsGrid
         rewards={wallet.rewards}
         balance={wallet.balance}
-        canRedeem={wallet.program.state === "joined"}
+        canRedeem={
+          wallet.program.state === "joined" ||
+          wallet.program.state === "leaving"
+        }
       />
       <RedeemedRewards wallet={wallet} />
     </div>
