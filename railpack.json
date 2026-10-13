@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "steps": {
+    "install": {
+      "commands": [
+        { "path": "/app/node_modules/.bin" },
+        "mkdir -p /app/node_modules/.cache",
+        { "src": "package.json", "dest": "package.json" },
+        { "src": "bun.lock", "dest": "bun.lock" },
+        { "src": "bunfig.toml", "dest": "bunfig.toml" },
+        { "src": "patches", "dest": "patches" },
+        { "src": "apps/web/package.json", "dest": "apps/web/package.json" },
+        { "src": "apps/dashboard/package.json", "dest": "apps/dashboard/package.json" },
+        { "src": "apps/mobile/package.json", "dest": "apps/mobile/package.json" },
+        { "src": "packages/backend/package.json", "dest": "packages/backend/package.json" },
+        { "src": "packages/one-time-code/package.json", "dest": "packages/one-time-code/package.json" },
+        "bun install --frozen-lockfile --filter ./apps/web --filter ./apps/dashboard"
+      ]
+    }
+  },
+  "deploy": {
+    "inputs": [
+      {
+        "step": "packages:mise",
+        "include": [
+          "/mise/shims",
+          "/mise/installs",
+          "/usr/local/bin/mise",
+          "/etc/mise/config.toml",
+          "/root/.local/state/mise"
+        ]
+      },
+      {
+        "step": "build",
+        "include": ["/app/package.json", "/app/.deploy"]
+      }
+    ]
+  }
+}

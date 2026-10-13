@@ -6,3 +6,6 @@ node_modules/
 # env files — inclusi gli .env.example: le variabili si documentano fuori dal repo
 .env
 .env.*
+
+# Server autonomi pronti per il rilascio (scripts/stage-standalone.sh)
+.deploy/

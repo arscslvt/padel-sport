@@ -9,10 +9,10 @@
     "dev:mobile": "bun run --cwd apps/mobile dev",
     "dev:mobile:clean": "bun run --cwd apps/mobile dev:clean",
     "dev:backend": "bun run --cwd packages/backend dev",
-    "build:web": "bun run --cwd apps/web build",
-    "build:dashboard": "bun run --cwd apps/dashboard build",
-    "start:web": "bun run --cwd apps/web start",
-    "start:dashboard": "bun run --cwd apps/dashboard start"
+    "build:web": "bun run --cwd apps/web build && sh scripts/stage-standalone.sh web",
+    "build:dashboard": "bun run --cwd apps/dashboard build && sh scripts/stage-standalone.sh dashboard",
+    "start:web": "HOSTNAME=0.0.0.0 node .deploy/web/apps/web/server.js",
+    "start:dashboard": "HOSTNAME=0.0.0.0 node .deploy/dashboard/apps/dashboard/server.js"
   },
   "workspaces": [
     "apps/*",

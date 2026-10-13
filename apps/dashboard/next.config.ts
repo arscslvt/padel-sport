@@ -1,6 +1,13 @@
+import path from "node:path";
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Server autonomo con i soli file usati, tracciati dalla radice del
+  // monorepo (backend e pacchetti condivisi stanno fuori da apps/dashboard):
+  // è quello che va in produzione, vedi scripts/stage-standalone.sh.
+  output: "standalone",
+  outputFileTracingRoot: path.join(__dirname, "../.."),
   // In sviluppo, per provare il gestionale da telefono attraverso il tunnel
   // ngrok (lo stesso del sito): senza, Next blocca gli script della pagina.
   allowedDevOrigins: ["fluent-guinea-choice.ngrok-free.app"],

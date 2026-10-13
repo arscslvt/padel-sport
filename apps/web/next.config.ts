@@ -1,8 +1,15 @@
+import path from "node:path";
+
 import type { NextConfig } from "next";
 
 import { dashboardUrl } from "./lib/dashboard-url";
 
 const nextConfig: NextConfig = {
+  // Server autonomo con i soli file usati, tracciati dalla radice del
+  // monorepo (backend e pacchetti condivisi stanno fuori da apps/web): è
+  // quello che va in produzione, vedi scripts/stage-standalone.sh.
+  output: "standalone",
+  outputFileTracingRoot: path.join(__dirname, "../.."),
   allowedDevOrigins: ["fluent-guinea-choice.ngrok-free.app"],
   images: {
     remotePatterns: [
