@@ -82,7 +82,7 @@ export default function PointsTermsPage() {
       : null;
 
   return (
-    <article className="mx-auto w-full max-w-3xl px-6 pb-24 lg:px-12">
+    <article className="mx-auto w-full max-w-3xl px-(--gutter) pb-24">
       <header className="mb-12">
         <Heading as="h1" size="page">
           Regolamento del programma punti

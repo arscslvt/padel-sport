@@ -47,7 +47,7 @@ export default async function JoinPage({
 
   if (!invite || invite.status !== "pending") {
     return (
-      <section className="mx-auto w-full max-w-3xl px-6 pb-24 lg:px-12">
+      <section className="mx-auto w-full max-w-3xl px-(--gutter) pb-24">
         <header className="mb-10">
           <Heading as="h1" size="page">
             {invite?.status === "accepted"
@@ -85,7 +85,7 @@ export default async function JoinPage({
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-6 pb-24 lg:px-12">
+    <section className="mx-auto w-full max-w-3xl px-(--gutter) pb-24">
       <header className="mb-10">
         <Heading as="h1" size="page">
           Attiva il tuo account

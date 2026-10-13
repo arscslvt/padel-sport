@@ -198,7 +198,7 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
 
 export default function PrivacyPage() {
 	return (
-		<article className="mx-auto w-full max-w-3xl px-6 pb-24 lg:px-12">
+		<article className="mx-auto w-full max-w-3xl px-(--gutter) pb-24">
 			<header className="mb-12">
 				<Heading as="h1" size="page">
 					Privacy e trattamento dei dati

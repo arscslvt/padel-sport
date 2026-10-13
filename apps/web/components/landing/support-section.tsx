@@ -40,9 +40,9 @@ export function SupportSection() {
 	return (
 		<section
 			id={ANCHORS.support}
-			className="tone-emerald bg-emerald-950 px-6 py-16 sm:py-24 lg:px-12 lg:py-32"
+			className="tone-emerald bg-emerald-950 py-16 sm:py-24 lg:py-32"
 		>
-			<div className="mx-auto max-w-6xl">
+			<div className="page-container">
 				<Reveal>
 					<SectionHeading lead="Hai bisogno di aiuto?" accent="Parliamone." />
 					<p className="text-muted-foreground mt-3 max-w-[52ch] text-sm">

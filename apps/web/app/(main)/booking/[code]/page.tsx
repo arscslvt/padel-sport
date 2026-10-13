@@ -69,7 +69,7 @@ export default async function BookingPage({
   const missing = Math.max(0, MAX_PLAYERS - booking.players.length);
 
   return (
-    <section className="mx-auto w-full max-w-2xl px-6 pb-24 lg:px-12">
+    <section className="mx-auto w-full max-w-2xl px-(--gutter) pb-24">
       <header className="mb-10">
         <p className="text-muted-foreground text-xs tracking-wide uppercase">
           {cancelled

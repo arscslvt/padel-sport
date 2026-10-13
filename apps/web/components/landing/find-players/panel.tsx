@@ -32,7 +32,7 @@ export function FindPlayersPanel() {
     /* Stessa griglia a tre colonne delle feature card: il testo occupa la
        prima, il modulo le altre due. */
     <div className="grid gap-8 md:grid-cols-3 md:gap-2.5">
-      <Reveal className="px-4 lg:px-5">
+      <Reveal className="frame-inset">
         <p className="text-muted-foreground max-w-[34ch] text-sm leading-relaxed">
           Inserisci la tua richiesta e lascia che sia la community a completare
           il match.

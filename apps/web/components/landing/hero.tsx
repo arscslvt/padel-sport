@@ -18,12 +18,13 @@ const TITLE = ["Il tuo prossimo match", " inizia qui."];
 
 export function Hero() {
 	return (
-		<section className="p-2 sm:p-3 lg:p-4">
+		<section className="frame-container py-2 sm:py-3 lg:py-4">
 			{/*
 			 * `svh` e non `dvh`: con `dvh` la cornice si ridimensiona ogni volta che
 			 * la toolbar di Safari mobile collassa, e il bordo arrotondato "respira".
+			 * `rounded-hero`: il raggio è concentrico a quello della pillola sopra.
 			 */}
-			<div className="rounded-frame relative isolate flex min-h-[calc(100svh-1rem)] flex-col justify-end overflow-hidden sm:min-h-[calc(100svh-1.5rem)] lg:min-h-[calc(100svh-2rem)]">
+			<div className="rounded-hero relative isolate flex min-h-[calc(100svh-1rem)] flex-col justify-end overflow-hidden sm:min-h-[calc(100svh-1.5rem)] lg:min-h-[calc(100svh-2rem)]">
 				<Image
 					src={heroPhoto}
 					alt="Giocatore di padel con la racchetta in mano, visto dall'alto, in campo"
@@ -32,7 +33,9 @@ export function Hero() {
 					sizes="100vw"
 					placeholder="blur"
 					quality={90}
-					className="-z-10 object-cover object-[28%_center] lg:object-center"
+					// È uno sfondo: niente trascinamento sul desktop, niente selezione.
+					draggable={false}
+					className="pointer-events-none -z-10 object-cover object-[28%_center] select-none lg:object-center"
 				/>
 
 				{/*

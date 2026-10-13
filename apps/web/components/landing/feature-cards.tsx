@@ -35,12 +35,12 @@ const FEATURES: ReadonlyArray<{
 
 export function FeatureCards() {
 	return (
-		<section className="px-2 py-16 sm:px-3 sm:py-24 lg:px-4 lg:py-32">
+		<section className="frame-container py-16 sm:py-24 lg:py-32">
 			<Reveal>
 				<SectionHeading
 					lead="Più di un campo."
 					accent="Una community."
-					className="mb-10 px-4 sm:mb-14 lg:mb-16 lg:px-5"
+					className="frame-inset mb-10 sm:mb-14 lg:mb-16"
 				/>
 			</Reveal>
 

@@ -26,7 +26,7 @@ export default async function EventsPage() {
   const events = await client.fetch<EventCardData[]>(EVENTS_QUERY);
 
   return (
-    <div className="flex min-h-[calc(100dvh-8rem)] flex-1 flex-col px-6 lg:px-32">
+    <div className="page-container flex min-h-[calc(100dvh-8rem)] flex-1 flex-col">
       <header className="flex flex-col">
         <Heading as="h1" size="page">
           Tornei ed Eventi

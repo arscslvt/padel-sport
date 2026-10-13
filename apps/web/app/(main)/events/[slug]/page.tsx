@@ -119,7 +119,7 @@ export default async function EventArticlePage({ params }: PageProps) {
         </div>
       </div>
 
-      <article className="mx-auto w-full max-w-3xl px-6">
+      <article className="mx-auto w-full max-w-3xl px-(--gutter)">
         <ArticleReveal className="flex flex-col gap-5">
           <Link
             href={EVENTS_LINK}

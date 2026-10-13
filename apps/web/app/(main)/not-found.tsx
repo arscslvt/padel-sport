@@ -7,7 +7,7 @@ import { NotFoundHero } from "@/components/not-found-hero";
  */
 export default function MainNotFound() {
   return (
-    <div className="mx-auto flex min-h-[70dvh] w-full max-w-6xl items-center px-6 pt-10 pb-16 lg:px-12">
+    <div className="page-container flex min-h-[70dvh] items-center pt-10 pb-16">
       <NotFoundHero />
     </div>
   );

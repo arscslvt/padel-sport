@@ -13,11 +13,13 @@ import { cn } from "@/lib/utils";
  * dentro il focus trap.
  */
 
-/** Riquadro della barra: il padding è il doppio del margine della cornice hero
- *  (p-2/p-3/p-4), così lo spazio fra pillola e bordi della foto è identico
- *  sopra e ai lati. Il posizionamento lo decide chi la usa. */
+/** Riquadro della barra: il padding (`--nav-inset`, in globals.css) è il
+ *  doppio del margine della cornice hero, così lo spazio fra pillola e bordi
+ *  della foto è identico sopra e ai lati. Dalla stessa variabile, e dall'altezza
+ *  `h-14` qui sotto, viene il raggio concentrico delle cornici (`rounded-hero`).
+ *  Il posizionamento lo decide chi la usa. */
 export const NAV_BAR_INSET =
-  "flex justify-center px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8";
+  "flex justify-center px-(--nav-inset) pt-(--nav-inset)";
 
 /**
  * Il materiale della barra: vetro traslucido, bordo hairline, ombra lunga.
@@ -32,8 +34,15 @@ export const PILL_SURFACE = cn(
   "shadow-[0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-18px_rgb(0_0_0/0.45)]",
 );
 
-/** Larghezza comune a pillola e barra evento: restano incolonnate. */
-export const PILL_WIDTH = "w-full max-w-[min(100%,24rem)]";
+/**
+ * Larghezza comune a pillola e barra evento: restano incolonnate.
+ *
+ * Da telefono niente tetto: la pillola occupa la riga, così resta alla stessa
+ * distanza dal bordo sopra e ai lati anche sui telefoni larghi (oltre ~416px
+ * i 24rem la fermavano e i lati crescevano più del sopra). Da sm in su torna
+ * la pillola compatta al centro.
+ */
+export const PILL_WIDTH = "w-full sm:max-w-[min(100%,24rem)]";
 
 export function navPillClass(scrolled: boolean, className?: string) {
   return cn(

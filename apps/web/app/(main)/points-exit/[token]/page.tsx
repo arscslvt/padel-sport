@@ -74,7 +74,7 @@ export default async function ExitProgramPage({
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-6 pb-24 lg:px-12">
+    <section className="mx-auto w-full max-w-3xl px-(--gutter) pb-24">
       <header className="mb-10">
         <Heading as="h1" size="page">
           Vuoi uscire dal programma punti?
@@ -99,7 +99,7 @@ function Shell({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mx-auto w-full max-w-3xl px-6 pb-24 lg:px-12">
+    <section className="mx-auto w-full max-w-3xl px-(--gutter) pb-24">
       <header className="mb-10">
         <Heading as="h1" size="page">
           {title}

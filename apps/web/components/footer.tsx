@@ -27,9 +27,9 @@ export default function Footer() {
     // altre sezioni bersaglio (vedi `anchorHref`).
     <footer
       id={ANCHORS.contacts}
-      className="border-border bg-background text-foreground max-w-dvw border-t px-6 pt-14 pb-10 lg:px-12"
+      className="border-border bg-background text-foreground max-w-dvw border-t pt-14 pb-10"
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-12">
+      <div className="page-container flex flex-col gap-12">
         <div className="flex flex-col gap-10 sm:flex-row sm:justify-between">
           <div className="flex flex-col gap-5">
             {/* `self-start`: senza, l'SVG si stira per tutta la colonna flex e
@@ -196,6 +196,25 @@ export default function Footer() {
             >
               Unsplash
             </a>
+            . Foto dell'area personale di{" "}
+            <a
+              href="https://unsplash.com/@ollivves?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground underline underline-offset-2 transition-colors"
+            >
+              Oliver Sjöström
+            </a>{" "}
+            su{" "}
+            <a
+              href="https://unsplash.com/photos/man-lying-on-gray-surface-F7D7oWb8aO0?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground underline underline-offset-2 transition-colors"
+            >
+              Unsplash
+            </a>
+            .
           </p>
         </div>
       </div>

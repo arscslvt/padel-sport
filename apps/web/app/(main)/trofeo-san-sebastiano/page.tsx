@@ -120,8 +120,8 @@ export default function TrofeoSanSebastianoPage() {
 		: "https://wa.me/";
 
 	return (
-		<section className="px-6 pb-20 lg:px-12">
-			<div className="mx-auto max-w-5xl">
+		<section className="page-container pb-20">
+			<div className="max-w-5xl">
 				<header className="mb-10">
 					<p className="text-muted-foreground border-border mb-6 inline-flex rounded-full border px-3 py-1 text-xs tracking-[0.18em] uppercase">
 						Torneo

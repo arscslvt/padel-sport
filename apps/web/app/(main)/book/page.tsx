@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function BookPage() {
   return (
-    <section className="mx-auto w-full max-w-3xl px-6 pb-24 lg:px-12">
+    <section className="mx-auto w-full max-w-3xl px-(--gutter) pb-24">
       <header className="mb-10">
         <Heading as="h1" size="page">
           Prenota un campo

@@ -38,7 +38,7 @@ function Frame({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-2xl px-6 py-16">
+    <div className="mx-auto w-full max-w-2xl px-(--gutter) py-16">
       <span className="text-muted-foreground inline-flex items-center gap-2 text-[11px] font-medium tracking-wide uppercase">
         <Users className="size-3.5" />
         Iscrizioni
