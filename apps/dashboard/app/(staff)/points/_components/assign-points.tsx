@@ -89,8 +89,12 @@ export function AssignPoints() {
       <ResponsiveDrawer open={open} setOpen={setOpen}>
         {/* Da telefono alto e fisso: ricerca e cliente hanno la stessa altezza,
             il pannello non salta fra un passaggio e l'altro e il contenuto
-            scorre dentro. `dvh` è l'altezza davvero visibile su Safari. */}
-        <ResponsiveDrawerContent className="bg-background data-[vaul-drawer-direction=bottom]:h-[88dvh] data-[vaul-drawer-direction=bottom]:max-h-[88dvh] sm:max-w-md md:max-h-[90dvh] md:overflow-y-auto">
+            scorre dentro. `dvh` è l'altezza davvero visibile su Safari; a
+            tastiera aperta si ferma allo spazio che resta sopra
+            (`--drawer-max-height`, components/ui/keyboard-inset.tsx).
+            L'altezza è `!important` come quella del drawer, che altrimenti la
+            porterebbe ad `auto`. */}
+        <ResponsiveDrawerContent className="bg-background data-[vaul-drawer-direction=bottom]:h-[min(88dvh,var(--drawer-max-height,88dvh))]! data-[vaul-drawer-direction=bottom]:max-h-[min(88dvh,var(--drawer-max-height,88dvh))] sm:max-w-md md:max-h-[90dvh] md:overflow-y-auto">
           {open && <Panel onDone={() => setOpen(false)} />}
         </ResponsiveDrawerContent>
       </ResponsiveDrawer>
