@@ -14,7 +14,7 @@ import type { EventCardData } from "@/sanity/types";
  */
 export function EventsStrip({ events }: { events: EventCardData[] }) {
   return (
-    <div className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pr-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pr-(--gutter) pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {events.map((event, index) => (
         <Reveal
           key={event._id}
