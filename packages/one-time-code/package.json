@@ -1,0 +1,13 @@
+{
+  "name": "@padel-sport/one-time-code",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Campo per codici monouso (OTP), condiviso da sito e gestionale.",
+  "license": "MIT",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

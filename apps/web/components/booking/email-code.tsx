@@ -1,14 +1,9 @@
 "use client";
 
 import { useSignIn } from "@clerk/nextjs";
-import { useState } from "react";
+import { OneTimeCode } from "@padel-sport/one-time-code";
 
 import { Button } from "@/components/ui/button";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
 
 /**
  * La verifica con codice via mail, senza password.
@@ -21,8 +16,6 @@ import {
  */
 
 const OTP_LENGTH = 6;
-/** Le caselle del codice, in ordine: elenco stabile su cui iterare. */
-const OTP_CELLS = Array.from({ length: OTP_LENGTH }, (_, index) => index);
 
 /**
  * Clerk sul web espone l'API a segnali: gli errori tornano nel risultato, non
@@ -85,13 +78,21 @@ export function useEmailCode() {
         unknownEmail: hasCode(error, "form_identifier_not_found"),
       };
     },
+    /** Solo il controllo del codice: la sessione la apre `activate`. */
     async verify(code: string) {
       if (!signIn) return { error: "Un attimo e ci siamo, riprova." };
 
       const { error: verifyError } = await signIn.emailCode.verifyCode({
         code,
       });
-      if (verifyError) return { error: messageOf(verifyError) };
+      return verifyError ? { error: messageOf(verifyError) } : {};
+    },
+    /**
+     * Apre la sessione dopo un codice giusto. Separata da `verify` perché
+     * aprirla cambia la pagina: si chiama a «Verificato» già visto.
+     */
+    async activate() {
+      if (!signIn) return { error: "Un attimo e ci siamo, riprova." };
 
       // `navigate` vuoto: la sessione si attiva restando sulla pagina, che
       // riprende da sola appena `isSignedIn` diventa vero.
@@ -105,75 +106,46 @@ export function useEmailCode() {
 }
 
 /**
- * Le sei caselle del codice, con il rimando indietro.
+ * Le caselle del codice, con il rimando indietro.
  * Verifica da sola appena il codice è completo: nessuno vuole digitare sei
- * cifre e poi cercare il pulsante.
+ * caratteri e poi cercare il pulsante. `onSubmit` dice se è andata: con
+ * `false` le caselle si scuotono e si svuotano, e l'errore lo mostra `error`;
+ * con `true` si fondono in «Verificato», e solo dopo arriva `onVerified`.
  */
 export function CodeFields({
   email,
-  loading,
   error,
   onSubmit,
+  onVerified,
   onBack,
   backLabel = "Email sbagliata? Torna indietro",
 }: {
   email: string;
-  loading: boolean;
   error: string | null;
-  onSubmit: (code: string) => void;
+  onSubmit: (code: string) => Promise<boolean>;
+  /** A «Verificato» visto: è qui che si cambia pagina. */
+  onVerified?: () => void;
   onBack?: () => void;
   backLabel?: string;
 }) {
-  const [code, setCode] = useState("");
-
   return (
     <>
-      <InputOTP
-        maxLength={OTP_LENGTH}
-        value={code}
-        onChange={(value) => {
-          setCode(value);
-          if (value.length === OTP_LENGTH) onSubmit(value);
-        }}
-        disabled={loading}
+      <OneTimeCode
+        length={OTP_LENGTH}
+        onComplete={onSubmit}
+        onVerified={onVerified}
         autoFocus
-      >
-        <InputOTPGroup>
-          {OTP_CELLS.map((cell) => (
-            <InputOTPSlot
-              key={cell}
-              index={cell}
-              className="bg-background size-11 text-base"
-            />
-          ))}
-        </InputOTPGroup>
-      </InputOTP>
+      />
 
       {error && <p className="text-destructive mt-3 text-sm">{error}</p>}
 
-      <div className="mt-6 flex flex-col gap-2.5 sm:max-w-sm">
-        <Button
-          type="button"
-          size="pill-lg"
-          disabled={loading || code.length < OTP_LENGTH}
-          onClick={() => onSubmit(code)}
-        >
-          {loading ? "Verifica in corso…" : "Verifica e continua"}
-        </Button>
-        {onBack && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="pill"
-            onClick={() => {
-              setCode("");
-              onBack();
-            }}
-          >
+      {onBack && (
+        <div className="mt-6 flex flex-col gap-2.5 sm:max-w-sm">
+          <Button type="button" variant="ghost" size="pill" onClick={onBack}>
             {backLabel}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       <p className="text-muted-foreground mt-6 text-xs">
         Il codice è arrivato a {email}. Controlla anche nello spam.

@@ -1,30 +1,19 @@
 "use client";
 
 import { useSignIn } from "@clerk/nextjs";
-import { REGEXP_ONLY_DIGITS } from "input-otp";
+import { OneTimeCode } from "@padel-sport/one-time-code";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
-import {
-  AnimatePresence,
-  motion,
-  useAnimate,
-  useReducedMotion,
-} from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { type AuthErrorLike, authErrorMessage } from "@/lib/auth-errors";
 import { cn } from "@/lib/utils";
 
 const OTP_LENGTH = 6;
-const OTP_CELLS = Array.from({ length: OTP_LENGTH }, (_, index) => index);
 /** Quanto aspettare prima di poter chiedere un altro codice. */
 const RESEND_COOLDOWN = 30;
 /** La curva forte dei token (`--ease-out` in globals.css). */
@@ -68,12 +57,12 @@ export function SignInForm({ redirectTo }: { redirectTo: string }) {
   const router = useRouter();
   const reduce = useReducedMotion();
   const emailId = useId();
-  const [otpScope, animateOtp] = useAnimate<HTMLDivElement>();
 
   const [step, setStep] = useState<Step>({ kind: "email" });
   const [direction, setDirection] = useState<1 | -1>(1);
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
+  /** Cresce a ogni codice nuovo: rimonta le caselle, che ripartono vuote. */
+  const [round, setRound] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
@@ -89,28 +78,11 @@ export function SignInForm({ redirectTo }: { redirectTo: string }) {
     setStep(next);
   };
 
+  /** Mostra l'errore e sblocca il modulo. Torna `false`, comodo per `proceed`. */
   const fail = (failure: AuthErrorLike | null | undefined) => {
     setError(authErrorMessage(failure));
     setBusy(false);
-  };
-
-  /** Il «no» delle caselle: una scossa breve, poi si riscrive. */
-  const shake = () => {
-    if (reduce || !otpScope.current) return;
-    void animateOtp(
-      otpScope.current,
-      {
-        transform: [
-          "translateX(0px)",
-          "translateX(-8px)",
-          "translateX(6px)",
-          "translateX(-4px)",
-          "translateX(2px)",
-          "translateX(0px)",
-        ],
-      },
-      { duration: 0.36, ease: "easeOut" },
-    );
+    return false as const;
   };
 
   /** La sessione è pronta: si conferma, si attiva e si va dove si stava andando. */
@@ -139,11 +111,17 @@ export function SignInForm({ redirectTo }: { redirectTo: string }) {
     }
   }
 
-  /** Dopo un codice giusto: entrare, oppure il passaggio che Clerk chiede ancora. */
-  async function proceed() {
-    if (!signIn) return;
+  /**
+   * Dopo un codice giusto: entrare, oppure il passaggio che Clerk chiede
+   * ancora. Torna `false` se si è fermato su un errore.
+   */
+  async function proceed(): Promise<boolean> {
+    if (!signIn) return false;
 
-    if (signIn.status === "complete") return finish();
+    if (signIn.status === "complete") {
+      await finish();
+      return true;
+    }
 
     if (signIn.status === "needs_client_trust") {
       const { error: sendError } = await signIn.mfa.sendEmailCode();
@@ -169,15 +147,27 @@ export function SignInForm({ redirectTo }: { redirectTo: string }) {
       }
     }
 
-    fail({ message: "Questo accesso richiede un passaggio non supportato." });
+    return fail({
+      message: "Questo accesso richiede un passaggio non supportato.",
+    });
+  }
+
+  /**
+   * A «Verificato» visto, si va avanti. Se il passo dopo si ferma, il codice
+   * ormai è usato: si riparte dall'email, con l'errore in vista.
+   */
+  async function afterVerified() {
+    if (!(await proceed())) go({ kind: "email" }, -1);
   }
 
   function openCode(via: Verification) {
-    setCode("");
+    setRound((r) => r + 1);
     setError(null);
     setBusy(false);
     go({ kind: "code", via });
     if (via !== "mfa-totp") setCooldown(RESEND_COOLDOWN);
+    // Per `proceed`: con un nuovo codice da chiedere, si è andati avanti.
+    return true;
   }
 
   async function sendEmailCode(event?: FormEvent) {
@@ -195,8 +185,12 @@ export function SignInForm({ redirectTo }: { redirectTo: string }) {
     openCode("email");
   }
 
+  /**
+   * Torna se il codice è giusto: con `false` le caselle si scuotono e si
+   * svuotano da sole, con `true` si fondono in «Verificato».
+   */
   async function verify(value: string) {
-    if (!signIn || busy || step.kind !== "code") return;
+    if (!signIn || busy || step.kind !== "code") return false;
 
     setBusy(true);
     setError(null);
@@ -209,13 +203,11 @@ export function SignInForm({ redirectTo }: { redirectTo: string }) {
     }[step.via];
 
     const { error: verifyError } = await attempt();
-    if (verifyError) {
-      setCode("");
-      shake();
-      return fail(verifyError);
-    }
+    if (verifyError) return fail(verifyError);
 
-    await proceed();
+    // Il resto (entrare, o il secondo passaggio) dopo la capsula: vedi
+    // `afterVerified`. Farlo qui la coprirebbe con il passo successivo.
+    return true;
   }
 
   async function resend() {
@@ -233,12 +225,11 @@ export function SignInForm({ redirectTo }: { redirectTo: string }) {
     const { error: sendError } = await send();
     if (sendError) return fail(sendError);
 
-    setCode("");
+    setRound((r) => r + 1);
     setCooldown(RESEND_COOLDOWN);
   }
 
   async function startOver() {
-    setCode("");
     setError(null);
     setBusy(false);
     go({ kind: "email" }, -1);
@@ -348,53 +339,25 @@ export function SignInForm({ redirectTo }: { redirectTo: string }) {
               )}
             </p>
 
-            <form
-              className="mt-8"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (code.length === OTP_LENGTH) void verify(code);
-              }}
-            >
-              <div ref={otpScope}>
-                <InputOTP
-                  maxLength={OTP_LENGTH}
-                  pattern={REGEXP_ONLY_DIGITS}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  value={code}
-                  onChange={(value) => {
-                    setCode(value);
-                    if (error) setError(null);
-                  }}
-                  // Sei cifre bastano: nessuno vuole cercare il pulsante dopo.
-                  onComplete={(value: string) => void verify(value)}
-                  disabled={busy}
-                  aria-label="Codice"
-                  containerClassName="w-full"
-                  autoFocus
-                >
-                  <InputOTPGroup className="w-full gap-2">
-                    {OTP_CELLS.map((cell) => (
-                      <InputOTPSlot
-                        key={cell}
-                        index={cell}
-                        aria-invalid={Boolean(error)}
-                        className="h-14 flex-1 rounded-xl border bg-card text-xl font-medium tabular-nums shadow-none transition-[border-color,box-shadow] duration-150 first:rounded-xl first:border-l last:rounded-xl data-[active=true]:border-club data-[active=true]:ring-club/15"
-                      />
-                    ))}
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
+            {/* Niente pulsante «Accedi»: a codice completo la verifica
+                parte da sola, e il campo stesso dice com'è andata. */}
+            <div className="mt-8">
+              <OneTimeCode
+                key={`${step.via}-${round}`}
+                length={OTP_LENGTH}
+                onComplete={verify}
+                onVerified={() => void afterVerified()}
+                // Lo svuotamento dopo un codice sbagliato non cancella
+                // l'errore: sparisce quando si ricomincia a scrivere.
+                onChange={(value) => {
+                  if (value && error) setError(null);
+                }}
+                label="Codice"
+                autoFocus
+              />
 
               <ErrorText message={error} className="mt-3" />
-
-              <SubmitButton
-                busy={busy}
-                disabled={code.length < OTP_LENGTH}
-                label="Accedi"
-                className="mt-6"
-              />
-            </form>
+            </div>
 
             {step.via !== "mfa-totp" && (
               <button

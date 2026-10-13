@@ -354,7 +354,7 @@ function EmailField({ current }: { current?: string }) {
   };
 
   const verify = async (code: string) => {
-    if (!user || !pending) return;
+    if (!user || !pending) return false;
 
     setLoading(true);
     setError(null);
@@ -387,11 +387,10 @@ function EmailField({ current }: { current?: string }) {
         });
       }
 
-      setPending(null);
-      setEmail("");
-      setPhase("view");
+      return true;
     } catch (caught) {
       setError(clerkMessage(caught));
+      return false;
     } finally {
       setLoading(false);
     }
@@ -406,9 +405,14 @@ function EmailField({ current }: { current?: string }) {
         </p>
         <CodeFields
           email={email}
-          loading={loading}
           error={error}
-          onSubmit={(code) => void verify(code)}
+          onSubmit={verify}
+          // A «Verificato» visto si torna alla scheda, già aggiornata.
+          onVerified={() => {
+            setPending(null);
+            setEmail("");
+            setPhase("view");
+          }}
           onBack={() => void reset()}
           backLabel="Annulla il cambio"
         />

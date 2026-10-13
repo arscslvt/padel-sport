@@ -1,0 +1,175 @@
+/* ══ One-time code ═════════════════════════════════════════
+   Everything that moves is written inline; what is here is
+   the material.
+
+   I token di Bencho (--fill-slab, --fill-on, --ink, --card,
+   --font-ui) non esistono qui: sono mappati sui token che sito e
+   gestionale hanno già, con lo stesso nome e lo stesso compito,
+   e dichiarati sulla radice del componente così non escono da lì.
+   Chi lo usa su un fondo diverso li ridefinisce con `style` o con
+   una classe: `--otp-slab` è il colore delle caselle, `--otp-on`
+   quello del testo, `--otp-error` quello del codice sbagliato. */
+.root {
+  /* --fill-slab → --card: la superficie dei campi, chiara sul fondo
+     della pagina e sui pannelli `bg-muted`, scura dentro `tone-ink`. */
+  --otp-slab: var(--card);
+  /* --fill-on / --ink → --foreground */
+  --otp-on: var(--foreground);
+  --otp-error: var(--destructive);
+
+  position: relative;
+  /* --font-ui: il font dell'interfaccia è già quello ereditato. */
+  font-family: inherit;
+  /* Occupa la riga e tiene le caselle al centro, ovunque lo si metta:
+     un campo per il codice allineato a sinistra sotto un titolo sembra
+     dimenticato lì. */
+  display: grid;
+  place-items: center;
+}
+
+.root[data-disabled] {
+  opacity: 0.5;
+}
+
+/* ── the goo's defs hold nothing you can see ────────────────
+   An <svg> with no dimensions is a replaced element: the
+   browser gives it the default 300x150 and puts it in the
+   flow. Nothing inside a <defs> is rendered, so taking the
+   element out of flow entirely costs nothing and is what it
+   always wanted. */
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.row {
+  position: relative;
+}
+
+.goo {
+  position: absolute;
+  inset: 0;
+}
+
+/* one colour under the filter, or the threshold smears two */
+.cell {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--otp-slab);
+}
+
+.slot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.digit {
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--otp-on);
+  animation: otp-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: color 160ms ease;
+}
+
+.root[data-phase="no"] .digit {
+  color: var(--otp-error);
+}
+
+.caret {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 18px;
+  margin-top: -9px;
+  border-radius: 2px;
+  background: var(--otp-on);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.caret[data-on="true"] {
+  opacity: 1;
+  animation: otp-breathe 1.1s ease-in-out infinite alternate;
+}
+
+.ok {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--otp-on);
+  pointer-events: none;
+}
+
+/* the field: over the whole row, there and invisible. 16px so
+   iOS does not zoom the page when it takes focus. */
+.field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  font-size: 16px;
+  caret-color: transparent;
+  cursor: text;
+}
+
+.field:disabled {
+  cursor: not-allowed;
+}
+
+.root[data-phase="ok"] .field {
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .digit {
+    animation: none;
+  }
+
+  .caret[data-on="true"] {
+    animation: none;
+  }
+}
+
+@keyframes otp-in {
+  from {
+    transform: translateY(45%) scale(0.86);
+    opacity: 0;
+    filter: blur(3px);
+  }
+  to {
+    transform: none;
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@keyframes otp-breathe {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.25;
+  }
+}

@@ -1,16 +1,13 @@
 "use client";
 
 import { useSignIn } from "@clerk/nextjs";
+import { OneTimeCode } from "@padel-sport/one-time-code";
 import { ArrowRight, ExternalLink, Phone } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { Label } from "@/components/ui/label";
 import { getInfo } from "@/lib/info";
 import { SUMUP_BOOKING_URL } from "@/lib/links";
 
@@ -68,8 +65,6 @@ const COPY = {
 } as const;
 
 const OTP_LENGTH = 6;
-/** Le caselle del codice, in ordine: elenco stabile su cui iterare. */
-const OTP_CELLS = Array.from({ length: OTP_LENGTH }, (_, index) => index);
 
 /**
  * Clerk sul web espone l'API a segnali: gli errori tornano nel risultato, non
@@ -119,9 +114,9 @@ export function VerifyStep({ purpose = "book" }: { purpose?: VerifyPurpose }) {
   const { signIn } = useSignIn();
   const copy = COPY[purpose];
 
+  const emailId = useId();
   const [phase, setPhase] = useState<"email" | "code" | "unknown">("email");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -155,8 +150,12 @@ export function VerifyStep({ purpose = "book" }: { purpose?: VerifyPurpose }) {
     setLoading(false);
   };
 
+  /**
+   * Solo il controllo del codice: torna se è passato, ed è quello che decide
+   * come finiscono le caselle. La sessione si apre dopo, in `activate`.
+   */
   const verifyCode = async (value: string) => {
-    if (!signIn || loading) return;
+    if (!signIn || loading) return false;
 
     setLoading(true);
     setError(null);
@@ -165,25 +164,36 @@ export function VerifyStep({ purpose = "book" }: { purpose?: VerifyPurpose }) {
       code: value,
     });
 
+    setLoading(false);
     if (verifyError) {
       setError(messageOf(verifyError));
-      setCode("");
-      setLoading(false);
-      return;
+      return false;
     }
 
+    return true;
+  };
+
+  /**
+   * A «Verificato» visto: aprire la sessione fa sparire questo passo (la
+   * pagina riprende appena `isSignedIn` diventa vero), quindi non prima.
+   */
+  const activate = async () => {
+    if (!signIn) return;
+
+    setLoading(true);
     // `navigate` vuoto: la sessione si attiva restando sulla prenotazione, che
     // riprende da sola appena `isSignedIn` diventa vero.
     const { error: finalizeError } = await signIn.finalize({
       navigate: () => {},
     });
+    setLoading(false);
 
     if (finalizeError) {
+      // Il codice è già stato usato: per riprovare ne serve uno nuovo, che si
+      // chiede dal primo passo.
       setError(messageOf(finalizeError));
-      setCode("");
+      setPhase("email");
     }
-
-    setLoading(false);
   };
 
   if (phase === "unknown") {
@@ -239,46 +249,27 @@ export function VerifyStep({ purpose = "book" }: { purpose?: VerifyPurpose }) {
           subtitle={`Lo abbiamo mandato a ${email.trim().toLowerCase()}.`}
         />
 
-        <InputOTP
-          maxLength={OTP_LENGTH}
-          value={code}
+        <OneTimeCode
+          length={OTP_LENGTH}
+          onComplete={verifyCode}
+          onVerified={() => void activate()}
+          // Lo svuotamento dopo un codice sbagliato non conta: l'errore resta
+          // finché non si ricomincia a scrivere.
           onChange={(value) => {
-            setCode(value);
-            setError(null);
-            if (value.length === OTP_LENGTH) void verifyCode(value);
+            if (value) setError(null);
           }}
-          disabled={loading}
           autoFocus
-        >
-          <InputOTPGroup>
-            {OTP_CELLS.map((cell) => (
-              <InputOTPSlot
-                key={cell}
-                index={cell}
-                className="bg-background size-11 text-base"
-              />
-            ))}
-          </InputOTPGroup>
-        </InputOTP>
+        />
 
         {error && <p className="text-destructive mt-3 text-sm">{error}</p>}
 
         <div className="mt-6 flex flex-col gap-2.5 sm:max-w-sm">
           <Button
             type="button"
-            size="pill-lg"
-            disabled={loading || code.length < OTP_LENGTH}
-            onClick={() => void verifyCode(code)}
-          >
-            {loading ? "Verifica in corso…" : "Verifica e continua"}
-          </Button>
-          <Button
-            type="button"
             variant="ghost"
             size="pill"
             onClick={() => {
               setPhase("email");
-              setCode("");
               setError(null);
             }}
           >
@@ -294,25 +285,31 @@ export function VerifyStep({ purpose = "book" }: { purpose?: VerifyPurpose }) {
       <StepHeader title={copy.title} subtitle={copy.subtitle} />
 
       <div className="flex flex-col gap-3 sm:max-w-sm">
-        <Input
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          placeholder="mario.rossi@esempio.it"
-          className={FIELD_CLASS}
-          value={email}
-          disabled={loading}
-          onChange={(event) => {
-            setEmail(event.target.value);
-            setError(null);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              void sendCode();
-            }
-          }}
-        />
+        {/* Il segnaposto è un esempio, non un'etichetta: sparisce appena si
+            scrive, e con lui il «cosa va qui». */}
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={emailId}>La tua email</Label>
+          <Input
+            id={emailId}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="mario.rossi@esempio.it"
+            className={FIELD_CLASS}
+            value={email}
+            disabled={loading}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              setError(null);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void sendCode();
+              }
+            }}
+          />
+        </div>
 
         {error && <p className="text-destructive text-sm">{error}</p>}
 

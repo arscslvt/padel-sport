@@ -152,15 +152,28 @@ export function JoinWizard({
   };
 
   const verify = async (code: string) => {
-    setLoading(true);
     setError(null);
 
     const { error: verifyError } = await emailCode.verify(code);
+    if (verifyError) {
+      setError(verifyError);
+      return false;
+    }
 
-    if (verifyError) setError(verifyError);
-    else setPhase("form");
+    return true;
+  };
 
-    setLoading(false);
+  /** A «Verificato» visto: si apre la sessione e si passa alla scheda. */
+  const activate = async () => {
+    const { error: activateError } = await emailCode.activate();
+    if (activateError) {
+      // Il codice ormai è usato: se ne chiede un altro dal primo passo.
+      setError(activateError);
+      setPhase("intro");
+      return;
+    }
+
+    setPhase("form");
   };
 
   const submit = async () => {
@@ -260,9 +273,9 @@ export function JoinWizard({
 
         <CodeFields
           email={email}
-          loading={loading}
           error={error}
-          onSubmit={(code) => void verify(code)}
+          onSubmit={verify}
+          onVerified={() => void activate()}
           onBack={() => {
             setPhase("intro");
             setError(null);
