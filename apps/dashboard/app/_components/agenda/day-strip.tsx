@@ -44,6 +44,8 @@ export function DayStrip({
       role="tablist"
       aria-label="Giorno"
       data-tour="agenda-days"
+      // Scorre di lato da sé: non sposta la giornata sotto (day-pager.tsx).
+      data-swipe-ignore
       className="-mx-4 flex snap-x scroll-px-4 gap-1 overflow-x-auto px-4 pb-1 md:scroll-px-6 [scrollbar-width:none] md:-mx-6 md:px-6 [&::-webkit-scrollbar]:hidden"
     >
       {days.map((day) => {

@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import MergePairs from "../merge-pairs";
 import { BookingRow, PendingCard } from "./booking-row";
 import { BookingSheet } from "./booking-sheet";
+import { DayPager, useDaySwipe } from "./day-pager";
 import { DayStrip } from "./day-strip";
 import {
   type Booking,
@@ -92,6 +93,7 @@ export function Agenda() {
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState("");
   const reduce = useReducedMotion();
+  const swipe = useDaySwipe();
 
   const courtNames = useMemo(
     () => new Map((courts ?? []).map((court) => [court.id, court.name])),
@@ -101,10 +103,6 @@ export function Agenda() {
   const list = bookings ?? [];
   const pending = useMemo(() => list.filter(isPending), [list]);
   const pairs = useMemo(() => mergeablePairs(list), [list]);
-  const pairsOfDay = useMemo(
-    () => pairs.filter((pair) => dayKey(pair.keep.bookingDate) === selectedDay),
-    [pairs, selectedDay],
-  );
   const days = useMemo(() => stripDays(list), [list]);
 
   const marks = useMemo(() => {
@@ -120,21 +118,34 @@ export function Agenda() {
     return map;
   }, [list]);
 
-  const ofDay = useMemo(
-    () =>
-      list
-        .filter((booking) => dayKey(booking.bookingDate) === selectedDay)
-        .sort((a, b) => a.bookingDate - b.bookingDate),
-    [list, selectedDay],
-  );
+  // Le prenotazioni giorno per giorno, in ordine d'orario. Per giorno e non
+  // solo per quello scelto: da telefono, scorrendo, si vedono anche i giorni
+  // accanto (day-pager.tsx).
+  const byDay = useMemo(() => {
+    const map = new Map<string, Booking[]>();
+    for (const booking of list) {
+      const key = dayKey(booking.bookingDate);
+      const rows = map.get(key);
+      if (rows) rows.push(booking);
+      else map.set(key, [booking]);
+    }
+    for (const rows of map.values()) {
+      rows.sort((a, b) => a.bookingDate - b.bookingDate);
+    }
+    return map;
+  }, [list]);
+
+  const pairsByDay = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const pair of pairs) {
+      const key = dayKey(pair.keep.bookingDate);
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return map;
+  }, [pairs]);
 
   // Le annullate in un elenco a parte, più in basso: la giornata si legge
   // senza, e chi le cerca le trova. Chiuderlo vale per tutti i giorni.
-  const playing = useMemo(
-    () => ofDay.filter((booking) => !isCancelled(booking)),
-    [ofDay],
-  );
-  const cancelledOfDay = useMemo(() => ofDay.filter(isCancelled), [ofDay]);
   const [hideCancelled, setHideCancelled] = useHideCancelled();
   const cancelledListId = useId();
 
@@ -289,6 +300,141 @@ export function Agenda() {
   const openRow = (booking: Booking) => setOpenId(booking._id);
 
   /**
+   * Un giorno dell'agenda: le partite, le annullate a parte, e le coppie da
+   * unire se ce ne sono. È una funzione perché da telefono se ne disegnano
+   * tre, il giorno scelto e i due accanto (day-pager.tsx).
+   */
+  const renderDay = (day: string) => {
+    const rows = byDay.get(day) ?? [];
+    const playing = rows.filter((booking) => !isCancelled(booking));
+    const cancelled = rows.filter(isCancelled);
+    const dayPairs = pairsByDay.get(day) ?? 0;
+    const cancelledId = `${cancelledListId}-${day}`;
+
+    return (
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <ListGroup
+            title={dayLabel(day, today)}
+            action={
+              playing.length > 0 && (
+                <span className="text-muted-foreground text-[13px] tabular-nums">
+                  {playing.length}{" "}
+                  {playing.length === 1 ? "partita" : "partite"}
+                </span>
+              )
+            }
+          >
+            {playing.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+                <CalendarCheck className="text-muted-foreground/60 size-7" />
+                <p className="text-[15px] font-medium">
+                  Nessuna partita in agenda
+                </p>
+                <p className="text-muted-foreground max-w-[32ch] text-sm">
+                  Le prenotazioni di questo giorno compariranno qui appena
+                  arrivano.
+                </p>
+              </div>
+            ) : (
+              playing.map((booking) => (
+                <BookingRow
+                  key={booking._id}
+                  booking={booking}
+                  court={courtNames.get(booking.slot)}
+                  onOpen={() => openRow(booking)}
+                />
+              ))
+            )}
+          </ListGroup>
+
+          {cancelled.length > 0 && (
+            <section className="space-y-2 pt-3">
+              <div className="flex items-center justify-between gap-3 px-1">
+                <h2 className="text-muted-foreground text-[13px] font-medium">
+                  Annullate · {cancelled.length}
+                </h2>
+                <button
+                  type="button"
+                  aria-expanded={!hideCancelled}
+                  aria-controls={cancelledId}
+                  onClick={() => setHideCancelled(!hideCancelled)}
+                  className="text-muted-foreground hover:text-foreground focus-visible:text-foreground -my-2 -mr-2 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-[13px] font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  {hideCancelled ? "Mostra" : "Nascondi"}
+                  <ChevronDown
+                    aria-hidden
+                    className={cn(
+                      "size-4 transition-transform duration-200 ease-out motion-reduce:transition-none",
+                      hideCancelled && "-rotate-90",
+                    )}
+                  />
+                </button>
+              </div>
+              <AnimatePresence initial={false}>
+                {!hideCancelled && (
+                  <motion.div
+                    id={cancelledId}
+                    key="cancelled"
+                    initial={
+                      reduce ? { opacity: 0 } : { opacity: 0, height: 0 }
+                    }
+                    animate={{
+                      opacity: 1,
+                      height: "auto",
+                      transition: {
+                        duration: UI_DURATION.enter,
+                        ease: EASE_OUT,
+                      },
+                    }}
+                    exit={{
+                      opacity: 0,
+                      ...(reduce ? {} : { height: 0 }),
+                      transition: {
+                        duration: UI_DURATION.exit,
+                        ease: EASE_OUT,
+                      },
+                    }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-card overflow-hidden rounded-2xl border [&>*+*]:border-t">
+                      {cancelled.map((booking) => (
+                        <BookingRow
+                          key={booking._id}
+                          booking={booking}
+                          court={courtNames.get(booking.slot)}
+                          onOpen={() => openRow(booking)}
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </section>
+          )}
+        </div>
+
+        {/* Solo nel giorno che ha davvero una coppia da unire. */}
+        {dayPairs > 0 && (
+          <ListGroup footer="Due gruppi parziali alla stessa ora riempiono un campo, e l'altro torna prenotabile.">
+            <ListRow
+              leading={<Users className="size-5" />}
+              title="Campi da completare"
+              subtitle={`${dayPairs} ${dayPairs === 1 ? "coppia da unire" : "coppie da unire"}`}
+              trailing={<CountBadge count={dayPairs} />}
+              chevron
+              onClick={() => {
+                setMergeScope("day");
+                setMergeOpen(true);
+              }}
+            />
+          </ListGroup>
+        )}
+      </div>
+    );
+  };
+
+  /**
    * Il passaggio fra agenda e ricerca.
    *
    * La ricerca scende di poco dall'alto, dal pulsante che l'ha aperta;
@@ -318,197 +464,102 @@ export function Agenda() {
 
   return (
     <>
-      {header}
-      <PageBody className="relative">
-        <AnimatePresence mode="popLayout" initial={false}>
-          {searching ? (
-            <motion.div key="search" {...view("above")} className="space-y-5">
-              <div className="relative">
-                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
-                <Input
-                  autoFocus
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Nome, giocatore, telefono o codice"
-                  className="bg-card h-11 rounded-xl pl-10 text-base"
-                />
-              </div>
-              {query.trim() &&
-                (results.length === 0 ? (
-                  <p className="text-muted-foreground px-1 text-sm">
-                    Nessuna prenotazione trovata.
-                  </p>
-                ) : (
-                  <ListGroup
-                    title={`${results.length} ${results.length === 1 ? "prenotazione" : "prenotazioni"}`}
-                  >
-                    {results.map((booking) => (
-                      <div key={booking._id}>
-                        <p className="text-muted-foreground px-4 pt-2.5 text-xs font-medium">
-                          {dayLabel(dayKey(booking.bookingDate), today)}
-                        </p>
-                        <BookingRow
+      {/*
+       * Da telefono tutta la pagina, fino in fondo allo schermo, è la
+       * superficie da cui si cambia giorno scorrendo di lato: anche lo spazio
+       * vuoto sotto un giorno con poche partite (day-pager.tsx). In
+       * verticale scorre come sempre, e lo zoom resta.
+       */}
+      <div
+        {...(searching ? {} : swipe.surfaceProps)}
+        className="flex flex-1 flex-col max-md:touch-pan-y max-md:touch-pinch-zoom"
+      >
+        {header}
+        <PageBody className="relative">
+          <AnimatePresence mode="popLayout" initial={false}>
+            {searching ? (
+              <motion.div key="search" {...view("above")} className="space-y-5">
+                <div className="relative">
+                  <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
+                  <Input
+                    autoFocus
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Nome, giocatore, telefono o codice"
+                    className="bg-card h-11 rounded-xl pl-10 text-base"
+                  />
+                </div>
+                {query.trim() &&
+                  (results.length === 0 ? (
+                    <p className="text-muted-foreground px-1 text-sm">
+                      Nessuna prenotazione trovata.
+                    </p>
+                  ) : (
+                    <ListGroup
+                      title={`${results.length} ${results.length === 1 ? "prenotazione" : "prenotazioni"}`}
+                    >
+                      {results.map((booking) => (
+                        <div key={booking._id}>
+                          <p className="text-muted-foreground px-4 pt-2.5 text-xs font-medium">
+                            {dayLabel(dayKey(booking.bookingDate), today)}
+                          </p>
+                          <BookingRow
+                            booking={booking}
+                            court={courtNames.get(booking.slot)}
+                            onOpen={() => openRow(booking)}
+                          />
+                        </div>
+                      ))}
+                    </ListGroup>
+                  ))}
+              </motion.div>
+            ) : (
+              <motion.div key="agenda" {...view("below")} className="space-y-6">
+                {pending.length > 0 && (
+                  <section className="space-y-2">
+                    <h2 className="flex items-center gap-2 px-1 text-[13px] font-medium">
+                      <span className="text-muted-foreground">
+                        Da confermare
+                      </span>
+                      <CountBadge count={pending.length} />
+                    </h2>
+                    <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+                      {pending.map((booking) => (
+                        <PendingCard
+                          key={booking._id}
                           booking={booking}
                           court={courtNames.get(booking.slot)}
+                          busy={busyId === booking._id}
                           onOpen={() => openRow(booking)}
+                          onAccept={() => void askAccept(booking)}
+                          onReject={() => void askCancel(booking)}
                         />
-                      </div>
-                    ))}
-                  </ListGroup>
-                ))}
-            </motion.div>
-          ) : (
-            <motion.div key="agenda" {...view("below")} className="space-y-6">
-              {pending.length > 0 && (
-                <section className="space-y-2">
-                  <h2 className="flex items-center gap-2 px-1 text-[13px] font-medium">
-                    <span className="text-muted-foreground">Da confermare</span>
-                    <CountBadge count={pending.length} />
-                  </h2>
-                  <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-                    {pending.map((booking) => (
-                      <PendingCard
-                        key={booking._id}
-                        booking={booking}
-                        court={courtNames.get(booking.slot)}
-                        busy={busyId === booking._id}
-                        onOpen={() => openRow(booking)}
-                        onAccept={() => void askAccept(booking)}
-                        onReject={() => void askCancel(booking)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              <section className="space-y-3">
-                <DayStrip
-                  days={days}
-                  selected={selectedDay}
-                  onSelect={setSelectedDay}
-                  marks={marks}
-                />
-
-                <ListGroup
-                  title={dayLabel(selectedDay, today)}
-                  action={
-                    playing.length > 0 && (
-                      <span className="text-muted-foreground text-[13px] tabular-nums">
-                        {playing.length}{" "}
-                        {playing.length === 1 ? "partita" : "partite"}
-                      </span>
-                    )
-                  }
-                >
-                  {playing.length === 0 ? (
-                    <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-                      <CalendarCheck className="text-muted-foreground/60 size-7" />
-                      <p className="text-[15px] font-medium">
-                        Nessuna partita in agenda
-                      </p>
-                      <p className="text-muted-foreground max-w-[32ch] text-sm">
-                        Le prenotazioni di questo giorno compariranno qui appena
-                        arrivano.
-                      </p>
+                      ))}
                     </div>
-                  ) : (
-                    playing.map((booking) => (
-                      <BookingRow
-                        key={booking._id}
-                        booking={booking}
-                        court={courtNames.get(booking.slot)}
-                        onOpen={() => openRow(booking)}
-                      />
-                    ))
-                  )}
-                </ListGroup>
-
-                {cancelledOfDay.length > 0 && (
-                  <section className="space-y-2 pt-3">
-                    <div className="flex items-center justify-between gap-3 px-1">
-                      <h2 className="text-muted-foreground text-[13px] font-medium">
-                        Annullate · {cancelledOfDay.length}
-                      </h2>
-                      <button
-                        type="button"
-                        aria-expanded={!hideCancelled}
-                        aria-controls={cancelledListId}
-                        onClick={() => setHideCancelled(!hideCancelled)}
-                        className="text-muted-foreground hover:text-foreground focus-visible:text-foreground -my-2 -mr-2 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-[13px] font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                      >
-                        {hideCancelled ? "Mostra" : "Nascondi"}
-                        <ChevronDown
-                          aria-hidden
-                          className={cn(
-                            "size-4 transition-transform duration-200 ease-out motion-reduce:transition-none",
-                            hideCancelled && "-rotate-90",
-                          )}
-                        />
-                      </button>
-                    </div>
-                    <AnimatePresence initial={false}>
-                      {!hideCancelled && (
-                        <motion.div
-                          id={cancelledListId}
-                          key="cancelled"
-                          initial={
-                            reduce ? { opacity: 0 } : { opacity: 0, height: 0 }
-                          }
-                          animate={{
-                            opacity: 1,
-                            height: "auto",
-                            transition: {
-                              duration: UI_DURATION.enter,
-                              ease: EASE_OUT,
-                            },
-                          }}
-                          exit={{
-                            opacity: 0,
-                            ...(reduce ? {} : { height: 0 }),
-                            transition: {
-                              duration: UI_DURATION.exit,
-                              ease: EASE_OUT,
-                            },
-                          }}
-                          className="overflow-hidden"
-                        >
-                          <div className="bg-card overflow-hidden rounded-2xl border [&>*+*]:border-t">
-                            {cancelledOfDay.map((booking) => (
-                              <BookingRow
-                                key={booking._id}
-                                booking={booking}
-                                court={courtNames.get(booking.slot)}
-                                onOpen={() => openRow(booking)}
-                              />
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </section>
                 )}
-              </section>
 
-              {/* Solo nel giorno che ha davvero una coppia da unire. */}
-              {pairsOfDay.length > 0 && (
-                <ListGroup footer="Due gruppi parziali alla stessa ora riempiono un campo, e l'altro torna prenotabile.">
-                  <ListRow
-                    leading={<Users className="size-5" />}
-                    title="Campi da completare"
-                    subtitle={`${pairsOfDay.length} ${pairsOfDay.length === 1 ? "coppia da unire" : "coppie da unire"}`}
-                    trailing={<CountBadge count={pairsOfDay.length} />}
-                    chevron
-                    onClick={() => {
-                      setMergeScope("day");
-                      setMergeOpen(true);
-                    }}
+                <section className="space-y-3">
+                  <DayStrip
+                    days={days}
+                    selected={selectedDay}
+                    onSelect={setSelectedDay}
+                    marks={marks}
                   />
-                </ListGroup>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </PageBody>
+
+                  <DayPager
+                    swipe={swipe}
+                    days={days}
+                    selected={selectedDay}
+                    onSelect={setSelectedDay}
+                    renderDay={renderDay}
+                  />
+                </section>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </PageBody>
+      </div>
 
       <BookingSheet
         booking={open}
