@@ -415,6 +415,30 @@
 }
 
 /*
+ * Il cambio di linguetta in Configurazione, e gli avvisi che compaiono quando
+ * una regola cambia: il contenuto nuovo sale di pochi pixel mentre appare,
+ * invece di sostituire di colpo il vecchio. Breve, perché si cambia linguetta
+ * anche più volte di fila. Chi ha chiesto meno animazioni vede solo la
+ * dissolvenza.
+ */
+.settings-enter {
+  animation: settings-enter 180ms var(--ease-out) both;
+}
+
+@keyframes settings-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-enter {
+    animation-name: auth-fade;
+  }
+}
+
+/*
  * Il fondo dei drawer mentre si scrive (`data-keyboard-open`, lo mette
  * KeyboardInset). Il drawer allora tocca la tastiera, non il bordo dello
  * schermo: il margine per la barra della Home è spazio sprecato. E i bottoni,

@@ -10,8 +10,14 @@ import { useConfirm } from "@/app/_providers/confirm.provider";
 import { deniedHelp, usePush } from "@/app/_providers/push.provider";
 import { Switch } from "@/components/ui/switch";
 
+import {
+  SettingsSection,
+  SettingsSkeleton,
+  SettingsStack,
+} from "./settings-section";
+
 /**
- * Le notifiche push, in Configurazione.
+ * Le notifiche push, la prima linguetta di Configurazione.
  *
  * Tre cose distinte, dall'alto in basso: questo dispositivo (acceso o spento,
  * con la prova), cosa ricevere (vale per tutti i propri dispositivi) e chi
@@ -23,32 +29,31 @@ export function NotificationSettings() {
   const confirm = useConfirm();
 
   return (
-    <section id="notifiche" className="scroll-mt-6 space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">Notifiche</h2>
-        <p className="text-muted-foreground max-w-2xl text-sm">
-          Gli avvisi del gestionale sul telefono o sul computer, anche quando è
-          chiuso: nuove prenotazioni, disdette, richieste, conferme che non
-          arrivano ai clienti.
-        </p>
-      </div>
-
-      <div className="max-w-xl space-y-6">
+    <SettingsStack>
+      <SettingsSection
+        title="Questo dispositivo"
+        description="Gli avvisi del gestionale su questo telefono o computer."
+      >
         <ThisDevice />
+      </SettingsSection>
 
+      <SettingsSection
+        title="Cosa ricevere"
+        description="Vale su tutti i dispositivi da cui hai attivato le notifiche."
+      >
         <CategoryToggles
-          title="Cosa ricevere"
           muted={push.muted}
           onChange={push.setMuted}
           disabled={!push.loaded}
-          footer="Vale su tutti i dispositivi da cui hai attivato le notifiche."
         />
+      </SettingsSection>
 
-        {push.devices.length > 0 && (
-          <ListGroup
-            title="Dispositivi dello staff"
-            footer="Chi non fa più parte dello staff va tolto da qui: le notifiche contengono nomi e orari dei clienti."
-          >
+      {push.devices.length > 0 && (
+        <SettingsSection
+          title="Dispositivi dello staff"
+          description="Chi non fa più parte dello staff va tolto da qui. Le notifiche contengono nomi e orari dei clienti."
+        >
+          <ListGroup>
             {push.devices.map((device) => {
               const mine = device.endpoint === push.endpoint;
               return (
@@ -93,9 +98,9 @@ export function NotificationSettings() {
               );
             })}
           </ListGroup>
-        )}
-      </div>
-    </section>
+        </SettingsSection>
+      )}
+    </SettingsStack>
   );
 }
 
@@ -103,19 +108,12 @@ function ThisDevice() {
   const push = usePush();
 
   if (push.support === null) {
-    return (
-      <ListGroup title="Questo dispositivo">
-        <ListRow title="Controllo il browser…" />
-      </ListGroup>
-    );
+    return <SettingsSkeleton rows={1} />;
   }
 
   if (push.support === "needs-install") {
     return (
-      <ListGroup
-        title="Questo dispositivo"
-        footer="Su iPhone e iPad le notifiche arrivano solo al gestionale aggiunto alla schermata Home: Condividi › Aggiungi alla schermata Home, poi aprilo dall'icona."
-      >
+      <ListGroup footer="Su iPhone e iPad le notifiche arrivano solo al gestionale aggiunto alla schermata Home: Condividi › Aggiungi alla schermata Home, poi aprilo dall'icona.">
         <ListRow
           leading={<BellOff className="size-5" />}
           title="Da installare"
@@ -129,7 +127,7 @@ function ThisDevice() {
 
   if (push.support === "unsupported") {
     return (
-      <ListGroup title="Questo dispositivo">
+      <ListGroup>
         <ListRow
           leading={<BellOff className="size-5" />}
           title="Non disponibili"
@@ -141,7 +139,7 @@ function ThisDevice() {
 
   if (push.permission === "denied") {
     return (
-      <ListGroup title="Questo dispositivo" footer={deniedHelp()}>
+      <ListGroup footer={deniedHelp()}>
         <ListRow
           leading={<BellOff className="size-5" />}
           title="Bloccate dal browser"
@@ -155,7 +153,6 @@ function ThisDevice() {
 
   return (
     <ListGroup
-      title="Questo dispositivo"
       footer={
         push.loaded && !push.configured
           ? "Il server non ha ancora la chiave per le notifiche (VAPID): finché manca non si possono attivare."

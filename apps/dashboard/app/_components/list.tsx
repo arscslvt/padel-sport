@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { ComponentPropsWithRef, ReactNode } from "react";
 
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 /**
@@ -162,4 +163,56 @@ export function ListRow({
   }
 
   return <div className={classes}>{body}</div>;
+}
+
+/**
+ * Una riga con l'interruttore a destra, come nelle Impostazioni di iOS. Tutta
+ * la riga è l'etichetta: si accende toccando ovunque, non solo la levetta.
+ */
+export function ListSwitchRow({
+  id,
+  leading,
+  title,
+  subtitle,
+  checked,
+  disabled,
+  onCheckedChange,
+}: {
+  id: string;
+  leading?: ReactNode;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  checked: boolean;
+  disabled?: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className={cn(
+        "flex min-h-14 items-center gap-3 px-4 py-2.5",
+        !disabled && "cursor-pointer",
+      )}
+    >
+      {leading && (
+        <span className="text-muted-foreground flex shrink-0 items-center justify-center">
+          {leading}
+        </span>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] leading-snug">{title}</span>
+        {subtitle && (
+          <span className="text-muted-foreground mt-0.5 block text-[13px] leading-snug">
+            {subtitle}
+          </span>
+        )}
+      </span>
+      <Switch
+        id={id}
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onCheckedChange}
+      />
+    </label>
+  );
 }
