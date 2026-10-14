@@ -155,6 +155,16 @@
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 
+  /*
+   * Da telefono, la quota sopra la barra in basso (bottom-tab-bar.tsx) a cui
+   * si appoggia ciò che le fluttua sopra: il pulsante d'azione, la barra
+   * «Modifiche non salvate». La barra è alta 62px dal suo margine inferiore,
+   * e sopra ha 24px di sfumatura verso lo sfondo: qui si sta 6px più in alto,
+   * fuori da tutte e due. Più in basso, la sfumatura velava il bordo
+   * inferiore del pulsante come un'ombra.
+   */
+  --dock-clearance: calc(max(0.5rem, env(safe-area-inset-bottom)) + 5.75rem);
+
   --radius: 0.625rem;
   --radius-surface: 1.25rem;
   --radius-frame-size: 1.75rem;

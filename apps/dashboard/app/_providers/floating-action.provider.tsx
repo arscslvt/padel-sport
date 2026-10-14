@@ -66,16 +66,20 @@ export default function FloatingActionProvider({
   const reduce = useReducedMotion();
 
   // Dietro la barra: abbastanza in basso da partire nascosto dal suo vetro.
+  // Da fermo il pulsante sta sopra la sfumatura della barra
+  // (`--dock-clearance`), e da lì al bordo della barra ci sono 30px: con i
+  // suoi 48 d'altezza, 84 lo fanno partire tutto coperto. Salendo attraversa
+  // la sfumatura, ed è lei a farlo emergere dal vetro.
   const hidden = reduce
     ? { opacity: 0 }
-    : { opacity: 0, y: 56, scale: 0.94, filter: "blur(8px)" };
+    : { opacity: 0, y: 84, scale: 0.94, filter: "blur(8px)" };
 
   return (
     <FloatingActionContext.Provider value={setAction}>
       {children}
 
       {/* Sotto la barra in basso (z-40): è lei a coprirlo mentre entra ed esce. */}
-      <div className="pointer-events-none fixed right-4 bottom-[calc(max(0.5rem,env(safe-area-inset-bottom))+4.75rem)] z-30 md:hidden">
+      <div className="pointer-events-none fixed right-4 bottom-(--dock-clearance) z-30 md:hidden">
         <AnimatePresence initial={false}>
           {action && (
             <motion.button
