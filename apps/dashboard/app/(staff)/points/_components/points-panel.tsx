@@ -4,6 +4,7 @@ import { Gift, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CountBadge } from "@/app/_components/count-badge";
+import { PageBody, PageHeader } from "@/app/_components/page-header";
 import {
   Tabs,
   TabsContent,
@@ -11,7 +12,6 @@ import {
   TabsTrigger,
 } from "@/app/_components/tabs";
 import { useConfirm } from "@/app/_providers/confirm.provider";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -24,7 +24,9 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { pointsLabel, signedPoints } from "@/lib/points";
 import { cn } from "@/lib/utils";
+import { AssignPoints } from "./assign-points";
 import { RedemptionCard } from "./redemption-card";
+import { RewardCard } from "./reward-card";
 import { RewardDialog } from "./reward-dialog";
 import type { PendingRedemption, Preset, Reward } from "./types";
 
@@ -37,7 +39,17 @@ import type { PendingRedemption, Preset, Reward } from "./types";
  *
  * I punti di una persona si caricano dalla sua scheda in Clienti: qui non
  * c'è un elenco di persone da duplicare.
+ *
+ * L'intestazione la disegna il pannello e non la pagina, come in Agenda: da
+ * telefono il «+» per un premio nuovo sta accanto al titolo, e compare solo
+ * sulla linguetta Premi, quindi deve sapere quale linguetta è aperta.
+ *
+ * Le azioni che non si riprendono (ritirare un premio, togliere un preset,
+ * annullare un riscatto) chiedono conferma: un pannello dal basso da
+ * telefono, un toast da desktop (confirm.provider.tsx).
  */
+
+type PointsTab = "redemptions" | "rewards" | "presets";
 
 async function request(url: string, init?: RequestInit) {
   const response = await fetch(url, {
@@ -51,6 +63,8 @@ async function request(url: string, init?: RequestInit) {
 }
 
 export function PointsPanel() {
+  const confirm = useConfirm();
+  const [tab, setTab] = useState<PointsTab>("redemptions");
   const [rewards, setRewards] = useState<Reward[] | null>(null);
   const [presets, setPresets] = useState<Preset[] | null>(null);
   const [redemptions, setRedemptions] = useState<PendingRedemption[] | null>(
@@ -108,103 +122,206 @@ export function PointsPanel() {
     }
   };
 
+  /**
+   * Disattiva o riattiva un premio. La levetta si sposta subito e torna
+   * indietro se il server dice di no: è un gesto reversibile, non serve
+   * aspettare il giro completo per vederlo.
+   */
+  const toggleReward = async (reward: Reward, disabled: boolean) => {
+    const patch = (value: boolean) =>
+      setRewards(
+        (list) =>
+          list?.map((row) =>
+            row.id === reward.id ? { ...row, disabled: value } : row,
+          ) ?? list,
+      );
+
+    setPending(`reward-toggle-${reward.id}`);
+    patch(disabled);
+    try {
+      await request(`/api/dashboard/points/rewards/${reward.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ disabled }),
+      });
+      toast.success(disabled ? "Premio disattivato" : "Premio riattivato", {
+        description: disabled
+          ? "Non compare più ai clienti. Chi l'ha già riscattato lo ritira lo stesso."
+          : "È di nuovo nella vetrina dei clienti.",
+      });
+    } catch (error) {
+      patch(!disabled);
+      toast.error("Operazione non riuscita", {
+        description:
+          error instanceof Error ? error.message : "Riprova fra poco.",
+      });
+    } finally {
+      setPending(null);
+    }
+  };
+
   const openReward = (reward: Reward | null) => {
     setEditing(reward);
     setDialogOpen(true);
+  };
+
+  const askArchiveReward = async (reward: Reward) => {
+    const result = await confirm({
+      title: `Ritirare «${reward.title}»?`,
+      description:
+        "Sparisce dal catalogo e dalla vetrina, e non si può ripristinare. Chi l'ha già riscattato lo ritira lo stesso. Per toglierlo solo per un po', spegni «In vetrina».",
+      confirmLabel: "Ritira premio",
+      cancelLabel: "Annulla",
+      tone: "destructive",
+      desktop: "toast",
+    });
+    if (!result) return;
+
+    void run(
+      `reward-${reward.id}`,
+      () =>
+        request(`/api/dashboard/points/rewards/${reward.id}`, {
+          method: "DELETE",
+        }),
+      "Premio ritirato",
+      "Non è più nel catalogo. Chi l'ha già riscattato lo tiene.",
+    );
+  };
+
+  const askArchivePreset = async (preset: Preset) => {
+    const result = await confirm({
+      title: `Togliere «${preset.label}»?`,
+      description:
+        "Non compare più tra le causali. I punti già assegnati con questo preset restano.",
+      confirmLabel: "Togli preset",
+      cancelLabel: "Annulla",
+      tone: "destructive",
+      desktop: "toast",
+    });
+    if (!result) return;
+
+    void run(
+      `preset-${preset.id}`,
+      () =>
+        request(`/api/dashboard/points/presets/${preset.id}`, {
+          method: "DELETE",
+        }),
+      "Preset rimosso",
+    );
   };
 
   const waiting = redemptions?.length ?? 0;
 
   return (
     <>
-      <Tabs defaultValue="redemptions" className="gap-4">
-        <TabsList>
-          <TabsTrigger value="redemptions">
-            Da consegnare
-            <CountBadge count={waiting} />
-          </TabsTrigger>
-          <TabsTrigger value="rewards">Premi</TabsTrigger>
-          <TabsTrigger value="presets">Preset</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="redemptions">
-          <RedemptionsList
-            redemptions={redemptions}
-            pending={pending}
-            onClose={(redemption, action) =>
-              void run(
-                redemption.id,
-                () =>
-                  request(
-                    `/api/dashboard/points/redemptions/${redemption.id}`,
-                    {
-                      method: "POST",
-                      body: JSON.stringify({ action }),
-                    },
-                  ),
-                action === "used" ? "Premio consegnato" : "Riscatto annullato",
-                action === "cancel"
-                  ? `${pointsLabel(redemption.cost)} tornati a ${redemption.playerName}.`
-                  : undefined,
-              )
-            }
-          />
-        </TabsContent>
-
-        <TabsContent value="rewards" className="space-y-4">
-          <div className="flex justify-end">
-            <Button onClick={() => openReward(null)}>
-              <Plus className="size-4" />
-              Nuovo premio
+      <PageHeader
+        title="Punti e premi"
+        description="Catalogo premi, causali dei punti e premi riscattati da consegnare."
+        actions={
+          <div className="flex items-center gap-2">
+            {/*
+             * Da telefono, come il «+» di Agenda. Fuori dalla linguetta Premi
+             * si dissolve senza lasciare il posto: l'intestazione non salta.
+             * `inert` lo toglie anche dal Tab e dai lettori di schermo.
+             */}
+            <Button
+              size="icon"
+              aria-label="Nuovo premio"
+              inert={tab !== "rewards"}
+              onClick={() => openReward(null)}
+              className={cn(
+                "size-10 rounded-full transition-[opacity,scale] duration-200 ease-(--ease-out) md:hidden",
+                tab !== "rewards" && "pointer-events-none scale-90 opacity-0",
+              )}
+            >
+              <Plus className="size-5" />
             </Button>
+            <AssignPoints />
           </div>
+        }
+      />
+      {/* Da telefono «Assegna punti» fluttua sopra la barra in basso: il
+          fondo della pagina gli lascia spazio, l'ultima card resta libera. */}
+      <PageBody className="pb-20 md:pb-6">
+        <Tabs
+          value={tab}
+          onValueChange={(value) => setTab(value as PointsTab)}
+          className="gap-4"
+        >
+          <TabsList>
+            <TabsTrigger value="redemptions">
+              Da consegnare
+              <CountBadge count={waiting} />
+            </TabsTrigger>
+            <TabsTrigger value="rewards">Premi</TabsTrigger>
+            <TabsTrigger value="presets">Preset</TabsTrigger>
+          </TabsList>
 
-          <RewardsGrid
-            rewards={rewards}
-            pending={pending}
-            onEdit={openReward}
-            onArchive={(reward) =>
-              void run(
-                `reward-${reward.id}`,
-                () =>
-                  request(`/api/dashboard/points/rewards/${reward.id}`, {
-                    method: "DELETE",
-                  }),
-                "Premio ritirato",
-                "Non è più visibile ai clienti. Chi l'ha già riscattato lo tiene.",
-              )
-            }
-          />
-        </TabsContent>
+          <TabsContent value="redemptions">
+            <RedemptionsList
+              redemptions={redemptions}
+              pending={pending}
+              onClose={(redemption, action) =>
+                void run(
+                  redemption.id,
+                  () =>
+                    request(
+                      `/api/dashboard/points/redemptions/${redemption.id}`,
+                      {
+                        method: "POST",
+                        body: JSON.stringify({ action }),
+                      },
+                    ),
+                  action === "used"
+                    ? "Premio consegnato"
+                    : "Riscatto annullato",
+                  action === "cancel"
+                    ? `${pointsLabel(redemption.cost)} tornati a ${redemption.playerName}.`
+                    : undefined,
+                )
+              }
+            />
+          </TabsContent>
 
-        <TabsContent value="presets">
-          <PresetsEditor
-            presets={presets}
-            pending={pending}
-            onSave={(preset) =>
-              void run(
-                `preset-${preset.presetId ?? "new"}`,
-                () =>
-                  request("/api/dashboard/points/presets", {
-                    method: "POST",
-                    body: JSON.stringify(preset),
-                  }),
-                preset.presetId ? "Preset aggiornato" : "Preset aggiunto",
-              )
-            }
-            onArchive={(preset) =>
-              void run(
-                `preset-${preset.id}`,
-                () =>
-                  request(`/api/dashboard/points/presets/${preset.id}`, {
-                    method: "DELETE",
-                  }),
-                "Preset rimosso",
-              )
-            }
-          />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="rewards" className="space-y-4">
+            {/* Da telefono il «+» sta nell'intestazione. */}
+            <div className="hidden justify-end md:flex">
+              <Button onClick={() => openReward(null)}>
+                <Plus className="size-4" />
+                Nuovo premio
+              </Button>
+            </div>
+
+            <RewardsGrid
+              rewards={rewards}
+              pending={pending}
+              onEdit={openReward}
+              onToggle={(reward, disabled) =>
+                void toggleReward(reward, disabled)
+              }
+              onArchive={(reward) => void askArchiveReward(reward)}
+            />
+          </TabsContent>
+
+          <TabsContent value="presets">
+            <PresetsEditor
+              presets={presets}
+              pending={pending}
+              onSave={(preset) =>
+                void run(
+                  `preset-${preset.presetId ?? "new"}`,
+                  () =>
+                    request("/api/dashboard/points/presets", {
+                      method: "POST",
+                      body: JSON.stringify(preset),
+                    }),
+                  preset.presetId ? "Preset aggiornato" : "Preset aggiunto",
+                )
+              }
+              onArchive={(preset) => void askArchivePreset(preset)}
+            />
+          </TabsContent>
+        </Tabs>
+      </PageBody>
 
       <RewardDialog
         open={dialogOpen}
@@ -237,6 +354,7 @@ function RedemptionsList({
       confirmLabel: "Annulla il riscatto",
       cancelLabel: "Indietro",
       tone: "destructive",
+      desktop: "toast",
     });
     if (result) onClose(row, "cancel");
   };
@@ -306,11 +424,13 @@ function RewardsGrid({
   rewards,
   pending,
   onEdit,
+  onToggle,
   onArchive,
 }: {
   rewards: Reward[] | null;
   pending: string | null;
   onEdit: (reward: Reward) => void;
+  onToggle: (reward: Reward, disabled: boolean) => void;
   onArchive: (reward: Reward) => void;
 }) {
   if (!rewards) return <ListSkeleton />;
@@ -335,65 +455,16 @@ function RewardsGrid({
   return (
     <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {rewards.map((reward) => (
-        <li
-          key={reward.id}
-          className="bg-card flex flex-col overflow-hidden rounded-xl border"
-        >
-          {reward.imageUrl ? (
-            // biome-ignore lint/performance/noImgElement: URL firmato di Convex, che next/image non conosce.
-            <img
-              src={reward.imageUrl}
-              alt=""
-              className="aspect-[4/3] w-full object-cover"
-            />
-          ) : (
-            <div className="bg-muted text-muted-foreground flex aspect-[4/3] items-center justify-center">
-              <Gift className="size-8" />
-            </div>
-          )}
-
-          <div className="flex flex-1 flex-col gap-2 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <p className="font-medium">{reward.title}</p>
-              <Badge variant="secondary" className="shrink-0 tabular-nums">
-                {pointsLabel(reward.cost)}
-              </Badge>
-            </div>
-            <p className="text-muted-foreground line-clamp-3 text-sm">
-              {reward.description}
-            </p>
-            <p className="text-muted-foreground text-xs">
-              {reward.validityDays
-                ? `Valido ${reward.validityDays} giorni dal riscatto`
-                : "Senza scadenza"}
-              {reward.pending > 0 ? ` · ${reward.pending} da consegnare` : ""}
-            </p>
-
-            <div className="mt-auto flex gap-2 pt-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onEdit(reward)}
-              >
-                <Pencil className="size-4" />
-                Modifica
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-destructive hover:text-destructive"
-                disabled={pending !== null}
-                onClick={() => onArchive(reward)}
-              >
-                {pending === `reward-${reward.id}` ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Trash2 className="size-4" />
-                )}
-                Ritira
-              </Button>
-            </div>
-          </div>
+        <li key={reward.id} className="flex">
+          <RewardCard
+            reward={reward}
+            toggling={pending === `reward-toggle-${reward.id}`}
+            archiving={pending === `reward-${reward.id}`}
+            disabled={pending !== null}
+            onEdit={() => onEdit(reward)}
+            onToggle={(disabled) => onToggle(reward, disabled)}
+            onArchive={() => onArchive(reward)}
+          />
         </li>
       ))}
     </ul>

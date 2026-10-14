@@ -1,7 +1,7 @@
 import { query } from "../../_generated/server";
 import { getIdentityPlayer } from "../openMatches/lib";
 import {
-  activeRewards,
+  availableRewards,
   balanceOf,
   exitDeadline,
   pendingTransactions,
@@ -32,7 +32,7 @@ export default query({
     const now = Date.now();
 
     const rewards = await Promise.all(
-      (await activeRewards(ctx)).map(async (reward) => ({
+      (await availableRewards(ctx)).map(async (reward) => ({
         id: reward._id,
         title: reward.title,
         description: reward.description,

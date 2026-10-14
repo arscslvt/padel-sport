@@ -21,6 +21,8 @@ export interface Reward {
   hasImage: boolean;
   /** Riscattati e non ancora consegnati. */
   pending: number;
+  /** In pausa: fuori dalla vetrina dei clienti, ma ancora nel catalogo. */
+  disabled: boolean;
 }
 
 export interface PendingRedemption {

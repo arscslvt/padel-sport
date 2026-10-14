@@ -328,6 +328,15 @@ export async function activeRewards(ctx: QueryCtx) {
   return rows.sort((a, b) => a.cost - b.cost || a.createdAt - b.createdAt);
 }
 
+/**
+ * I premi che un cliente può vedere e riscattare: quelli in vetrina, tranne
+ * i disattivati. `activeRewards` li tiene tutti, perché lo staff deve poterli
+ * riaccendere.
+ */
+export async function availableRewards(ctx: QueryCtx) {
+  return (await activeRewards(ctx)).filter((reward) => !reward.disabled);
+}
+
 export async function rewardImageUrl(
   ctx: QueryCtx,
   reward: Doc<"rewards">,

@@ -36,6 +36,7 @@ export const list = query({
         validityDays: reward.validityDays,
         imageUrl: await rewardImageUrl(ctx, reward),
         hasImage: Boolean(reward.imageStorageId),
+        disabled: reward.disabled ?? false,
         /** Riscattati e non ancora consegnati: quanti ne deve avere pronti il club. */
         pending: redemptions.filter((row) => row.rewardId === reward._id)
           .length,
@@ -133,5 +134,25 @@ export const archive = mutation({
   handler: async (ctx, { secret, rewardId }) => {
     assertServer(secret);
     await ctx.db.patch(rewardId, { archived: true });
+  },
+});
+
+/**
+ * Mette in pausa il premio o lo riattiva. Disattivato sparisce dalla vetrina
+ * e non si riscatta; chi l'ha già riscattato lo ritira lo stesso.
+ */
+export const setDisabled = mutation({
+  args: {
+    secret: v.string(),
+    rewardId: v.id("rewards"),
+    disabled: v.boolean(),
+  },
+  handler: async (ctx, { secret, rewardId, disabled }) => {
+    assertServer(secret);
+
+    const reward = await ctx.db.get(rewardId);
+    if (!reward || reward.archived) throw new Error("Premio non trovato.");
+
+    await ctx.db.patch(rewardId, { disabled });
   },
 });

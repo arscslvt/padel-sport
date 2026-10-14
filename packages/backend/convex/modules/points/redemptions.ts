@@ -45,6 +45,9 @@ export const redeem = mutation({
     if (!reward || reward.archived) {
       throw new Error("Questo premio non è più disponibile.");
     }
+    if (reward.disabled) {
+      throw new Error("Questo premio al momento non è disponibile.");
+    }
 
     const balance = balanceOf(player);
     if (balance < reward.cost) {
