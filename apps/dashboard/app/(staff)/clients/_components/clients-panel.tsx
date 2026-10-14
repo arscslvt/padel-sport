@@ -342,7 +342,7 @@ export function ClientsPanel() {
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
             placeholder="Cerca per nome, cognome, email o telefono…"
-            className="h-10 bg-white pl-9"
+            className="h-10 bg-card pl-9"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -422,7 +422,7 @@ export function ClientsPanel() {
             </EmptyHeader>
           </Empty>
         ) : (
-          <ul className="divide-y bg-white">
+          <ul className="divide-y bg-card">
             {visible.map((client) => (
               <ClientRow
                 key={client.id}

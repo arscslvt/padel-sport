@@ -379,7 +379,7 @@ function Form({
                   className={cn(
                     "h-11 rounded-xl border text-[15px] tabular-nums transition-[background-color,transform] active:scale-95 disabled:pointer-events-none disabled:line-through disabled:opacity-35",
                     time === slot.time
-                      ? "bg-foreground text-background border-foreground"
+                      ? "bg-primary text-primary-foreground border-primary"
                       : "bg-card",
                   )}
                 >
@@ -408,7 +408,7 @@ function Form({
                       className={cn(
                         "h-10 rounded-full border px-4 text-sm transition-[background-color,transform] active:scale-95 disabled:pointer-events-none disabled:opacity-35",
                         slotId === court._id
-                          ? "bg-foreground text-background border-foreground"
+                          ? "bg-primary text-primary-foreground border-primary"
                           : "bg-card",
                       )}
                     >

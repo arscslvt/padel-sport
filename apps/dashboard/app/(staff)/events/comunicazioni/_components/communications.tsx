@@ -349,7 +349,7 @@ export default function Communications() {
                   {previousSend?.status === "sent" ? (
                     <Badge
                       variant="outline"
-                      className="border-green-200 bg-green-50 text-green-900"
+                      className="border-success-border bg-success-subtle text-success-foreground"
                     >
                       <MailCheck className="size-3.5" />
                       Inviata
@@ -375,7 +375,7 @@ export default function Communications() {
                         }))
                       }
                     >
-                      <SelectTrigger className="w-full bg-white md:w-[28rem]">
+                      <SelectTrigger className="w-full bg-card md:w-[28rem]">
                         <SelectValue placeholder="Scegli il modulo" />
                       </SelectTrigger>
                       <SelectContent>
@@ -551,7 +551,7 @@ export default function Communications() {
               key={preview._id}
               title={`Anteprima di ${preview.subject}`}
               src={`/api/dashboard/events/communications/preview?id=${encodeURIComponent(preview._id)}`}
-              className="h-[60vh] w-full rounded-lg border bg-white"
+              className="h-[60vh] w-full rounded-lg border bg-card"
             />
           )}
         </DialogContent>

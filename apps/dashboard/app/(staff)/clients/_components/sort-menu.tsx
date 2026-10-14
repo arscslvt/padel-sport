@@ -110,7 +110,7 @@ export function SortMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="h-10 bg-white">
+        <Button variant="outline" className="h-10 bg-card">
           <ArrowDownUp className="size-4" />
           {sortSummary(value)}
         </Button>

@@ -1003,7 +1003,7 @@ export function ClientDetailView({
                     <Badge
                       key={key}
                       variant="outline"
-                      className="bg-white font-normal"
+                      className="bg-card font-normal"
                     >
                       {label}
                     </Badge>
@@ -1406,7 +1406,7 @@ export function ClientDetailView({
                       <Badge
                         key={key}
                         variant="outline"
-                        className="bg-white font-normal"
+                        className="bg-card font-normal"
                       >
                         {label}
                       </Badge>

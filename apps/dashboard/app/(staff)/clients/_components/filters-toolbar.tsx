@@ -98,7 +98,7 @@ export function FiltersToolbar({
                     className={cn(
                       "text-xs tabular-nums",
                       urgent
-                        ? "font-medium text-red-600"
+                        ? "font-medium text-danger"
                         : "text-muted-foreground",
                     )}
                   >
@@ -119,7 +119,7 @@ export function FiltersToolbar({
             onFiltersChange({ ...filters, incomplete: !filters.incomplete })
           }
           className={cn(
-            "h-10 shrink-0 bg-white",
+            "h-10 shrink-0 bg-card",
             filters.incomplete && "border-foreground/25 bg-muted",
           )}
         >
@@ -186,7 +186,7 @@ function AccountMenu({
         <Button
           variant="outline"
           className={cn(
-            "h-10 shrink-0 bg-white",
+            "h-10 shrink-0 bg-card",
             (active || filters.showStaff) && "border-foreground/25",
           )}
         >

@@ -25,8 +25,10 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: DASHBOARD_CHROME_COLOR,
-    theme_color: DASHBOARD_CHROME_COLOR,
+    // Il manifest ha un colore solo, senza varianti per tema: resta quello
+    // chiaro. A pagina aperta comandano i meta `theme-color` (layout.tsx).
+    background_color: DASHBOARD_CHROME_COLOR.light,
+    theme_color: DASHBOARD_CHROME_COLOR.light,
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },

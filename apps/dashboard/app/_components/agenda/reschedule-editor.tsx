@@ -233,7 +233,7 @@ function TimeFields({
                       "has-[:disabled]:cursor-not-allowed",
                       PRESS,
                       checked
-                        ? "bg-foreground text-background border-foreground"
+                        ? "bg-primary text-primary-foreground border-primary"
                         : option.current
                           ? "bg-muted border-dashed border-foreground/40"
                           : "bg-card has-[:disabled]:line-through has-[:disabled]:opacity-35",

@@ -25,12 +25,12 @@ const STATES: Record<
   invited: {
     label: "Invitato",
     icon: MailCheck,
-    className: "border-blue-200 bg-blue-50 text-blue-900",
+    className: "border-info-border bg-info-subtle text-info-foreground",
   },
   none: {
     label: "Senza account",
     icon: KeyRound,
-    className: "border-border bg-white text-muted-foreground",
+    className: "border-border bg-card text-muted-foreground",
   },
 };
 
@@ -38,7 +38,7 @@ const STATES: Record<
 const SUSPENDED = {
   label: "Sospeso",
   icon: Ban,
-  className: "border-red-200 bg-red-50 text-red-900",
+  className: "border-danger-border bg-danger-subtle text-danger-foreground",
 };
 
 export function AccountBadge({

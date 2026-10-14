@@ -98,7 +98,7 @@ export default function FloatingActionProvider({
                   : { type: "spring", bounce: 0, duration: 0.5 }
               }
               whileTap={reduce ? undefined : { scale: 0.95 }}
-              className="bg-foreground text-background pointer-events-auto absolute right-0 bottom-0 flex h-12 items-center gap-2 rounded-full pr-5 pl-4 text-[15px] font-medium whitespace-nowrap shadow-[0_10px_30px_-10px_oklch(0.2_0_0/0.5)] will-change-transform"
+              className="bg-primary text-primary-foreground pointer-events-auto absolute right-0 bottom-0 flex h-12 items-center gap-2 rounded-full pr-5 pl-4 text-[15px] font-medium whitespace-nowrap shadow-[0_10px_30px_-10px_oklch(0.2_0_0/0.5)] will-change-transform"
             >
               <action.icon className="size-5" />
               {action.label}

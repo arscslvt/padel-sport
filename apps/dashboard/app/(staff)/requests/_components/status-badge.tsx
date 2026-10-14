@@ -13,9 +13,9 @@ import {
  * aspetta una risposta si vede da lontano, quello che è chiuso si spegne.
  */
 const TONES = {
-  waiting: "border-amber-200 bg-amber-50 text-amber-900",
-  working: "border-blue-200 bg-blue-50 text-blue-900",
-  done: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  waiting: "border-warning-border bg-warning-subtle text-warning-foreground",
+  working: "border-info-border bg-info-subtle text-info-foreground",
+  done: "border-success-border bg-success-subtle text-success-foreground",
   closed: "text-muted-foreground",
 } as const;
 

@@ -417,7 +417,7 @@ export function PointsTab({
             </span>
           </p>
           {detail.pendingPoints > 0 && (
-            <p className="text-xs font-medium text-amber-700 tabular-nums">
+            <p className="text-xs font-medium text-warning-foreground tabular-nums">
               +{detail.pendingPoints} in attesa di adesione
             </p>
           )}
@@ -430,11 +430,11 @@ export function PointsTab({
       </div>
 
       {detail.frozen && (
-        <section className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-950">
+        <section className="flex items-start gap-2.5 rounded-lg border border-danger-border bg-danger-subtle p-3 text-sm text-danger-foreground">
           <Snowflake className="mt-0.5 size-4 shrink-0" />
           <div>
             <p className="font-medium">Punti congelati</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-red-900/80">
+            <p className="mt-0.5 text-xs leading-relaxed text-danger-foreground/80">
               L'account è sospeso: il saldo resta del cliente ma non si caricano
               né si tolgono punti fino alla riattivazione. I premi già
               riscattati si consegnano lo stesso.
@@ -444,11 +444,11 @@ export function PointsTab({
       )}
 
       {detail.program.state === "leaving" && detail.program.exit && (
-        <section className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+        <section className="flex items-start gap-2.5 rounded-lg border border-warning-border bg-warning-subtle p-3 text-sm text-warning-foreground">
           <LogOut className="mt-0.5 size-4 shrink-0" />
           <div>
             <p className="font-medium">Sta uscendo dal programma</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-amber-900/80">
+            <p className="mt-0.5 text-xs leading-relaxed text-warning-foreground/80">
               Ha confermato l'uscita il{" "}
               {format(detail.program.exit.requestedAt, "d MMMM", {
                 locale: it,
@@ -506,9 +506,7 @@ export function PointsTab({
                     <span
                       className={cn(
                         "font-mono tabular-nums",
-                        preset.points > 0
-                          ? "text-emerald-600"
-                          : "text-destructive",
+                        preset.points > 0 ? "text-success" : "text-destructive",
                       )}
                     >
                       {signedPoints(preset.points)}
@@ -721,7 +719,7 @@ export function PointsTab({
                     className={cn(
                       "font-mono font-medium tabular-nums",
                       transaction.delta > 0
-                        ? "text-emerald-600"
+                        ? "text-success"
                         : "text-destructive",
                     )}
                   >
@@ -729,7 +727,9 @@ export function PointsTab({
                   </p>
                   {transaction.pending ? (
                     <div className="flex items-center justify-end gap-1">
-                      <span className="text-xs text-amber-700">in attesa</span>
+                      <span className="text-xs text-warning-foreground">
+                        in attesa
+                      </span>
                       <Button
                         size="icon"
                         variant="ghost"
@@ -774,7 +774,7 @@ function ProgramNotice({
   onRecord: () => void;
 }) {
   return (
-    <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+    <section className="space-y-3 rounded-lg border border-warning-border bg-warning-subtle p-3 text-sm text-warning-foreground">
       <p className="font-medium">
         {state === "none"
           ? "Non ha ancora aderito al programma punti"

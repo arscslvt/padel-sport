@@ -4,12 +4,13 @@ import { useTheme } from "next-themes"
 import { Toaster as Sonner, ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "light" } = useTheme()
+  const { resolvedTheme } = useTheme()
 
   return (
     <Sonner
-      // "neutral" non è un tema valido per sonner: è la nostra palette scura.
-      theme={theme === "light" ? "light" : "dark"}
+      // Il tema in uso, non la preferenza: con «automatico» la preferenza è
+      // "system", e qui conta se ora è chiaro o scuro.
+      theme={resolvedTheme === "dark" ? "dark" : "light"}
       className="toaster group"
       style={
         {

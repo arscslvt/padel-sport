@@ -154,7 +154,7 @@ export function AccountSuspension({
   if (suspension) {
     return (
       <div className="space-y-3">
-        <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-950">
+        <div className="flex items-start gap-2.5 rounded-lg border border-danger-border bg-danger-subtle p-3 text-sm text-danger-foreground">
           <Ban className="mt-0.5 size-4 shrink-0" />
           <div className="min-w-0 space-y-1.5">
             <p className="font-medium">
@@ -164,7 +164,7 @@ export function AccountSuspension({
             <p className="text-xs leading-relaxed whitespace-pre-wrap">
               {suspension.reason}
             </p>
-            <p className="text-xs text-red-900/80">
+            <p className="text-xs text-danger-foreground/80">
               Non accede né dal sito né dall'app.{" "}
               {client.points > 0
                 ? `I suoi ${client.points} punti sono congelati.`

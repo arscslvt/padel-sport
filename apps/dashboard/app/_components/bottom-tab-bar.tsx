@@ -35,6 +35,7 @@ import {
   PRIMARY_NAV,
   SECONDARY_NAV,
 } from "./nav";
+import { ThemeSegmentedControl } from "./theme-picker";
 
 /**
  * La navigazione da telefono: una barra fluttuante in basso, dove arriva il
@@ -106,8 +107,10 @@ export function BottomTabBar() {
 function tabClass(active: boolean) {
   return cn(
     "relative flex min-h-13 flex-1 flex-col items-center justify-center gap-0.5 rounded-[1.375rem] text-[11px] font-medium transition-[background-color,color,transform] duration-150 active:scale-95",
+    // Al buio la voce attiva prende lo smeraldo del marchio, come la tinta
+    // delle barre in basso di iOS; di giorno resta il nero del testo.
     active
-      ? "bg-foreground/[0.07] text-foreground"
+      ? "bg-foreground/[0.07] text-foreground dark:text-primary"
       : "text-muted-foreground hover:text-foreground",
   );
 }
@@ -166,7 +169,7 @@ function MoreDrawer({
         <DrawerHeader className="text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
           <DrawerTitle>Altro</DrawerTitle>
           <DrawerDescription className="sr-only">
-            Eventi, configurazione del club e il tuo account.
+            Eventi, configurazione del club, aspetto e il tuo account.
           </DrawerDescription>
         </DrawerHeader>
 
@@ -185,6 +188,15 @@ function MoreDrawer({
               ))}
             </ListGroup>
           ))}
+
+          <ListGroup
+            title="Aspetto"
+            footer="Automatico segue le impostazioni del dispositivo."
+          >
+            <div className="p-2">
+              <ThemeSegmentedControl />
+            </div>
+          </ListGroup>
 
           <ListGroup title="Account">
             <ListRow

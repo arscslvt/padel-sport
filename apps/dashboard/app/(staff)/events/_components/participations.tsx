@@ -303,7 +303,7 @@ export default function Participations({
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium">Evento</span>
         <Select value={selected?.id} onValueChange={setSelectedId}>
-          <SelectTrigger className="w-full bg-white md:w-[28rem]">
+          <SelectTrigger className="w-full bg-card md:w-[28rem]">
             <SelectValue placeholder="Scegli un evento" />
           </SelectTrigger>
           <SelectContent>
@@ -342,8 +342,8 @@ export default function Participations({
                 variant="outline"
                 className={
                   isRsvpClosed(selected.closesAt, now)
-                    ? "bg-red-50 text-red-900 border-red-200"
-                    : "bg-green-50 text-green-900 border-green-200"
+                    ? "bg-danger-subtle text-danger-foreground border-danger-border"
+                    : "bg-success-subtle text-success-foreground border-success-border"
                 }
               >
                 {isRsvpClosed(selected.closesAt, now)
@@ -450,7 +450,7 @@ export default function Participations({
                         <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                         <Input
                           placeholder="Cerca per nome o email…"
-                          className="h-10 bg-white pl-9"
+                          className="h-10 bg-card pl-9"
                           value={query}
                           onChange={(event) => setQuery(event.target.value)}
                         />

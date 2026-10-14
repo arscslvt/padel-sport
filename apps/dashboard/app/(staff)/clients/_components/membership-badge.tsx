@@ -20,22 +20,24 @@ const STATES: Record<
   active: {
     label: "Tessera attiva",
     icon: BadgeCheck,
-    className: "border-green-200 bg-green-50 text-green-900",
+    className:
+      "border-success-border bg-success-subtle text-success-foreground",
   },
   expiring: {
     label: "In scadenza",
     icon: Clock3,
-    className: "border-amber-200 bg-amber-50 text-amber-900",
+    className:
+      "border-warning-border bg-warning-subtle text-warning-foreground",
   },
   unpaid: {
     label: "Da pagare",
     icon: AlertCircle,
-    className: "border-red-200 bg-red-50 text-red-900",
+    className: "border-danger-border bg-danger-subtle text-danger-foreground",
   },
   expired: {
     label: "Scaduta",
     icon: AlertCircle,
-    className: "border-red-200 bg-red-50 text-red-900",
+    className: "border-danger-border bg-danger-subtle text-danger-foreground",
   },
   none: {
     label: "Non iscritto",

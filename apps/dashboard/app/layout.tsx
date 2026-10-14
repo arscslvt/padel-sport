@@ -48,11 +48,44 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // Lo stesso grigio chiarissimo del fondo: la barra di stato non fa stacco.
-  themeColor: DASHBOARD_CHROME_COLOR,
+  // Lo stesso colore del fondo, chiaro o scuro: la barra di stato non fa
+  // stacco. Chi sceglie un tema diverso da quello del sistema lo ritrova
+  // aggiornato dal provider del tema, nel browser.
+  themeColor: [
+    {
+      media: "(prefers-color-scheme: light)",
+      color: DASHBOARD_CHROME_COLOR.light,
+    },
+    {
+      media: "(prefers-color-scheme: dark)",
+      color: DASHBOARD_CHROME_COLOR.dark,
+    },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+};
+
+/**
+ * I componenti di Clerk (il profilo) con i colori del gestionale. Sono
+ * variabili CSS, non valori: seguono il tema da sole, senza un secondo tema
+ * di Clerk da accendere e spegnere.
+ */
+const CLERK_APPEARANCE = {
+  variables: {
+    colorPrimary: "var(--primary)",
+    colorPrimaryForeground: "var(--primary-foreground)",
+    colorDanger: "var(--destructive)",
+    colorNeutral: "var(--foreground)",
+    colorForeground: "var(--card-foreground)",
+    colorMuted: "var(--muted)",
+    colorMutedForeground: "var(--muted-foreground)",
+    colorBackground: "var(--card)",
+    colorInput: "var(--card)",
+    colorInputForeground: "var(--card-foreground)",
+    colorBorder: "var(--border)",
+    colorRing: "var(--ring)",
+  },
 };
 
 /**
@@ -69,6 +102,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider
+      appearance={CLERK_APPEARANCE}
       signInUrl={SIGN_IN_PATH}
       signInFallbackRedirectUrl="/"
       afterSignOutUrl={SIGN_IN_PATH}
@@ -81,14 +115,17 @@ export default function RootLayout({
       >
         <body className="font-sans antialiased">
           {/*
-           * Il gestionale è solo chiaro. Il provider sta qui, reso dal server
+           * Chiaro o scuro, di base come il sistema; la scelta si cambia da
+           * «Aspetto» (theme-picker.tsx). Il provider sta qui, reso dal server
            * una volta sola: il suo script inline nel browser non partirebbe.
+           * Senza transizioni al cambio, o ogni superficie sfumerebbe per
+           * conto suo.
            */}
           <ThemeProvider
             attribute="class"
-            defaultTheme="light"
-            forcedTheme="light"
-            enableSystem={false}
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
           >
             <ConvexClientProvider>{children}</ConvexClientProvider>
           </ThemeProvider>

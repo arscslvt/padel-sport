@@ -120,7 +120,7 @@ export function MobileFiltersButton({
     <Button
       variant="outline"
       size="icon"
-      className="relative size-10 shrink-0 bg-white"
+      className="relative size-10 shrink-0 bg-card"
       aria-label={
         activeCount > 0
           ? `Filtra e ordina, ${activeCount} attivi`

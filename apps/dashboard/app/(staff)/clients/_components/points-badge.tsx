@@ -29,8 +29,8 @@ export function PointsBadge({
       className={cn(
         "font-normal tabular-nums",
         frozen
-          ? "border-sky-200 bg-sky-50 text-sky-900"
-          : "border-violet-200 bg-violet-50 text-violet-900",
+          ? "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-400/25 dark:bg-sky-400/10 dark:text-sky-200"
+          : "border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-400/25 dark:bg-violet-400/10 dark:text-violet-200",
         className,
       )}
     >

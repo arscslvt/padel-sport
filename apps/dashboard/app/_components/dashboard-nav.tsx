@@ -33,11 +33,14 @@ export default function DashboardNav() {
         {/*
          * `tooltip`: a barra stretta resta solo l'icona, e senza l'etichetta
          * al passaggio del mouse le icone diventano quadratini da indovinare.
+         * Al buio la voce attiva prende lo smeraldo del marchio, come la barra
+         * in basso del telefono.
          */}
         <SidebarMenuButton
           asChild
           isActive={active === item.href}
           tooltip={item.name}
+          className="dark:data-[active=true]:text-sidebar-primary"
         >
           <Link href={item.href}>
             <item.icon />

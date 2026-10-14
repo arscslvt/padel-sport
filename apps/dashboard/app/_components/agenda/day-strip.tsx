@@ -72,7 +72,7 @@ export function DayStrip({
               className={cn(
                 "flex size-10 items-center justify-center rounded-full text-[15px] font-medium tabular-nums transition-[background-color,color,transform] duration-150 group-active:scale-90 group-focus-visible:ring-2 group-focus-visible:ring-ring",
                 isSelected
-                  ? "bg-foreground text-background"
+                  ? "bg-primary text-primary-foreground"
                   : "group-hover:bg-muted",
               )}
             >

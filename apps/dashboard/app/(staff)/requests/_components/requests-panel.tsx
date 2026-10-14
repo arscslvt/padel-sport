@@ -283,7 +283,7 @@ export function RequestsPanel() {
                 </EmptyHeader>
               </Empty>
             ) : (
-              <ul className="divide-y bg-white">
+              <ul className="divide-y bg-card">
                 {support.map((request) => (
                   <RequestRow
                     key={request._id}
@@ -322,7 +322,7 @@ export function RequestsPanel() {
                 </EmptyHeader>
               </Empty>
             ) : (
-              <ul className="divide-y bg-white">
+              <ul className="divide-y bg-card">
                 {matches.map((request) => (
                   <RequestRow
                     key={request._id}
@@ -361,7 +361,7 @@ export function RequestsPanel() {
                 </EmptyHeader>
               </Empty>
             ) : (
-              <ul className="divide-y bg-white">
+              <ul className="divide-y bg-card">
                 {reports.map((report) => (
                   <RequestRow
                     key={report._id}

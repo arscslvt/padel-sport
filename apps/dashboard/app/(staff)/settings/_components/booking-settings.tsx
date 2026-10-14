@@ -181,7 +181,7 @@ export function BookingSettings() {
         ) : (
           <div className="space-y-2">
             {courts.length === 0 && (
-              <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="rounded-md border border-warning-border bg-warning-subtle p-3 text-sm text-warning-foreground">
                 Nessun campo configurato: online non risulta prenotabile nessuna
                 fascia oraria. Aggiungine almeno uno.
               </p>
@@ -255,7 +255,7 @@ export function BookingSettings() {
         </label>
 
         {membershipRequired && (
-          <p className="max-w-2xl rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="max-w-2xl rounded-lg border border-warning-border bg-warning-subtle p-3 text-sm text-warning-foreground">
             Controlla in <strong>Clienti</strong> quante tessere risultano da
             pagare o scadute: quelle persone non riusciranno più a prenotare
             online finché non le rinnovi.
@@ -333,7 +333,7 @@ export function BookingSettings() {
         </label>
 
         {onlinePaymentsEnabled && payments && !payments.configured && (
-          <p className="max-w-2xl rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="max-w-2xl rounded-lg border border-warning-border bg-warning-subtle p-3 text-sm text-warning-foreground">
             Mancano le chiavi di SumUp sul server (<code>SUMUP_API_KEY</code> e{" "}
             <code>SUMUP_MERCHANT_CODE</code>): finché non ci sono, ai clienti il
             pagamento online non viene proposto.

@@ -19,6 +19,7 @@ import { Toaster } from "@/components/ui/sonner";
 import main_icon from "@/public/favicon/black-icon.png";
 import { BottomTabBar } from "../_components/bottom-tab-bar";
 import DashboardNav from "../_components/dashboard-nav";
+import { ThemeMenuButton } from "../_components/theme-picker";
 import { TourMenuButton } from "../_components/tour/tour-menu-button";
 import UserCard from "../_components/user-card";
 import ConfirmProvider from "../_providers/confirm.provider";
@@ -81,9 +82,11 @@ export default async function StaffLayout({
                               >
                                 <Link href="/">
                                   <Avatar className="size-8 shrink-0 border p-1">
+                                    {/* Il logo è nero: al buio si inverte. */}
                                     <AvatarImage
                                       src={main_icon.src}
                                       alt="Padel Sport Logo"
+                                      className="dark:invert"
                                     />
                                   </Avatar>
                                   <span className="truncate font-semibold">
@@ -106,6 +109,7 @@ export default async function StaffLayout({
                         </SidebarContent>
 
                         <SidebarFooter>
+                          <ThemeMenuButton />
                           <TourMenuButton />
                           <UserCard />
                         </SidebarFooter>

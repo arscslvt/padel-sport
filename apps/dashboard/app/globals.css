@@ -176,6 +176,93 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/*
+ * Il tema scuro. La base è il «neutral» scuro di shadcn: fondo quasi nero,
+ * superfici un gradino più chiare, bordi e campi come velature di bianco.
+ * L'accento è lo smeraldo più chiaro della scala di Tailwind (emerald-50),
+ * con il testo quasi nero sopra: al buio il marchio smette di essere il nero
+ * dei pulsanti e diventa una tinta menta — azioni principali, selezioni, voce
+ * attiva. L'anello del focus prende un passo più deciso (emerald-200), o al
+ * 50% sul fondo scuro non si distinguerebbe da un grigio.
+ *
+ * Si attiva con la classe `dark` su <html>, che mette next-themes
+ * (app/layout.tsx): automatico dal sistema, o scelto da «Aspetto».
+ */
+.dark {
+  --brand: oklch(0.979 0.021 166.113);
+  --brand-foreground: oklch(0.17 0.025 166);
+  --brand-subtle: oklch(0.979 0.021 166.113 / 12%);
+  --brand-ring: oklch(0.905 0.093 164.15);
+
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --surface: oklch(0.205 0 0);
+  --surface-foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: var(--brand-ring);
+
+  /*
+   * Gli stati al buio: il fondo tenue diventa una tinta scura, il testo sopra
+   * una tinta chiara. Il rosso pieno resta abbastanza scuro da reggere il
+   * numero bianco dei contatori.
+   */
+  --success: oklch(0.74 0.15 158);
+  --success-foreground: oklch(0.88 0.09 158);
+  --success-subtle: oklch(0.25 0.045 158);
+  --success-border: oklch(0.36 0.07 158);
+  --warning: oklch(0.8 0.15 75);
+  --warning-foreground: oklch(0.89 0.1 85);
+  --warning-subtle: oklch(0.26 0.045 70);
+  --warning-border: oklch(0.38 0.07 70);
+  --danger: oklch(0.65 0.2 25);
+  --danger-foreground: oklch(0.86 0.08 25);
+  --danger-subtle: oklch(0.25 0.05 25);
+  --danger-border: oklch(0.38 0.09 25);
+  --info: oklch(0.72 0.13 255);
+  --info-foreground: oklch(0.87 0.07 255);
+  --info-subtle: oklch(0.25 0.05 255);
+  --info-border: oklch(0.38 0.08 255);
+
+  /*
+   * Al buio il verde profondo sparirebbe sul fondo: le pagine d'accesso
+   * prendono lo smeraldo chiaro del marchio, con il testo scuro. Al passaggio
+   * del mouse un passo più verde (emerald-100).
+   */
+  --club: var(--brand);
+  --club-hover: oklch(0.95 0.052 163.051);
+  --club-foreground: var(--brand-foreground);
+
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+
+  /* Come di giorno, la barra laterale ha il colore della pagina. */
+  --sidebar: var(--background);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: var(--brand-ring);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

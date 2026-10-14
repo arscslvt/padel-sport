@@ -551,7 +551,7 @@ function PresetRow({
         <span
           className={cn(
             "w-12 shrink-0 font-mono font-medium tabular-nums",
-            preset.points > 0 ? "text-emerald-600" : "text-destructive",
+            preset.points > 0 ? "text-success" : "text-destructive",
           )}
         >
           {signedPoints(preset.points)}

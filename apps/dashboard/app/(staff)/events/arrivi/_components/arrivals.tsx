@@ -558,7 +558,7 @@ export default function Arrivals({ events }: { events: EventWithRsvpForms[] }) {
 			<div className="flex flex-col gap-2">
 				<span className="text-sm font-medium">Evento</span>
 				<Select value={selected?.id} onValueChange={setSelectedId}>
-					<SelectTrigger className="w-full bg-white md:w-[28rem]">
+					<SelectTrigger className="w-full bg-card md:w-[28rem]">
 						<SelectValue placeholder="Scegli un evento" />
 					</SelectTrigger>
 					<SelectContent>
@@ -619,7 +619,7 @@ export default function Arrivals({ events }: { events: EventWithRsvpForms[] }) {
 												? "font-medium text-destructive"
 												: status === "pending" || status === "saving"
 													? "text-muted-foreground"
-													: "text-indigo-600",
+													: "text-indigo-600 dark:text-indigo-400",
 										)}
 									>
 										{SAVE_LABELS[status]}
@@ -654,7 +654,7 @@ export default function Arrivals({ events }: { events: EventWithRsvpForms[] }) {
 											<Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
 											<Input
 												placeholder="Cerca per nome o email…"
-												className="h-11 bg-white pl-9"
+												className="h-11 bg-card pl-9"
 												value={query}
 												onChange={(event) => setQuery(event.target.value)}
 											/>
@@ -671,7 +671,7 @@ export default function Arrivals({ events }: { events: EventWithRsvpForms[] }) {
 										>
 											<SelectTrigger
 												aria-label="Ordine dell'elenco"
-												className="h-11 w-full bg-white sm:w-56"
+												className="h-11 w-full bg-card sm:w-56"
 											>
 												<SelectValue />
 											</SelectTrigger>
