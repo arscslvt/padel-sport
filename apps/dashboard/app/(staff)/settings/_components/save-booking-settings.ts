@@ -11,6 +11,8 @@ import type { OpeningWindow } from "@/lib/booking";
 export interface BookingSettingsPatch {
   windows: OpeningWindow[];
   bookableDays: number;
+  /** I giorni della settimana spenti; assente lascia quelli che ci sono. */
+  closedWeekdays?: number[];
   membershipRequired?: boolean;
   fullSquadRequired?: boolean;
   onlinePaymentsEnabled?: boolean;

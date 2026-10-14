@@ -22,6 +22,26 @@ const bookingSettings = defineTable({
       end: v.string(),
     }),
   ),
+  /**
+   * Giorni della settimana spenti dalla dashboard: chiusi, ma con le loro
+   * fasce ancora in `windows`, pronte per quando si riaccendono. Opzionale:
+   * la riga può essere più vecchia del campo.
+   */
+  closedWeekdays: v.optional(v.array(v.float64())),
+  /**
+   * Chiusure per date ("AAAA-MM-GG" nell'ora del club, estremi compresi):
+   * feste, manutenzioni, eventi. Quelle passate si tolgono da sole al primo
+   * salvataggio (modules/settings/booking.ts). Opzionale come sopra.
+   */
+  closures: v.optional(
+    v.array(
+      v.object({
+        from: v.string(),
+        to: v.string(),
+        reason: v.optional(v.string()),
+      }),
+    ),
+  ),
   /** Quanti giorni in avanti si può prenotare, oggi incluso. */
   bookableDays: v.float64(),
   /**

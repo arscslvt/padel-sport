@@ -1,8 +1,10 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
+import { type MutationCtx, mutation, query } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
-import { bookingSettings, DEFAULT_SETTINGS } from "./lib";
+import { bookingSettings, clubDayKey, DEFAULT_SETTINGS } from "./lib";
+import { type Closure, closureLength, DAY_KEY_PATTERN } from "./schedule";
 
 /**
  * Configurazione della prenotazione: quando si apre e con quali campi.
@@ -49,6 +51,8 @@ export const update = mutation({
     secret: v.string(),
     windows: v.array(windowValidator),
     bookableDays: v.number(),
+    /** I giorni della settimana spenti; assente lascia quelli che ci sono. */
+    closedWeekdays: v.optional(v.array(v.number())),
     membershipRequired: v.optional(v.boolean()),
     fullSquadRequired: v.optional(v.boolean()),
     onlinePaymentsEnabled: v.optional(v.boolean()),
@@ -59,6 +63,7 @@ export const update = mutation({
       secret,
       windows,
       bookableDays,
+      closedWeekdays: closedInput,
       membershipRequired,
       fullSquadRequired,
       onlinePaymentsEnabled,
@@ -86,12 +91,24 @@ export const update = mutation({
       }
     }
 
+    if (
+      closedInput?.some(
+        (weekday) => !Number.isInteger(weekday) || weekday < 0 || weekday > 6,
+      )
+    ) {
+      throw new Error("Giorno della settimana non valido.");
+    }
+    const closedWeekdays = closedInput
+      ? [...new Set(closedInput)].sort((a, b) => a - b)
+      : undefined;
+
     const existing = await ctx.db.query("bookingSettings").first();
 
     if (existing) {
       await ctx.db.patch(existing._id, {
         windows,
         bookableDays,
+        closedWeekdays: closedWeekdays ?? existing.closedWeekdays,
         membershipRequired: membershipRequired ?? existing.membershipRequired,
         fullSquadRequired: fullSquadRequired ?? existing.fullSquadRequired,
         onlinePaymentsEnabled:
@@ -104,9 +121,131 @@ export const update = mutation({
     return await ctx.db.insert("bookingSettings", {
       windows,
       bookableDays,
+      closedWeekdays,
       membershipRequired: membershipRequired ?? false,
       fullSquadRequired: fullSquadRequired ?? false,
       onlinePaymentsEnabled: onlinePaymentsEnabled ?? false,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * La riga di configurazione, creata con i valori di partenza se ancora non
+ * c'è: una chiusura si può aggiungere anche a un club che non ha mai toccato
+ * gli orari.
+ */
+async function settingsRow(ctx: MutationCtx): Promise<Doc<"bookingSettings">> {
+  const existing = await ctx.db.query("bookingSettings").first();
+  if (existing) return existing;
+
+  const { closures: _closures, ...defaults } = DEFAULT_SETTINGS;
+  const id = await ctx.db.insert("bookingSettings", {
+    ...defaults,
+    updatedAt: Date.now(),
+  });
+  const row = await ctx.db.get(id);
+  if (!row) throw new Error("Configurazione non trovata.");
+  return row;
+}
+
+/** Le chiusure in corso o ancora da venire: quelle passate non servono più. */
+function upcoming(closures: readonly Closure[] | undefined): Closure[] {
+  const today = clubDayKey(Date.now());
+  return (closures ?? []).filter((closure) => closure.to >= today);
+}
+
+const MAX_CLOSURE_DAYS = 92;
+const MAX_REASON_LENGTH = 60;
+const DAY_MS = 86_400_000;
+
+/** Mezzanotte UTC di una chiave "AAAA-MM-GG". */
+function utcMidnight(day: string): number {
+  const [year, month, date] = day.split("-").map(Number);
+  return Date.UTC(year, month - 1, date);
+}
+
+/**
+ * Chiude il club in uno o più giorni di fila. Le prenotazioni già prese in
+ * quei giorni restano dove sono: annullarle avvisando i clienti è una scelta
+ * dello staff, non un effetto collaterale. Per questo la risposta dice
+ * quante sono, e la dashboard lo racconta.
+ */
+export const addClosure = mutation({
+  args: {
+    secret: v.string(),
+    from: v.string(),
+    to: v.string(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, { secret, from, to, reason }) => {
+    assertServer(secret);
+
+    if (!DAY_KEY_PATTERN.test(from) || !DAY_KEY_PATTERN.test(to)) {
+      throw new Error("Date non valide.");
+    }
+    if (to < from) {
+      throw new Error("L'ultimo giorno viene prima del primo.");
+    }
+    if (to < clubDayKey(Date.now())) {
+      throw new Error("Questi giorni sono già passati.");
+    }
+
+    const closure: Closure = { from, to };
+    if (closureLength(closure) > MAX_CLOSURE_DAYS) {
+      throw new Error("Una chiusura dura al massimo tre mesi.");
+    }
+    const cleanReason = reason?.trim().slice(0, MAX_REASON_LENGTH);
+    if (cleanReason) closure.reason = cleanReason;
+
+    const row = await settingsRow(ctx);
+    const closures = upcoming(row.closures);
+
+    if (closures.some((other) => other.from <= to && from <= other.to)) {
+      throw new Error("Alcuni di questi giorni sono già chiusi.");
+    }
+
+    await ctx.db.patch(row._id, {
+      closures: [...closures, closure].sort((a, b) =>
+        a.from.localeCompare(b.from),
+      ),
+      updatedAt: Date.now(),
+    });
+
+    // Le prenotazioni attive in quei giorni. Si legge un giorno in più per
+    // parte e si filtra nell'ora del club: i timestamp sono in UTC.
+    const rows = await ctx.db
+      .query("bookings")
+      .withIndex("by_booking_date", (q) =>
+        q
+          .gte("bookingDate", utcMidnight(from) - DAY_MS)
+          .lt("bookingDate", utcMidnight(to) + 2 * DAY_MS),
+      )
+      .collect();
+
+    const affected = rows.filter((booking) => {
+      if (booking.status === "cancelled") return false;
+      const day = clubDayKey(booking.bookingDate);
+      return from <= day && day <= to;
+    }).length;
+
+    return { affected };
+  },
+});
+
+/** Riapre i giorni di una chiusura. */
+export const removeClosure = mutation({
+  args: { secret: v.string(), from: v.string(), to: v.string() },
+  handler: async (ctx, { secret, from, to }) => {
+    assertServer(secret);
+
+    const row = await ctx.db.query("bookingSettings").first();
+    if (!row) return;
+
+    await ctx.db.patch(row._id, {
+      closures: upcoming(row.closures).filter(
+        (closure) => closure.from !== from || closure.to !== to,
+      ),
       updatedAt: Date.now(),
     });
   },

@@ -1,6 +1,10 @@
 "use client";
 
 import { api } from "@padel-sport/backend/convex/_generated/api";
+import {
+  localDayKey,
+  windowsForDay,
+} from "@padel-sport/backend/convex/modules/settings/schedule";
 import { useQuery } from "convex/react";
 import { useMemo } from "react";
 
@@ -39,12 +43,14 @@ export interface CourtAvailability {
  * cron ogni cinque minuti: qui non forziamo la rilettura come fa /book, perché
  * questo hook gira anche sulla home e non vale una chiamata a ogni visita.
  *
+ * I giorni di chiusura (per date, o un giorno della settimana spento dalla
+ * dashboard) non hanno orari: il selettore li mostra disattivati.
+ *
  * Resta comunque un'indicazione: la parola definitiva è di Convex, alla
  * conferma della prenotazione.
  */
 export function useCourtAvailability(): CourtAvailability {
   const settings = useQuery(api.modules.settings.booking.get, {});
-  const windows = settings?.windows ?? DEFAULT_WINDOWS;
 
   const days = useMemo(
     () => bookableDays(settings?.bookableDays ?? BOOKABLE_DAYS),
@@ -64,7 +70,14 @@ export function useCourtAvailability(): CourtAvailability {
 
   const slotsByDay = useMemo(() => {
     return days.map((day) => {
-      const slots = availableSlots(day.date, windows);
+      const slots = availableSlots(
+        day.date,
+        windowsForDay(
+          settings ?? { windows: DEFAULT_WINDOWS },
+          localDayKey(day.date),
+          day.date.getDay(),
+        ),
+      );
       if (loading) return slots;
 
       return slots.filter((slot) => {
@@ -83,7 +96,7 @@ export function useCourtAvailability(): CourtAvailability {
         return occupiedCourts(overlapping) + blocked.length < courts.length;
       });
     });
-  }, [days, windows, availability, courts, loading]);
+  }, [days, settings, availability, courts, loading]);
 
   return {
     days,

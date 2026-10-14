@@ -4,14 +4,17 @@ import { api } from "@padel-sport/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { ArrowRight, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { ListGroup } from "@/app/_components/list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import type { OpeningWindow } from "@/lib/booking";
+import { cn } from "@/lib/utils";
 
+import { ClosuresSettings } from "./closures-settings";
 import { saveBookingSettings } from "./save-booking-settings";
 import {
   SettingsSection,
@@ -20,13 +23,17 @@ import {
 } from "./settings-section";
 
 /**
- * Orari: quanto in anticipo si prenota e in quali fasce, giorno per giorno.
+ * Orari: le chiusure, la settimana tipo e quanto in anticipo si prenota.
  *
- * Qui, a differenza delle altre linguette, si modifica e poi si salva: una
- * settimana di fasce si sistema con più ritocchi, e ognuno salvato da solo
- * lascerebbe sito e app con orari a metà. Finché non si tocca niente si vede
- * quello che c'è sul server, aggiornato dal vivo; al primo ritocco nasce una
- * bozza, e la barra in basso dice che c'è qualcosa da salvare.
+ * Le chiusure per date valgono subito (closures-settings.tsx). La settimana
+ * invece si modifica e poi si salva: una settimana di fasce si sistema con
+ * più ritocchi, e ognuno salvato da solo lascerebbe sito e app con orari a
+ * metà. Finché non si tocca niente si vede quello che c'è sul server,
+ * aggiornato dal vivo; al primo ritocco nasce una bozza, e la barra in basso
+ * dice che c'è qualcosa da salvare.
+ *
+ * Ogni giorno della settimana ha il suo interruttore: spento, il giorno è
+ * chiuso ma le sue fasce restano, e riaccendendolo tornano com'erano.
  */
 
 const WEEKDAYS = [
@@ -47,6 +54,7 @@ const TIMES = Array.from({ length: 48 }, (_, index) => {
 
 interface Hours {
   windows: OpeningWindow[];
+  closedWeekdays: number[];
   bookableDays: number;
 }
 
@@ -58,11 +66,14 @@ export function HoursSettings() {
   if (settings === undefined) {
     return (
       <SettingsStack>
-        <SettingsSection title="Anticipo">
+        <SettingsSection title="Chiusure">
           <SettingsSkeleton rows={1} />
         </SettingsSection>
         <SettingsSection title="Giorni e orari">
           <SettingsSkeleton rows={7} />
+        </SettingsSection>
+        <SettingsSection title="Anticipo">
+          <SettingsSkeleton rows={1} />
         </SettingsSection>
       </SettingsStack>
     );
@@ -70,6 +81,7 @@ export function HoursSettings() {
 
   const saved: Hours = {
     windows: settings.windows,
+    closedWeekdays: settings.closedWeekdays,
     bookableDays: settings.bookableDays,
   };
   const hours = draft ?? saved;
@@ -107,6 +119,75 @@ export function HoursSettings() {
 
   return (
     <SettingsStack>
+      <ClosuresSettings closures={settings.closures} />
+
+      <SettingsSection
+        title="Giorni e orari"
+        description="Una partita dura un'ora e mezza e deve stare tutta nella fascia. Con chiusura alle 21:30, l'ultimo inizio è alle 20:00. Un giorno spento resta chiuso, e riaccendendolo tornano le sue fasce."
+      >
+        <ListGroup>
+          {WEEKDAYS.map((day) => (
+            <DayRow
+              key={day.value}
+              label={day.label}
+              open={!hours.closedWeekdays.includes(day.value)}
+              onOpenChange={(open) =>
+                edit((current) => {
+                  const closedWeekdays = open
+                    ? current.closedWeekdays.filter(
+                        (weekday) => weekday !== day.value,
+                      )
+                    : [...current.closedWeekdays, day.value].sort(
+                        (a, b) => a - b,
+                      );
+                  // Riacceso senza fasce sarebbe aperto solo a parole: gli
+                  // si dà la prima, da sistemare.
+                  const empty = !current.windows.some(
+                    (window) => window.weekday === day.value,
+                  );
+                  return {
+                    ...current,
+                    closedWeekdays,
+                    windows:
+                      open && empty
+                        ? [
+                            ...current.windows,
+                            {
+                              weekday: day.value,
+                              start: "09:00",
+                              end: "12:30",
+                            },
+                          ]
+                        : current.windows,
+                  };
+                })
+              }
+              windows={hours.windows
+                .map((window, index) => ({ window, index }))
+                .filter((entry) => entry.window.weekday === day.value)}
+              onAdd={() =>
+                edit((current) => ({
+                  ...current,
+                  windows: [
+                    ...current.windows,
+                    { weekday: day.value, start: "09:00", end: "12:30" },
+                  ],
+                }))
+              }
+              onPatch={patchWindow}
+              onRemove={(index) =>
+                edit((current) => ({
+                  ...current,
+                  windows: current.windows.filter(
+                    (_, position) => position !== index,
+                  ),
+                }))
+              }
+            />
+          ))}
+        </ListGroup>
+      </SettingsSection>
+
       <SettingsSection
         title="Anticipo"
         description="Quanti giorni prima si può prenotare dal sito e dall'app."
@@ -139,41 +220,6 @@ export function HoursSettings() {
         </ListGroup>
       </SettingsSection>
 
-      <SettingsSection
-        title="Giorni e orari"
-        description="Una partita dura un'ora e mezza e deve stare tutta nella fascia. Con chiusura alle 21:30, l'ultimo inizio è alle 20:00. Un giorno senza fasce è chiuso."
-      >
-        <ListGroup>
-          {WEEKDAYS.map((day) => (
-            <DayRow
-              key={day.value}
-              label={day.label}
-              windows={hours.windows
-                .map((window, index) => ({ window, index }))
-                .filter((entry) => entry.window.weekday === day.value)}
-              onAdd={() =>
-                edit((current) => ({
-                  ...current,
-                  windows: [
-                    ...current.windows,
-                    { weekday: day.value, start: "09:00", end: "12:30" },
-                  ],
-                }))
-              }
-              onPatch={patchWindow}
-              onRemove={(index) =>
-                edit((current) => ({
-                  ...current,
-                  windows: current.windows.filter(
-                    (_, position) => position !== index,
-                  ),
-                }))
-              }
-            />
-          ))}
-        </ListGroup>
-      </SettingsSection>
-
       <AnimatePresence>
         {dirty && (
           <SaveBar
@@ -188,33 +234,61 @@ export function HoursSettings() {
 }
 
 /**
- * Un giorno: il nome, le sue fasce, il tasto per aggiungerne una. Da
- * telefono le fasce vanno sotto il nome; da sm in su stanno sulla stessa
- * riga, e i giorni si leggono come una tabella.
+ * Un giorno: l'interruttore con il nome, le sue fasce, il tasto per
+ * aggiungerne una. Da telefono le fasce vanno sotto il nome; da sm in su
+ * stanno sulla stessa riga, e i giorni si leggono come una tabella.
+ *
+ * Spento, il giorno si fa grigio e le fasce diventano una riga di testo:
+ * sono conservate, non modificabili, e tornano riaccendendolo.
  */
 function DayRow({
   label,
+  open,
+  onOpenChange,
   windows,
   onAdd,
   onPatch,
   onRemove,
 }: {
   label: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   windows: { window: OpeningWindow; index: number }[];
   onAdd: () => void;
   onPatch: (index: number, patch: Partial<OpeningWindow>) => void;
   onRemove: (index: number) => void;
 }) {
+  const switchId = useId();
+
   return (
-    <div className="grid grid-cols-[1fr_auto] items-start gap-x-3 gap-y-1 px-4 py-2.5 sm:grid-cols-[6.5rem_1fr_auto]">
-      <span className="col-start-1 row-start-1 text-[15px] leading-9">
-        {label}
-      </span>
+    <div className="grid grid-cols-[1fr_auto] items-start gap-x-3 gap-y-1 px-4 py-2.5 sm:grid-cols-[8.5rem_1fr_auto]">
+      <label
+        htmlFor={switchId}
+        className="col-start-1 row-start-1 flex h-9 cursor-pointer items-center gap-2.5"
+      >
+        <Switch id={switchId} checked={open} onCheckedChange={onOpenChange} />
+        <span
+          className={cn(
+            "text-[15px] transition-colors duration-200",
+            !open && "text-muted-foreground",
+          )}
+        >
+          {label}
+        </span>
+      </label>
 
       <div className="col-span-2 row-start-2 space-y-2 sm:col-span-1 sm:col-start-2 sm:row-start-1">
-        {windows.length === 0 ? (
+        {!open ? (
           <p className="text-muted-foreground text-[13px] leading-9 max-sm:leading-normal max-sm:pb-1">
             Chiuso
+            {windows.length > 0 &&
+              ` · ${windows
+                .map(({ window }) => `${window.start}-${window.end}`)
+                .join(", ")}`}
+          </p>
+        ) : windows.length === 0 ? (
+          <p className="text-muted-foreground text-[13px] leading-9 max-sm:leading-normal max-sm:pb-1">
+            Chiuso, nessuna fascia
           </p>
         ) : (
           windows.map(({ window, index }) => (
@@ -254,7 +328,11 @@ function DayRow({
         size="sm"
         onClick={onAdd}
         aria-label={`Aggiungi una fascia a ${label}`}
-        className="col-start-2 row-start-1 h-9 sm:col-start-3"
+        // Spento non si aggiunge niente, ma il posto resta: la riga non salta.
+        className={cn(
+          "col-start-2 row-start-1 h-9 sm:col-start-3",
+          !open && "invisible",
+        )}
       >
         <Plus className="size-4" />
         Fascia

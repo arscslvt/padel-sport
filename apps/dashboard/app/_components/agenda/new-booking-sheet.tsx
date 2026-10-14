@@ -1,13 +1,13 @@
 "use client";
 
 import { api } from "@padel-sport/backend/convex/_generated/api";
+import { windowsForDay } from "@padel-sport/backend/convex/modules/settings/schedule";
 import { useQuery } from "convex/react";
 import { Loader2, UserRound, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { SheetHeader } from "@/app/_components/sheet-header";
 import { useConfirmLeave } from "@/app/_providers/confirm.provider";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,10 +26,10 @@ import {
   overlappingBookings,
 } from "@/lib/booking";
 import { cn } from "@/lib/utils";
-
 import { DayStrip } from "./day-strip";
 import {
   type Booking,
+  closedDay,
   LEVEL_LABELS,
   levelFromRating,
   nextDays,
@@ -181,7 +181,15 @@ function Form({
 
   const times = useMemo(() => {
     const date = new Date(`${day}T00:00:00`);
-    const slots = availableSlots(date, settings?.windows ?? DEFAULT_WINDOWS);
+    // Un giorno chiuso (per date o spento) non ha fasce.
+    const slots = availableSlots(
+      date,
+      windowsForDay(
+        settings ?? { windows: DEFAULT_WINDOWS },
+        day,
+        date.getDay(),
+      ),
+    );
     if (!availability || !courts) {
       return slots.map((slot) => ({
         ...slot,
@@ -204,7 +212,12 @@ function Form({
             .map((court) => court._id as string);
       return { ...slot, free, ok: free.length - blocked > 0 };
     });
-  }, [day, settings?.windows, availability, courts]);
+  }, [day, settings, availability, courts]);
+
+  const closedDays = useMemo(
+    () => new Set(days.filter((key) => closedDay(settings, key))),
+    [days, settings],
+  );
 
   const chosen = times.find((slot) => slot.time === time);
   const loadingTimes = availability === undefined || courts === undefined;
@@ -354,6 +367,7 @@ function Form({
             selected={day}
             onSelect={setDay}
             marks={new Map()}
+            closed={closedDays}
           />
           {loadingTimes ? (
             <div className="text-muted-foreground flex h-12 items-center gap-2 text-sm">

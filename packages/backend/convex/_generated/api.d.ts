@@ -127,6 +127,7 @@ import type * as modules_push_send from "../modules/push/send.js";
 import type * as modules_push_subscriptions from "../modules/push/subscriptions.js";
 import type * as modules_settings_booking from "../modules/settings/booking.js";
 import type * as modules_settings_lib from "../modules/settings/lib.js";
+import type * as modules_settings_schedule from "../modules/settings/schedule.js";
 import type * as modules_supportRequests_create from "../modules/supportRequests/create.js";
 import type * as modules_supportRequests_list from "../modules/supportRequests/list.js";
 import type * as modules_supportRequests_markNotified from "../modules/supportRequests/markNotified.js";
@@ -308,6 +309,7 @@ declare const fullApi: ApiFromModules<{
   "modules/push/subscriptions": typeof modules_push_subscriptions;
   "modules/settings/booking": typeof modules_settings_booking;
   "modules/settings/lib": typeof modules_settings_lib;
+  "modules/settings/schedule": typeof modules_settings_schedule;
   "modules/supportRequests/create": typeof modules_supportRequests_create;
   "modules/supportRequests/list": typeof modules_supportRequests_list;
   "modules/supportRequests/markNotified": typeof modules_supportRequests_markNotified;

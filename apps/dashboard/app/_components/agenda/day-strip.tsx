@@ -13,18 +13,22 @@ import { dayLabel, dayOfMonth, weekdayInitial } from "./lib";
  * giorno un punto dice se c'è qualcosa in agenda, ambra se c'è almeno una
  * prenotazione da confermare. Scorre di lato con lo snap, e il giorno scelto
  * si porta in vista da solo quando cambia da fuori (un link, la ricerca).
+ * Un giorno in cui il club è chiuso ha il numero spento e barrato.
  */
 export function DayStrip({
   days,
   selected,
   onSelect,
   marks,
+  closed,
 }: {
   days: string[];
   selected: string;
   onSelect: (day: string) => void;
   /** Per ogni giorno: quante partite, e se ce n'è una da confermare. */
   marks: Map<string, { total: number; pending: boolean }>;
+  /** I giorni in cui il club è chiuso. */
+  closed?: ReadonlySet<string>;
 }) {
   const selectedRef = useRef<HTMLButtonElement>(null);
 
@@ -51,6 +55,7 @@ export function DayStrip({
       {days.map((day) => {
         const isSelected = day === selected;
         const mark = marks.get(day);
+        const isClosed = closed?.has(day) ?? false;
 
         return (
           <button
@@ -59,7 +64,7 @@ export function DayStrip({
             type="button"
             role="tab"
             aria-selected={isSelected}
-            aria-label={`${dayLabel(day)}${
+            aria-label={`${dayLabel(day)}${isClosed ? ", club chiuso" : ""}${
               mark
                 ? `, ${mark.total} ${mark.total === 1 ? "partita" : "partite"}`
                 : ""
@@ -76,6 +81,9 @@ export function DayStrip({
                 isSelected
                   ? "bg-primary text-primary-foreground"
                   : "group-hover:bg-muted",
+                isClosed &&
+                  !isSelected &&
+                  "text-muted-foreground/60 decoration-muted-foreground/50 line-through",
               )}
             >
               {dayOfMonth(day)}

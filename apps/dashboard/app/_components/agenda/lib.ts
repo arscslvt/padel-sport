@@ -5,9 +5,13 @@ import {
   formatEuro,
   roundEuro,
 } from "@padel-sport/backend/convex/modules/pricing/lib";
+import {
+  closureOn,
+  isWeekdayClosed,
+  type Schedule,
+} from "@padel-sport/backend/convex/modules/settings/schedule";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-
 import type { StatusTone } from "@/app/_components/status-badge";
 import { CLUB_TIME_ZONE, MATCH_DURATION_MS, MAX_PLAYERS } from "@/lib/booking";
 
@@ -92,6 +96,29 @@ export function dayKey(timestamp: number): string {
 /** Mezzogiorno del giorno indicato: il punto più lontano dai cambi d'ora. */
 function noonOf(key: string): Date {
   return new Date(`${key}T12:00:00`);
+}
+
+/**
+ * Il club è chiuso quel giorno? Per lo staff, in agenda: il titolo e il
+ * perché. Nulla se è aperto, o se la configurazione non è ancora arrivata.
+ */
+export function closedDay(
+  schedule: Schedule | undefined,
+  key: string,
+): { title: string; detail: string } | null {
+  if (!schedule) return null;
+
+  const closure = closureOn(schedule, key);
+  if (closure) {
+    return { title: "Club chiuso", detail: closure.reason ?? "Chiusura" };
+  }
+  if (isWeekdayClosed(schedule, noonOf(key).getDay())) {
+    return {
+      title: "Club chiuso",
+      detail: "Giorno spento in Configurazione",
+    };
+  }
+  return null;
 }
 
 export function clubTime(timestamp: number): string {

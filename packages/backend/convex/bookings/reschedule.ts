@@ -13,10 +13,13 @@ import {
 } from "../modules/openMatches/lib";
 import {
   bookingSettings,
+  closedReason,
+  clubDayKey,
   clubMoment,
   isWithinOpeningHours,
   toMinutes,
 } from "../modules/settings/lib";
+import { windowsForDay } from "../modules/settings/schedule";
 import { assertServer } from "../utils/serverSecret";
 
 /**
@@ -93,9 +96,13 @@ export const options = query({
 
     // Gli orari di inizio della giornata, a scaglioni come quelli del sito:
     // ogni fascia di apertura, finché la partita ci sta dentro per intero.
+    // In un giorno chiuso non ci sono orari da proporre.
     const settings = await bookingSettings(ctx);
-    const starts = settings.windows
-      .filter((window) => window.weekday === current.weekday)
+    const starts = windowsForDay(
+      settings,
+      clubDayKey(booking.bookingDate),
+      current.weekday,
+    )
       .flatMap((window) => {
         const minutes: number[] = [];
         for (
@@ -180,6 +187,8 @@ export const move = mutation({
     }
 
     const settings = await bookingSettings(ctx);
+    const closed = closedReason(settings, bookingDate);
+    if (closed) throw new Error(closed);
     if (!isWithinOpeningHours(settings, bookingDate, MATCH_DURATION_MINUTES)) {
       throw new Error("La struttura è chiusa a quest'ora.");
     }

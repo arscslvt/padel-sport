@@ -5,7 +5,11 @@ import { mutation } from "../../_generated/server";
 import { membersOf, requireCircleMember } from "../circles/lib";
 import { isMembershipValid, membershipStatus } from "../clients/lib";
 import { matchPricing } from "../pricing/lib";
-import { bookingSettings, isWithinOpeningHours } from "../settings/lib";
+import {
+  bookingSettings,
+  closedReason,
+  isWithinOpeningHours,
+} from "../settings/lib";
 import { staffBookingUrl } from "../../utils/staffLinks";
 import { addGuestToMatch } from "./guests";
 import { inviteToMatch } from "./invite";
@@ -85,6 +89,11 @@ export default mutation({
     // server accettava qualsiasi orario allineato ai 30 minuti, comprese le
     // tre di notte.
     const settings = await bookingSettings(ctx);
+
+    // Un giorno di chiusura si dice per quello che è, con il motivo: «la
+    // struttura è chiusa nell'orario selezionato» farebbe cercare un'altra ora.
+    const closed = closedReason(settings, args.bookingDate);
+    if (closed) throw new Error(closed);
 
     if (
       !isWithinOpeningHours(

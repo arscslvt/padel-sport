@@ -12,7 +12,11 @@ import {
   SLOT_INTERVAL_MS,
 } from "../modules/openMatches/lib";
 import { matchPricing } from "../modules/pricing/lib";
-import { bookingSettings, isWithinOpeningHours } from "../modules/settings/lib";
+import {
+  bookingSettings,
+  closedReason,
+  isWithinOpeningHours,
+} from "../modules/settings/lib";
 import { recordDeliveries } from "../modules/deliveries/lib";
 import { assertServer } from "../utils/serverSecret";
 
@@ -85,6 +89,8 @@ export default mutation({
     }
 
     const settings = await bookingSettings(ctx);
+    const closed = closedReason(settings, args.bookingDate);
+    if (closed) throw new Error(closed);
     if (
       !isWithinOpeningHours(settings, args.bookingDate, MATCH_DURATION_MINUTES)
     ) {

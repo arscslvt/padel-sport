@@ -5,6 +5,7 @@ import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { useQuery } from "convex/react";
 import {
   CalendarCheck,
+  CalendarOff,
   ChevronDown,
   Plus,
   Search,
@@ -37,6 +38,7 @@ import { DayPager, useDaySwipe } from "./day-pager";
 import { DayStrip } from "./day-strip";
 import {
   type Booking,
+  closedDay,
   dayKey,
   dayLabel,
   isCancelled,
@@ -75,6 +77,8 @@ export function Agenda() {
     split,
   } = useAgenda();
   const courts = useQuery(api.modules.settings.booking.courts, {});
+  // Gli orari e le chiusure: in agenda un giorno chiuso si vede.
+  const schedule = useQuery(api.modules.settings.booking.get, {});
   const confirm = useConfirm();
   const searchParams = useSearchParams();
 
@@ -104,6 +108,10 @@ export function Agenda() {
   const pending = useMemo(() => list.filter(isPending), [list]);
   const pairs = useMemo(() => mergeablePairs(list), [list]);
   const days = useMemo(() => stripDays(list), [list]);
+  const closedDays = useMemo(
+    () => new Set(days.filter((day) => closedDay(schedule, day))),
+    [days, schedule],
+  );
 
   const marks = useMemo(() => {
     const map = new Map<string, { total: number; pending: boolean }>();
@@ -309,6 +317,7 @@ export function Agenda() {
     const playing = rows.filter((booking) => !isCancelled(booking));
     const cancelled = rows.filter(isCancelled);
     const dayPairs = pairsByDay.get(day) ?? 0;
+    const closed = closedDay(schedule, day);
     const cancelledId = `${cancelledListId}-${day}`;
 
     return (
@@ -325,7 +334,28 @@ export function Agenda() {
               )
             }
           >
-            {playing.length === 0 ? (
+            {/*
+             * Chiuso ma con delle partite: prese prima della chiusura, restano.
+             * Lo staff le vede in cima, con il perché.
+             */}
+            {closed && playing.length > 0 && (
+              <div className="bg-warning-subtle text-warning-foreground flex items-center gap-3 px-4 py-2.5 text-[13px] leading-snug">
+                <CalendarOff className="size-4 shrink-0" />
+                <span>
+                  <span className="font-medium">{closed.title}.</span>{" "}
+                  {closed.detail}. Le partite già prese restano.
+                </span>
+              </div>
+            )}
+            {playing.length === 0 && closed ? (
+              <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+                <CalendarOff className="text-muted-foreground/60 size-7" />
+                <p className="text-[15px] font-medium">{closed.title}</p>
+                <p className="text-muted-foreground max-w-[32ch] text-sm">
+                  {closed.detail}. Sito e app non accettano prenotazioni.
+                </p>
+              </div>
+            ) : playing.length === 0 ? (
               <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
                 <CalendarCheck className="text-muted-foreground/60 size-7" />
                 <p className="text-[15px] font-medium">
@@ -545,6 +575,7 @@ export function Agenda() {
                     selected={selectedDay}
                     onSelect={setSelectedDay}
                     marks={marks}
+                    closed={closedDays}
                   />
 
                   <DayPager
