@@ -29,7 +29,7 @@ import { FIELD_CLASS, Hint, StepHeader } from "./wizard-ui";
  */
 
 /** Cosa sta cercando di fare chi si verifica. */
-export type VerifyPurpose = "book" | "recover" | "area";
+export type VerifyPurpose = "book" | "recover" | "area" | "invite";
 
 const COPY = {
   book: {
@@ -61,6 +61,16 @@ const COPY = {
     unknownBody:
       "Con questo indirizzo non risulta nessun account del club. L'area personale è per i soci: se lo sei o vuoi diventarlo, chiamaci o passa in struttura e ti attiviamo l'account. Intanto puoi prenotare senza account dal servizio esterno.",
     unknownCta: "Prenota senza account",
+  },
+  invite: {
+    title: "Apri il tuo invito",
+    subtitle:
+      "Scrivi la mail del tuo account: ti mandiamo un codice di verifica.",
+    hint: "Niente password: dopo la verifica vedi la partita e rispondi all'invito.",
+    unknownTitle: "Non troviamo questa email",
+    unknownBody:
+      "Con questo indirizzo non risulta nessun account del club. L'invito è legato all'account di chi è stato invitato: prova con l'altra tua email, oppure chiamaci e lo cerchiamo noi.",
+    unknownCta: "Apri il servizio di prenotazione",
   },
 } as const;
 

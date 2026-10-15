@@ -73,6 +73,79 @@ export const respond = mutation({
 });
 
 /**
+ * A che punto è un invito, visto da chi l'ha ricevuto: `pending` è il solo in
+ * cui si può ancora rispondere.
+ */
+export type MatchInviteState =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "cancelled"
+  | "expired";
+
+export interface MatchInviteDetail {
+  state: MatchInviteState;
+  /** Chi guarda: per riconoscere il proprio posto fra i giocatori. */
+  you: Id<"players">;
+  invite: MatchInviteView;
+  /** Il codice della prenotazione, per il QR: solo a invito accettato. */
+  bookingCode?: string;
+}
+
+/**
+ * Un invito solo, per la pagina a cui porta il WhatsApp d'invito
+ * (/invite/<id>).
+ *
+ * L'id arriva da un link, quindi come stringa: uno storto, o l'invito di
+ * qualcun altro, rispondono allo stesso modo, `null`, senza dire se esiste.
+ * Gli inviti a cui si è già risposto restano leggibili: chi riapre il
+ * messaggio dopo aver accettato deve trovare la partita, non un errore.
+ */
+export const getMine = query({
+  args: { inviteId: v.string() },
+  handler: async (ctx, { inviteId }): Promise<MatchInviteDetail | null> => {
+    const player = await getIdentityPlayer(ctx);
+    if (!player) return null;
+
+    const id = ctx.db.normalizeId("matchInvites", inviteId);
+    const invite = id ? await ctx.db.get(id) : null;
+    if (!invite || invite.playerId !== player._id) return null;
+
+    const match = await ctx.db.get(invite.matchId);
+    if (!match) return null;
+
+    const circle = invite.circleId ? await ctx.db.get(invite.circleId) : null;
+    const booking = await ctx.db.get(match.bookingId);
+
+    const state: MatchInviteState =
+      invite.status === "accepted"
+        ? "accepted"
+        : invite.status === "declined"
+          ? "declined"
+          : invite.status === "cancelled" || match.status === "cancelled"
+            ? "cancelled"
+            : match.matchDate <= Date.now()
+              ? "expired"
+              : "pending";
+
+    return {
+      state,
+      you: player._id,
+      invite: {
+        inviteId: invite._id,
+        match: await toMatchView(ctx, match),
+        circleName: circle?.name,
+        createdAt: invite.createdAt,
+      },
+      bookingCode:
+        state === "accepted" && booking?.status !== "cancelled"
+          ? booking?.code
+          : undefined,
+    };
+  },
+});
+
+/**
  * Inviti ancora senza risposta, dal più imminente: sia quelli nominali sia
  * quelli arrivati da una cerchia. Gli inviti a partite ormai passate o
  * cancellate non vengono mostrati.

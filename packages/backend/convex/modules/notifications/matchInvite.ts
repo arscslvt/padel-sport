@@ -10,10 +10,11 @@ import { getMessagingClient } from "../../utils/notification_client";
  * Il WhatsApp che avvisa chi è stato invitato per nome a una partita.
  *
  * Parte col template approvato su Twilio indicato da
- * `TWILIO_MATCH_INVITE_TEMPLATE_SID`, con tre variabili in ordine: il nome
- * dell'invitato, chi lo invita, giorno e ora («19/10/2026 alle 10:00»). Il
- * pulsante del template porta all'area personale (`/me/prenotazioni`), dove
- * l'invito si accetta o si rifiuta.
+ * `TWILIO_MATCH_INVITE_TEMPLATE_SID`, con quattro variabili in ordine: il
+ * nome dell'invitato, chi lo invita, giorno e ora («19/10/2026 alle 10:00») e
+ * l'id dell'invito. L'ultima è la coda dell'URL del pulsante
+ * (`/invite/{{4}}`): porta dritto alla schermata di quell'invito, dove si
+ * accetta o si rifiuta.
  *
  * Senza template, senza Twilio o senza telefono non parte niente, e va bene
  * lo stesso: l'invito resta nell'area personale e nell'app.
@@ -50,6 +51,7 @@ export const send = internalAction({
           "1": data.firstName,
           "2": data.inviterName,
           "3": formatClubDateTime(data.matchDate, " alle "),
+          "4": inviteId,
         }),
       });
 
