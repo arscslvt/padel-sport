@@ -26,6 +26,13 @@ import {
   overlappingBookings,
 } from "@/lib/booking";
 import { cn } from "@/lib/utils";
+import {
+  type ClientOption,
+  ClientSuggestions,
+  LinkedClient,
+  useClientMatches,
+  useClients,
+} from "./client-search";
 import { DayStrip } from "./day-strip";
 import {
   type Booking,
@@ -45,18 +52,13 @@ import {
  * trova, si porta dietro telefono e livello: la prenotazione resta legata a
  * quella persona e la ritrova sul sito e nell'app. Se non c'è, basta il nome.
  *
+ * Anche i compagni si cercano in anagrafica: collegati a un cliente, la
+ * partita conta per loro nei punti automatici. Chi non c'è resta un nome.
+ *
  * Gli orari proposti sono quelli di apertura in cui c'è ancora un campo
  * libero, calcolati come sul sito; l'ultima parola resta del backend
  * (bookings/staffCreate.ts), che ricontrolla al momento di salvare.
  */
-
-interface ClientOption {
-  id: string;
-  name: string;
-  phone?: string;
-  email?: string;
-  level: number;
-}
 
 const DAYS_AHEAD = 30;
 const LEVELS = Object.keys(LEVEL_LABELS) as Booking["level"][];
@@ -133,7 +135,11 @@ function Form({
   const [client, setClient] = useState<ClientOption | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [others, setOthers] = useState(["", "", ""]);
+  const [others, setOthers] = useState<Other[]>([
+    { name: "" },
+    { name: "" },
+    { name: "" },
+  ]);
   const [level, setLevel] = useState<Booking["level"]>("intermedio");
   const [notify, setNotify] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -145,30 +151,24 @@ function Form({
     client !== null ||
     name.trim() !== "" ||
     phone.trim() !== "" ||
-    others.some((other) => other.trim() !== "");
+    others.some((other) => other.name.trim() !== "");
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
 
-  // L'anagrafica, per collegare la prenotazione a un cliente. Si chiede una
-  // volta all'apertura: sono poche centinaia di righe e si filtra qui.
-  const [clients, setClients] = useState<ClientOption[]>([]);
-  useEffect(() => {
-    fetch("/api/dashboard/clients")
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload) => setClients(payload?.clients ?? []))
-      .catch(() => {});
-  }, []);
-
-  const suggestions = useMemo(() => {
-    const needle = name.trim().toLowerCase();
-    if (client || needle.length < 2) return [];
-    return clients
-      .filter(
-        (row) =>
-          row.name.toLowerCase().includes(needle) ||
-          row.phone?.replace(/\s/g, "").includes(needle.replace(/\s/g, "")),
-      )
-      .slice(0, 5);
-  }, [clients, client, name]);
+  // L'anagrafica, per collegare la prenotazione e i compagni a un cliente.
+  const clients = useClients();
+  const chosenIds = useMemo(
+    () =>
+      [client?.id, ...others.map((other) => other.client?.id)].filter(
+        (id): id is string => Boolean(id),
+      ),
+    [client, others],
+  );
+  const bookerMatches = useClientMatches(
+    clients,
+    client ? "" : name,
+    chosenIds,
+  );
+  const suggestions = bookerMatches;
 
   // Gli orari liberi del giorno scelto: stesse finestre e stessa regola del sito.
   const settings = useQuery(api.modules.settings.booking.get, {});
@@ -251,9 +251,13 @@ function Form({
           playerId: client?.id,
           bookedBy: name.trim(),
           phone: phone.trim() || undefined,
-          players: [name.trim(), ...others.map((other) => other.trim())].filter(
-            Boolean,
-          ),
+          players: [
+            name.trim(),
+            ...others.map((other) => other.name.trim()),
+          ].filter(Boolean),
+          linkedPlayerIds: others
+            .map((other) => other.client?.id)
+            .filter((id): id is string => Boolean(id)),
           level,
           notify,
         }),
@@ -466,24 +470,28 @@ function Form({
             </span>
           </h3>
           <div className="space-y-2">
-            {others.map((value, index) => (
-              <Input
+            {others.map((other, index) => (
+              <OtherPlayer
                 // biome-ignore lint/suspicious/noArrayIndexKey: i tre posti sono fissi.
                 key={index}
-                value={value}
-                aria-label={`Giocatore ${index + 2}`}
-                placeholder={`Giocatore ${index + 2} di ${MAX_PLAYERS}`}
-                className="bg-card h-11 rounded-xl text-base"
-                onChange={(event) =>
+                index={index}
+                value={other}
+                clients={clients}
+                exclude={chosenIds}
+                onChange={(next) =>
                   setOthers((current) =>
-                    current.map((other, position) =>
-                      position === index ? event.target.value : other,
+                    current.map((row, position) =>
+                      position === index ? next : row,
                     ),
                   )
                 }
               />
             ))}
           </div>
+          <p className="text-muted-foreground text-xs">
+            Scegli un cliente dall&apos;anagrafica per fargli contare la partita
+            nei punti, o scrivi solo il nome.
+          </p>
         </section>
 
         <div className="flex items-center justify-between gap-4 rounded-xl border p-3">
@@ -517,6 +525,62 @@ function Form({
         </Button>
       </ResponsiveDrawerFooter>
     </>
+  );
+}
+
+interface Other {
+  name: string;
+  client?: ClientOption;
+}
+
+/** Un compagno: si cerca in anagrafica, o resta un nome. */
+function OtherPlayer({
+  index,
+  value,
+  clients,
+  exclude,
+  onChange,
+}: {
+  index: number;
+  value: Other;
+  clients: ClientOption[];
+  exclude: string[];
+  onChange: (next: Other) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  const matches = useClientMatches(
+    clients,
+    focused && !value.client ? value.name : "",
+    exclude,
+  );
+
+  if (value.client) {
+    return (
+      <LinkedClient
+        name={value.client.name}
+        touch
+        onUnlink={() => onChange({ name: "" })}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Input
+        value={value.name}
+        autoComplete="off"
+        aria-label={`Giocatore ${index + 2}`}
+        placeholder={`Giocatore ${index + 2} di ${MAX_PLAYERS}`}
+        className="bg-card h-11 rounded-xl text-base"
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onChange={(event) => onChange({ name: event.target.value })}
+      />
+      <ClientSuggestions
+        options={matches}
+        onPick={(option) => onChange({ name: option.name, client: option })}
+      />
+    </div>
   );
 }
 

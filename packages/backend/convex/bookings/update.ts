@@ -3,6 +3,7 @@ import { internalMutation, mutation } from "../_generated/server";
 import { notificationStatus as notification } from "../tables/bookings";
 import { api, internal } from "../_generated/api";
 import { recordDeliveries } from "../modules/deliveries/lib";
+import { bookingChanged } from "../modules/points/auto";
 import { assertServer } from "../utils/serverSecret";
 
 export const notificationStatus = internalMutation({
@@ -54,6 +55,9 @@ export const accept = mutation({
     await ctx.db.patch(bookingId, {
       status: "accepted_on_site_payment",
     });
+
+    // La conferma è il momento in cui la partita conta per i premi.
+    await bookingChanged(ctx, bookingId);
 
     // La mail parte sempre: porta il QR d'ingresso, e senza quello il cliente
     // non ha modo di sapere che è stato accettato. Il WhatsApp invece resta a

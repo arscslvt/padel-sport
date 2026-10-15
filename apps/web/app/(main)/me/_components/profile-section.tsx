@@ -25,6 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { convexMessage } from "@/lib/clients";
 import { PERSONAL_AREA_LINK } from "@/lib/links";
@@ -65,6 +66,7 @@ export function ProfileSection() {
   return (
     <div className="space-y-14">
       <ContactsAndDetails profile={profile} />
+      <Findable searchable={profile.searchable} />
       <MembershipFacts profile={profile} />
 
       {/* L'uscita chiude la pagina: sta in fondo, staccata dai dati, e si
@@ -93,6 +95,60 @@ export function ProfileSection() {
         </Button>
       </section>
     </div>
+  );
+}
+
+/**
+ * Farsi trovare da chi prenota. È un consenso e si salva da solo, appena si
+ * sposta la levetta: non aspetta il «Salva» dei dati qui sopra.
+ */
+function Findable({ searchable }: { searchable: boolean }) {
+  const setSearchable = useMutation(api.modules.clients.self.setSearchable);
+  const [saving, setSaving] = useState(false);
+
+  const toggle = async (next: boolean) => {
+    setSaving(true);
+    try {
+      await setSearchable({ searchable: next });
+      toast.success(
+        next ? "Ora possono invitarti" : "Non compari più nella ricerca",
+      );
+    } catch (error) {
+      toast.error("Preferenza non salvata", {
+        description: convexMessage(error, "Riprova fra poco."),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section aria-labelledby="findable-title" className="space-y-5">
+      <SectionTitle
+        id="findable-title"
+        title="Partite"
+        description="Chi ti conosce può aggiungerti alla squadra mentre prenota."
+      />
+      <div className="rounded-card bg-muted flex items-start justify-between gap-4 p-6 sm:p-8">
+        <label htmlFor="profile-findable" className="cursor-pointer">
+          <span className="block text-sm font-medium">
+            Fatti trovare da chi prenota
+          </span>
+          <span className="text-muted-foreground mt-1 block max-w-[52ch] text-xs leading-relaxed">
+            Gli altri clienti vedono il tuo nome e il tuo livello quando cercano
+            i compagni di una partita, e possono invitarti: ti arriva un
+            WhatsApp e decidi tu se accettare. Telefono e mail restano privati.
+          </span>
+        </label>
+        <Switch
+          id="profile-findable"
+          checked={searchable}
+          disabled={saving}
+          onCheckedChange={(checked) => void toggle(checked)}
+          className="mt-0.5"
+        />
+      </div>
+    </section>
   );
 }
 

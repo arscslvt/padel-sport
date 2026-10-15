@@ -33,6 +33,12 @@ const partnerSchema = z
   .object({
     name: z.string().trim().max(60, "Nome troppo lungo."),
     email: z.union([z.literal(""), z.email("Indirizzo email non valido.")]),
+    /**
+     * Il cliente scelto dalla ricerca (modules/openMatches/search.ts): riceve
+     * un invito su WhatsApp invece della mail, e il posto resta suo finché
+     * non risponde. Assente: il compagno è solo un nome.
+     */
+    playerId: z.string().optional(),
   })
   .refine((partner) => partner.name.length === 0 || partner.name.length >= 2, {
     message: "Il nome deve avere almeno due lettere.",
@@ -65,6 +71,8 @@ export type BookingFormValues = z.infer<typeof bookingFormSchema>;
 export interface BookingPartner {
   name: string;
   email?: string;
+  /** Invitato per nome: ha un account e ha accettato di farsi trovare. */
+  playerId?: string;
 }
 
 /** Compagni davvero indicati, ripuliti e pronti per Convex. */
@@ -74,7 +82,10 @@ export function filledPartners(
   return partners
     .map((partner) => ({
       name: partner.name.trim(),
-      email: partner.email.trim().toLowerCase() || undefined,
+      email: partner.playerId
+        ? undefined
+        : partner.email.trim().toLowerCase() || undefined,
+      playerId: partner.playerId || undefined,
     }))
     .filter((partner) => partner.name.length > 0);
 }

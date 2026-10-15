@@ -4,6 +4,7 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { mutation, type QueryCtx, query } from "../_generated/server";
 import { recordDeliveries } from "../modules/deliveries/lib";
+import { bookingChanged } from "../modules/points/auto";
 import {
   courtsAt,
   MATCH_DURATION_MINUTES,
@@ -210,6 +211,8 @@ export const move = mutation({
       .withIndex("by_booking", (q) => q.eq("bookingId", bookingId))
       .first();
     if (match) await ctx.db.patch(match._id, { matchDate: bookingDate });
+
+    await bookingChanged(ctx, bookingId);
 
     // Il vecchio orario torna libero su SumUp, il nuovo si occupa.
     await ctx.scheduler.runAfter(

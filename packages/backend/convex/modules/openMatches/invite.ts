@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
 import { mutation } from "../../_generated/server";
@@ -64,7 +65,9 @@ export async function inviteToMatch(
       );
     }
 
+    let inviteId: Id<"matchInvites">;
     if (existing) {
+      inviteId = existing._id;
       await ctx.db.patch(existing._id, {
         kind: "direct",
         status: "pending",
@@ -72,7 +75,7 @@ export async function inviteToMatch(
         respondedAt: undefined,
       });
     } else {
-      await ctx.db.insert("matchInvites", {
+      inviteId = await ctx.db.insert("matchInvites", {
         matchId: match._id,
         playerId,
         kind: "direct",
@@ -81,6 +84,14 @@ export async function inviteToMatch(
         createdAt: Date.now(),
       });
     }
+
+    // Su WhatsApp lo vede prima che in una mail: è lì che si risponde in
+    // fretta, e il posto resta bloccato finché non risponde.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.modules.notifications.matchInvite.send,
+      { inviteId },
+    );
 
     outcome.invited += 1;
     free -= 1;

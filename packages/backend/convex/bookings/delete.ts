@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { mutation } from "../_generated/server";
+import { bookingChanged } from "../modules/points/auto";
 import { assertServer } from "../utils/serverSecret";
 import { releaseMerge } from "./lib";
 
@@ -26,6 +27,9 @@ export default mutation({
     await ctx.db.patch(bookingId, {
       status: "cancelled",
     });
+
+    // I premi che la prenotazione aveva fatto guadagnare tornano indietro.
+    await bookingChanged(ctx, bookingId);
 
     // Il campo torna libero anche su SumUp, che legge il calendario condiviso.
     await ctx.scheduler.runAfter(

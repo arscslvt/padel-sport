@@ -166,6 +166,8 @@ const createSchema = z.object({
     })
     .optional(),
   clubNotes: z.string().trim().max(1000).optional(),
+  /** Il codice del cliente che l'ha invitato (modules/referrals). */
+  referralCode: z.string().trim().max(10).optional(),
 });
 
 /**

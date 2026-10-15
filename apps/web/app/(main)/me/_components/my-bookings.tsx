@@ -127,6 +127,7 @@ export function MyBookings() {
                     {formatClubDay(booking.bookingDate)}
                   </p>
                   <p className="text-muted-foreground text-xs tracking-wide uppercase">
+                    {booking.isBooker ? "" : "Giochi tu · "}
                     {STATUS_LABELS[booking.status]}
                     {booking.payment.paid ? " · Pagata online" : ""}
                   </p>
@@ -168,7 +169,7 @@ export function MyBookings() {
                         </Button>
                       )}
 
-                      {matchId && (
+                      {matchId && booking.isBooker && (
                         <Button
                           type="button"
                           size="pill"

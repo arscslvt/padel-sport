@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
 import {
   guestsOf,
@@ -9,7 +9,9 @@ import {
   syncBookingPlayers,
   syncMatchStatus,
 } from "../modules/openMatches/lib";
+import { bookingChanged } from "../modules/points/auto";
 import { assertServer } from "../utils/serverSecret";
+import { linkablePlayers } from "./staffCreate";
 
 /**
  * I giocatori di una prenotazione, corretti dallo staff: allo sportello si
@@ -73,6 +75,32 @@ function without(names: string[], remove: string[]): string[] | null {
   return rest;
 }
 
+/**
+ * I nomi già collegati a un cliente: dalla partita, se c'è, se no da chi ha
+ * prenotato e dai collegamenti dello staff.
+ */
+async function linksOf(
+  ctx: QueryCtx,
+  booking: Doc<"bookings">,
+  match: Doc<"openMatches"> | null,
+): Promise<{ name: string; playerId: Id<"players">; fixed: boolean }[]> {
+  const ids = match
+    ? match.playerIds
+    : [
+        ...(booking.createdByPlayer ? [booking.createdByPlayer] : []),
+        ...(booking.linkedPlayerIds ?? []),
+      ];
+  const docs = await Promise.all([...new Set(ids)].map((id) => ctx.db.get(id)));
+  return docs
+    .filter((doc) => doc !== null)
+    .map((doc) => ({
+      name: doc.name,
+      playerId: doc._id,
+      // Chi ha prenotato, e chi è in partita dall'app, non si scollega da qui.
+      fixed: Boolean(match) || doc._id === booking.createdByPlayer,
+    }));
+}
+
 /** Quel che serve al modulo di modifica: i nomi, quelli bloccati, i posti. */
 export const forEdit = query({
   args: { secret: v.string(), bookingId: v.id("bookings") },
@@ -88,6 +116,8 @@ export const forEdit = query({
       players: booking.players,
       /** In partita con l'app: si vedono, non si cambiano. */
       locked: match ? await appPlayerNames(ctx, match) : [],
+      /** I nomi collegati a un cliente in anagrafica. */
+      links: await linksOf(ctx, booking, match),
       /** Il massimo di nomi per questa prenotazione. */
       seats: await seatsFor(ctx, booking),
     };
@@ -133,8 +163,15 @@ export const update = mutation({
     bookingId: v.id("bookings"),
     /** Tutti i nomi, nell'ordine: il primo è chi ha prenotato. */
     players: v.array(v.string()),
+    /**
+     * I nomi collegati a un cliente in anagrafica. Senza, i collegamenti
+     * restano quelli che c'erano (le pagine aperte prima di questo campo).
+     */
+    links: v.optional(
+      v.array(v.object({ name: v.string(), playerId: v.id("players") })),
+    ),
   },
-  handler: async (ctx, { secret, bookingId, players }) => {
+  handler: async (ctx, { secret, bookingId, players, links }) => {
     assertServer(secret);
 
     const booking = await ctx.db.get(bookingId);
@@ -167,20 +204,50 @@ export const update = mutation({
 
     const match = await matchOf(ctx, booking);
 
+    // Un collegamento vale solo per un nome che è davvero in campo.
+    const wantedLinks = links?.filter((link) => names.includes(link.name));
+
     if (!match) {
       await ctx.db.patch(bookingId, {
         players: names,
         bookForAll: names.length >= MAX_PLAYERS,
+        ...(wantedLinks
+          ? {
+              linkedPlayerIds: await linkablePlayers(
+                ctx,
+                wantedLinks.map((link) => link.playerId),
+                booking.createdByPlayer,
+              ),
+            }
+          : {}),
       });
+      await bookingChanged(ctx, bookingId);
       return { players: names };
     }
 
     const locked = await appPlayerNames(ctx, match);
-    const guests = without(names, locked);
+    let guests = without(names, locked);
     if (guests === null) {
       throw new Error(
         "Chi si è unito dall'app può uscire solo dall'app.",
       );
+    }
+
+    // Un ospite collegato a un cliente diventa un giocatore della partita: la
+    // vede nella sua area personale e gli conta nei premi. Il posto è lo
+    // stesso, cambia solo chi lo occupa.
+    const joining: Id<"players">[] = [];
+    for (const link of wantedLinks ?? []) {
+      if (match.playerIds.includes(link.playerId)) continue;
+      if (joining.includes(link.playerId)) continue;
+
+      const rest = without(guests, [link.name]);
+      if (rest === null) continue;
+      if (!(await ctx.db.get(link.playerId))) {
+        throw new Error("Cliente non trovato.");
+      }
+      guests = rest;
+      joining.push(link.playerId);
     }
 
     // I posti tenuti dagli inviti ancora senza risposta contano: senza, la
@@ -192,8 +259,31 @@ export const update = mutation({
       );
     }
 
-    await replaceGuests(ctx, match, guests);
-    await syncBookingPlayers(ctx, match);
+    if (joining.length > 0) {
+      await ctx.db.patch(match._id, {
+        playerIds: [...match.playerIds, ...joining],
+      });
+
+      // Un invito ancora aperto per chi è appena entrato è ormai una risposta.
+      for (const playerId of joining) {
+        const invite = await ctx.db
+          .query("matchInvites")
+          .withIndex("by_match_player", (q) =>
+            q.eq("matchId", match._id).eq("playerId", playerId),
+          )
+          .first();
+        if (invite?.status === "pending") {
+          await ctx.db.patch(invite._id, {
+            status: "accepted",
+            respondedAt: Date.now(),
+          });
+        }
+      }
+    }
+
+    const latest = (await ctx.db.get(match._id)) ?? match;
+    await replaceGuests(ctx, latest, guests);
+    await syncBookingPlayers(ctx, latest);
     await syncMatchStatus(ctx, match._id);
 
     const updated = await ctx.db.get(bookingId);

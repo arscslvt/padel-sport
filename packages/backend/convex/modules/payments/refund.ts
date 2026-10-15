@@ -4,6 +4,7 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { action, internalMutation } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
+import { bookingChanged } from "../points/auto";
 import { roundEuro } from "../pricing/lib";
 import { getCheckout, refundTransaction, snapshot, sumupConfig } from "./sumup";
 
@@ -129,6 +130,8 @@ export const complete = internalMutation({
         paymentMode: "on_site",
         paidAmount: undefined,
       });
+      // Il punto del pagamento online torna indietro con il rimborso.
+      await bookingChanged(ctx, booking._id);
       return;
     }
 

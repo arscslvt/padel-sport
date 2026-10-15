@@ -11,6 +11,7 @@ import {
   residence as residenceValidator,
 } from "../../tables/players";
 import { displayName } from "./lib";
+import { attachReferral } from "../referrals/lib";
 
 /**
  * L'anagrafica del cliente: quella che compila lui iscrivendosi, e quella che
@@ -137,8 +138,13 @@ export const create = mutation({
     residence: v.optional(residenceValidator),
     health: v.optional(healthValidator),
     clubNotes: v.optional(v.string()),
+    /**
+     * Il codice del cliente che l'ha invitato, se l'amico lo dà allo
+     * sportello. Senza, l'invito si riconosce dalla mail (modules/referrals).
+     */
+    referralCode: v.optional(v.string()),
   },
-  handler: async (ctx, { secret, ...fields }) => {
+  handler: async (ctx, { secret, referralCode, ...fields }) => {
     assertServer(secret);
     assertLevel(fields.level);
 
@@ -152,7 +158,7 @@ export const create = mutation({
     const email = clean(fields.email)?.toLowerCase();
     if (email) await assertEmailFree(ctx, email);
 
-    return await ctx.db.insert("players", {
+    const playerId = await ctx.db.insert("players", {
       name: displayName({ name: `${firstName} ${lastName}`, firstName, lastName }),
       firstName,
       lastName,
@@ -169,6 +175,12 @@ export const create = mutation({
       code: await generatePlayerCode(ctx),
       createdAt: Date.now(),
     });
+
+    // Un codice sbagliato annulla tutto: meglio dirlo allo sportello, con la
+    // persona davanti, che scoprire dopo che l'amico non ha avuto i punti.
+    await attachReferral(ctx, { _id: playerId, email }, referralCode);
+
+    return playerId;
   },
 });
 

@@ -15,6 +15,11 @@ import {
  * arriva: chi ha prenotato si riconosce con la stessa verifica via email del
  * modulo di prenotazione e ritrova qui codice e QR.
  *
+ * Ci sono anche le partite in cui si gioca senza averle prenotate: chi ha
+ * accettato un invito, o chi lo staff ha collegato a un nome
+ * (`bookingPlayers`). Per quelle il codice c'è, ma pagare e rimandare la mail
+ * restano di chi ha prenotato.
+ *
  * Restituisce un elenco vuoto — non un errore — a chi non è autenticato o non
  * ha ancora un profilo giocatore: la pagina che la usa mostra prima la
  * verifica, e un'eccezione la costringerebbe a indovinare il perché.
@@ -30,12 +35,29 @@ export default query({
     const from = now - MATCH_DURATION_MS;
     const paymentsActive = await onlinePaymentsActive(ctx);
 
-    const bookings = await ctx.db
+    const own = await ctx.db
       .query("bookings")
       .withIndex("by_created_by_player", (q) =>
         q.eq("createdByPlayer", player._id).gte("bookingDate", from),
       )
       .collect();
+
+    const playing = await ctx.db
+      .query("bookingPlayers")
+      .withIndex("by_player", (q) =>
+        q.eq("playerId", player._id).gte("bookingDate", from),
+      )
+      .collect();
+    const ownIds = new Set(own.map((booking) => booking._id));
+    const joined = (
+      await Promise.all(
+        playing
+          .filter((row) => !ownIds.has(row.bookingId))
+          .map((row) => ctx.db.get(row.bookingId)),
+      )
+    ).filter((booking) => booking !== null);
+
+    const bookings = [...own, ...joined];
 
     return await Promise.all(
       bookings
@@ -59,7 +81,13 @@ export default query({
             players: booking.players,
             status: booking.status,
             matchId: match?._id,
-            payment: paymentSummary(booking, now, paymentsActive),
+            /** Prenotata da chi guarda, o una partita in cui gioca. */
+            isBooker: booking.createdByPlayer === player._id,
+            payment: paymentSummary(
+              booking,
+              now,
+              paymentsActive && booking.createdByPlayer === player._id,
+            ),
           };
         }),
     );

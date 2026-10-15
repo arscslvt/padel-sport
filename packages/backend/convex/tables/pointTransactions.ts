@@ -1,5 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { pointRuleKey } from "./pointRules";
 
 /**
  * Un movimento di punti: il registro da cui nasce il saldo.
@@ -36,7 +37,21 @@ const pointTransactions = defineTable({
   confirmedAt: v.optional(v.float64()),
   /** Chi dello staff ha caricato il movimento; assente per i riscatti del cliente. */
   createdByClerkUserId: v.optional(v.string()),
+  /**
+   * I punti assegnati da soli (modules/points/auto.ts): l'azione premiata e
+   * la chiave del fatto che li ha fatti nascere, per esempio
+   * `weekly_three:<giocatore>:2026-10-12`. La chiave impedisce di premiare due
+   * volte la stessa cosa e dice cosa stornare se quel fatto viene meno.
+   */
+  ruleKey: v.optional(pointRuleKey),
+  autoKey: v.optional(v.string()),
+  /** Il premio automatico è stato stornato: la prenotazione è stata annullata. */
+  reversedAt: v.optional(v.float64()),
+  /** Questo movimento è lo storno di quel premio. */
+  reversalOf: v.optional(v.id("pointTransactions")),
   createdAt: v.float64(),
-}).index("by_player", ["playerId", "createdAt"]);
+})
+  .index("by_player", ["playerId", "createdAt"])
+  .index("by_auto_key", ["autoKey"]);
 
 export default pointTransactions;

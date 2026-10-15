@@ -3,6 +3,7 @@
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "@padel-sport/backend/convex/_generated/api";
+import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
@@ -281,12 +282,22 @@ export function BookingWizard() {
         });
       }
 
+      // Chi è stato scelto dalla ricerca riceve un invito; gli altri sono
+      // ospiti, solo un nome e magari una mail.
+      const invited = partners.filter((partner) => partner.playerId);
+      const guests = partners
+        .filter((partner) => !partner.playerId)
+        .map(({ name, email }) => ({ name, email }));
+
       const { matchId, code } = await createBooking({
         bookingDate,
         levelMin: level.min,
         levelMax: level.max,
         visibility: "private",
-        guests: partners,
+        invitePlayerIds: invited.map(
+          (partner) => partner.playerId as Id<"players">,
+        ),
+        guests,
         notes: values.notes?.trim() || undefined,
         phone: values.phone,
         origin: "web",
@@ -367,6 +378,18 @@ export function BookingWizard() {
             bookerName={bookerName}
             filledCount={partners.length}
             requireFull={fullSquadRequired}
+            partners={values.partners}
+            onPick={(row, picked) => {
+              form.setValue(`partners.${row}.name`, picked.name, {
+                shouldValidate: true,
+              });
+              form.setValue(`partners.${row}.email`, "");
+              form.setValue(`partners.${row}.playerId`, picked.id);
+            }}
+            onUnlink={(row) => {
+              form.setValue(`partners.${row}.name`, "");
+              form.setValue(`partners.${row}.playerId`, undefined);
+            }}
           />
         )}
 

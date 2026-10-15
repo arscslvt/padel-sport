@@ -44,6 +44,12 @@ const matchInvites = defineTable({
   status: matchInviteStatus,
   createdAt: v.float64(),
   respondedAt: v.optional(v.float64()),
+  /**
+   * Quando è partito il WhatsApp che avvisa dell'invito
+   * (modules/notifications/matchInvite.ts). Assente: non è partito, perché
+   * l'invitato non ha un telefono o il template non è configurato.
+   */
+  whatsappSentAt: v.optional(v.float64()),
 })
   .index("by_match", ["matchId"])
   .index("by_match_player", ["matchId", "playerId"])

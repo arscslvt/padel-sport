@@ -1,6 +1,7 @@
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { externalBlocksBetween } from "../courtCalendar/lib";
+import { bookingChanged } from "../points/auto";
 import { bookingSettings, clubMoment, toMinutes } from "../settings/lib";
 
 export const SLOT_INTERVAL_MINUTES = 30;
@@ -541,6 +542,9 @@ export async function syncBookingPlayers(
   ];
 
   await ctx.db.patch(match.bookingId, { players: names });
+
+  // Chi entra o esce dalla squadra cambia i conti dei premi.
+  await bookingChanged(ctx, match.bookingId);
 }
 
 /** Arricchisce una partita con giocatori e nome del campo. */

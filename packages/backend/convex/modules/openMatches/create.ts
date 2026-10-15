@@ -3,6 +3,7 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
 import { membersOf, requireCircleMember } from "../circles/lib";
+import { friendshipBetween } from "../friends/lib";
 import { isMembershipValid, membershipStatus } from "../clients/lib";
 import { matchPricing } from "../pricing/lib";
 import {
@@ -13,6 +14,7 @@ import {
 import { staffBookingUrl } from "../../utils/staffLinks";
 import { addGuestToMatch } from "./guests";
 import { inviteToMatch } from "./invite";
+import { bookingChanged } from "../points/auto";
 import {
   findAvailableSlot,
   LEVEL_MAX,
@@ -151,6 +153,26 @@ export default mutation({
     const invitePlayerIds = args.invitePlayerIds ?? [];
     const guests = args.guests ?? [];
 
+    // Dal sito si invita solo chi si è fatto trovare (modules/openMatches/search.ts)
+    // o è già un amico: il consenso a essere cercati è anche quello a
+    // ricevere un invito da chi non si conosce.
+    if (args.origin === "web") {
+      for (const playerId of invitePlayerIds) {
+        const target = await ctx.db.get(playerId);
+        const friendship = target
+          ? await friendshipBetween(ctx, player._id, playerId)
+          : null;
+        if (
+          !target ||
+          (!target.searchableSince && friendship?.status !== "accepted")
+        ) {
+          throw new Error(
+            "Uno dei giocatori scelti non si può invitare: scrivi il suo nome a mano.",
+          );
+        }
+      }
+    }
+
     // Il conto si fa prima di scrivere: creatore + invitati + ospiti. Occupare
     // il campo per poi scoprire che la squadra non ci sta sarebbe peggio.
     if (1 + invitePlayerIds.length + guests.length > MAX_PLAYERS) {
@@ -283,6 +305,9 @@ export default mutation({
           ),
       );
     }
+
+    // In attesa di conferma non dà ancora premi, ma tiene allineato chi gioca.
+    await bookingChanged(ctx, bookingId);
 
     const visibilityNote =
       args.visibility === "public"

@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useWallet } from "./area-context";
+import { BoostSection } from "./boost-section";
+import { InviteFriend } from "./invite-friend";
 import { JoinProgram } from "./join-program";
 import { Movements } from "./movements";
 import { LeaveProgram, LeavingNotice } from "./program-exit";
@@ -45,7 +47,11 @@ export function PointsSection() {
         />
       )}
 
+      <BoostSection joined={state === "joined" || state === "leaving"} />
+
       <Movements wallet={wallet} />
+
+      <InviteFriend />
 
       {(state === "joined" || state === "outdated") && (
         <LeaveProgram wallet={wallet} />

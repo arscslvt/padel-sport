@@ -49,7 +49,24 @@ export const me = query({
       // Dati sanitari scritti allo sportello valgono come consenso dato: lì
       // la persona firma il modulo. La casella parte spuntata solo così.
       healthConsent: Boolean(player.healthConsentAt || player.health),
+      searchable: Boolean(player.searchableSince),
     };
+  },
+});
+
+/**
+ * Farsi trovare, o no, da chi compone la squadra di una prenotazione. Si
+ * salva da solo, senza il resto del modulo: è un consenso, non un dato.
+ */
+export const setSearchable = mutation({
+  args: { searchable: v.boolean() },
+  handler: async (ctx, { searchable }) => {
+    const player = await requirePlayer(ctx);
+    await ctx.db.patch(player._id, {
+      searchableSince: searchable
+        ? (player.searchableSince ?? Date.now())
+        : undefined,
+    });
   },
 });
 

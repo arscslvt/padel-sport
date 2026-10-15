@@ -12,6 +12,7 @@ import {
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
 import { getIdentityPlayer, requirePlayer } from "../openMatches/lib";
+import { bookingChanged } from "../points/auto";
 import { bookingTotal, formatEuro } from "../pricing/lib";
 import {
   bookingByCode,
@@ -479,6 +480,7 @@ export const apply = internalMutation({
         paymentMode: "online",
         paidAmount: args.amount,
       });
+      await bookingChanged(ctx, booking._id);
     }
 
     const when = formatClubDateTime(booking.bookingDate);

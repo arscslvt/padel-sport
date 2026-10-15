@@ -10,6 +10,7 @@ import { useCounts } from "@/app/_providers/counts.provider";
 import { PUSH_REFRESH_EVENT } from "@/lib/push";
 
 import { type Booking, isPaidOnline, timeRange } from "./lib";
+import type { PlayersPayload } from "./players-editor";
 
 /**
  * Racconta all'operatore com'è andato un rimborso: quanto è tornato al
@@ -226,13 +227,17 @@ export function useAgenda() {
     }
   };
 
-  const updatePlayers = (booking: Booking, players: string[]) =>
+  const updatePlayers = (
+    booking: Booking,
+    { players, links }: PlayersPayload,
+  ) =>
     run(
       booking._id,
       () =>
         request("/api/dashboard/bookings/players", "POST", {
           bookingId: booking._id,
           players,
+          links,
         }),
       {
         success: "Giocatori aggiornati",

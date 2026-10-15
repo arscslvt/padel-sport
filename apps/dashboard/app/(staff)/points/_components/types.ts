@@ -38,3 +38,15 @@ export interface PendingRedemption {
   expiresAt?: number;
   createdAt: number;
 }
+
+/** Un'azione che fa guadagnare punti da sola (modules/points/rules.ts). */
+export interface PointRule {
+  key: "first_match" | "weekly_three" | "online_payment" | "referral";
+  label: string;
+  description: string;
+  points: number;
+  /** Solo «Amico invitato»: i punti all'amico, accanto a quelli di chi invita. */
+  friendPoints?: number;
+  enabled: boolean;
+  since?: number;
+}

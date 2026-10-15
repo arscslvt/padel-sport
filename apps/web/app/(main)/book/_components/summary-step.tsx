@@ -89,7 +89,11 @@ export function SummaryStep({
               {partners.map((partner, index) => (
                 <li key={`${index}-${partner.name}`}>
                   {partner.name}
-                  {partner.email ? ` · ${partner.email}` : ""}
+                  {partner.playerId
+                    ? " · invito su WhatsApp"
+                    : partner.email
+                      ? ` · ${partner.email}`
+                      : ""}
                 </li>
               ))}
             </ul>

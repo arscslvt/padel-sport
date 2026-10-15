@@ -20,6 +20,8 @@ const createSchema = z.object({
   bookedBy: z.string().trim().min(2).max(80),
   phone: z.string().trim().max(30).optional(),
   players: z.array(z.string().trim().max(80)).max(4),
+  /** I compagni scelti fra i clienti in anagrafica. */
+  linkedPlayerIds: z.array(z.string().min(1)).max(4).optional(),
   level: z.enum(["principiante", "intermedio", "avanzato"]),
   notify: z.boolean(),
 });
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { slotId, playerId, phone, ...rest } = parsed.data;
+  const { slotId, playerId, phone, linkedPlayerIds, ...rest } = parsed.data;
 
   // Chi la prende resta scritto nella scheda: il nome com'è oggi su Clerk.
   const user = await currentUser().catch(() => null);
@@ -54,6 +56,7 @@ export async function POST(request: Request) {
         phone: phone || undefined,
         slotId: slotId ? (slotId as Id<"slots">) : undefined,
         playerId: playerId ? (playerId as Id<"players">) : undefined,
+        linkedPlayerIds: linkedPlayerIds?.map((id) => id as Id<"players">),
         staff: { userId: gate.userId, name: staffName },
       },
     );

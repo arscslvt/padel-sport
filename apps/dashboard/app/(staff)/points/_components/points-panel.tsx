@@ -28,7 +28,8 @@ import { AssignPoints } from "./assign-points";
 import { RedemptionCard } from "./redemption-card";
 import { RewardCard } from "./reward-card";
 import { RewardDialog } from "./reward-dialog";
-import type { PendingRedemption, Preset, Reward } from "./types";
+import { RulesEditor } from "./rules-editor";
+import type { PendingRedemption, PointRule, Preset, Reward } from "./types";
 
 /**
  * Punti e premi, lato club.
@@ -49,7 +50,7 @@ import type { PendingRedemption, Preset, Reward } from "./types";
  * telefono, un toast da desktop (confirm.provider.tsx).
  */
 
-type PointsTab = "redemptions" | "rewards" | "presets";
+type PointsTab = "redemptions" | "rewards" | "presets" | "rules";
 
 async function request(url: string, init?: RequestInit) {
   const response = await fetch(url, {
@@ -77,6 +78,7 @@ export function PointsPanel({
   const [tab, setTab] = useState<PointsTab>("redemptions");
   const [rewards, setRewards] = useState<Reward[] | null>(null);
   const [presets, setPresets] = useState<Preset[] | null>(null);
+  const [rules, setRules] = useState<PointRule[] | null>(null);
   const [redemptions, setRedemptions] = useState<PendingRedemption[] | null>(
     null,
   );
@@ -86,24 +88,32 @@ export function PointsPanel({
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const load = useCallback(async () => {
-    const [rewardList, presetList, redemptionList] = await Promise.all([
-      request("/api/dashboard/points/rewards").catch((error) => {
-        toast.error("Premi non caricati", { description: error.message });
-        return { rewards: [] };
-      }),
-      request("/api/dashboard/points/presets").catch((error) => {
-        toast.error("Preset non caricati", { description: error.message });
-        return { presets: [] };
-      }),
-      request("/api/dashboard/points/redemptions").catch((error) => {
-        toast.error("Riscatti non caricati", { description: error.message });
-        return { redemptions: [] };
-      }),
-    ]);
+    const [rewardList, presetList, redemptionList, ruleList] =
+      await Promise.all([
+        request("/api/dashboard/points/rewards").catch((error) => {
+          toast.error("Premi non caricati", { description: error.message });
+          return { rewards: [] };
+        }),
+        request("/api/dashboard/points/presets").catch((error) => {
+          toast.error("Preset non caricati", { description: error.message });
+          return { presets: [] };
+        }),
+        request("/api/dashboard/points/redemptions").catch((error) => {
+          toast.error("Riscatti non caricati", { description: error.message });
+          return { redemptions: [] };
+        }),
+        request("/api/dashboard/points/rules").catch((error) => {
+          toast.error("Azioni premiate non caricate", {
+            description: error.message,
+          });
+          return { rules: [] };
+        }),
+      ]);
 
     setRewards(rewardList.rewards);
     setPresets(presetList.presets);
     setRedemptions(redemptionList.redemptions);
+    setRules(ruleList.rules);
   }, []);
 
   useEffect(() => {
@@ -225,7 +235,7 @@ export function PointsPanel({
     <>
       <PageHeader
         title="Punti e premi"
-        description="Catalogo premi, causali dei punti e premi riscattati da consegnare."
+        description="Catalogo premi, causali dei punti, punti automatici e premi riscattati da consegnare."
         actions={
           <div className="flex items-center gap-2">
             {/*
@@ -266,6 +276,7 @@ export function PointsPanel({
             </TabsTrigger>
             <TabsTrigger value="rewards">Premi</TabsTrigger>
             <TabsTrigger value="presets">Preset</TabsTrigger>
+            <TabsTrigger value="rules">Automatici</TabsTrigger>
           </TabsList>
 
           <TabsContent value="redemptions">
@@ -333,6 +344,25 @@ export function PointsPanel({
                 )
               }
               onArchive={(preset) => void askArchivePreset(preset)}
+              readOnly={!canManageRewards}
+            />
+          </TabsContent>
+
+          <TabsContent value="rules">
+            <RulesEditor
+              rules={rules}
+              pending={pending}
+              onSave={(rule) =>
+                void run(
+                  `rule-${rule.key}`,
+                  () =>
+                    request("/api/dashboard/points/rules", {
+                      method: "POST",
+                      body: JSON.stringify(rule),
+                    }),
+                  "Azione aggiornata",
+                )
+              }
               readOnly={!canManageRewards}
             />
           </TabsContent>

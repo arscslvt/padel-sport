@@ -1,0 +1,207 @@
+import { v } from "convex/values";
+
+import type { Doc } from "../../_generated/dataModel";
+import {
+  type MutationCtx,
+  mutation,
+  type QueryCtx,
+  query,
+} from "../../_generated/server";
+import { pointRuleKey } from "../../tables/pointRules";
+import { assertServer } from "../../utils/serverSecret";
+import { MAX_DELTA } from "./lib";
+
+/**
+ * Il catalogo delle azioni premiate in automatico, e il loro interruttore.
+ *
+ * Le azioni sono scritte qui perché ognuna ha il suo aggancio nel codice
+ * (modules/points/auto.ts per il gioco e il pagamento online). Il gestionale
+ * ne cambia i punti e le accende o le spegne, solo un amministratore.
+ *
+ * L'amico invitato sono due premi — a chi invita e all'amico — con due righe
+ * e due valori, ma un'azione sola per chi la configura: si leggono e si
+ * salvano insieme (`list`, `save`), con un interruttore unico.
+ */
+
+/** Il premio all'amico invitato: vive dentro «Amico invitato». */
+const PAIRED: Partial<Record<PointRuleKey, PointRuleKey>> = {
+  referral: "referral_welcome",
+};
+const isPaired = (key: PointRuleKey) =>
+  Object.values(PAIRED).includes(key);
+
+export type PointRuleKey = Doc<"pointRules">["key"];
+
+export interface PointRuleDefinition {
+  key: PointRuleKey;
+  /** Il nome del movimento: è quello che il cliente legge nel suo storico. */
+  label: string;
+  /** Cosa la fa scattare, per chi la configura. */
+  description: string;
+  defaultPoints: number;
+}
+
+export const POINT_RULES: readonly PointRuleDefinition[] = [
+  {
+    key: "first_match",
+    label: "Prima partita",
+    description:
+      "Alla prima prenotazione confermata dallo staff, dal sito o dal gestionale. Non vale per chi giocava già prima che la regola partisse.",
+    defaultPoints: 10,
+  },
+  {
+    key: "weekly_three",
+    label: "3 partite in una settimana",
+    description:
+      "Quando un cliente ha almeno 3 prenotazioni confermate nella stessa settimana, da lunedì a domenica.",
+    defaultPoints: 3,
+  },
+  {
+    key: "online_payment",
+    label: "Pagamento online",
+    description:
+      "A chi prenota, per ogni prenotazione pagata online. Se viene rimborsata o annullata, i punti tornano indietro.",
+    defaultPoints: 1,
+  },
+  {
+    key: "referral",
+    label: "Amico invitato",
+    description:
+      "A chi ha invitato un amico e all'amico stesso, quando l'amico paga la sua prima tessera in struttura.",
+    defaultPoints: 5,
+  },
+  {
+    key: "referral_welcome",
+    label: "Benvenuto da un amico",
+    description:
+      "A chi si iscrive su invito di un cliente, quando paga la sua prima tessera in struttura.",
+    defaultPoints: 5,
+  },
+];
+
+export function ruleDefinition(key: PointRuleKey): PointRuleDefinition {
+  const rule = POINT_RULES.find((row) => row.key === key);
+  if (!rule) throw new Error(`Azione premiata sconosciuta: ${key}`);
+  return rule;
+}
+
+export async function ruleRow(ctx: QueryCtx, key: PointRuleKey) {
+  return await ctx.db
+    .query("pointRules")
+    .withIndex("by_key", (q) => q.eq("key", key))
+    .first();
+}
+
+/** La regola se è accesa, `null` se è spenta o mai configurata. */
+export async function activeRule(ctx: QueryCtx, key: PointRuleKey) {
+  const row = await ruleRow(ctx, key);
+  return row?.enabled ? row : null;
+}
+
+function assertRulePoints(points: number) {
+  if (!Number.isInteger(points) || points < 1) {
+    throw new Error("I punti di un'azione sono un numero intero da 1 in su.");
+  }
+  if (points > MAX_DELTA) {
+    throw new Error(`Un'azione non può valere più di ${MAX_DELTA} punti.`);
+  }
+}
+
+export const list = query({
+  args: { secret: v.string() },
+  handler: async (ctx, { secret }) => {
+    assertServer(secret);
+
+    return await Promise.all(
+      POINT_RULES.filter((rule) => !isPaired(rule.key)).map(async (rule) => {
+        const row = await ruleRow(ctx, rule.key);
+        const pairedKey = PAIRED[rule.key];
+        const paired = pairedKey ? await ruleRow(ctx, pairedKey) : null;
+        return {
+          key: rule.key,
+          label: rule.label,
+          description: rule.description,
+          points: row?.points ?? rule.defaultPoints,
+          /** I punti dell'altro premio della stessa azione (l'amico invitato). */
+          friendPoints: pairedKey
+            ? (paired?.points ?? ruleDefinition(pairedKey).defaultPoints)
+            : undefined,
+          enabled: row?.enabled ?? false,
+          since: row?.since,
+        };
+      }),
+    );
+  },
+});
+
+export const save = mutation({
+  args: {
+    secret: v.string(),
+    key: pointRuleKey,
+    points: v.float64(),
+    /** Per «Amico invitato»: i punti all'amico. Senza, restano quelli di prima. */
+    friendPoints: v.optional(v.float64()),
+    enabled: v.boolean(),
+    clerkUserId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    assertServer(args.secret);
+    ruleDefinition(args.key);
+    if (isPaired(args.key)) {
+      throw new Error("Questi punti si cambiano da «Amico invitato».");
+    }
+    assertRulePoints(args.points);
+    if (args.friendPoints !== undefined) assertRulePoints(args.friendPoints);
+
+    const pairedKey = PAIRED[args.key];
+    if (pairedKey) {
+      const paired = await ruleRow(ctx, pairedKey);
+      await writeRule(ctx, pairedKey, {
+        points:
+          args.friendPoints ??
+          paired?.points ??
+          ruleDefinition(pairedKey).defaultPoints,
+        enabled: args.enabled,
+        clerkUserId: args.clerkUserId,
+      });
+    }
+
+    return await writeRule(ctx, args.key, args);
+  },
+});
+
+/**
+ * Cambiare i punti vale da qui in avanti: chi li ha già ricevuti tiene quelli
+ * del giorno in cui li ha guadagnati.
+ */
+async function writeRule(
+  ctx: MutationCtx,
+  key: PointRuleKey,
+  { points, enabled, clerkUserId }: {
+    points: number;
+    enabled: boolean;
+    clerkUserId?: string;
+  },
+) {
+  const now = Date.now();
+  const row = await ruleRow(ctx, key);
+
+  if (row) {
+    await ctx.db.patch(row._id, {
+      points,
+      enabled,
+      updatedAt: now,
+      updatedByClerkUserId: clerkUserId,
+    });
+    return row._id;
+  }
+
+  return await ctx.db.insert("pointRules", {
+    key,
+    points,
+    enabled,
+    since: now,
+    updatedAt: now,
+    updatedByClerkUserId: clerkUserId,
+  });
+}

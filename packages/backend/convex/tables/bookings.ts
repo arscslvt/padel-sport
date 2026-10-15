@@ -54,6 +54,15 @@ const bookings = defineTable({
   /** Giocatore dell'app mobile che ha creato la prenotazione (assente per il web) */
   createdByPlayer: v.optional(v.id("players")),
   /**
+   * Le schede dei clienti in campo, per le prenotazioni senza partita (quelle
+   * dello staff): lo staff collega un nome di `players` a un cliente vero.
+   * `createdByPlayer` conta anche se non è qui. Le prenotazioni con una
+   * partita tengono la squadra su `openMatches.playerIds`, e questo campo non
+   * lo usano. È ciò che fa contare la partita nei premi automatici
+   * (modules/points/auto.ts).
+   */
+  linkedPlayerIds: v.optional(v.array(v.id("players"))),
+  /**
    * Da dove arriva: il cliente da sé, dal sito o dall'app, oppure lo staff dal
    * gestionale. Assente sulle prenotazioni più vecchie di questo campo: lì
    * l'agenda la ricava dalla partita collegata (bookings/list.ts).

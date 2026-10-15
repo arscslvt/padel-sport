@@ -121,6 +121,15 @@ const players = defineTable({
    * proprio account, che leggerebbe un giudizio su di sé scritto per altri.
    */
   clubNotes: v.optional(v.string()),
+  /**
+   * Da quando la persona accetta di essere trovata per nome da altri clienti
+   * che compongono la squadra di una prenotazione (modules/openMatches/search.ts).
+   * Lo dà e lo toglie dall'area personale; assente vuol dire no. Chi la trova
+   * può solo invitarla: entra in partita se accetta l'invito.
+   *
+   * Lo staff non ne ha bisogno: dal gestionale vede già tutti i clienti.
+   */
+  searchableSince: v.optional(v.float64()),
   /** Quando la persona ha completato la propria iscrizione dal sito. */
   profileCompletedAt: v.optional(v.float64()),
   /**

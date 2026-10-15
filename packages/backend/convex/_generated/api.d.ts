@@ -81,6 +81,8 @@ import type * as modules_matchRequests_update from "../modules/matchRequests/upd
 import type * as modules_notifications_alert from "../modules/notifications/alert.js";
 import type * as modules_notifications_bookingMail from "../modules/notifications/bookingMail.js";
 import type * as modules_notifications_confirmation from "../modules/notifications/confirmation.js";
+import type * as modules_notifications_matchInvite from "../modules/notifications/matchInvite.js";
+import type * as modules_notifications_matchInviteData from "../modules/notifications/matchInviteData.js";
 import type * as modules_notifications_staff from "../modules/notifications/staff.js";
 import type * as modules_openMatches_cancel from "../modules/openMatches/cancel.js";
 import type * as modules_openMatches_create from "../modules/openMatches/create.js";
@@ -97,6 +99,7 @@ import type * as modules_openMatches_players from "../modules/openMatches/player
 import type * as modules_openMatches_publish from "../modules/openMatches/publish.js";
 import type * as modules_openMatches_recipients from "../modules/openMatches/recipients.js";
 import type * as modules_openMatches_requests from "../modules/openMatches/requests.js";
+import type * as modules_openMatches_search from "../modules/openMatches/search.js";
 import type * as modules_payments_checkout from "../modules/payments/checkout.js";
 import type * as modules_payments_lib from "../modules/payments/lib.js";
 import type * as modules_payments_refund from "../modules/payments/refund.js";
@@ -108,6 +111,9 @@ import type * as modules_pointReports_list from "../modules/pointReports/list.js
 import type * as modules_pointReports_mail from "../modules/pointReports/mail.js";
 import type * as modules_pointReports_mine from "../modules/pointReports/mine.js";
 import type * as modules_pointReports_update from "../modules/pointReports/update.js";
+import type * as modules_points_auto from "../modules/points/auto.js";
+import type * as modules_points_backfill from "../modules/points/backfill.js";
+import type * as modules_points_boosts from "../modules/points/boosts.js";
 import type * as modules_points_exit from "../modules/points/exit.js";
 import type * as modules_points_expire from "../modules/points/expire.js";
 import type * as modules_points_ledger from "../modules/points/ledger.js";
@@ -116,6 +122,7 @@ import type * as modules_points_mail from "../modules/points/mail.js";
 import type * as modules_points_presets from "../modules/points/presets.js";
 import type * as modules_points_redemptions from "../modules/points/redemptions.js";
 import type * as modules_points_rewards from "../modules/points/rewards.js";
+import type * as modules_points_rules from "../modules/points/rules.js";
 import type * as modules_points_terms from "../modules/points/terms.js";
 import type * as modules_points_version from "../modules/points/version.js";
 import type * as modules_points_wallet from "../modules/points/wallet.js";
@@ -125,6 +132,8 @@ import type * as modules_privacy_retention from "../modules/privacy/retention.js
 import type * as modules_push_preferences from "../modules/push/preferences.js";
 import type * as modules_push_send from "../modules/push/send.js";
 import type * as modules_push_subscriptions from "../modules/push/subscriptions.js";
+import type * as modules_referrals_invite from "../modules/referrals/invite.js";
+import type * as modules_referrals_lib from "../modules/referrals/lib.js";
 import type * as modules_reminders_emptyDays from "../modules/reminders/emptyDays.js";
 import type * as modules_reminders_starting from "../modules/reminders/starting.js";
 import type * as modules_settings_booking from "../modules/settings/booking.js";
@@ -145,6 +154,7 @@ import type * as modules_tournaments_players_add from "../modules/tournaments/pl
 import type * as modules_tournaments_teams_get from "../modules/tournaments/teams/get.js";
 import type * as slots_listActive from "../slots/listActive.js";
 import type * as tables_bookingDeliveries from "../tables/bookingDeliveries.js";
+import type * as tables_bookingPlayers from "../tables/bookingPlayers.js";
 import type * as tables_bookingSettings from "../tables/bookingSettings.js";
 import type * as tables_bookings from "../tables/bookings.js";
 import type * as tables_circleInvites from "../tables/circleInvites.js";
@@ -169,9 +179,11 @@ import type * as tables_payments from "../tables/payments.js";
 import type * as tables_players from "../tables/players.js";
 import type * as tables_pointPresets from "../tables/pointPresets.js";
 import type * as tables_pointReports from "../tables/pointReports.js";
+import type * as tables_pointRules from "../tables/pointRules.js";
 import type * as tables_pointTransactions from "../tables/pointTransactions.js";
 import type * as tables_pointsExitRequests from "../tables/pointsExitRequests.js";
 import type * as tables_pushSubscriptions from "../tables/pushSubscriptions.js";
+import type * as tables_referrals from "../tables/referrals.js";
 import type * as tables_rewardRedemptions from "../tables/rewardRedemptions.js";
 import type * as tables_rewards from "../tables/rewards.js";
 import type * as tables_services from "../tables/services.js";
@@ -265,6 +277,8 @@ declare const fullApi: ApiFromModules<{
   "modules/notifications/alert": typeof modules_notifications_alert;
   "modules/notifications/bookingMail": typeof modules_notifications_bookingMail;
   "modules/notifications/confirmation": typeof modules_notifications_confirmation;
+  "modules/notifications/matchInvite": typeof modules_notifications_matchInvite;
+  "modules/notifications/matchInviteData": typeof modules_notifications_matchInviteData;
   "modules/notifications/staff": typeof modules_notifications_staff;
   "modules/openMatches/cancel": typeof modules_openMatches_cancel;
   "modules/openMatches/create": typeof modules_openMatches_create;
@@ -281,6 +295,7 @@ declare const fullApi: ApiFromModules<{
   "modules/openMatches/publish": typeof modules_openMatches_publish;
   "modules/openMatches/recipients": typeof modules_openMatches_recipients;
   "modules/openMatches/requests": typeof modules_openMatches_requests;
+  "modules/openMatches/search": typeof modules_openMatches_search;
   "modules/payments/checkout": typeof modules_payments_checkout;
   "modules/payments/lib": typeof modules_payments_lib;
   "modules/payments/refund": typeof modules_payments_refund;
@@ -292,6 +307,9 @@ declare const fullApi: ApiFromModules<{
   "modules/pointReports/mail": typeof modules_pointReports_mail;
   "modules/pointReports/mine": typeof modules_pointReports_mine;
   "modules/pointReports/update": typeof modules_pointReports_update;
+  "modules/points/auto": typeof modules_points_auto;
+  "modules/points/backfill": typeof modules_points_backfill;
+  "modules/points/boosts": typeof modules_points_boosts;
   "modules/points/exit": typeof modules_points_exit;
   "modules/points/expire": typeof modules_points_expire;
   "modules/points/ledger": typeof modules_points_ledger;
@@ -300,6 +318,7 @@ declare const fullApi: ApiFromModules<{
   "modules/points/presets": typeof modules_points_presets;
   "modules/points/redemptions": typeof modules_points_redemptions;
   "modules/points/rewards": typeof modules_points_rewards;
+  "modules/points/rules": typeof modules_points_rules;
   "modules/points/terms": typeof modules_points_terms;
   "modules/points/version": typeof modules_points_version;
   "modules/points/wallet": typeof modules_points_wallet;
@@ -309,6 +328,8 @@ declare const fullApi: ApiFromModules<{
   "modules/push/preferences": typeof modules_push_preferences;
   "modules/push/send": typeof modules_push_send;
   "modules/push/subscriptions": typeof modules_push_subscriptions;
+  "modules/referrals/invite": typeof modules_referrals_invite;
+  "modules/referrals/lib": typeof modules_referrals_lib;
   "modules/reminders/emptyDays": typeof modules_reminders_emptyDays;
   "modules/reminders/starting": typeof modules_reminders_starting;
   "modules/settings/booking": typeof modules_settings_booking;
@@ -329,6 +350,7 @@ declare const fullApi: ApiFromModules<{
   "modules/tournaments/teams/get": typeof modules_tournaments_teams_get;
   "slots/listActive": typeof slots_listActive;
   "tables/bookingDeliveries": typeof tables_bookingDeliveries;
+  "tables/bookingPlayers": typeof tables_bookingPlayers;
   "tables/bookingSettings": typeof tables_bookingSettings;
   "tables/bookings": typeof tables_bookings;
   "tables/circleInvites": typeof tables_circleInvites;
@@ -353,9 +375,11 @@ declare const fullApi: ApiFromModules<{
   "tables/players": typeof tables_players;
   "tables/pointPresets": typeof tables_pointPresets;
   "tables/pointReports": typeof tables_pointReports;
+  "tables/pointRules": typeof tables_pointRules;
   "tables/pointTransactions": typeof tables_pointTransactions;
   "tables/pointsExitRequests": typeof tables_pointsExitRequests;
   "tables/pushSubscriptions": typeof tables_pushSubscriptions;
+  "tables/referrals": typeof tables_referrals;
   "tables/rewardRedemptions": typeof tables_rewardRedemptions;
   "tables/rewards": typeof tables_rewards;
   "tables/services": typeof tables_services;

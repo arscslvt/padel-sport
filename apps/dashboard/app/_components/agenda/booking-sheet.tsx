@@ -39,7 +39,11 @@ import {
   wasRefunded,
   whatsappNumber,
 } from "./lib";
-import { PlayersDrawer, PlayersEditor } from "./players-editor";
+import {
+  PlayersDrawer,
+  PlayersEditor,
+  type PlayersPayload,
+} from "./players-editor";
 import { RescheduleDrawer, RescheduleEditor } from "./reschedule-editor";
 
 /**
@@ -83,7 +87,10 @@ export function BookingSheet({
   onAccept: (booking: Booking) => void;
   onCancel: (booking: Booking) => void;
   onRefund: (booking: Booking, paymentId: string, amount: number) => void;
-  onUpdatePlayers: (booking: Booking, players: string[]) => Promise<boolean>;
+  onUpdatePlayers: (
+    booking: Booking,
+    payload: PlayersPayload,
+  ) => Promise<boolean>;
   onReschedule: (
     booking: Booking,
     bookingDate: number,
@@ -137,7 +144,10 @@ function Body({
   onAccept: (booking: Booking) => void;
   onCancel: (booking: Booking) => void;
   onRefund: (booking: Booking, paymentId: string, amount: number) => void;
-  onUpdatePlayers: (booking: Booking, players: string[]) => Promise<boolean>;
+  onUpdatePlayers: (
+    booking: Booking,
+    payload: PlayersPayload,
+  ) => Promise<boolean>;
   onReschedule: (
     booking: Booking,
     bookingDate: number,
@@ -175,7 +185,8 @@ function Body({
   const saveTime = (bookingDate: number, notify: boolean) =>
     onReschedule(booking, bookingDate, notify);
   const saveCourt = (slotId: string) => onMoveCourt(booking, slotId);
-  const savePlayers = (players: string[]) => onUpdatePlayers(booking, players);
+  const savePlayers = (payload: PlayersPayload) =>
+    onUpdatePlayers(booking, payload);
 
   const courtRowProps = {
     title: "Campo",

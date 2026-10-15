@@ -40,6 +40,11 @@ export async function GET(request: Request) {
 const bodySchema = z.object({
   bookingId: z.string().min(1),
   players: z.array(z.string().max(60)).min(1).max(4),
+  /** I nomi collegati a un cliente in anagrafica. */
+  links: z
+    .array(z.object({ name: z.string().max(60), playerId: z.string().min(1) }))
+    .max(4)
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -56,6 +61,10 @@ export async function POST(request: Request) {
       secret: gate.secret,
       bookingId: parsed.data.bookingId as Id<"bookings">,
       players: parsed.data.players,
+      links: parsed.data.links?.map((link) => ({
+        name: link.name,
+        playerId: link.playerId as Id<"players">,
+      })),
     });
 
     return NextResponse.json(result);

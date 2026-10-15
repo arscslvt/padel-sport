@@ -18,6 +18,7 @@ import {
   isWithinOpeningHours,
 } from "../modules/settings/lib";
 import { recordDeliveries } from "../modules/deliveries/lib";
+import { bookingChanged } from "../modules/points/auto";
 import { assertServer } from "../utils/serverSecret";
 
 /**
@@ -44,6 +45,27 @@ const LEVEL = v.union(
   v.literal("intermedio"),
   v.literal("avanzato"),
 );
+
+/**
+ * I clienti collegati ai nomi, senza doppioni e senza chi prenota (che conta
+ * già come `createdByPlayer`). Al massimo quanti stanno in campo.
+ */
+export async function linkablePlayers(
+  ctx: MutationCtx,
+  ids: Id<"players">[] | undefined,
+  bookerId: Id<"players"> | undefined,
+): Promise<Id<"players">[] | undefined> {
+  const unique = [...new Set(ids ?? [])].filter((id) => id !== bookerId);
+  if (unique.length === 0) return undefined;
+  if (unique.length > MAX_PLAYERS) {
+    throw new Error(`In campo si sta in ${MAX_PLAYERS}.`);
+  }
+
+  for (const id of unique) {
+    if (!(await ctx.db.get(id))) throw new Error("Cliente non trovato.");
+  }
+  return unique;
+}
 
 /** Il codice di sei caratteri che sta nel QR. Alla collisione si riprova. */
 async function bookingCode(ctx: MutationCtx): Promise<string> {
@@ -72,6 +94,11 @@ export default mutation({
     phone: v.optional(v.string()),
     /** I nomi in campo: il primo è chi prenota. */
     players: v.array(v.string()),
+    /**
+     * I clienti in anagrafica fra quei nomi, scelti dalla ricerca: la partita
+     * conta per loro nei premi automatici (modules/points/auto.ts).
+     */
+    linkedPlayerIds: v.optional(v.array(v.id("players"))),
     level: LEVEL,
     notify: v.boolean(),
     /** L'operatore che la prende: resta scritto nella scheda. */
@@ -110,6 +137,12 @@ export default mutation({
       .filter(Boolean)
       .slice(0, MAX_PLAYERS);
     if (players.length === 0) players.push(bookedBy);
+
+    const linkedPlayerIds = await linkablePlayers(
+      ctx,
+      args.linkedPlayerIds,
+      player?._id,
+    );
 
     const rawPhone = args.phone?.trim() || player?.phone;
     const phone = rawPhone ? normalizePhone(rawPhone) : undefined;
@@ -150,9 +183,13 @@ export default mutation({
       createdAt: Date.now(),
       code,
       createdByPlayer: player?._id,
+      linkedPlayerIds,
       source: "staff",
       createdByStaff: args.staff,
     });
+
+    // Nasce confermata: per chi gioca può essere già una partita premiata.
+    await bookingChanged(ctx, bookingId);
 
     // Senza l'evento sul calendario condiviso, su SumUp quel campo resterebbe
     // prenotabile.

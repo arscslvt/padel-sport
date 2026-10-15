@@ -7,6 +7,7 @@ import {
   requirePlayer,
 } from "./lib";
 import { releaseMerge } from "../../bookings/lib";
+import { bookingChanged } from "../points/auto";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
 
@@ -54,6 +55,7 @@ export default mutation({
 
     await ctx.db.patch(match._id, { status: "cancelled" });
     await ctx.db.patch(match.bookingId, { status: "cancelled" });
+    await bookingChanged(ctx, match.bookingId);
 
     // Le richieste ancora in attesa non hanno più una partita a cui riferirsi
     const pendingRequests = await ctx.db

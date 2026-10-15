@@ -24,6 +24,14 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
+import {
+  type ClientOption,
+  ClientSuggestions,
+  LinkedClient,
+  type PlayerLink,
+  useClientMatches,
+  useClients,
+} from "./client-search";
 import { type Booking, dayKey, dayLabel, timeRange } from "./lib";
 
 /**
@@ -31,7 +39,8 @@ import { type Booking, dayKey, dayLabel, timeRange } from "./lib";
  *
  * Chi si è unito dall'app compare ma non si tocca: esce dalla partita
  * dall'app. Gli altri sono nomi da scrivere, con tanti posti vuoti quanti la
- * prenotazione ne ha ancora. Le regole vere stanno in Convex
+ * prenotazione ne ha ancora. Ogni nome si può collegare a un cliente in
+ * anagrafica (client-search.tsx): la partita conta anche per lui nei punti. Le regole vere stanno in Convex
  * (bookings/players.ts): qui si aiuta solo a scrivere bene, prima di inviare.
  *
  * Due forme, perché la scheda ne ha due. Da desktop la scheda è una modale
@@ -49,7 +58,27 @@ interface EditData {
   seats: number;
   /** I nomi modificabili com'erano all'apertura: dicono se c'è da salvare. */
   original: string[];
+  /** I collegamenti com'erano all'apertura, posto per posto. */
+  originalLinks: (PlayerLink | null)[];
 }
+
+/** Ogni collegamento al primo nome uguale ancora libero. */
+function linksFor(names: string[], links: PlayerLink[]): (PlayerLink | null)[] {
+  const left = [...links];
+  return names.map((name) => {
+    const index = left.findIndex((link) => link.name === name);
+    if (index === -1) return null;
+    return left.splice(index, 1)[0];
+  });
+}
+
+const linkKey = (links: (PlayerLink | null)[], names: string[]) =>
+  names
+    .map((name, index) =>
+      name.trim() ? `${name.trim()}:${links[index]?.playerId ?? ""}` : "",
+    )
+    .filter(Boolean)
+    .join("\u0000");
 
 /** Toglie da `names` una occorrenza per ciascun nome di `remove`. */
 function without(names: string[], remove: string[]): string[] {
@@ -76,6 +105,7 @@ function nameError(name: string): string | null {
 function usePlayersForm(booking: Booking) {
   const [data, setData] = useState<EditData | null>(null);
   const [names, setNames] = useState<string[]>([]);
+  const [linked, setLinked] = useState<(PlayerLink | null)[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   /** I campi lasciati almeno una volta: l'errore compare dopo, non a metà parola. */
@@ -100,12 +130,24 @@ function usePlayersForm(booking: Booking) {
         const locked: string[] = payload.locked;
         const editable = without(payload.players, locked);
         const slots = Math.max(editable.length, payload.seats - locked.length);
+        // Chi è in partita dall'app è già fra i bloccati: qui restano i
+        // collegamenti dei nomi scritti.
+        const links = linksFor(
+          editable,
+          (payload.links ?? []).filter(
+            (link: PlayerLink) => !locked.includes(link.name),
+          ),
+        );
+        const blank = Array.from({ length: slots - editable.length }, () => "");
 
-        setNames([
-          ...editable,
-          ...Array.from({ length: slots - editable.length }, () => ""),
-        ]);
-        setData({ locked, seats: payload.seats, original: editable });
+        setNames([...editable, ...blank]);
+        setLinked([...links, ...blank.map(() => null)]);
+        setData({
+          locked,
+          seats: payload.seats,
+          original: editable,
+          originalLinks: links,
+        });
       } catch {
         if (alive) {
           setLoadError(
@@ -120,9 +162,32 @@ function usePlayersForm(booking: Booking) {
     };
   }, [booking._id, attempt]);
 
-  const setName = (index: number, value: string) =>
+  const setName = (index: number, value: string) => {
     setNames((current) =>
       current.map((name, position) => (position === index ? value : name)),
+    );
+    // Cambiato il nome, non è più quel cliente.
+    setLinked((current) =>
+      current.map((link, position) => (position === index ? null : link)),
+    );
+  };
+
+  const pick = (index: number, option: ClientOption) => {
+    setNames((current) =>
+      current.map((name, position) =>
+        position === index ? option.name : name,
+      ),
+    );
+    setLinked((current) =>
+      current.map((link, position) =>
+        position === index ? { name: option.name, playerId: option.id } : link,
+      ),
+    );
+  };
+
+  const unlink = (index: number) =>
+    setLinked((current) =>
+      current.map((link, position) => (position === index ? null : link)),
     );
 
   const errors = names.map((name, index) =>
@@ -133,12 +198,13 @@ function usePlayersForm(booking: Booking) {
   const total = (data?.locked.length ?? 0) + filled.length;
   const dirty =
     data !== null &&
-    filled.join("\u0000") !== filledOf(data.original).join("\u0000");
+    (filled.join("\u0000") !== filledOf(data.original).join("\u0000") ||
+      linkKey(linked, names) !== linkKey(data.originalLinks, data.original));
   /** Nessun nome in tutta la prenotazione: chi ha prenotato non può sparire. */
   const empty = submitted && data !== null && total === 0;
 
   /** I nomi da salvare, bloccati compresi, o `null` portando al campo da sistemare. */
-  const collect = (): string[] | null => {
+  const collect = (): PlayersPayload | null => {
     if (!data) return null;
     setSubmitted(true);
 
@@ -152,12 +218,19 @@ function usePlayersForm(booking: Booking) {
       return null;
     }
 
-    return [...data.locked, ...filled];
+    return {
+      players: [...data.locked, ...filled],
+      links: names
+        .map((name, index) => ({ name: name.trim(), link: linked[index] }))
+        .filter(({ name, link }) => name && link)
+        .map(({ name, link }) => ({ name, playerId: link?.playerId ?? "" })),
+    };
   };
 
   return {
     data,
     names,
+    linked,
     loadError,
     errors,
     empty,
@@ -165,6 +238,8 @@ function usePlayersForm(booking: Booking) {
     dirty,
     inputs,
     setName,
+    pick,
+    unlink,
     visit: (index: number) =>
       setVisited((current) => new Set(current).add(index)),
     retry: () => setAttempt((current) => current + 1),
@@ -173,6 +248,12 @@ function usePlayersForm(booking: Booking) {
 }
 
 type PlayersForm = ReturnType<typeof usePlayersForm>;
+
+/** Quel che si salva: tutti i nomi in ordine, e quali sono clienti. */
+export interface PlayersPayload {
+  players: string[];
+  links: { name: string; playerId: string }[];
+}
 
 function PlayersFields({
   form,
@@ -186,8 +267,18 @@ function PlayersFields({
   /** Da telefono: campi alti un pollice. */
   touch?: boolean;
 }) {
-  const { data, names, loadError, errors, empty, total, inputs } = form;
+  const { data, names, linked, loadError, errors, empty, total, inputs } = form;
   const id = useId();
+  const clients = useClients();
+  const [focused, setFocused] = useState<number | null>(null);
+  const chosen = linked
+    .map((link) => link?.playerId)
+    .filter((playerId): playerId is string => Boolean(playerId));
+  const matches = useClientMatches(
+    clients,
+    focused !== null && !linked[focused] ? (names[focused] ?? "") : "",
+    chosen,
+  );
 
   if (loadError) {
     return (
@@ -268,6 +359,25 @@ function PlayersFields({
           const error =
             errors[index] ??
             (booker && empty ? "Inserisci il nome di chi prenota." : null);
+          const link = linked[index];
+
+          if (link) {
+            return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: posti fissi, non si riordinano.
+              <div key={index} className="px-4 py-3">
+                <p className="mb-1.5 text-[13px] font-medium">
+                  {booker ? "Prenotato da" : `Giocatore ${position}`}
+                </p>
+                <LinkedClient
+                  name={name}
+                  touch={touch}
+                  onUnlink={
+                    link.fixed || busy ? undefined : () => form.unlink(index)
+                  }
+                />
+              </div>
+            );
+          }
 
           return (
             // La posizione è l'identità del campo: i nomi cambiano mentre si
@@ -299,7 +409,11 @@ function PlayersFields({
                   aria-describedby={error ? errorId : undefined}
                   className={cn("bg-card", touch ? "h-11 pr-11" : "h-9 pr-9")}
                   onChange={(event) => form.setName(index, event.target.value)}
-                  onBlur={() => form.visit(index)}
+                  onFocus={() => setFocused(index)}
+                  onBlur={() => {
+                    form.visit(index);
+                    setFocused(null);
+                  }}
                   onKeyDown={(event) => onKeyDown(event, index)}
                 />
                 {name && !busy && (
@@ -319,6 +433,13 @@ function PlayersFields({
                   </button>
                 )}
               </div>
+              {focused === index && (
+                <ClientSuggestions
+                  className="mt-1.5"
+                  options={matches}
+                  onPick={(option) => form.pick(index, option)}
+                />
+              )}
               {error && (
                 <p id={errorId} className="text-danger mt-1.5 text-[13px]">
                   {error}
@@ -341,8 +462,8 @@ export function PlayersEditor({
 }: {
   booking: Booking;
   busy: boolean;
-  /** Tutti i nomi nell'ordine, bloccati compresi. Dice se è andata. */
-  onSave: (players: string[]) => Promise<boolean>;
+  /** Tutti i nomi nell'ordine, bloccati compresi, e i clienti. Dice se è andata. */
+  onSave: (payload: PlayersPayload) => Promise<boolean>;
   onClose: () => void;
 }) {
   const form = usePlayersForm(booking);
@@ -371,8 +492,8 @@ export function PlayersEditor({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const players = form.collect();
-    if (players && (await onSave(players))) onClose();
+    const payload = form.collect();
+    if (payload && (await onSave(payload))) onClose();
   };
 
   return (
@@ -415,7 +536,7 @@ export function PlayersDrawer({
   busy: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (players: string[]) => Promise<boolean>;
+  onSave: (payload: PlayersPayload) => Promise<boolean>;
   /** La riga che lo apre. */
   children: ReactNode;
 }) {
@@ -439,7 +560,7 @@ function DrawerForm({
 }: {
   booking: Booking;
   busy: boolean;
-  onSave: (players: string[]) => Promise<boolean>;
+  onSave: (payload: PlayersPayload) => Promise<boolean>;
 }) {
   const form = usePlayersForm(booking);
   const close = useCloseNested();
@@ -447,8 +568,8 @@ function DrawerForm({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const players = form.collect();
-    if (players && (await onSave(players))) close();
+    const payload = form.collect();
+    if (payload && (await onSave(payload))) close();
   };
 
   return (

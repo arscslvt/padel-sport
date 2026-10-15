@@ -66,6 +66,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
   const [levelIndex, setLevelIndex] = useState(1);
   const [residence, setResidence] = useState<Residence>({});
   const [optional, setOptional] = useState<OptionalFieldsValue>(EMPTY_OPTIONAL);
+  const [referralCode, setReferralCode] = useState("");
 
   const reset = () => {
     setFirstName("");
@@ -78,6 +79,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
     setLevelIndex(1);
     setResidence({});
     setOptional(EMPTY_OPTIONAL);
+    setReferralCode("");
   };
 
   const create = async () => {
@@ -99,6 +101,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
           level: LEVEL_RANGES[levelIndex].level,
           residence: residencePayload(residence),
           ...optionalPayload(optional),
+          referralCode: referralCode.trim() || undefined,
         }),
       });
 
@@ -186,6 +189,30 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="new-referral">
+              Codice amico{" "}
+              <span className="text-muted-foreground font-normal">
+                — se l&apos;ha invitato un cliente
+              </span>
+            </Label>
+            <Input
+              id="new-referral"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="Es. 48213"
+              maxLength={6}
+              value={referralCode}
+              onChange={(event) =>
+                setReferralCode(event.target.value.replace(/\D/g, ""))
+              }
+            />
+            <p className="text-muted-foreground text-xs">
+              Se è stato invitato via mail lo riconosciamo anche
+              dall&apos;email. Alla prima tessera pagata ricevono i punti sia il
+              nuovo cliente sia chi l&apos;ha invitato.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="new-phone">Telefono</Label>

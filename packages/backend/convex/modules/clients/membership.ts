@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { paymentMethod } from "../../tables/memberships";
 import { assertServer } from "../../utils/serverSecret";
+import { reconcileReferral } from "../points/auto";
 import { lastMembership, membershipEnd } from "./lib";
 
 /**
@@ -58,6 +59,7 @@ export const save = mutation({
         note: args.note?.trim() || undefined,
       });
 
+      await reconcileReferral(ctx, args.playerId);
       return { membershipId: args.membershipId, renewed: false };
     }
 
@@ -82,6 +84,9 @@ export const save = mutation({
       createdAt: now,
     });
 
+    // La prima tessera pagata di un amico invitato: punti a chi l'ha invitato.
+    await reconcileReferral(ctx, args.playerId);
+
     return { membershipId, renewed: Boolean(previous) };
   },
 });
@@ -93,6 +98,8 @@ export const remove = mutation({
   },
   handler: async (ctx, { secret, membershipId }) => {
     assertServer(secret);
+    const membership = await ctx.db.get(membershipId);
     await ctx.db.delete(membershipId);
+    if (membership) await reconcileReferral(ctx, membership.playerId);
   },
 });
