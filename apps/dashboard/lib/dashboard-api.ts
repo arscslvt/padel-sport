@@ -4,10 +4,10 @@ import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { NextResponse } from "next/server";
 
-import { isStaffMember, STAFF_ADMIN_ROLE, staffMembership } from "@/lib/staff";
+import { STAFF_ADMIN_ROLE, staffMembership } from "@/lib/staff";
 
 /**
- * Guardia comune alle route di configurazione della dashboard.
+ * Guardia comune alle route della dashboard.
  *
  * Il controllo vero è qui: Convex non sa chi è lo staff — quello lo sa Clerk,
  * attraverso l'organizzazione. Le mutation di configurazione si difendono con
@@ -22,6 +22,10 @@ export type StaffGate =
       secret: string;
       /** Chi dello staff sta chiedendo: serve a firmare quello che fa. */
       userId: string;
+      /** Amministratore dello staff: configura il club, non solo lo usa. */
+      isAdmin: boolean;
+      /** L'organizzazione staff, su cui si aggiunge e si toglie. */
+      organizationId: string;
     };
 
 export async function staffGate(): Promise<StaffGate> {
@@ -37,7 +41,9 @@ export async function staffGate(): Promise<StaffGate> {
     };
   }
 
-  if (!(await isStaffMember(userId))) {
+  const { isStaff, role, organizationId } = await staffMembership(userId);
+
+  if (!isStaff || !organizationId) {
     return {
       ok: false,
       response: NextResponse.json(
@@ -47,51 +53,40 @@ export async function staffGate(): Promise<StaffGate> {
     };
   }
 
-  return withConvex(userId);
+  return withConvex({
+    userId,
+    isAdmin: role === STAFF_ADMIN_ROLE,
+    organizationId,
+  });
 }
 
-export type StaffAdminGate =
-  | { ok: false; response: NextResponse }
-  | (Extract<StaffGate, { ok: true }> & {
-      /** L'organizzazione staff, su cui si aggiunge e si toglie. */
-      organizationId: string;
-    });
+/** La risposta per chi è dello staff ma non amministratore. */
+export function adminOnly(): NextResponse {
+  return NextResponse.json(
+    { error: "Solo un amministratore dello staff può farlo." },
+    { status: 403 },
+  );
+}
 
 /**
- * Come `staffGate`, ma solo per gli amministratori dello staff: chi può
- * vedere chi è dello staff, aggiungere persone e toglierle.
+ * Come `staffGate`, ma solo per gli amministratori dello staff: chi gestisce
+ * le persone dello staff, la configurazione del club, il listino e il
+ * catalogo dei premi. Il resto dello staff usa il gestionale, non lo
+ * configura.
  */
-export async function staffAdminGate(): Promise<StaffAdminGate> {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { error: "Serve l'accesso con l'account dello staff." },
-        { status: 401 },
-      ),
-    };
-  }
-
-  const { isStaff, role, organizationId } = await staffMembership(userId);
-
-  if (!isStaff || role !== STAFF_ADMIN_ROLE || !organizationId) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { error: "Solo un amministratore dello staff può farlo." },
-        { status: 403 },
-      ),
-    };
-  }
-
-  const gate = withConvex(userId);
-  return gate.ok ? { ...gate, organizationId } : gate;
+export async function staffAdminGate(): Promise<StaffGate> {
+  const gate = await staffGate();
+  if (gate.ok && !gate.isAdmin) return { ok: false, response: adminOnly() };
+  return gate;
 }
 
 /** Il client Convex e il segreto condiviso, o l'errore che dice cosa manca. */
-function withConvex(userId: string): StaffGate {
+function withConvex(
+  who: Pick<
+    Extract<StaffGate, { ok: true }>,
+    "userId" | "isAdmin" | "organizationId"
+  >,
+): StaffGate {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   const secret = process.env.BOOKING_WEBHOOK_SECRET;
 
@@ -116,7 +111,7 @@ function withConvex(userId: string): StaffGate {
     };
   }
 
-  return { ok: true, convex: new ConvexHttpClient(convexUrl), secret, userId };
+  return { ok: true, convex: new ConvexHttpClient(convexUrl), secret, ...who };
 }
 
 /**

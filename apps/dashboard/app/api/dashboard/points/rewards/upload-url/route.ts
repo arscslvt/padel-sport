@@ -2,14 +2,14 @@ import { api } from "@padel-sport/backend/convex/_generated/api";
 import { NextResponse } from "next/server";
 
 import { convexMessage } from "@/lib/clients";
-import { staffGate } from "@/lib/dashboard-api";
+import { staffAdminGate } from "@/lib/dashboard-api";
 
 /**
  * L'indirizzo a cui caricare la foto di un premio. Il file non passa da qui:
  * il browser lo manda dritto a Convex (modules/points/rewards.ts).
  */
 export async function POST() {
-  const gate = await staffGate();
+  const gate = await staffAdminGate();
   if (!gate.ok) return gate.response;
 
   try {

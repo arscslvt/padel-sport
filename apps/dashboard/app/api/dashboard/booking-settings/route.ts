@@ -2,7 +2,7 @@ import { api } from "@padel-sport/backend/convex/_generated/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { staffGate } from "@/lib/dashboard-api";
+import { staffAdminGate } from "@/lib/dashboard-api";
 
 /** Salva giorni e fasce in cui si può prenotare. Solo staff. */
 
@@ -22,7 +22,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const gate = await staffGate();
+  const gate = await staffAdminGate();
   if (!gate.ok) return gate.response;
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));

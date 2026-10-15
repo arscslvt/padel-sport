@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { convexMessage } from "@/lib/clients";
-import { staffGate } from "@/lib/dashboard-api";
+import { staffAdminGate } from "@/lib/dashboard-api";
 
 const patchSchema = z.object({ disabled: z.boolean() });
 
@@ -13,7 +13,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ rewardId: string }> },
 ) {
-  const gate = await staffGate();
+  const gate = await staffAdminGate();
   if (!gate.ok) return gate.response;
 
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
@@ -45,7 +45,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ rewardId: string }> },
 ) {
-  const gate = await staffGate();
+  const gate = await staffAdminGate();
   if (!gate.ok) return gate.response;
 
   const { rewardId } = await params;

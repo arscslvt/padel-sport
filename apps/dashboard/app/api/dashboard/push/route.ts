@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { convexMessage } from "@/lib/clients";
-import { staffGate } from "@/lib/dashboard-api";
+import { adminOnly, staffGate } from "@/lib/dashboard-api";
 
 /**
  * I dispositivi dello staff che ricevono le notifiche push.
@@ -125,6 +125,17 @@ export async function DELETE(request: Request) {
   const parsed = removeSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Dati non validi." }, { status: 400 });
+  }
+
+  // Togliere il telefono di un collega è gestire lo staff: lo fa un
+  // amministratore. I propri dispositivi ognuno li toglie da sé.
+  if ("id" in parsed.data && !gate.isAdmin) {
+    const { devices } = await gate.convex
+      .query(api.modules.push.subscriptions.list, { secret: gate.secret })
+      .catch(() => ({ devices: [] as { _id: string; userId: string }[] }));
+    const id = parsed.data.id;
+    const device = devices.find((row) => row._id === id);
+    if (device?.userId !== gate.userId) return adminOnly();
   }
 
   try {

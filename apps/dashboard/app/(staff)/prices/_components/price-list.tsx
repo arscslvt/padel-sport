@@ -29,6 +29,10 @@ import { Skeleton } from "@/components/ui/skeleton";
  * dall'app, quella dello sportello e, quando arriverà, il pagamento online.
  * La cassa SumUp invece non si aggiorna da qui — le sue API non espongono il
  * catalogo — e va allineata a mano.
+ *
+ * Lo cambia solo un amministratore: il resto dello staff lo legge, per
+ * rispondere a chi chiede quanto costa, ma le righe non si aprono (e la
+ * route rifiuterebbe comunque il salvataggio).
  */
 
 /** "7,50" o "7.50": da telefono la tastiera italiana mette la virgola. */
@@ -48,7 +52,7 @@ function euroInput(value: number | undefined): string {
     : value.toFixed(2).replace(".", ",");
 }
 
-export function PriceList() {
+export function PriceList({ canEdit }: { canEdit: boolean }) {
   const services = useQuery(api.modules.pricing.services.list, {});
   // Il servizio resta in memoria anche a pannello chiuso: l'animazione di
   // chiusura non deve vedere sparire titolo e prezzi.
@@ -59,7 +63,11 @@ export function PriceList() {
     <div className="max-w-2xl">
       <ListGroup
         title="Servizi prenotabili"
-        footer="Un prezzo nuovo vale per le prenotazioni da qui in avanti: quelle già prese restano al prezzo con cui sono nate. La cassa SumUp non si aggiorna da sola, quindi un prezzo cambiato qui va cambiato anche lì."
+        footer={
+          canEdit
+            ? "Un prezzo nuovo vale per le prenotazioni da qui in avanti: quelle già prese restano al prezzo con cui sono nate. La cassa SumUp non si aggiorna da sola, quindi un prezzo cambiato qui va cambiato anche lì."
+            : "Sono i prezzi di sito, app e sportello. Il listino lo cambia un amministratore."
+        }
       >
         {services === undefined ? (
           <div className="p-4">
@@ -83,17 +91,23 @@ export function PriceList() {
                   )}
                 </span>
               }
-              chevron
-              onClick={() => {
-                setEditing(service);
-                setOpen(true);
-              }}
+              chevron={canEdit}
+              onClick={
+                canEdit
+                  ? () => {
+                      setEditing(service);
+                      setOpen(true);
+                    }
+                  : undefined
+              }
             />
           ))
         )}
       </ListGroup>
 
-      <PriceDialog service={editing} open={open} onOpenChange={setOpen} />
+      {canEdit && (
+        <PriceDialog service={editing} open={open} onOpenChange={setOpen} />
+      )}
     </div>
   );
 }

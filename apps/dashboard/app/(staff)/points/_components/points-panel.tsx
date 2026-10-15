@@ -62,7 +62,17 @@ async function request(url: string, init?: RequestInit) {
   return payload;
 }
 
-export function PointsPanel() {
+/**
+ * `canManageRewards`: il catalogo dei premi lo cura un amministratore. Il
+ * resto dello staff lo vede, consegna i riscatti e assegna punti, ma non
+ * crea, modifica, mette in pausa o ritira premi, né cambia i preset dei
+ * punti (e le route lo rifiutano).
+ */
+export function PointsPanel({
+  canManageRewards,
+}: {
+  canManageRewards: boolean;
+}) {
   const confirm = useConfirm();
   const [tab, setTab] = useState<PointsTab>("redemptions");
   const [rewards, setRewards] = useState<Reward[] | null>(null);
@@ -223,18 +233,20 @@ export function PointsPanel() {
              * si dissolve senza lasciare il posto: l'intestazione non salta.
              * `inert` lo toglie anche dal Tab e dai lettori di schermo.
              */}
-            <Button
-              size="icon"
-              aria-label="Nuovo premio"
-              inert={tab !== "rewards"}
-              onClick={() => openReward(null)}
-              className={cn(
-                "size-10 rounded-full transition-[opacity,scale] duration-200 ease-(--ease-out) md:hidden",
-                tab !== "rewards" && "pointer-events-none scale-90 opacity-0",
-              )}
-            >
-              <Plus className="size-5" />
-            </Button>
+            {canManageRewards && (
+              <Button
+                size="icon"
+                aria-label="Nuovo premio"
+                inert={tab !== "rewards"}
+                onClick={() => openReward(null)}
+                className={cn(
+                  "size-10 rounded-full transition-[opacity,scale] duration-200 ease-(--ease-out) md:hidden",
+                  tab !== "rewards" && "pointer-events-none scale-90 opacity-0",
+                )}
+              >
+                <Plus className="size-5" />
+              </Button>
+            )}
             <AssignPoints />
           </div>
         }
@@ -284,12 +296,14 @@ export function PointsPanel() {
 
           <TabsContent value="rewards" className="space-y-4">
             {/* Da telefono il «+» sta nell'intestazione. */}
-            <div className="hidden justify-end md:flex">
-              <Button onClick={() => openReward(null)}>
-                <Plus className="size-4" />
-                Nuovo premio
-              </Button>
-            </div>
+            {canManageRewards && (
+              <div className="hidden justify-end md:flex">
+                <Button onClick={() => openReward(null)}>
+                  <Plus className="size-4" />
+                  Nuovo premio
+                </Button>
+              </div>
+            )}
 
             <RewardsGrid
               rewards={rewards}
@@ -299,6 +313,7 @@ export function PointsPanel() {
                 void toggleReward(reward, disabled)
               }
               onArchive={(reward) => void askArchiveReward(reward)}
+              readOnly={!canManageRewards}
             />
           </TabsContent>
 
@@ -318,17 +333,20 @@ export function PointsPanel() {
                 )
               }
               onArchive={(preset) => void askArchivePreset(preset)}
+              readOnly={!canManageRewards}
             />
           </TabsContent>
         </Tabs>
       </PageBody>
 
-      <RewardDialog
-        open={dialogOpen}
-        reward={editing}
-        onOpenChange={setDialogOpen}
-        onSaved={() => void load()}
-      />
+      {canManageRewards && (
+        <RewardDialog
+          open={dialogOpen}
+          reward={editing}
+          onOpenChange={setDialogOpen}
+          onSaved={() => void load()}
+        />
+      )}
     </>
   );
 }
@@ -426,12 +444,14 @@ function RewardsGrid({
   onEdit,
   onToggle,
   onArchive,
+  readOnly,
 }: {
   rewards: Reward[] | null;
   pending: string | null;
   onEdit: (reward: Reward) => void;
   onToggle: (reward: Reward, disabled: boolean) => void;
   onArchive: (reward: Reward) => void;
+  readOnly: boolean;
 }) {
   if (!rewards) return <ListSkeleton />;
 
@@ -444,8 +464,9 @@ function RewardsGrid({
           </EmptyMedia>
           <EmptyTitle>Ancora nessun premio</EmptyTitle>
           <EmptyDescription>
-            Crea il primo: foto, titolo, costo in punti. I clienti lo vedono
-            subito nella loro area personale, con quanti punti mancano.
+            {readOnly
+              ? "I premi li aggiunge un amministratore. Appena ce n'è uno, lo trovi qui."
+              : "Crea il primo: foto, titolo, costo in punti. I clienti lo vedono subito nella loro area personale, con quanti punti mancano."}
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -464,6 +485,7 @@ function RewardsGrid({
             onEdit={() => onEdit(reward)}
             onToggle={(disabled) => onToggle(reward, disabled)}
             onArchive={() => onArchive(reward)}
+            readOnly={readOnly}
           />
         </li>
       ))}
@@ -476,6 +498,7 @@ function PresetsEditor({
   pending,
   onSave,
   onArchive,
+  readOnly,
 }: {
   presets: Preset[] | null;
   pending: string | null;
@@ -485,6 +508,8 @@ function PresetsEditor({
     points: number;
   }) => void;
   onArchive: (preset: Preset) => void;
+  /** I preset li decide un amministratore: gli altri li usano e basta. */
+  readOnly: boolean;
 }) {
   const [label, setLabel] = useState("");
   const [points, setPoints] = useState("");
@@ -515,6 +540,7 @@ function PresetsEditor({
       <p className="text-muted-foreground text-sm">
         Le causali con cui carichi punti dalla scheda di un cliente con un
         tocco. Un numero negativo toglie punti, per esempio per una penalità.
+        {readOnly && " Le aggiunge e le cambia un amministratore."}
       </p>
 
       <ul className="divide-y rounded-xl border bg-card">
@@ -526,40 +552,45 @@ function PresetsEditor({
             disabled={pending !== null}
             onSave={(next) => onSave({ presetId: preset.id, ...next })}
             onArchive={() => onArchive(preset)}
+            readOnly={readOnly}
           />
         ))}
         {presets.length === 0 && (
           <li className="text-muted-foreground p-4 text-sm">
-            Nessun preset: aggiungine uno qui sotto.
+            {readOnly
+              ? "Ancora nessun preset."
+              : "Nessun preset: aggiungine uno qui sotto."}
           </li>
         )}
       </ul>
 
-      <div className="grid grid-cols-1 gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_8rem_auto]">
-        <Input
-          aria-label="Nome del preset"
-          placeholder="Es. Torneo sociale vinto"
-          value={label}
-          onChange={(event) => setLabel(event.target.value)}
-        />
-        <Input
-          aria-label="Punti"
-          type="number"
-          inputMode="numeric"
-          step={1}
-          placeholder="Punti"
-          value={points}
-          onChange={(event) => setPoints(event.target.value)}
-        />
-        <Button onClick={add} disabled={pending !== null}>
-          {pending === "preset-new" ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Plus className="size-4" />
-          )}
-          Aggiungi
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="grid grid-cols-1 gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_8rem_auto]">
+          <Input
+            aria-label="Nome del preset"
+            placeholder="Es. Torneo sociale vinto"
+            value={label}
+            onChange={(event) => setLabel(event.target.value)}
+          />
+          <Input
+            aria-label="Punti"
+            type="number"
+            inputMode="numeric"
+            step={1}
+            placeholder="Punti"
+            value={points}
+            onChange={(event) => setPoints(event.target.value)}
+          />
+          <Button onClick={add} disabled={pending !== null}>
+            {pending === "preset-new" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Plus className="size-4" />
+            )}
+            Aggiungi
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -570,12 +601,14 @@ function PresetRow({
   disabled,
   onSave,
   onArchive,
+  readOnly,
 }: {
   preset: Preset;
   busy: boolean;
   disabled: boolean;
   onSave: (next: { label: string; points: number }) => void;
   onArchive: () => void;
+  readOnly: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(preset.label);
@@ -629,31 +662,33 @@ function PresetRow({
         </span>
         <span className="truncate">{preset.label}</span>
       </div>
-      <div className="flex shrink-0 gap-1">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-8"
-          aria-label={`Modifica ${preset.label}`}
-          onClick={() => setEditing(true)}
-        >
-          <Pencil className="size-4" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="text-destructive hover:text-destructive size-8"
-          aria-label={`Rimuovi ${preset.label}`}
-          disabled={disabled}
-          onClick={onArchive}
-        >
-          {busy ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Trash2 className="size-4" />
-          )}
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex shrink-0 gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-8"
+            aria-label={`Modifica ${preset.label}`}
+            onClick={() => setEditing(true)}
+          >
+            <Pencil className="size-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="text-destructive hover:text-destructive size-8"
+            aria-label={`Rimuovi ${preset.label}`}
+            disabled={disabled}
+            onClick={onArchive}
+          >
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Trash2 className="size-4" />
+            )}
+          </Button>
+        </div>
+      )}
     </li>
   );
 }

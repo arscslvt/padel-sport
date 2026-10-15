@@ -22,25 +22,43 @@ import { RulesSettings } from "./rules-settings";
  * La linguetta aperta sta nell'indirizzo (`?tab=`): si ricarica, si torna
  * indietro o si manda il link e si riparte da lì. Cambiarla non ricarica la
  * pagina, riscrive solo l'indirizzo.
+ *
+ * Orari, campi e regole sono la configurazione del club: le vede e le cambia
+ * solo un amministratore (le route rifiutano comunque gli altri). Al resto
+ * dello staff resta la sua linguetta, le notifiche, senza la barra sopra.
  */
 
 const TABS = [
-  { value: "notifications", label: "Notifiche" },
-  { value: "hours", label: "Orari" },
-  { value: "courts", label: "Campi" },
-  { value: "rules", label: "Regole" },
+  { value: "notifications", label: "Notifiche", adminOnly: false },
+  { value: "hours", label: "Orari", adminOnly: true },
+  { value: "courts", label: "Campi", adminOnly: true },
+  { value: "rules", label: "Regole", adminOnly: true },
 ] as const;
 
 type SettingsTab = (typeof TABS)[number]["value"];
 
-function isTab(value: string | undefined): value is SettingsTab {
-  return TABS.some((tab) => tab.value === value);
-}
+export function SettingsTabs({
+  initialTab,
+  isAdmin,
+}: {
+  initialTab?: string;
+  isAdmin: boolean;
+}) {
+  const tabs = TABS.filter((item) => isAdmin || !item.adminOnly);
+  const isTab = (value: string | undefined): value is SettingsTab =>
+    tabs.some((item) => item.value === value);
 
-export function SettingsTabs({ initialTab }: { initialTab?: string }) {
   const [tab, setTab] = useState<SettingsTab>(
     isTab(initialTab) ? initialTab : "notifications",
   );
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-4xl">
+        <NotificationSettings canManageDevices={false} />
+      </div>
+    );
+  }
 
   const change = (value: string) => {
     if (!isTab(value)) return;
@@ -59,7 +77,7 @@ export function SettingsTabs({ initialTab }: { initialTab?: string }) {
        */}
       <div className="dashboard-material bg-background/85 sticky top-[env(safe-area-inset-top)] z-20 -mx-4 px-4 py-2 backdrop-blur-xl md:static md:mx-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
         <TabsList>
-          {TABS.map((item) => (
+          {tabs.map((item) => (
             <TabsTrigger key={item.value} value={item.value}>
               {item.label}
             </TabsTrigger>
@@ -68,7 +86,7 @@ export function SettingsTabs({ initialTab }: { initialTab?: string }) {
       </div>
 
       <TabsContent value="notifications" className="settings-enter">
-        <NotificationSettings />
+        <NotificationSettings canManageDevices />
       </TabsContent>
       {/*
        * Orari resta montata anche quando non si vede: una bozza a metà

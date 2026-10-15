@@ -32,6 +32,9 @@ import type { Reward } from "./types";
  * il premio per sempre: è un'icona in disparte e chiede conferma (lo fa chi
  * la usa, `points-panel.tsx`). Toccare la foto apre la modifica, come
  * aspetta chiunque abbia usato un catalogo.
+ *
+ * In sola lettura (`readOnly`, chi non è amministratore) la card mostra il
+ * premio e basta: niente gesti in fondo, e la foto non apre niente.
  */
 export function RewardCard({
   reward,
@@ -41,6 +44,7 @@ export function RewardCard({
   onEdit,
   onToggle,
   onArchive,
+  readOnly = false,
 }: {
   reward: Reward;
   /** L'interruttore di questa card sta salvando. */
@@ -52,9 +56,33 @@ export function RewardCard({
   onEdit: () => void;
   onToggle: (disabled: boolean) => void;
   onArchive: () => void;
+  /** Il catalogo lo cura un amministratore: per gli altri si guarda. */
+  readOnly?: boolean;
 }) {
   const paused = reward.disabled;
   const switchId = `reward-available-${reward.id}`;
+
+  const photo = (
+    <div
+      className={cn(
+        "aspect-[4/3] transition-[opacity,filter] duration-200 ease-out",
+        paused && "opacity-40 grayscale",
+      )}
+    >
+      {reward.imageUrl ? (
+        // biome-ignore lint/performance/noImgElement: URL firmato di Convex, che next/image non conosce.
+        <img
+          src={reward.imageUrl}
+          alt=""
+          className="size-full object-cover transition-transform duration-[250ms] ease-(--ease-out) group-hover:scale-[1.03]"
+        />
+      ) : (
+        <div className="bg-muted text-muted-foreground flex size-full items-center justify-center">
+          <Gift className="size-10" strokeWidth={1.5} />
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <article className="group bg-card flex w-full flex-col rounded-2xl border p-1.5 transition-shadow duration-200 hover:shadow-[0_14px_36px_-18px_oklch(0.2_0_0/0.3)]">
@@ -64,32 +92,20 @@ export function RewardCard({
        * grigia e attenuata, con una dissolvenza breve: dice cosa è cambiato
        * senza distrarre.
        */}
-      <button
-        type="button"
-        onClick={onEdit}
-        aria-label={`Modifica ${reward.title}`}
-        className="focus-visible:ring-ring/50 relative block overflow-hidden rounded-[10px] outline-none focus-visible:ring-[3px]"
-      >
-        <div
-          className={cn(
-            "aspect-[4/3] transition-[opacity,filter] duration-200 ease-out",
-            paused && "opacity-40 grayscale",
-          )}
-        >
-          {reward.imageUrl ? (
-            // biome-ignore lint/performance/noImgElement: URL firmato di Convex, che next/image non conosce.
-            <img
-              src={reward.imageUrl}
-              alt=""
-              className="size-full object-cover transition-transform duration-[250ms] ease-(--ease-out) group-hover:scale-[1.03]"
-            />
-          ) : (
-            <div className="bg-muted text-muted-foreground flex size-full items-center justify-center">
-              <Gift className="size-10" strokeWidth={1.5} />
-            </div>
-          )}
+      {readOnly ? (
+        <div className="relative block overflow-hidden rounded-[10px]">
+          {photo}
         </div>
-      </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label={`Modifica ${reward.title}`}
+          className="focus-visible:ring-ring/50 relative block overflow-hidden rounded-[10px] outline-none focus-visible:ring-[3px]"
+        >
+          {photo}
+        </button>
+      )}
 
       <div className="flex flex-1 flex-col px-2.5 pt-3.5">
         <h3
@@ -134,47 +150,51 @@ export function RewardCard({
         </div>
       </div>
 
-      <div className="mt-auto flex items-center gap-1 px-2.5 pt-3 pb-1">
-        <div className="flex flex-1 items-center gap-1 border-t pt-2.5">
-          {/* Tutta l'etichetta accende: non solo la levetta. */}
-          <label
-            htmlFor={switchId}
-            className="flex min-h-10 flex-1 cursor-pointer items-center gap-2.5"
-          >
-            <Switch
-              id={switchId}
-              checked={!paused}
-              disabled={disabled || toggling}
-              onCheckedChange={(available) => onToggle(!available)}
-            />
-            <span className="text-sm">In vetrina</span>
-          </label>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 rounded-full px-3"
-            onClick={onEdit}
-          >
-            <Pencil className="size-4" />
-            Modifica
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Ritira ${reward.title}`}
-            title="Ritira premio"
-            className="text-muted-foreground hover:bg-danger-subtle hover:text-danger size-9 rounded-full"
-            disabled={disabled}
-            onClick={onArchive}
-          >
-            {archiving ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Trash2 className="size-4" />
-            )}
-          </Button>
+      {readOnly ? (
+        <div className="pb-2.5" />
+      ) : (
+        <div className="mt-auto flex items-center gap-1 px-2.5 pt-3 pb-1">
+          <div className="flex flex-1 items-center gap-1 border-t pt-2.5">
+            {/* Tutta l'etichetta accende: non solo la levetta. */}
+            <label
+              htmlFor={switchId}
+              className="flex min-h-10 flex-1 cursor-pointer items-center gap-2.5"
+            >
+              <Switch
+                id={switchId}
+                checked={!paused}
+                disabled={disabled || toggling}
+                onCheckedChange={(available) => onToggle(!available)}
+              />
+              <span className="text-sm">In vetrina</span>
+            </label>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 rounded-full px-3"
+              onClick={onEdit}
+            >
+              <Pencil className="size-4" />
+              Modifica
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Ritira ${reward.title}`}
+              title="Ritira premio"
+              className="text-muted-foreground hover:bg-danger-subtle hover:text-danger size-9 rounded-full"
+              disabled={disabled}
+              onClick={onArchive}
+            >
+              {archiving ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </article>
   );
 }

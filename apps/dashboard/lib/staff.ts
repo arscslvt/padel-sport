@@ -50,10 +50,6 @@ export async function staffMembership(userId: string) {
 export const STAFF_ROLES = ["org:member", STAFF_ADMIN_ROLE] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
-export async function isStaffMember(userId: string) {
-  return (await staffMembership(userId)).isStaff;
-}
-
 /**
  * Variante per le pagine: senza sessione si finisce al login (`auth.protect`,
  * lo stesso meccanismo del middleware su `/`), senza tessera staff

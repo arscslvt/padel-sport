@@ -3,14 +3,14 @@ import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
 import { NextResponse } from "next/server";
 
 import { convexMessage } from "@/lib/clients";
-import { staffGate } from "@/lib/dashboard-api";
+import { staffAdminGate } from "@/lib/dashboard-api";
 
 /** Toglie un preset dall'elenco. I movimenti già fatti ne conservano il nome. */
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ presetId: string }> },
 ) {
-  const gate = await staffGate();
+  const gate = await staffAdminGate();
   if (!gate.ok) return gate.response;
 
   const { presetId } = await params;

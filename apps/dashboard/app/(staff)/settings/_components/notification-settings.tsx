@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { formatDistanceToNow } from "date-fns";
 import { it } from "date-fns/locale";
 import { Bell, BellOff, Loader2, Send, Smartphone, Trash2 } from "lucide-react";
@@ -24,9 +25,20 @@ import {
  * riceve le notifiche nello staff — per togliere il telefono di chi non c'è
  * più senza dovergli chiedere di farlo lui.
  */
-export function NotificationSettings() {
+export function NotificationSettings({
+  canManageDevices,
+}: {
+  /** Amministratore: vede e toglie anche i dispositivi dei colleghi. */
+  canManageDevices: boolean;
+}) {
   const push = usePush();
   const confirm = useConfirm();
+  const { user } = useUser();
+  // Gli altri dello staff vedono solo i propri: il telefono di un collega
+  // lo toglie un amministratore (e la route lo rifiuta a chiunque altro).
+  const devices = canManageDevices
+    ? push.devices
+    : push.devices.filter((device) => device.userId === user?.id);
 
   return (
     <SettingsStack>
@@ -48,13 +60,19 @@ export function NotificationSettings() {
         />
       </SettingsSection>
 
-      {push.devices.length > 0 && (
+      {devices.length > 0 && (
         <SettingsSection
-          title="Dispositivi dello staff"
-          description="Chi non fa più parte dello staff va tolto da qui. Le notifiche contengono nomi e orari dei clienti."
+          title={
+            canManageDevices ? "Dispositivi dello staff" : "I tuoi dispositivi"
+          }
+          description={
+            canManageDevices
+              ? "Chi non fa più parte dello staff va tolto da qui. Le notifiche contengono nomi e orari dei clienti."
+              : "Dove ricevi le notifiche del gestionale. Togli quelli che non usi più."
+          }
         >
           <ListGroup>
-            {push.devices.map((device) => {
+            {devices.map((device) => {
               const mine = device.endpoint === push.endpoint;
               return (
                 <ListRow

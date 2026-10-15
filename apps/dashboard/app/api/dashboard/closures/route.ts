@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { convexMessage } from "@/lib/clients";
-import { staffGate } from "@/lib/dashboard-api";
+import { staffAdminGate } from "@/lib/dashboard-api";
 
 /**
  * Le chiusure del club per date: aggiungerne una, toglierla. Solo staff.
@@ -21,7 +21,7 @@ const addSchema = z.object({
 const removeSchema = z.object({ from: day, to: day });
 
 export async function POST(request: Request) {
-  const gate = await staffGate();
+  const gate = await staffAdminGate();
   if (!gate.ok) return gate.response;
 
   const parsed = addSchema.safeParse(await request.json().catch(() => null));
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const gate = await staffGate();
+  const gate = await staffAdminGate();
   if (!gate.ok) return gate.response;
 
   const parsed = removeSchema.safeParse(await request.json().catch(() => null));
