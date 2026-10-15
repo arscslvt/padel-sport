@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { StaffInviteEmail } from "@/emails/staff-invite";
 import { SIGN_IN_PATH } from "@/lib/auth-routes";
-import { staffAdminGate } from "@/lib/dashboard-api";
+import { publicOrigin, staffAdminGate } from "@/lib/dashboard-api";
 import { STAFF_ADMIN_ROLE, STAFF_ROLES } from "@/lib/staff";
 
 /**
@@ -167,7 +167,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const signInUrl = new URL(SIGN_IN_PATH, request.url).toString();
+  const signInUrl = `${publicOrigin(request)}${SIGN_IN_PATH}`;
   const mailed = await sendWelcome({
     to: email,
     firstName: name,

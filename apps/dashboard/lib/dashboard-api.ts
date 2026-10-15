@@ -118,3 +118,34 @@ function withConvex(userId: string): StaffGate {
 
   return { ok: true, convex: new ConvexHttpClient(convexUrl), secret, userId };
 }
+
+/**
+ * L'indirizzo pubblico del gestionale, per i link che escono (le mail).
+ *
+ * Non `request.url`: dietro Railway è l'indirizzo interno del container
+ * (`http://0.0.0.0:8080`), e un link così non porta da nessuna parte. Vince
+ * `NEXT_PUBLIC_DASHBOARD_URL` se c'è; altrimenti l'host che il proxy dice di
+ * aver ricevuto, come fa il login; in locale resta la richiesta.
+ */
+export function publicOrigin(request: Request): string {
+  // Su Railway è scritta senza protocollo (`dashboard.asdpadelsport.com`):
+  // senza, `new URL` la leggerebbe come un percorso.
+  const configured = process.env.NEXT_PUBLIC_DASHBOARD_URL?.trim();
+  if (configured) {
+    try {
+      return new URL(
+        /^https?:\/\//.test(configured) ? configured : `https://${configured}`,
+      ).origin;
+    } catch {
+      // Valore non valido: si passa alle intestazioni del proxy.
+    }
+  }
+
+  // Dietro più proxy le intestazioni sono elenchi: conta il primo, il client.
+  const first = (name: string) =>
+    request.headers.get(name)?.split(",")[0]?.trim() || null;
+  const host = first("x-forwarded-host");
+  if (host) return `${first("x-forwarded-proto") ?? "https"}://${host}`;
+
+  return new URL(request.url).origin;
+}
