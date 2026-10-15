@@ -1,3 +1,5 @@
+import { v } from "convex/values";
+
 import { internal } from "../../_generated/api";
 import { internalMutation } from "../../_generated/server";
 import { staffAgendaDayUrl } from "../../utils/staffLinks";
@@ -5,8 +7,10 @@ import { bookingSettings, clubDayKey, clubMoment } from "../settings/lib";
 import { windowsForDay } from "../settings/schedule";
 
 /**
- * Il promemoria del mattino: i prossimi giorni di apertura che non hanno
- * ancora nessuna partita in agenda.
+ * Il promemoria del mattino, ripetuto nel primo pomeriggio: i prossimi giorni
+ * di apertura che non hanno ancora nessuna partita in agenda. Il secondo giro
+ * guarda di nuovo l'agenda, quindi parte solo se nel frattempo nessuno l'ha
+ * riempita, e sul telefono prende il posto del primo (stesso tag).
  *
  * Il giovedì guarda venerdì, sabato e domenica; se uno dei tre è vuoto, lo
  * staff se lo sente dire con il tempo di riempirlo. Un giorno di chiusura —
@@ -21,8 +25,11 @@ import { windowsForDay } from "../settings/schedule";
  * legale.
  */
 
-/** L'ora del club a cui parte: prima dell'apertura, con la giornata davanti. */
-const REMINDER_HOUR = 9;
+/**
+ * Le ore del club a cui parte: prima dell'apertura, con la giornata davanti,
+ * e alla ripresa del pomeriggio.
+ */
+const REMINDER_HOURS = [9, 14];
 
 /** Quanti giorni dopo oggi si guardano. */
 const LOOKAHEAD_DAYS = 3;
@@ -46,10 +53,14 @@ function listLabel(items: string[]) {
 }
 
 export default internalMutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    /** Parte subito, a qualunque ora: per provarlo da `convex run`. */
+    force: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { force }) => {
     const now = Date.now();
-    if (Math.floor(clubMoment(now).minutes / 60) !== REMINDER_HOUR) return;
+    const hour = Math.floor(clubMoment(now).minutes / 60);
+    if (!force && !REMINDER_HOURS.includes(hour)) return { sent: false, empty: [] };
 
     const settings = await bookingSettings(ctx);
     const today = clubDayKey(now);
@@ -101,7 +112,7 @@ export default internalMutation({
         !closed.has(day.key) &&
         windowsForDay(settings, day.key, day.weekday).length > 0,
     );
-    if (empty.length === 0) return;
+    if (empty.length === 0) return { sent: false, empty: [] };
 
     const tomorrowOnly = empty.length === 1 && empty[0].key === days[0].key;
     const labels = empty.map((day) => dayLabel(day.key));
@@ -120,5 +131,7 @@ export default internalMutation({
       url: staffAgendaDayUrl(empty[0].key),
       tag: `agenda:${today}`,
     });
+
+    return { sent: true, empty: empty.map((day) => day.key) };
   },
 });
