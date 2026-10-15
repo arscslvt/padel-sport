@@ -3,7 +3,13 @@ import "server-only";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
-import { STAFF_DENIED_PATH, STAFF_ORG_SLUG } from "@/lib/clerk";
+import {
+  STAFF_ADMIN_ROLE,
+  STAFF_DENIED_PATH,
+  STAFF_ORG_SLUG,
+} from "@/lib/clerk";
+
+export { STAFF_ADMIN_ROLE };
 
 /**
  * Chi è staff e chi no, in un posto solo.
@@ -27,8 +33,22 @@ export async function staffMembership(userId: string) {
     .map((membership) => membership.organization.slug)
     .filter((slug): slug is string => Boolean(slug));
 
-  return { slugs, isStaff: slugs.includes(STAFF_ORG_SLUG) };
+  const staff = memberships.data.find(
+    (membership) => membership.organization.slug === STAFF_ORG_SLUG,
+  );
+
+  return {
+    slugs,
+    isStaff: Boolean(staff),
+    /** Il ruolo nell'organizzazione staff (`org:admin`, `org:member`…). */
+    role: staff?.role ?? null,
+    organizationId: staff?.organization.id ?? null,
+  };
 }
+
+/** I ruoli che si possono dare dal gestionale. */
+export const STAFF_ROLES = ["org:member", STAFF_ADMIN_ROLE] as const;
+export type StaffRole = (typeof STAFF_ROLES)[number];
 
 export async function isStaffMember(userId: string) {
   return (await staffMembership(userId)).isStaff;
@@ -44,8 +64,13 @@ export async function isStaffMember(userId: string) {
  * che dicesse quale organizzazione mancava.
  */
 export async function requireStaffMember() {
+  return (await requireStaffMembership()).userId;
+}
+
+/** Come `requireStaffMember`, con in più il ruolo: serve al profilo. */
+export async function requireStaffMembership() {
   const { userId } = await auth.protect();
-  const { isStaff, slugs } = await staffMembership(userId);
+  const { isStaff, slugs, role } = await staffMembership(userId);
 
   if (!isStaff) {
     console.warn(
@@ -54,5 +79,5 @@ export async function requireStaffMember() {
     redirect(STAFF_DENIED_PATH);
   }
 
-  return userId;
+  return { userId, role };
 }

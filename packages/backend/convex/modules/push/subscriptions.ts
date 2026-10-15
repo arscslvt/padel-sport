@@ -97,6 +97,26 @@ export const remove = mutation({
 });
 
 /**
+ * Toglie tutti i dispositivi di una persona: chi esce dallo staff non deve
+ * più ricevere avvisi, che contengono nomi e orari dei clienti. Le sue
+ * preferenze restano: se rientra, ritrova gli avvisi come li aveva lasciati.
+ */
+export const removeForUser = mutation({
+  args: { secret: v.string(), userId: v.string() },
+  handler: async (ctx, { secret, userId }) => {
+    assertServer(secret);
+
+    const rows = await ctx.db
+      .query("pushSubscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+
+    for (const row of rows) await ctx.db.delete(row._id);
+    return rows.length;
+  },
+});
+
+/**
  * I dispositivi attivi e la chiave pubblica con cui abbonarne di nuovi.
  *
  * La chiave pubblica sta qui e non in una variabile della dashboard: la

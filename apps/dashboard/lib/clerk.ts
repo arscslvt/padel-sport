@@ -14,5 +14,13 @@
 export const STAFF_ORG_SLUG =
   process.env.STAFF_ORG_SLUG || "staff-1777286296213413378";
 
+/** Il ruolo che può aggiungere e togliere persone dallo staff. */
+export const STAFF_ADMIN_ROLE = "org:admin";
+
+/** Il ruolo nell'organizzazione staff, detto come lo direbbe il club. */
+export function staffRoleLabel(role: string | null | undefined): string {
+  return role === STAFF_ADMIN_ROLE ? "Amministratore" : "Staff";
+}
+
 /** Dove finisce chi ha una sessione valida ma non è dello staff. */
 export const STAFF_DENIED_PATH = "/accesso-negato";

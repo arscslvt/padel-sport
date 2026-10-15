@@ -3,6 +3,7 @@
 import { UserProfile } from "@clerk/nextjs";
 import { XIcon } from "lucide-react";
 
+import type { ClerkProfilePage } from "@/app/_providers/profile-dialog.provider";
 import {
   Dialog,
   DialogClose,
@@ -10,10 +11,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+/**
+ * Il profilo di Clerk in una modale, per le sole cose che chiedono una
+ * verifica (email, password, dispositivi). Il resto sta in `/profile`.
+ */
 export default function UserProfileDialog({
   open,
+  page,
   onOpenChange,
-}: Readonly<{ open: boolean; onOpenChange: (open: boolean) => void }>) {
+}: Readonly<{
+  open: boolean;
+  page: ClerkProfilePage;
+  onOpenChange: (open: boolean) => void;
+}>) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -21,7 +31,9 @@ export default function UserProfileDialog({
         showCloseButton={false}
       >
         <DialogTitle className="sr-only">Impostazioni profilo</DialogTitle>
-        <UserProfile routing="hash" />
+        {/* La pagina la sceglie l'ancora, letta al montaggio: `key` fa
+            ripartire Clerk quando si apre su una pagina diversa. */}
+        <UserProfile key={page} routing="hash" />
 
         {/*
          * La chiusura di default di DialogContent è una X senza sfondo di 16px:

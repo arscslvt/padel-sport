@@ -20,11 +20,11 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { staffRoleLabel } from "@/lib/clerk";
 import { siteUrl } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 import { useCounts } from "../_providers/counts.provider";
-import { useProfileDialog } from "../_providers/profile-dialog.provider";
 import { useDashboardTour } from "../_providers/tour.provider";
 import { CountBadge } from "./count-badge";
 import { ListGroup, ListRow } from "./list";
@@ -48,7 +48,7 @@ import { ThemeSegmentedControl } from "./theme-picker";
  * Il materiale è traslucido perché il contenuto ci scorre sotto. Per chi ha
  * chiesto meno trasparenza diventa pieno (`.dashboard-material`, globals.css).
  */
-export function BottomTabBar() {
+export function BottomTabBar({ staffOrgSlug }: { staffOrgSlug: string }) {
   const pathname = usePathname();
   const active = activeHref(pathname);
   const { counts } = useCounts();
@@ -60,7 +60,9 @@ export function BottomTabBar() {
     setMoreOpen(false);
   }, [pathname]);
 
-  const moreActive = isSecondary(active);
+  // Il profilo non è una voce della barra, ma ci si arriva da «Altro».
+  const onProfile = pathname === "/profile";
+  const moreActive = isSecondary(active) || onProfile;
 
   return (
     <>
@@ -99,7 +101,13 @@ export function BottomTabBar() {
         </div>
       </nav>
 
-      <MoreDrawer open={moreOpen} onOpenChange={setMoreOpen} active={active} />
+      <MoreDrawer
+        open={moreOpen}
+        onOpenChange={setMoreOpen}
+        active={active}
+        onProfile={onProfile}
+        staffOrgSlug={staffOrgSlug}
+      />
     </>
   );
 }
@@ -153,14 +161,21 @@ function MoreDrawer({
   open,
   onOpenChange,
   active,
+  onProfile,
+  staffOrgSlug,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   active: string | null;
+  onProfile: boolean;
+  staffOrgSlug: string;
 }) {
   const { user } = useUser();
+  // Il ruolo viaggia con l'utente di Clerk: nessuna richiesta in più.
+  const membership = user?.organizationMemberships.find(
+    (item) => item.organization.slug === staffOrgSlug,
+  );
   const { signOut } = useAuth();
-  const { openProfile } = useProfileDialog();
   const { start: startTour } = useDashboardTour();
 
   return (
@@ -206,14 +221,12 @@ function MoreDrawer({
                 </Avatar>
               }
               title={user?.fullName ?? "Profilo"}
-              subtitle="Nome, foto e accesso"
-              trailing={
-                <ChevronRight className="text-muted-foreground size-4" />
+              subtitle={
+                membership ? staffRoleLabel(membership.role) : undefined
               }
-              onClick={() => {
-                onOpenChange(false);
-                openProfile();
-              }}
+              href="/profile"
+              selected={onProfile}
+              chevron
             />
             <ListRow
               leading={<CircleHelp className="size-5" />}

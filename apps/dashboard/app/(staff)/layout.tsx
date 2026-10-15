@@ -16,6 +16,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { STAFF_ORG_SLUG } from "@/lib/clerk";
 import main_icon from "@/public/favicon/black-icon.png";
 import { BottomTabBar } from "../_components/bottom-tab-bar";
 import DashboardNav from "../_components/dashboard-nav";
@@ -130,7 +131,9 @@ export default async function StaffLayout({
                       <SidebarInset className="bg-background min-w-0 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
                         {children}
                       </SidebarInset>
-                      <BottomTabBar />
+                      {/* Lo slug sta in una variabile del server: il browser lo
+                          riceve da qui per leggere il ruolo dell'utente. */}
+                      <BottomTabBar staffOrgSlug={STAFF_ORG_SLUG} />
                     </SidebarProvider>
                   </FloatingActionProvider>
                 </PushProvider>

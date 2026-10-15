@@ -2,6 +2,8 @@
 
 import { useAuth, useUser } from "@clerk/nextjs";
 import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -12,13 +14,12 @@ import {
   SidebarMenuSkeleton,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useProfileDialog } from "../_providers/profile-dialog.provider";
 
 export default function UserCard() {
   const { user } = useUser();
   const { signOut } = useAuth();
   const { isMobile, setOpenMobile } = useSidebar();
-  const { openProfile } = useProfileDialog();
+  const pathname = usePathname();
 
   if (!user) {
     return (
@@ -30,24 +31,27 @@ export default function UserCard() {
     );
   }
 
-  const handleOpenProfile = () => {
-    if (isMobile) setOpenMobile(false);
-    openProfile();
-  };
-
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         <SidebarMenuButton
           size="lg"
-          onClick={handleOpenProfile}
-          aria-label="Apri le impostazioni del profilo"
+          asChild
+          isActive={pathname === "/profile"}
           tooltip={user.fullName ?? "Profilo"}
         >
-          <Avatar className="size-8 shrink-0">
-            <AvatarImage src={user.imageUrl} alt={user.fullName ?? "Utente"} />
-          </Avatar>
-          <span className="truncate font-medium">{user.fullName}</span>
+          <Link
+            href="/profile"
+            aria-label="Apri il tuo profilo"
+            onClick={() => {
+              if (isMobile) setOpenMobile(false);
+            }}
+          >
+            <Avatar className="size-8 shrink-0">
+              <AvatarImage src={user.imageUrl} alt="" />
+            </Avatar>
+            <span className="truncate font-medium">{user.fullName}</span>
+          </Link>
         </SidebarMenuButton>
 
         {/*
