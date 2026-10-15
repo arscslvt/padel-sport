@@ -12,6 +12,7 @@ import { motion, useReducedMotion } from "motion/react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 import { PILL_SURFACE } from "@/components/nav-pill";
 import { cn } from "@/lib/utils";
@@ -66,9 +67,48 @@ function useActiveHref() {
 export function AreaDock() {
   const active = useActiveHref();
   const reduce = useReducedMotion();
+  const ref = useRef<HTMLElement>(null);
+
+  /*
+   * Il dock si posa sul footer invece di coprirlo: quando il footer entra
+   * nello schermo, sale insieme alla pagina di quanto il footer è salito, e
+   * resta appoggiato al suo bordo. La trasformazione si scrive direttamente
+   * sull'elemento, fuori da React: è un aggiornamento per ogni scroll.
+   */
+  useEffect(() => {
+    const nav = ref.current;
+    const footer = document.querySelector("footer");
+    if (!nav || !footer) return;
+
+    let frame = 0;
+    const place = () => {
+      frame = 0;
+      const overlap = window.innerHeight - footer.getBoundingClientRect().top;
+      nav.style.transform =
+        overlap > 0 ? `translate3d(0, ${-overlap}px, 0)` : "";
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(place);
+    };
+
+    place();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    // Il contenuto sopra cambia altezza mentre arrivano i dati.
+    const observer = new ResizeObserver(schedule);
+    observer.observe(document.body);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      observer.disconnect();
+    };
+  }, []);
 
   return (
     <nav
+      ref={ref}
       aria-label="Sezioni dell'area personale"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:hidden"
     >
