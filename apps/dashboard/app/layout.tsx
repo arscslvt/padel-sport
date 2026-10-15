@@ -35,7 +35,10 @@ export const metadata: Metadata = {
       },
       { url: "/favicon/white-icon.png", media: "(prefers-color-scheme: dark)" },
     ],
-    apple: appIcon("apple-touch-icon.png"),
+    // Con la misura dichiarata: è quella che iOS cerca per la schermata Home.
+    // Le copie alla radice (public/apple-touch-icon*.png) servono a chi non
+    // legge il tag: iOS 27 le chiede comunque, e un 404 lì vale un'icona in meno.
+    apple: { url: appIcon("apple-touch-icon.png"), sizes: "180x180" },
   },
   // Aggiunto alla schermata Home di un iPhone si apre a tutto schermo, senza
   // la barra di Safari: è anche la condizione perché riceva le notifiche push.

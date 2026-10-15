@@ -15,6 +15,10 @@ export const APP_NAME = "Padel Sport Manager";
  * lo stesso indirizzo l'installazione mostra l'icona nuova nell'anteprima e
  * poi la sostituisce con quella vecchia. Cambiando l'indirizzo non c'è niente
  * da riusare.
+ *
+ * Con un'icona nuova vanno rifatte anche le due copie alla radice di `public`
+ * (apple-touch-icon.png e apple-touch-icon-precomposed.png), che iOS chiede
+ * senza versione.
  */
 const ICON_VERSION = 2;
 
