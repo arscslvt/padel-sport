@@ -41,3 +41,12 @@ export function formatClubDateTime(
 
   return `${value("day")}/${value("month")}/${value("year")}${separator}${value("hour")}:${value("minute")}`;
 }
+
+/** "15:00" nell'ora del club. */
+export function formatClubTime(timestamp: number): string {
+  const parts = clubParts(timestamp);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${value("hour")}:${value("minute")}`;
+}

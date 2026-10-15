@@ -39,4 +39,23 @@ crons.interval(
   {},
 );
 
+/**
+ * I promemoria allo staff sui telefoni con le notifiche attive
+ * (modules/reminders): ogni minuto le partite che cominciano fra dieci, ogni
+ * ora — ma parte solo alle 9 del club — i prossimi giorni ancora senza partite.
+ */
+crons.interval(
+  "promemoria partite in partenza",
+  { minutes: 1 },
+  internal.modules.reminders.starting.default,
+  {},
+);
+
+crons.hourly(
+  "promemoria giorni senza partite",
+  { minuteUTC: 0 },
+  internal.modules.reminders.emptyDays.default,
+  {},
+);
+
 export default crons;

@@ -78,12 +78,18 @@ export default internalAction({
     category: v.optional(notificationCategory),
     /** Solo questi dispositivi (la prova dalle impostazioni); senza, tutti. */
     endpoints: v.optional(v.array(v.string())),
+    /**
+     * Secondi oltre i quali il messaggio non va più consegnato. Senza, le
+     * dodici ore di `TTL_SECONDS`; un promemoria «fra 10 minuti» arrivato
+     * dopo la partita è peggio di nessun promemoria (modules/reminders).
+     */
+    ttl: v.optional(v.number()),
   },
   // Il tipo di ritorno va scritto: dedotto, Convex lo farebbe dipendere da
   // `internal`, che dipende da questo file.
   handler: async (
     ctx,
-    { title, body, url, tag, category, endpoints },
+    { title, body, url, tag, category, endpoints, ttl },
   ): Promise<{ sent: number }> => {
     const publicKey = process.env.VAPID_PUBLIC_KEY;
     const privateKey = process.env.VAPID_PRIVATE_KEY;
@@ -134,7 +140,7 @@ export default internalAction({
             payload,
             {
               vapidDetails: { subject, publicKey, privateKey },
-              TTL: TTL_SECONDS,
+              TTL: ttl ?? TTL_SECONDS,
               // Una prenotazione nuova è una notizia da dare subito: senza,
               // Android in risparmio energetico la consegna quando gli pare.
               urgency: "high",

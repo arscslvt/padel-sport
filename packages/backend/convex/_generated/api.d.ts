@@ -125,6 +125,8 @@ import type * as modules_privacy_retention from "../modules/privacy/retention.js
 import type * as modules_push_preferences from "../modules/push/preferences.js";
 import type * as modules_push_send from "../modules/push/send.js";
 import type * as modules_push_subscriptions from "../modules/push/subscriptions.js";
+import type * as modules_reminders_emptyDays from "../modules/reminders/emptyDays.js";
+import type * as modules_reminders_starting from "../modules/reminders/starting.js";
 import type * as modules_settings_booking from "../modules/settings/booking.js";
 import type * as modules_settings_lib from "../modules/settings/lib.js";
 import type * as modules_settings_schedule from "../modules/settings/schedule.js";
@@ -307,6 +309,8 @@ declare const fullApi: ApiFromModules<{
   "modules/push/preferences": typeof modules_push_preferences;
   "modules/push/send": typeof modules_push_send;
   "modules/push/subscriptions": typeof modules_push_subscriptions;
+  "modules/reminders/emptyDays": typeof modules_reminders_emptyDays;
+  "modules/reminders/starting": typeof modules_reminders_starting;
   "modules/settings/booking": typeof modules_settings_booking;
   "modules/settings/lib": typeof modules_settings_lib;
   "modules/settings/schedule": typeof modules_settings_schedule;

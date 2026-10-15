@@ -83,6 +83,12 @@ const bookings = defineTable({
    * e puntano l'una all'altra: il legame è reciproco, non ha un verso.
    */
   mergedWith: v.optional(v.id("bookings")),
+  /**
+   * L'orario per cui lo staff ha già avuto il promemoria «fra 10 minuti»
+   * (modules/reminders/starting.ts). L'orario e non un sì/no: una partita
+   * spostata dopo il promemoria ne riceve un altro per l'ora nuova.
+   */
+  remindedStart: v.optional(v.float64()),
 })
   .index("by_booking_date", ["bookingDate"])
   .index("by_created_at", ["createdAt"])

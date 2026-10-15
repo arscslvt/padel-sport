@@ -53,6 +53,16 @@ export const NOTIFICATION_CATEGORIES = [
     label: "Sistema",
     description: "Problemi di sincronizzazione con il calendario di SumUp.",
   },
+  {
+    key: "starting",
+    label: "Partite in partenza",
+    description: "Un promemoria 10 minuti prima dell'inizio di ogni partita.",
+  },
+  {
+    key: "agenda",
+    label: "Giorni senza partite",
+    description: "Ogni mattina, se nei prossimi tre giorni di apertura ce n'è uno ancora vuoto.",
+  },
 ] as const;
 
 export const notificationCategory = v.union(
@@ -64,6 +74,8 @@ export const notificationCategory = v.union(
   v.literal("payments"),
   v.literal("deliveries"),
   v.literal("system"),
+  v.literal("starting"),
+  v.literal("agenda"),
 );
 
 export type NotificationCategory = Infer<typeof notificationCategory>;

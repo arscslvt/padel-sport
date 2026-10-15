@@ -38,6 +38,11 @@ export function staffBookingsUrl(tab?: BookingsTab) {
   return tab ? `${BASE_URL}?tab=${tab}` : BASE_URL;
 }
 
+/** L'agenda aperta su un giorno, "AAAA-MM-GG" nell'ora del club. */
+export function staffAgendaDayUrl(day: string) {
+  return `${BASE_URL}?day=${encodeURIComponent(day)}`;
+}
+
 /** L'agenda con una prenotazione già in evidenza. */
 export function staffBookingUrl(bookingId: string, tab: BookingsTab = "all") {
   return `${BASE_URL}?tab=${tab}&booking=${encodeURIComponent(bookingId)}`;

@@ -60,8 +60,8 @@ import { useHideCancelled } from "./use-hide-cancelled";
  * per orario e campo), e cosa si può sistemare (i campi da completare).
  *
  * I link delle notifiche continuano a funzionare: `?booking=` apre il
- * dettaglio di quella prenotazione sul suo giorno, `?tab=merge` apre i campi
- * da completare (utils/staffLinks.ts sul backend).
+ * dettaglio di quella prenotazione sul suo giorno, `?day=` apre un giorno,
+ * `?tab=merge` apre i campi da completare (utils/staffLinks.ts sul backend).
  */
 export function Agenda() {
   const {
@@ -83,7 +83,14 @@ export function Agenda() {
   const searchParams = useSearchParams();
 
   const today = dayKey(Date.now());
-  const [selectedDay, setSelectedDay] = useState(today);
+  // `?day=` dai promemoria (modules/reminders): l'agenda si apre su quel
+  // giorno. Uno già passato non è nella striscia, e si resta su oggi.
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const linked = searchParams.get("day");
+    return linked && /^\d{4}-\d{2}-\d{2}$/.test(linked) && linked >= today
+      ? linked
+      : today;
+  });
   const [openId, setOpenId] = useState<string | null>(null);
   const [mergeOpen, setMergeOpen] = useState(
     () => searchParams.get("tab") === "merge",

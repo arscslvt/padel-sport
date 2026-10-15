@@ -23,6 +23,8 @@ const externalBookings = defineTable({
   /** Evento «tutto il giorno»: di norma una giornata di chiusura. */
   allDay: v.boolean(),
   syncedAt: v.float64(),
+  /** Come `bookings.remindedStart`: il promemoria allo staff è già partito per questo orario. */
+  remindedStart: v.optional(v.float64()),
 })
   .index("by_external_id", ["externalId"])
   .index("by_start", ["start"]);
