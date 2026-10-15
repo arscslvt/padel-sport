@@ -14,6 +14,12 @@
 
 const FALLBACK_URL = "/";
 
+/**
+ * Il titolo di riserva, per un messaggio arrivato senza: copia di `APP_NAME`
+ * (lib/app.ts), perché un file statico non può importarla.
+ */
+const APP_NAME = "Padel Sport Manager";
+
 self.addEventListener("install", () => {
   // Una versione nuova non aspetta che si chiudano tutte le schede.
   self.skipWaiting();
@@ -28,7 +34,9 @@ function readPayload(event) {
   try {
     return event.data.json();
   } catch {
-    return { notification: { title: "Gestionale", body: event.data.text() } };
+    return {
+      notification: { title: APP_NAME, body: event.data.text() },
+    };
   }
 }
 
@@ -53,7 +61,7 @@ self.addEventListener("push", (event) => {
       // Su iPhone una push che non mostra niente costa cara: dopo qualche
       // volta Safari revoca l'abbonamento. La notifica parte sempre per prima.
       await self.registration.showNotification(
-        notification.title || "Gestionale",
+        notification.title || APP_NAME,
         {
           body: notification.body,
           tag: notification.tag,

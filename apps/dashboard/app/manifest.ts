@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { APP_NAME } from "@/lib/app";
+
 import { DASHBOARD_CHROME_COLOR } from "./_components/chrome";
 
 /**
@@ -17,8 +19,10 @@ import { DASHBOARD_CHROME_COLOR } from "./_components/chrome";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Padel Sport — Gestionale",
-    short_name: "Gestionale",
+    name: APP_NAME,
+    // Sotto l'icona iOS e Android tagliano oltre i 12 caratteri circa: il
+    // nome intero può diventare «Padel Sport…», ed è comunque riconoscibile.
+    short_name: APP_NAME,
     description: "Agenda, richieste e clienti di Padel Sport Melilli.",
     lang: "it",
     start_url: "/",
