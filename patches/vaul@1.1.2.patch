@@ -1,8 +1,11 @@
+diff --git a/node_modules/vaul/.bun-tag-309cb7234b32b318 b/.bun-tag-309cb7234b32b318
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/node_modules/vaul/.bun-tag-7d9bf512b37845d9 b/.bun-tag-7d9bf512b37845d9
 new file mode 100644
 index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/dist/index.js b/dist/index.js
-index 7f343be1fafe1cf302ee6afc7268c29490895e34..c193c8abd8e37b27957b8fc1744cc3971cf90430 100644
+index 7f343be1fafe1cf302ee6afc7268c29490895e34..6efd2cf696ef5a890509d6d95ad92bd0026780ff 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -206,7 +206,15 @@ let restore;
@@ -41,7 +44,35 @@ index 7f343be1fafe1cf302ee6afc7268c29490895e34..c193c8abd8e37b27957b8fc1744cc397
          // Apply this change if we're not already focused on the target element
          if (isInput(target) && target !== document.activeElement) {
              e.preventDefault();
-@@ -925,6 +939,15 @@ function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRe
+@@ -280,10 +294,15 @@ function preventScrollMobileSafari() {
+             });
+         }
+     };
++    // padel-sport: la finestra resta dov'era, non torna in cima. Vaul ha tolto
++    // il margine negativo sul body che compensava il salto (vedi sotto) e conta
++    // su `usePositionFixed`, che però nell'app installata sulla schermata Home
++    // non parte: lì la pagina sotto il drawer saltava all'inizio a ogni
++    // apertura. Qui si riporta la finestra alla posizione di partenza.
+     let onWindowScroll = ()=>{
+-        // Last resort. If the window scrolled, scroll it back to the top.
+-        // It should always be at the top because the body will have a negative margin (see below).
+-        window.scrollTo(0, 0);
++        if (window.pageXOffset !== scrollX || window.pageYOffset !== scrollY) {
++            window.scrollTo(scrollX, scrollY);
++        }
+     };
+     // Record the original scroll position so we can restore it.
+     // Then apply a negative margin to the body to offset it by the scroll position. This will
+@@ -291,8 +310,6 @@ function preventScrollMobileSafari() {
+     let scrollX = window.pageXOffset;
+     let scrollY = window.pageYOffset;
+     let restoreStyles = chain$1(setStyle(document.documentElement, 'paddingRight', `${window.innerWidth - document.documentElement.clientWidth}px`));
+-    // Scroll to the top. The negative margin on the body will make this appear the same.
+-    window.scrollTo(0, 0);
+     let removeEvents = chain$1(addEvent(document, 'touchstart', onTouchStart, {
+         passive: false,
+         capture: true
+@@ -925,6 +942,15 @@ function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRe
          }
      });
      const [hasBeenOpened, setHasBeenOpened] = React__namespace.default.useState(false);
@@ -58,7 +89,7 @@ index 7f343be1fafe1cf302ee6afc7268c29490895e34..c193c8abd8e37b27957b8fc1744cc397
      const [justReleased, setJustReleased] = React__namespace.default.useState(false);
      const overlayRef = React__namespace.default.useRef(null);
 diff --git a/dist/index.mjs b/dist/index.mjs
-index 0dbbce5526681925a81804ced237a045a53c0355..1d861a60ccb7f35a6eeca79e66ef9e55244ec53d 100644
+index 0dbbce5526681925a81804ced237a045a53c0355..ba453d61f42b205c842e37fc0d3d7f3eb08b26a2 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
 @@ -184,7 +184,15 @@ let restore;
@@ -97,7 +128,35 @@ index 0dbbce5526681925a81804ced237a045a53c0355..1d861a60ccb7f35a6eeca79e66ef9e55
          // Apply this change if we're not already focused on the target element
          if (isInput(target) && target !== document.activeElement) {
              e.preventDefault();
-@@ -903,6 +917,15 @@ function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRe
+@@ -258,10 +272,15 @@ function preventScrollMobileSafari() {
+             });
+         }
+     };
++    // padel-sport: la finestra resta dov'era, non torna in cima. Vaul ha tolto
++    // il margine negativo sul body che compensava il salto (vedi sotto) e conta
++    // su `usePositionFixed`, che però nell'app installata sulla schermata Home
++    // non parte: lì la pagina sotto il drawer saltava all'inizio a ogni
++    // apertura. Qui si riporta la finestra alla posizione di partenza.
+     let onWindowScroll = ()=>{
+-        // Last resort. If the window scrolled, scroll it back to the top.
+-        // It should always be at the top because the body will have a negative margin (see below).
+-        window.scrollTo(0, 0);
++        if (window.pageXOffset !== scrollX || window.pageYOffset !== scrollY) {
++            window.scrollTo(scrollX, scrollY);
++        }
+     };
+     // Record the original scroll position so we can restore it.
+     // Then apply a negative margin to the body to offset it by the scroll position. This will
+@@ -269,8 +288,6 @@ function preventScrollMobileSafari() {
+     let scrollX = window.pageXOffset;
+     let scrollY = window.pageYOffset;
+     let restoreStyles = chain$1(setStyle(document.documentElement, 'paddingRight', `${window.innerWidth - document.documentElement.clientWidth}px`));
+-    // Scroll to the top. The negative margin on the body will make this appear the same.
+-    window.scrollTo(0, 0);
+     let removeEvents = chain$1(addEvent(document, 'touchstart', onTouchStart, {
+         passive: false,
+         capture: true
+@@ -903,6 +920,15 @@ function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRe
          }
      });
      const [hasBeenOpened, setHasBeenOpened] = React__default.useState(false);
