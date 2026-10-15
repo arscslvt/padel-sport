@@ -381,15 +381,13 @@ function Court() {
 
 /**
  * La prima partita: un «1» enorme in filigrana, che entra crescendo dietro al
- * testo. Una volta presa, la tile lo dice e resta come ricordo.
+ * testo. Compare solo a chi non ha ancora mai prenotato (modules/points/boosts.ts).
  */
 function FirstMatchTile({
   points,
-  done,
   reduce,
 }: {
   points: number;
-  done: boolean;
   reduce: boolean;
 }) {
   return (
@@ -421,13 +419,9 @@ function FirstMatchTile({
 
       <div className="relative mt-8">
         <h3 className="text-lg font-medium">Prima partita</h3>
-        {done ? (
-          <Done>Ottenuto</Done>
-        ) : (
-          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-            Alla tua prima prenotazione confermata.
-          </p>
-        )}
+        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+          Alla tua prima prenotazione confermata.
+        </p>
       </div>
     </Surface>
   );

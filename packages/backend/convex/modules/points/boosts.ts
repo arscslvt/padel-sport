@@ -1,7 +1,7 @@
 import { query } from "../../_generated/server";
 import { getIdentityPlayer } from "../openMatches/lib";
 import { clubWeekKey } from "./auto";
-import { activeRule, ruleRow } from "./rules";
+import { activeRule } from "./rules";
 
 /**
  * Come guadagnare punti, visto da chi guarda: le azioni premiate accese, con
@@ -43,13 +43,12 @@ export default query({
       .withIndex("by_player", (q) => q.eq("playerId", player._id))
       .collect();
 
-    // Prima partita: chi giocava già prima che partisse non la può avere, e
-    // promettergliela sarebbe una bugia.
-    const firstSince = (await ruleRow(ctx, "first_match"))?.since;
-    const veteran =
-      firstSince === undefined ||
-      rows.some((row) => row.bookingCreatedAt < firstSince);
-    const firstDone = awards(`first_match:${player._id}`).length > 0;
+    // Prima partita: si promette solo a chi non ha ancora nessuna
+    // prenotazione, nemmeno in attesa di conferma. Chi ha già prenotato l'ha
+    // già avuta, la sta per avere o non può averla (giocava prima che
+    // l'azione partisse): in tutti e tre i casi la tile non ha niente da dirgli.
+    const firstAvailable =
+      rows.length === 0 && awards(`first_match:${player._id}`).length === 0;
 
     const week = clubWeekKey(Date.now());
     const playedThisWeek = rows.filter(
@@ -75,9 +74,7 @@ export default query({
     return {
       wonMatch: won ? { label: won.label, points: won.points } : null,
       firstMatch:
-        firstMatch && (firstDone || !veteran)
-          ? { points: firstMatch.points, done: firstDone }
-          : null,
+        firstMatch && firstAvailable ? { points: firstMatch.points } : null,
       weekly: weekly
         ? {
             points: weekly.points,
