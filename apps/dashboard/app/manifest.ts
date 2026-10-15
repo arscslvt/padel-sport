@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { APP_NAME } from "@/lib/app";
+import { APP_NAME, appIcon } from "@/lib/app";
 
 import { DASHBOARD_CHROME_COLOR } from "./_components/chrome";
 
@@ -34,10 +34,10 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: DASHBOARD_CHROME_COLOR.light,
     theme_color: DASHBOARD_CHROME_COLOR.light,
     icons: [
-      { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { src: appIcon("icon-192.png"), sizes: "192x192", type: "image/png" },
+      { src: appIcon("icon-512.png"), sizes: "512x512", type: "image/png" },
       {
-        src: "/icons/icon-maskable-512.png",
+        src: appIcon("icon-maskable-512.png"),
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

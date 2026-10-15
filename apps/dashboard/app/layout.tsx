@@ -4,7 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import type React from "react";
 import { KeyboardInset } from "@/components/ui/keyboard-inset";
-import { APP_NAME } from "@/lib/app";
+import { APP_NAME, appIcon } from "@/lib/app";
 import { SIGN_IN_PATH } from "@/lib/auth-routes";
 import { ConvexClientProvider } from "@/providers/convex.provider";
 import { DASHBOARD_CHROME_COLOR } from "./_components/chrome";
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
       },
       { url: "/favicon/white-icon.png", media: "(prefers-color-scheme: dark)" },
     ],
-    apple: "/icons/apple-touch-icon.png",
+    apple: appIcon("apple-touch-icon.png"),
   },
   // Aggiunto alla schermata Home di un iPhone si apre a tutto schermo, senza
   // la barra di Safari: è anche la condizione perché riceva le notifiche push.
