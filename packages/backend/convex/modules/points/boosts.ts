@@ -1,7 +1,7 @@
 import { query } from "../../_generated/server";
 import { getIdentityPlayer } from "../openMatches/lib";
 import { clubWeekKey } from "./auto";
-import { activeRule } from "./rules";
+import { activeRule, isFirstMatchNewcomer } from "./rules";
 
 /**
  * Come guadagnare punti, visto da chi guarda: le azioni premiate accese, con
@@ -47,8 +47,11 @@ export default query({
     // prenotazione, nemmeno in attesa di conferma. Chi ha già prenotato l'ha
     // già avuta, la sta per avere o non può averla (giocava prima che
     // l'azione partisse): in tutti e tre i casi la tile non ha niente da dirgli.
+    // E non si promette a chi era già cliente prima del portale.
     const firstAvailable =
-      rows.length === 0 && awards(`first_match:${player._id}`).length === 0;
+      isFirstMatchNewcomer(player) &&
+      rows.length === 0 &&
+      awards(`first_match:${player._id}`).length === 0;
 
     const week = clubWeekKey(Date.now());
     const playedThisWeek = rows.filter(

@@ -23,6 +23,23 @@ import { MAX_DELTA } from "./lib";
  * salvano insieme (`list`, `save`), con un interruttore unico.
  */
 
+/**
+ * «Prima partita» è un benvenuto ai clienti nuovi: vale solo per le schede
+ * create da qui in poi (16/10/2026, 21:30 ora del club).
+ *
+ * Le schede precedenti sono i clienti che il club aveva già quando il portale
+ * è partito: molti giocavano da anni senza una prenotazione registrata, e il
+ * controllo sulle prenotazioni (`pointRules.since`) non bastava a
+ * riconoscerli.
+ */
+export const FIRST_MATCH_NEWCOMERS_SINCE = Date.parse(
+  "2026-10-16T21:30:00+02:00",
+);
+
+export function isFirstMatchNewcomer(player: Doc<"players">): boolean {
+  return player.createdAt >= FIRST_MATCH_NEWCOMERS_SINCE;
+}
+
 /** Il premio all'amico invitato: vive dentro «Amico invitato». */
 const PAIRED: Partial<Record<PointRuleKey, PointRuleKey>> = {
   referral: "referral_welcome",
@@ -46,7 +63,7 @@ export const POINT_RULES: readonly PointRuleDefinition[] = [
     key: "first_match",
     label: "Prima partita",
     description:
-      "Alla prima prenotazione confermata dallo staff, dal sito o dal gestionale. Non vale per chi giocava già prima che la regola partisse.",
+      "Alla prima prenotazione confermata dallo staff, dal sito o dal gestionale. Solo per i clienti nuovi, con la scheda creata dal 16 ottobre 2026.",
     defaultPoints: 10,
   },
   {

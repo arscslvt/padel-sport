@@ -9,7 +9,12 @@ import {
 } from "../../_generated/server";
 import { clubDayKey, clubMoment } from "../settings/lib";
 import { applyPoints, balanceOf } from "./lib";
-import { activeRule, type PointRuleKey, ruleDefinition } from "./rules";
+import {
+  activeRule,
+  isFirstMatchNewcomer,
+  type PointRuleKey,
+  ruleDefinition,
+} from "./rules";
 import { programState } from "./terms";
 import { syncMemberPricing } from "../pricing/members";
 
@@ -295,6 +300,11 @@ async function loadRules(ctx: QueryCtx): Promise<Rules> {
  * Chi aveva già prenotazioni nate prima che «prima partita» partisse non è
  * alla prima: anche se la regola è spenta adesso, `since` resta quello del
  * giorno in cui è nata, e se non è mai stata configurata nessuno la merita.
+ *
+ * Le schede più vecchie dei clienti nuovi (`isFirstMatchNewcomer`) restano
+ * fuori del tutto: il premio non si dà più, e quello già dato non si storna
+ * nemmeno se la partita viene annullata. Lo staff ha corretto a mano quelli
+ * sbagliati, e uno storno automatico toglierebbe i punti una seconda volta.
  */
 async function reconcilePlayer(
   ctx: MutationCtx,
@@ -310,11 +320,14 @@ async function reconcilePlayer(
 
   const firstSince = (await ruleSince(ctx, "first_match")) ?? Infinity;
   const veteran = rows.some((row) => row.bookingCreatedAt < firstSince);
-  await settle(ctx, rules.first_match, {
-    deserved: !veteran && confirmed.length > 0,
-    playerId,
-    autoKey: `first_match:${playerId}`,
-  });
+  const player = await ctx.db.get(playerId);
+  if (player && isFirstMatchNewcomer(player)) {
+    await settle(ctx, rules.first_match, {
+      deserved: !veteran && confirmed.length > 0,
+      playerId,
+      autoKey: `first_match:${playerId}`,
+    });
+  }
 
   const weeklySince = (await ruleSince(ctx, "weekly_three")) ?? Infinity;
   for (const week of weeks) {
