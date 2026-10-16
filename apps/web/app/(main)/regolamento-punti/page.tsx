@@ -138,6 +138,14 @@ export default function PointsTermsPage() {
             stabilisce: per esempio <Term>3 punti per ogni partita vinta</Term>.
           </p>
           <p>
+            Alcune azioni ti fanno guadagnare punti in automatico, senza che la
+            segreteria li carichi: le trovi nella tua area personale, con i
+            punti che valgono oggi. Il premio <Term>«Prima partita»</Term> è un
+            benvenuto per i clienti nuovi: spetta solo a chi ha la scheda
+            cliente creata dal <Term>16 ottobre 2026</Term>, alla sua prima
+            prenotazione confermata.
+          </p>
+          <p>
             Il club può cambiare le occasioni e i punti relativi, per esempio
             quando cambiano le attività o le tariffe. Ogni modifica la
             comunichiamo sul sito o via email almeno <Term>7 giorni prima</Term>{" "}

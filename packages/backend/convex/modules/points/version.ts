@@ -16,4 +16,4 @@ export const POINTS_TERMS_VERSION = "2026-10-02";
  * riscattare — non deve fermare i punti di chi aveva già aderito. Per quelle
  * si sposta solo questa data, che la pagina mostra accanto alla versione.
  */
-export const POINTS_TERMS_UPDATED = "2026-10-13";
+export const POINTS_TERMS_UPDATED = "2026-10-16";
