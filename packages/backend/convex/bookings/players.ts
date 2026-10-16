@@ -219,6 +219,9 @@ export const update = mutation({
 
       await ctx.db.patch(bookingId, {
         players: names,
+        // Il titolo della scheda è il primo nome: corretto lì, si corregge
+        // anche «prenotato da».
+        bookedBy: names[0],
         bookForAll: names.length >= MAX_PLAYERS,
         linkedPlayerIds,
       });

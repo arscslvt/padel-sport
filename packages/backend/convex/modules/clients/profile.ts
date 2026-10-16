@@ -12,6 +12,7 @@ import {
 } from "../../tables/players";
 import { displayName } from "./lib";
 import { attachReferral } from "../referrals/lib";
+import { syncUpcomingName } from "../../bookings/names";
 import { syncUpcomingPhone } from "../../bookings/whatsapp";
 
 /**
@@ -297,6 +298,7 @@ export const update = mutation({
     }
 
     const phone = clean(fields.phone) ?? player.phone;
+    const name = displayName({ name: player.name, firstName, lastName });
 
     await ctx.db.patch(playerId, {
       firstName,
@@ -320,8 +322,11 @@ export const update = mutation({
           : player.clubNotes,
       // Il nome visualizzato segue nome e cognome appena ci sono: è quello che
       // lo staff legge sulle prenotazioni e sulle partite.
-      name: displayName({ name: player.name, firstName, lastName }),
+      name,
     });
+
+    // E sulle partite ancora da giocare: il nome giusto deve leggersi lì.
+    await syncUpcomingName(ctx, playerId, player.name, name);
 
     // Un numero corretto qui vale anche per le partite già prenotate: è lì
     // che lo legge il WhatsApp di conferma, anche quando lo staff lo rimanda.

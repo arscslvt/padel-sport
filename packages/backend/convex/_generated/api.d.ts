@@ -9,6 +9,7 @@
  */
 
 import type * as bookings_availability from "../bookings/availability.js";
+import type * as bookings_contact from "../bookings/contact.js";
 import type * as bookings_court from "../bookings/court.js";
 import type * as bookings_delete from "../bookings/delete.js";
 import type * as bookings_email from "../bookings/email.js";
@@ -18,6 +19,8 @@ import type * as bookings_lib from "../bookings/lib.js";
 import type * as bookings_list from "../bookings/list.js";
 import type * as bookings_merge from "../bookings/merge.js";
 import type * as bookings_mine from "../bookings/mine.js";
+import type * as bookings_names from "../bookings/names.js";
+import type * as bookings_notifyPlayers from "../bookings/notifyPlayers.js";
 import type * as bookings_players from "../bookings/players.js";
 import type * as bookings_reschedule from "../bookings/reschedule.js";
 import type * as bookings_staffCreate from "../bookings/staffCreate.js";
@@ -210,6 +213,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "bookings/availability": typeof bookings_availability;
+  "bookings/contact": typeof bookings_contact;
   "bookings/court": typeof bookings_court;
   "bookings/delete": typeof bookings_delete;
   "bookings/email": typeof bookings_email;
@@ -219,6 +223,8 @@ declare const fullApi: ApiFromModules<{
   "bookings/list": typeof bookings_list;
   "bookings/merge": typeof bookings_merge;
   "bookings/mine": typeof bookings_mine;
+  "bookings/names": typeof bookings_names;
+  "bookings/notifyPlayers": typeof bookings_notifyPlayers;
   "bookings/players": typeof bookings_players;
   "bookings/reschedule": typeof bookings_reschedule;
   "bookings/staffCreate": typeof bookings_staffCreate;

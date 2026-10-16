@@ -7,6 +7,7 @@ import {
   hasEmailRetry,
   onlyTarget,
 } from "../modules/deliveries/retry";
+import { notifiedPlayers } from "../modules/notifications/bookingPlayers";
 import { MATCH_DURATION_MINUTES } from "../modules/openMatches/lib";
 import { assertServer } from "../utils/serverSecret";
 
@@ -58,7 +59,14 @@ export const resend = mutation({
       .withIndex("by_booking", (q) => q.eq("bookingId", bookingId))
       .collect();
 
-    const targets = onlyTarget(emailRetryTargets(booking, deliveries), target);
+    const linked = (await notifiedPlayers(ctx, booking)).map((player) => ({
+      playerId: player._id,
+      name: player.name,
+    }));
+    const targets = onlyTarget(
+      emailRetryTargets(booking, deliveries, linked),
+      target,
+    );
     if (!hasEmailRetry(targets)) {
       throw new Error(
         "Nessuna mail da rimandare: chi doveva riceverla l'ha già avuta o ce l'ha in arrivo.",

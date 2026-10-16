@@ -46,11 +46,27 @@ export type Booking = Doc<"bookings"> & {
   /** Gli incassi online, con i riferimenti per ritrovarli su SumUp. */
   payments?: PaymentReference[];
   /**
+   * I giocatori collegati oltre a chi prenota, con i loro recapiti
+   * (bookings/list.ts): anche quelli che nessun avviso ha ancora raggiunto.
+   */
+  linkedPlayers?: LinkedPlayer[];
+  /** Il numero nella scheda di chi ha prenotato, se ha una scheda. */
+  bookerCardPhone?: string;
+  /**
    * Chi l'ha fatta: il cliente da sé (dal sito, dall'app, o non si sa più da
    * dove) oppure lo staff dal gestionale (bookings/list.ts).
    */
   origin?: "web" | "app" | "client" | "staff";
 };
+
+export interface LinkedPlayer {
+  playerId: Id<"players">;
+  name: string;
+  /** Pronto per WhatsApp; assente se in scheda non c'è. */
+  phone?: string;
+  /** Ha un indirizzo, in scheda o sull'account. */
+  hasEmail: boolean;
+}
 
 /** Presa dallo staff, dal gestionale, invece che dal cliente da sé. */
 export function isStaffMade(booking: Booking): boolean {
@@ -352,6 +368,10 @@ export interface Recipient {
   playerId?: Id<"players">;
   /** L'ospite non ha una scheda: lo riconosce l'indirizzo. */
   email?: string;
+  /** Il numero in scheda, per i giocatori collegati: il WhatsApp parte da lì. */
+  phone?: string;
+  /** Collegato alla prenotazione: la conferma gli spetta anche senza avvisi. */
+  linked?: boolean;
   /** Dal più recente. */
   deliveries: Delivery[];
 }
@@ -413,6 +433,29 @@ export function deliveryRecipients(
     if (delivery.role !== "booker" && delivery.name)
       person.name = delivery.name;
     person.deliveries.unshift(delivery);
+  }
+
+  // I collegati ci sono anche senza avvisi: sulle prenotazioni confermate
+  // prima che la conferma andasse a tutti non ne hanno, e vanno avvisati.
+  if (booking.status === "accepted_on_site_payment") {
+    for (const player of booking.linkedPlayers ?? []) {
+      const key = `player:${player.playerId}`;
+      const known = byKey.get(key);
+      if (known) {
+        known.phone = player.phone;
+        known.linked = true;
+        continue;
+      }
+      byKey.set(key, {
+        key,
+        role: "player",
+        name: player.name,
+        playerId: player.playerId,
+        phone: player.phone,
+        linked: true,
+        deliveries: [],
+      });
+    }
   }
 
   if (!byKey.has("booker")) {
@@ -481,7 +524,10 @@ export function recipientReach(person: Recipient): {
     return { label: "In consegna", tone: "info" };
   }
   if (has("failed")) return { label: "Non raggiunto", tone: "danger" };
-  return { label: "Non avvisato", tone: "neutral" };
+  return {
+    label: latest.length === 0 ? "Non ancora avvisato" : "Non avvisato",
+    tone: "neutral",
+  };
 }
 
 function isActive(booking: Booking, now: number): boolean {
@@ -514,10 +560,11 @@ export function whatsappRetry(
   );
 
   if (!last) {
-    return person.role === "booker" &&
-      booking.notificationStatus !== "sent_with_whatsapp"
-      ? {}
-      : null;
+    const owed =
+      person.role === "booker"
+        ? booking.notificationStatus !== "sent_with_whatsapp"
+        : Boolean(person.linked);
+    return owed ? {} : null;
   }
   return last.status === "failed" || last.status === "skipped"
     ? { last }
@@ -549,7 +596,39 @@ export function emailRetry(
   const target = retryTarget(person);
   if (!target) return false;
   return hasEmailRetry(
-    onlyTarget(emailRetryTargets(booking, booking.deliveries ?? []), target),
+    onlyTarget(
+      emailRetryTargets(booking, booking.deliveries ?? [], linkedOf(booking)),
+      target,
+    ),
+  );
+}
+
+function linkedOf(booking: Booking) {
+  return (booking.linkedPlayers ?? []).map(({ playerId, name }) => ({
+    playerId,
+    name,
+  }));
+}
+
+/**
+ * I giocatori collegati che la conferma non l'hanno mai avuta, su una
+ * prenotazione confermata e non ancora iniziata: a loro si manda tutta
+ * insieme, mail e WhatsApp (bookings/notifyPlayers.ts).
+ */
+export function missingConfirmations(
+  booking: Booking,
+  now = Date.now(),
+): LinkedPlayer[] {
+  if (booking.status !== "accepted_on_site_payment") return [];
+  if (booking.bookingDate <= now) return [];
+
+  const confirmed = new Set(
+    (booking.deliveries ?? [])
+      .filter((delivery) => delivery.kind === "accepted" && delivery.playerId)
+      .map((delivery) => delivery.playerId),
+  );
+  return (booking.linkedPlayers ?? []).filter(
+    (player) => !confirmed.has(player.playerId),
   );
 }
 

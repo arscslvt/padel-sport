@@ -39,6 +39,12 @@ function keyOf(row: Row): string | null {
 export function emailRetryTargets(
   booking: Pick<Doc<"bookings">, "bookedBy" | "createdByPlayer">,
   deliveries: Row[],
+  /**
+   * I giocatori collegati alla prenotazione (notifications/bookingPlayers.ts).
+   * Chi fra loro non ha mai avuto la mail di conferma — le prenotazioni
+   * confermate prima che andasse a tutti — la aspetta ancora.
+   */
+  linked: { playerId: Id<"players">; name: string }[] = [],
 ): EmailRetryTargets {
   const latest = new Map<string, Row>();
   for (const row of deliveries) {
@@ -74,6 +80,12 @@ export function emailRetryTargets(
       targets.guestEmails.push(row.recipient.toLowerCase());
       targets.names.push(row.name ?? row.recipient);
     }
+  }
+
+  for (const player of linked) {
+    if (latest.has(`player:${player.playerId}`)) continue;
+    targets.playerIds.push(player.playerId);
+    targets.names.push(player.name);
   }
 
   return targets;

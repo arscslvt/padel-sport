@@ -4,7 +4,7 @@ import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
 import type { RetryTarget } from "@padel-sport/backend/convex/modules/deliveries/retry";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Loader2, Mail, UserRound } from "lucide-react";
+import { Loader2, Mail, Send, UserRound } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
 
@@ -27,6 +27,7 @@ import {
   deliveryRecipients,
   emailRetry,
   latestOn,
+  missingConfirmations,
   type Recipient,
   ROLE_LABELS,
   recipientCard,
@@ -143,6 +144,7 @@ export function RecipientsPanel({
   isDesktop,
   onResendWhatsapp,
   onResendEmail,
+  onNotifyMissing,
   onOpenClient,
 }: {
   booking: Booking;
@@ -150,6 +152,8 @@ export function RecipientsPanel({
   isDesktop: boolean;
   onResendWhatsapp: ResendWhatsapp;
   onResendEmail: ResendEmail;
+  /** La conferma, insieme, ai collegati che non l'hanno mai avuta. */
+  onNotifyMissing: (booking: Booking, names: string[]) => void;
   onOpenClient: (playerId: Id<"players">) => void;
 }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
@@ -157,6 +161,7 @@ export function RecipientsPanel({
   if (people.length === 0) return null;
   // Senza scheda e senza mail: in campo, ma nessun avviso li raggiunge.
   const uncontacted = uncontactedNames(booking, people);
+  const missing = missingConfirmations(booking).map((player) => player.name);
 
   const detail = (person: Recipient) => (
     <RecipientDetail
@@ -210,6 +215,22 @@ export function RecipientsPanel({
           </NestedDrawer>
         ),
       )}
+      {/* Le prenotazioni confermate prima che la conferma andasse a tutti:
+          un tocco, e chi manca la riceve come gli altri. */}
+      {missing.length > 0 && (
+        <ListRow
+          leading={
+            busy ? (
+              <Loader2 className="size-5 animate-spin motion-reduce:animate-none" />
+            ) : (
+              <Send className="size-5" />
+            )
+          }
+          title="Manda la conferma a chi manca"
+          subtitle={`Mail e WhatsApp a ${missing.join(", ")}`}
+          onClick={busy ? undefined : () => onNotifyMissing(booking, missing)}
+        />
+      )}
       {uncontacted.map((name, index) => (
         <ListRow
           // biome-ignore lint/suspicious/noArrayIndexKey: due omonimi sono due righe, il nome da solo non basta.
@@ -246,7 +267,7 @@ function RecipientDetail({
   const sections = CHANNELS.filter(
     (channel) =>
       person.deliveries.some((delivery) => delivery.channel === channel) ||
-      (channel === "whatsapp" && waRetry),
+      (channel === "whatsapp" ? waRetry : mailRetry),
   );
 
   return (
@@ -257,6 +278,26 @@ function RecipientDetail({
         );
         return (
           <div key={channel} className="space-y-3">
+            {attempts.length === 0 && (
+              <ListGroup
+                title={
+                  <span className="inline-flex items-center gap-1.5">
+                    <ChannelIcon channel={channel} className="size-3.5" />
+                    {CHANNEL_LABELS[channel]}
+                  </span>
+                }
+              >
+                <ListRow
+                  title={
+                    channel === "email"
+                      ? "Non ancora inviata"
+                      : "Non ancora inviato"
+                  }
+                  subtitle="Nessun tentativo finora"
+                  className="text-muted-foreground"
+                />
+              </ListGroup>
+            )}
             {attempts.length > 0 && (
               <ListGroup
                 title={
@@ -292,6 +333,7 @@ function RecipientDetail({
                 person={person}
                 busy={busy}
                 hasCard={Boolean(card)}
+                first={attempts.length === 0}
                 onSend={onResendEmail}
               />
             )}
@@ -392,7 +434,9 @@ function WhatsappRetryForm({
   onSend: ResendWhatsapp;
 }) {
   const initial =
-    last?.recipient ?? (person.role === "booker" ? booking.phone : "") ?? "";
+    last?.recipient ??
+    (person.role === "booker" ? booking.phone : person.phone) ??
+    "";
   const [phone, setPhone] = useState(initial.trim());
   const id = useId();
   // Da telefono il drawer non si chiude per sbaglio su un numero corretto e
@@ -408,9 +452,7 @@ function WhatsappRetryForm({
   const footer =
     person.role === "player"
       ? "Il numero corretto si salva anche nella scheda cliente."
-      : booking.createdByPlayer
-        ? "Se il numero corretto sostituisce quello della scheda cliente, si aggiorna anche lì."
-        : "Il numero corretto resta su questa prenotazione.";
+      : "Il numero corretto resta su questa prenotazione: la scheda cliente non cambia.";
 
   return (
     <form className="space-y-3" onSubmit={submit} noValidate>
@@ -460,12 +502,15 @@ function EmailRetry({
   person,
   busy,
   hasCard,
+  first,
   onSend,
 }: {
   booking: Booking;
   person: Recipient;
   busy: boolean;
   hasCard: boolean;
+  /** Non è mai partita: «Invia», non «Rinvia». */
+  first: boolean;
   onSend: ResendEmail;
 }) {
   const target = retryTarget(person);
@@ -480,12 +525,15 @@ function EmailRetry({
         disabled={busy}
         onClick={() => void onSend(booking, target, person.name)}
       >
-        <SendLabel busy={busy} label="Rinvia la mail" />
+        <SendLabel
+          busy={busy}
+          label={first ? "Invia la mail" : "Rinvia la mail"}
+        />
       </Button>
       <p className="text-muted-foreground px-1 text-xs leading-relaxed">
         {hasCard
-          ? "Riparte la conferma con il QR. Se l'indirizzo è sbagliato, correggilo prima nella scheda cliente."
-          : "Riparte la conferma con il QR allo stesso indirizzo."}
+          ? `${first ? "Parte" : "Riparte"} la conferma con il QR. Se l'indirizzo è sbagliato, correggilo prima nella scheda cliente.`
+          : `${first ? "Parte" : "Riparte"} la conferma con il QR allo stesso indirizzo.`}
       </p>
     </div>
   );

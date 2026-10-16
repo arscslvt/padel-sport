@@ -39,6 +39,7 @@ import {
   wasRefunded,
   whatsappNumber,
 } from "./lib";
+import { PhoneDrawer, PhoneEditor } from "./phone-editor";
 import {
   PlayersDrawer,
   PlayersEditor,
@@ -53,7 +54,7 @@ import {
 import { RescheduleDrawer, RescheduleEditor } from "./reschedule-editor";
 
 /** I pezzi della scheda che si modificano, uno alla volta. */
-type Part = "time" | "court" | "players";
+type Part = "time" | "court" | "players" | "phone";
 
 /**
  * I tasti di contatto: superficie bianca come le schede sotto, sempre.
@@ -128,8 +129,10 @@ export function BookingSheet({
   onUpdatePlayers,
   onReschedule,
   onMoveCourt,
+  onUpdatePhone,
   onResendWhatsapp,
   onResendEmail,
+  onNotifyMissing,
   onSplit,
 }: {
   booking: Booking | null;
@@ -150,8 +153,10 @@ export function BookingSheet({
     notify: boolean,
   ) => Promise<boolean>;
   onMoveCourt: (booking: Booking, slotId: string) => Promise<boolean>;
+  onUpdatePhone: (booking: Booking, phone: string) => Promise<boolean>;
   onResendWhatsapp: ResendWhatsapp;
   onResendEmail: ResendEmail;
+  onNotifyMissing: (booking: Booking, names: string[]) => void;
   onSplit: (booking: Booking) => void;
 }) {
   return (
@@ -181,8 +186,10 @@ export function BookingSheet({
             onUpdatePlayers={onUpdatePlayers}
             onReschedule={onReschedule}
             onMoveCourt={onMoveCourt}
+            onUpdatePhone={onUpdatePhone}
             onResendWhatsapp={onResendWhatsapp}
             onResendEmail={onResendEmail}
+            onNotifyMissing={onNotifyMissing}
             onSplit={onSplit}
           />
         )}
@@ -202,8 +209,10 @@ function Body({
   onUpdatePlayers,
   onReschedule,
   onMoveCourt,
+  onUpdatePhone,
   onResendWhatsapp,
   onResendEmail,
+  onNotifyMissing,
   onSplit,
 }: {
   booking: Booking;
@@ -223,8 +232,10 @@ function Body({
     notify: boolean,
   ) => Promise<boolean>;
   onMoveCourt: (booking: Booking, slotId: string) => Promise<boolean>;
+  onUpdatePhone: (booking: Booking, phone: string) => Promise<boolean>;
   onResendWhatsapp: ResendWhatsapp;
   onResendEmail: ResendEmail;
+  onNotifyMissing: (booking: Booking, names: string[]) => void;
   onSplit: (booking: Booking) => void;
 }) {
   const pending = isPending(booking);
@@ -241,7 +252,13 @@ function Body({
   const timeRow = useRef<HTMLButtonElement>(null);
   const courtRow = useRef<HTMLButtonElement>(null);
   const playersRow = useRef<HTMLButtonElement>(null);
-  const rowOf = { time: timeRow, court: courtRow, players: playersRow };
+  const phoneRow = useRef<HTMLButtonElement>(null);
+  const rowOf = {
+    time: timeRow,
+    court: courtRow,
+    players: playersRow,
+    phone: phoneRow,
+  };
 
   const toggle = (part: Part) =>
     setEditing((current) => (current === part ? null : part));
@@ -255,6 +272,20 @@ function Body({
   const saveTime = (bookingDate: number, notify: boolean) =>
     onReschedule(booking, bookingDate, notify);
   const saveCourt = (slotId: string) => onMoveCourt(booking, slotId);
+  const savePhone = (value: string) => onUpdatePhone(booking, value);
+
+  // Il numero di chi ha prenotato: si scrive se manca, si corregge se è
+  // sbagliato. Senza, la riga invita ad aggiungerlo.
+  const phoneRowProps = {
+    title: "Telefono",
+    trailing: phone ? (
+      <Value>{phone}</Value>
+    ) : cancelled ? (
+      <Value>Non indicato</Value>
+    ) : (
+      <span className="text-primary text-[15px] font-medium">Aggiungi</span>
+    ),
+  };
   const savePlayers = (payload: PlayersPayload) =>
     onUpdatePlayers(booking, payload);
 
@@ -435,10 +466,27 @@ function Body({
           {/* Quanto si incassa, e quanto deve ognuno quando non è uguale per
               tutti: il tesserato paga meno. */}
           <TotalRow booking={booking} isDesktop={isDesktop} />
-          <ListRow
-            title="Telefono"
-            trailing={<Value>{phone || "Non indicato"}</Value>}
-          />
+          {cancelled ? (
+            <ListRow {...phoneRowProps} />
+          ) : isDesktop ? (
+            <ListRow
+              {...phoneRowProps}
+              ref={phoneRow}
+              chevron
+              aria-expanded={editing === "phone"}
+              onClick={() => toggle("phone")}
+            />
+          ) : (
+            <PhoneDrawer
+              booking={booking}
+              busy={busy}
+              open={editing === "phone"}
+              onOpenChange={openChange("phone")}
+              onSave={savePhone}
+            >
+              <ListRow {...phoneRowProps} chevron />
+            </PhoneDrawer>
+          )}
           {booking.code && (
             <ListRow
               title="Codice"
@@ -474,6 +522,15 @@ function Body({
           />
         )}
 
+        {isDesktop && editing === "phone" && (
+          <PhoneEditor
+            booking={booking}
+            busy={busy}
+            onSave={savePhone}
+            onClose={() => close("phone")}
+          />
+        )}
+
         <OnlinePayment booking={booking} busy={busy} onRefund={onRefund} />
 
         <RecipientsPanel
@@ -482,6 +539,7 @@ function Body({
           isDesktop={isDesktop}
           onResendWhatsapp={onResendWhatsapp}
           onResendEmail={onResendEmail}
+          onNotifyMissing={onNotifyMissing}
           onOpenClient={openClient}
         />
 

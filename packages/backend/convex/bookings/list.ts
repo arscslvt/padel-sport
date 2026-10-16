@@ -3,6 +3,10 @@ import type { Doc } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { onlinePayments } from "../modules/payments/lib";
 import { assertServer } from "../utils/serverSecret";
+import {
+  notifiedPlayers,
+  whatsappPhone,
+} from "../modules/notifications/bookingPlayers";
 
 /**
  * L'agenda completa della struttura: nomi, telefoni e codici d'ingresso.
@@ -84,11 +88,32 @@ export default query({
         // rimborsato da mostrare: si legge per tutte, è un indice.
         const payments = await onlinePayments(ctx, booking._id);
 
+        // I giocatori collegati, anche quelli che nessun avviso ha ancora
+        // raggiunto (le prenotazioni confermate prima che la conferma
+        // andasse a tutti): la scheda li mostra e permette di avvisarli.
+        const linkedPlayers = (await notifiedPlayers(ctx, booking)).map(
+          (player) => ({
+            playerId: player._id,
+            name: player.name,
+            phone: whatsappPhone(player.phone),
+            // L'indirizzo di chi ha un account sta su Clerk: lo trova il sito.
+            hasEmail: Boolean(player.email || player.clerkUserId),
+          }),
+        );
+
         return {
           ...booking,
           // L'id del provider serve ai webhook, non a chi guarda la scheda.
           deliveries: deliveries.map(({ providerId: _, ...delivery }) => delivery),
           payments: payments.length > 0 ? payments : undefined,
+          linkedPlayers,
+          // Il numero nella scheda di chi ha prenotato: la scheda lo propone
+          // quando quello della prenotazione è diverso o manca.
+          bookerCardPhone: booking.createdByPlayer
+            ? whatsappPhone(
+                (await ctx.db.get(booking.createdByPlayer))?.phone,
+              )
+            : undefined,
           origin: await originOf(ctx, booking),
         };
       }),

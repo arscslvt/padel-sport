@@ -354,6 +354,52 @@ export function useAgenda() {
     }
   };
 
+  /**
+   * La conferma ai giocatori collegati che non l'hanno mai avuta: le
+   * prenotazioni confermate prima che andasse a tutta la squadra.
+   */
+  const notifyMissing = async (booking: Booking) => {
+    setBusyId(booking._id);
+    try {
+      const payload = await request(
+        "/api/dashboard/bookings/notify-players",
+        "POST",
+        { bookingId: booking._id },
+      );
+      const names: string[] = payload?.names ?? [];
+      toast.success("Conferma inviata", {
+        description: `A ${names.join(", ")}. L'esito compare fra gli avvisi.`,
+      });
+      setTimeout(() => void load(true), 3_000);
+      setTimeout(() => void load(true), 8_000);
+      return true;
+    } catch (error) {
+      toast.error("Conferma non inviata", {
+        description:
+          error instanceof Error ? error.message : "Riprova fra poco.",
+      });
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const updatePhone = (booking: Booking, phone: string) =>
+    run(
+      booking._id,
+      () =>
+        request("/api/dashboard/bookings/phone", "POST", {
+          bookingId: booking._id,
+          phone,
+        }),
+      {
+        success: "Telefono salvato",
+        description:
+          "Solo su questa prenotazione: la scheda cliente non cambia.",
+        error: "Impossibile salvare il numero",
+      },
+    );
+
   const split = (booking: Booking) =>
     run(
       booking._id,
@@ -378,8 +424,10 @@ export function useAgenda() {
     updatePlayers,
     reschedule,
     moveCourt,
+    updatePhone,
     resendWhatsapp,
     resendEmail,
+    notifyMissing,
     split,
   };
 }

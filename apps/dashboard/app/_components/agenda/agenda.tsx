@@ -74,8 +74,10 @@ export function Agenda() {
     updatePlayers,
     reschedule,
     moveCourt,
+    updatePhone,
     resendWhatsapp,
     resendEmail,
+    notifyMissing,
     split,
   } = useAgenda();
   const courts = useQuery(api.modules.settings.booking.courts, {});
@@ -186,6 +188,17 @@ export function Agenda() {
   }, [bookings, searchParams]);
 
   const open = list.find((booking) => booking._id === openId) ?? null;
+
+  // Partono messaggi veri a persone che non li aspettano più da giorni: si
+  // chiede prima, dicendo a chi.
+  const askNotifyMissing = async (booking: Booking, names: string[]) => {
+    const result = await confirm({
+      title: "Mandare la conferma a chi manca?",
+      description: `Partono la mail con il QR e il WhatsApp a ${names.join(", ")}.`,
+      confirmLabel: "Manda",
+    });
+    if (result) await notifyMissing(booking);
+  };
 
   const askAccept = async (booking: Booking) => {
     const result = await confirm({
@@ -626,8 +639,12 @@ export function Agenda() {
         onUpdatePlayers={updatePlayers}
         onReschedule={reschedule}
         onMoveCourt={moveCourt}
+        onUpdatePhone={updatePhone}
         onResendWhatsapp={resendWhatsapp}
         onResendEmail={resendEmail}
+        onNotifyMissing={(booking, names) =>
+          void askNotifyMissing(booking, names)
+        }
         onSplit={(booking) => void askSplit(booking)}
       />
 

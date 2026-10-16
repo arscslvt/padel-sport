@@ -1,12 +1,13 @@
 import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation } from "../_generated/server";
 import {
   MATCH_DURATION_MINUTES,
   normalizePhone,
 } from "../modules/openMatches/lib";
+import { notifiedPlayers } from "../modules/notifications/bookingPlayers";
 import { assertServer } from "../utils/serverSecret";
 
 /**
@@ -55,6 +56,23 @@ export async function syncUpcomingPhone(
     if (booking.status === "cancelled" || booking.phone === phone) continue;
     await ctx.db.patch(booking._id, { phone });
   }
+}
+
+/**
+ * Il numero di chi ha prenotato, cambiato sulla prenotazione e basta.
+ *
+ * La scheda cliente non si tocca da qui: l'anagrafica la corregge chi la
+ * apre, ed è da lì che il numero nuovo arriva sulle prenotazioni future
+ * (`syncUpcomingPhone`). Il verso contrario, una prenotazione che riscrive
+ * l'anagrafica, cambiava i dati del cliente senza che nessuno li guardasse.
+ */
+export async function setBookerPhone(
+  ctx: MutationCtx,
+  booking: Doc<"bookings">,
+  phone: string,
+): Promise<void> {
+  if (phone === booking.phone) return;
+  await ctx.db.patch(booking._id, { phone });
 }
 
 /** Stati di un WhatsApp che è partito o sta partendo: rimandarlo sarebbe un doppione. */
@@ -106,18 +124,27 @@ export const resend = mutation({
         null,
       );
 
+    // Un giocatore senza righe non l'ha mai avuta: le prenotazioni
+    // confermate prima che la conferma andasse a tutti. Gli spetta se è
+    // davvero fra i giocatori collegati.
+    if (
+      playerId &&
+      !latest &&
+      !(await notifiedPlayers(ctx, booking)).some(
+        (player) => player._id === playerId,
+      )
+    ) {
+      throw new Error("Questo giocatore non è collegato alla prenotazione.");
+    }
+
     // Prima del registro degli avvisi lo diceva solo lo stato sulla
-    // prenotazione. Per un giocatore il registro c'è sempre: senza una riga,
-    // la conferma non gli spettava.
+    // prenotazione.
     const alreadySent = latest
       ? ON_ITS_WAY.has(latest.status)
-      : playerId !== undefined ||
-        booking.notificationStatus === "sent_with_whatsapp";
+      : !playerId && booking.notificationStatus === "sent_with_whatsapp";
     if (alreadySent) {
       throw new Error(
-        latest
-          ? "Il WhatsApp di conferma è già partito: se non arriva, lo stato si aggiorna da solo nella scheda."
-          : "Questo giocatore non ha una conferma da rimandare.",
+        "Il WhatsApp di conferma è già partito: se non arriva, lo stato si aggiorna da solo nella scheda.",
       );
     }
 
@@ -141,29 +168,7 @@ export const resend = mutation({
       );
       return { phone, clientUpdated };
     }
-    const previous = booking.phone;
-    let clientUpdated = false;
-
-    if (phone !== previous) {
-      await ctx.db.patch(bookingId, { phone });
-
-      // Il numero sbagliato veniva quasi sempre dalla scheda del cliente: se
-      // è lo stesso (o la scheda non ne aveva), si corregge anche lì, così la
-      // prossima prenotazione non ripete l'errore. Uno diverso è un numero
-      // che lo staff ha messo apposta, e resta.
-      const player = booking.createdByPlayer
-        ? await ctx.db.get(booking.createdByPlayer)
-        : null;
-      if (
-        player &&
-        (!player.phone ||
-          (previous !== undefined && bookingPhone(player.phone) === previous))
-      ) {
-        await ctx.db.patch(player._id, { phone });
-        await syncUpcomingPhone(ctx, player._id, phone);
-        clientUpdated = true;
-      }
-    }
+    await setBookerPhone(ctx, booking, phone);
 
     await ctx.scheduler.runAfter(
       0,
@@ -171,6 +176,6 @@ export const resend = mutation({
       { bookingId },
     );
 
-    return { phone, clientUpdated };
+    return { phone, clientUpdated: false };
   },
 });
