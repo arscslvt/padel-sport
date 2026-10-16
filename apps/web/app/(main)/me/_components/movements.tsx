@@ -46,7 +46,7 @@ export function Movements({ wallet }: { wallet: Wallet }) {
               className="flex items-baseline justify-between gap-4 py-3.5 first:pt-0"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm">{transaction.label}</p>
+                <p className="text-sm break-words">{transaction.label}</p>
                 <p className="text-muted-foreground mt-0.5 text-xs">
                   {formatClubDate(transaction.createdAt)}
                   {transaction.pending && " · in attesa della tua adesione"}

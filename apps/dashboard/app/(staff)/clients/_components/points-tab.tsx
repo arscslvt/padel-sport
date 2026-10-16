@@ -12,7 +12,13 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { POINTS_TERMS_LINK } from "@/lib/links";
 import { pointsLabel, signedPoints } from "@/lib/points";
 import { siteUrl } from "@/lib/site";
@@ -32,6 +39,13 @@ import { cn } from "@/lib/utils";
  * essere un tocco solo. Sotto il movimento a mano, per quello che un preset
  * non prevede, e lo storico per rispondere a «da dove vengono questi punti?».
  */
+
+/** Gli stessi limiti della route: oltre, il movimento verrebbe rifiutato. */
+const MAX_POINTS = 1000;
+const LABEL_MAX = 200;
+
+/** Oltre questa lunghezza il motivo non sta più su una riga: diventa un'area. */
+const LABEL_INLINE = 40;
 
 interface Preset {
   id: string;
@@ -100,6 +114,32 @@ export function PointsTab({
   const [sign, setSign] = useState<1 | -1>(1);
   const [amount, setAmount] = useState("");
   const [label, setLabel] = useState("");
+  /** Dove riportare il cursore quando il motivo passa da riga ad area. */
+  const labelCaret = useRef<number | null>(null);
+
+  const changeLabel = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    // Il motivo è una riga del registro: un a capo diventa uno spazio.
+    const next = event.target.value.replace(/\s*\n\s*/g, " ");
+    if (next.length > LABEL_INLINE !== label.length > LABEL_INLINE) {
+      labelCaret.current = event.target.selectionStart ?? next.length;
+    }
+    setLabel(next);
+  };
+
+  // Al cambio di elemento il campo nuovo prende il fuoco e il cursore resta
+  // dov'era: chi scrive non deve accorgersi dello scambio.
+  const focusLabel = useCallback(
+    (element: HTMLInputElement | HTMLTextAreaElement | null) => {
+      const caret = labelCaret.current;
+      if (!element || caret === null) return;
+      labelCaret.current = null;
+      element.focus();
+      element.setSelectionRange(caret, caret);
+    },
+    [],
+  );
 
   const load = useCallback(async () => {
     const [points, presetList] = await Promise.all([
@@ -176,6 +216,10 @@ export function PointsTab({
 
     if (!Number.isInteger(points) || points <= 0) {
       toast.error("Indica un numero intero di punti.");
+      return;
+    }
+    if (points > MAX_POINTS) {
+      toast.error(`Un singolo movimento non può superare ${MAX_POINTS} punti.`);
       return;
     }
     if (label.trim().length < 2) {
@@ -557,6 +601,7 @@ export function PointsTab({
                 type="number"
                 inputMode="numeric"
                 min={1}
+                max={MAX_POINTS}
                 step={1}
                 placeholder="Punti"
                 value={amount}
@@ -566,12 +611,32 @@ export function PointsTab({
 
             <div className="space-y-1.5">
               <Label htmlFor="points-label">Motivo</Label>
-              <Input
-                id="points-label"
-                placeholder="Es. torneo sociale, correzione"
-                value={label}
-                onChange={(event) => setLabel(event.target.value)}
-              />
+              {/* Corto sta in una riga; quando il testo si allunga il campo
+                  diventa un'area, e il cliente lo legge comunque intero. */}
+              {label.length > LABEL_INLINE ? (
+                <>
+                  <Textarea
+                    ref={focusLabel}
+                    id="points-label"
+                    value={label}
+                    maxLength={LABEL_MAX}
+                    rows={3}
+                    onChange={changeLabel}
+                  />
+                  <p className="text-muted-foreground text-right text-xs tabular-nums">
+                    {label.length}/{LABEL_MAX}
+                  </p>
+                </>
+              ) : (
+                <Input
+                  ref={focusLabel}
+                  id="points-label"
+                  placeholder="Es. torneo sociale, correzione"
+                  value={label}
+                  maxLength={LABEL_MAX}
+                  onChange={changeLabel}
+                />
+              )}
             </div>
 
             <Button
@@ -706,7 +771,7 @@ export function PointsTab({
                 className="flex items-center justify-between gap-3 px-3 py-2"
               >
                 <div className="min-w-0">
-                  <p className="truncate">{transaction.label}</p>
+                  <p className="break-words">{transaction.label}</p>
                   <p className="text-muted-foreground text-xs">
                     {format(transaction.createdAt, "d MMM yyyy, HH:mm", {
                       locale: it,

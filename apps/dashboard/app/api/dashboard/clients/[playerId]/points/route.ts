@@ -11,24 +11,37 @@ import { staffGate } from "@/lib/dashboard-api";
  *
  * Il movimento è da preset (basta l'id: punti e causale li decide il preset)
  * oppure a mano, con punti e motivo scritti dallo staff.
+ *
+ * I due moduli si validano separatamente: con un'unione zod l'errore sarebbe
+ * sempre quello generico, e un motivo troppo lungo diventerebbe «scegli un
+ * preset», che non dice cosa correggere.
  */
 
-const bodySchema = z.union([
-  z.object({
-    presetId: z.string(),
-    note: z.string().trim().max(300).optional(),
-  }),
-  z.object({
-    delta: z
-      .number()
-      .int()
-      .min(-1000)
-      .max(1000)
-      .refine((value) => value !== 0),
-    label: z.string().trim().min(2).max(80),
-    note: z.string().trim().max(300).optional(),
-  }),
-]);
+const noteSchema = z
+  .string()
+  .trim()
+  .max(300, "La nota può avere al massimo 300 caratteri.")
+  .optional();
+
+const presetSchema = z.object({
+  presetId: z.string(),
+  note: noteSchema,
+});
+
+const manualSchema = z.object({
+  delta: z
+    .number("Indica quanti punti.")
+    .int("I punti devono essere un numero intero.")
+    .min(-1000, "Un singolo movimento non può superare 1000 punti.")
+    .max(1000, "Un singolo movimento non può superare 1000 punti.")
+    .refine((value) => value !== 0, "I punti non possono essere zero."),
+  label: z
+    .string("Scrivi il motivo del movimento.")
+    .trim()
+    .min(2, "Scrivi il motivo del movimento.")
+    .max(200, "Il motivo può avere al massimo 200 caratteri."),
+  note: noteSchema,
+});
 
 export async function GET(
   _request: Request,
@@ -70,11 +83,18 @@ export async function POST(
   if (!gate.ok) return gate.response;
 
   const { playerId } = await params;
-  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+  const raw = await request.json().catch(() => null);
+  const fromPreset =
+    typeof raw === "object" && raw !== null && "presetId" in raw;
+  const parsed = (fromPreset ? presetSchema : manualSchema).safeParse(raw);
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Scegli un preset, oppure indica punti e motivo." },
+      {
+        error:
+          parsed.error.issues[0]?.message ??
+          "Scegli un preset, oppure indica punti e motivo.",
+      },
       { status: 400 },
     );
   }
