@@ -19,17 +19,20 @@ import type { ClientTab } from "../_components/types";
 export function ClientPage({
   playerId,
   initialTab,
-  fromPoints = false,
+  from,
 }: {
   playerId: string;
   initialTab?: ClientTab;
-  /** Arrivati da «Assegna punti»: il tasto torna a Punti e premi. */
-  fromPoints?: boolean;
+  /**
+   * Da dove si arriva, quando non è l'elenco: da «Assegna punti» o dalla
+   * scheda di una prenotazione in agenda. Il tasto torna lì.
+   */
+  from?: "points" | "agenda";
 }) {
   const router = useRouter();
 
   const backToList = () => {
-    if (fromPoints || hasClientsReturn()) router.back();
+    if (from || hasClientsReturn()) router.back();
     else router.push("/clients");
   };
 
@@ -41,7 +44,7 @@ export function ClientPage({
         className="text-muted-foreground hover:text-foreground -ml-1 inline-flex min-h-10 items-center gap-0.5 text-[15px] transition-colors"
       >
         <ChevronLeft className="size-5" />
-        {fromPoints ? "Punti" : "Clienti"}
+        {from === "points" ? "Punti" : from === "agenda" ? "Agenda" : "Clienti"}
       </button>
 
       <ClientDetailView

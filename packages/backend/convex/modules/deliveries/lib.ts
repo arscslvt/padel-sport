@@ -5,6 +5,7 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
 import type {
   deliveryChannel,
+  deliveryEntry,
   deliveryStatus,
   notificationKind,
 } from "../../tables/bookingDeliveries";
@@ -21,13 +22,7 @@ export type DeliveryStatus = Infer<typeof deliveryStatus>;
 export type DeliveryChannel = Infer<typeof deliveryChannel>;
 export type NotificationKind = Infer<typeof notificationKind>;
 
-export type DeliveryEntry = {
-  role: "booker" | "guest";
-  recipient?: string;
-  status: DeliveryStatus;
-  detail?: string;
-  providerId?: string;
-};
+export type DeliveryEntry = Infer<typeof deliveryEntry>;
 
 /**
  * Il grado di uno stato: uno nuovo prende il posto del vecchio solo se è più
@@ -170,6 +165,7 @@ const FAILURE_TITLES: Record<NotificationKind, string> = {
   cancelled_by_club: "⚠️ Disdetta non comunicata",
   cancelled_by_player: "⚠️ Disdetta non comunicata",
   rescheduled: "⚠️ Cambio d'orario non comunicato",
+  invited: "⚠️ Invito non recapitato",
 };
 
 const CHANNEL_LABELS: Record<DeliveryChannel, string> = {

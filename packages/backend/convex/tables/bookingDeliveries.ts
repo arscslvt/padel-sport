@@ -12,9 +12,25 @@ const notificationKind = v.union(
   v.literal("cancelled_by_player"),
   /** Lo staff ha spostato l'orario (bookings/reschedule.ts). */
   v.literal("rescheduled"),
+  /**
+   * L'invito alla partita, a chi è stato chiamato per nome da chi ha
+   * prenotato dall'area personale (modules/notifications/matchInvite.ts).
+   */
+  v.literal("invited"),
 );
 
 const deliveryChannel = v.union(v.literal("email"), v.literal("whatsapp"));
+
+/**
+ * A chi è andato l'avviso: chi ha prenotato, un giocatore vero (un cliente in
+ * anagrafica collegato alla prenotazione, o in partita dall'app), oppure un
+ * compagno di gioco che ha lasciato solo nome e mail.
+ */
+const deliveryRole = v.union(
+  v.literal("booker"),
+  v.literal("player"),
+  v.literal("guest"),
+);
 
 /**
  * A che punto è un avviso, dal più acerbo al più maturo.
@@ -59,8 +75,11 @@ const bookingDeliveries = defineTable({
   bookingId: v.id("bookings"),
   kind: notificationKind,
   channel: deliveryChannel,
-  /** Chi ha prenotato o un compagno di gioco che ha lasciato la mail */
-  role: v.union(v.literal("booker"), v.literal("guest")),
+  role: deliveryRole,
+  /** Con `player`: la scheda del giocatore avvisato. */
+  playerId: v.optional(v.id("players")),
+  /** Il nome di chi è stato avvisato, se non è chi ha prenotato. */
+  name: v.optional(v.string()),
   /** L'indirizzo o il numero del momento: se cambia in anagrafica, lo storico resta vero */
   recipient: v.optional(v.string()),
   status: deliveryStatus,
@@ -74,4 +93,21 @@ const bookingDeliveries = defineTable({
   .index("by_provider_id", ["providerId"]);
 
 export default bookingDeliveries;
-export { deliveryChannel, deliveryStatus, notificationKind };
+/** Un tentativo come lo scrive chi l'ha fatto (modules/deliveries/record.ts). */
+const deliveryEntry = v.object({
+  role: deliveryRole,
+  playerId: v.optional(v.id("players")),
+  name: v.optional(v.string()),
+  recipient: v.optional(v.string()),
+  status: deliveryStatus,
+  detail: v.optional(v.string()),
+  providerId: v.optional(v.string()),
+});
+
+export {
+  deliveryChannel,
+  deliveryEntry,
+  deliveryRole,
+  deliveryStatus,
+  notificationKind,
+};

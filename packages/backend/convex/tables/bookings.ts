@@ -27,6 +27,21 @@ const bookings = defineTable({
    */
   bookerPricePerPlayer: v.optional(v.float64()),
   /**
+   * La tariffa tesserati del listino del giorno, per i giocatori collegati
+   * che hanno la tessera (`memberPlayers`). Assente: o il listino non ne
+   * aveva una diversa, o la prenotazione è di prima di questo campo.
+   */
+  memberPricePerPlayer: v.optional(v.float64()),
+  /**
+   * I giocatori collegati, oltre a chi prenota, che pagano la tariffa
+   * tesserati: clienti in anagrafica con la tessera valida, fotografati a
+   * ogni cambio di squadra (modules/pricing/members.ts). Il nome è quello in
+   * `players`, ed è così che la scheda sa chi deve quanto.
+   */
+  memberPlayers: v.optional(
+    v.array(v.object({ playerId: v.id("players"), name: v.string() })),
+  ),
+  /**
    * Come si paga: in struttura, o già pagata online (tables/payments.ts).
    *
    * Gli stati qui sotto si chiamano ancora «on_site» per ragioni storiche: la

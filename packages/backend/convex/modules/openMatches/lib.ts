@@ -1,6 +1,7 @@
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { externalBlocksBetween } from "../courtCalendar/lib";
+import { confirmToNewPlayers } from "../notifications/bookingPlayers";
 import { bookingChanged } from "../points/auto";
 import { bookingSettings, clubMoment, toMinutes } from "../settings/lib";
 
@@ -680,6 +681,10 @@ export async function addPlayerToMatch(
     await syncBookingPlayers(ctx, updated);
   }
   await syncMatchStatus(ctx, match._id);
+
+  // Entrato in una partita il cui campo è già confermato: la conferma con il
+  // QR arriva anche a lui, come agli altri.
+  await confirmToNewPlayers(ctx, match.bookingId, [player._id]);
 }
 
 /**

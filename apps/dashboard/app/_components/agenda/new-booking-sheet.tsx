@@ -28,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   type ClientOption,
+  ClientOptionLabel,
   ClientSuggestions,
   LinkedClient,
   useClientMatches,
@@ -337,12 +338,7 @@ function Form({
                         onClick={() => pickClient(option)}
                         className="active:bg-muted/80 md:hover:bg-muted/50 flex min-h-12 w-full items-center justify-between gap-3 px-3 text-left"
                       >
-                        <span className="truncate text-[15px]">
-                          {option.name}
-                        </span>
-                        <span className="text-muted-foreground shrink-0 text-xs">
-                          {option.phone ?? "Cliente"}
-                        </span>
+                        <ClientOptionLabel option={option} />
                       </button>
                     </li>
                   ))}

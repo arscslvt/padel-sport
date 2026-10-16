@@ -11,6 +11,7 @@
 import type * as bookings_availability from "../bookings/availability.js";
 import type * as bookings_court from "../bookings/court.js";
 import type * as bookings_delete from "../bookings/delete.js";
+import type * as bookings_email from "../bookings/email.js";
 import type * as bookings_get from "../bookings/get.js";
 import type * as bookings_getByCode from "../bookings/getByCode.js";
 import type * as bookings_lib from "../bookings/lib.js";
@@ -21,6 +22,7 @@ import type * as bookings_players from "../bookings/players.js";
 import type * as bookings_reschedule from "../bookings/reschedule.js";
 import type * as bookings_staffCreate from "../bookings/staffCreate.js";
 import type * as bookings_update from "../bookings/update.js";
+import type * as bookings_whatsapp from "../bookings/whatsapp.js";
 import type * as crons from "../crons.js";
 import type * as events_list from "../events/list.js";
 import type * as events_new from "../events/new.js";
@@ -49,6 +51,7 @@ import type * as modules_courtCalendar_pull from "../modules/courtCalendar/pull.
 import type * as modules_courtCalendar_push from "../modules/courtCalendar/push.js";
 import type * as modules_deliveries_lib from "../modules/deliveries/lib.js";
 import type * as modules_deliveries_record from "../modules/deliveries/record.js";
+import type * as modules_deliveries_retry from "../modules/deliveries/retry.js";
 import type * as modules_eventCommunications_begin from "../modules/eventCommunications/begin.js";
 import type * as modules_eventCommunications_complete from "../modules/eventCommunications/complete.js";
 import type * as modules_eventCommunications_lib from "../modules/eventCommunications/lib.js";
@@ -80,6 +83,7 @@ import type * as modules_matchRequests_markNotified from "../modules/matchReques
 import type * as modules_matchRequests_update from "../modules/matchRequests/update.js";
 import type * as modules_notifications_alert from "../modules/notifications/alert.js";
 import type * as modules_notifications_bookingMail from "../modules/notifications/bookingMail.js";
+import type * as modules_notifications_bookingPlayers from "../modules/notifications/bookingPlayers.js";
 import type * as modules_notifications_confirmation from "../modules/notifications/confirmation.js";
 import type * as modules_notifications_matchInvite from "../modules/notifications/matchInvite.js";
 import type * as modules_notifications_matchInviteData from "../modules/notifications/matchInviteData.js";
@@ -127,6 +131,7 @@ import type * as modules_points_terms from "../modules/points/terms.js";
 import type * as modules_points_version from "../modules/points/version.js";
 import type * as modules_points_wallet from "../modules/points/wallet.js";
 import type * as modules_pricing_lib from "../modules/pricing/lib.js";
+import type * as modules_pricing_members from "../modules/pricing/members.js";
 import type * as modules_pricing_services from "../modules/pricing/services.js";
 import type * as modules_privacy_retention from "../modules/privacy/retention.js";
 import type * as modules_push_preferences from "../modules/push/preferences.js";
@@ -207,6 +212,7 @@ declare const fullApi: ApiFromModules<{
   "bookings/availability": typeof bookings_availability;
   "bookings/court": typeof bookings_court;
   "bookings/delete": typeof bookings_delete;
+  "bookings/email": typeof bookings_email;
   "bookings/get": typeof bookings_get;
   "bookings/getByCode": typeof bookings_getByCode;
   "bookings/lib": typeof bookings_lib;
@@ -217,6 +223,7 @@ declare const fullApi: ApiFromModules<{
   "bookings/reschedule": typeof bookings_reschedule;
   "bookings/staffCreate": typeof bookings_staffCreate;
   "bookings/update": typeof bookings_update;
+  "bookings/whatsapp": typeof bookings_whatsapp;
   crons: typeof crons;
   "events/list": typeof events_list;
   "events/new": typeof events_new;
@@ -245,6 +252,7 @@ declare const fullApi: ApiFromModules<{
   "modules/courtCalendar/push": typeof modules_courtCalendar_push;
   "modules/deliveries/lib": typeof modules_deliveries_lib;
   "modules/deliveries/record": typeof modules_deliveries_record;
+  "modules/deliveries/retry": typeof modules_deliveries_retry;
   "modules/eventCommunications/begin": typeof modules_eventCommunications_begin;
   "modules/eventCommunications/complete": typeof modules_eventCommunications_complete;
   "modules/eventCommunications/lib": typeof modules_eventCommunications_lib;
@@ -276,6 +284,7 @@ declare const fullApi: ApiFromModules<{
   "modules/matchRequests/update": typeof modules_matchRequests_update;
   "modules/notifications/alert": typeof modules_notifications_alert;
   "modules/notifications/bookingMail": typeof modules_notifications_bookingMail;
+  "modules/notifications/bookingPlayers": typeof modules_notifications_bookingPlayers;
   "modules/notifications/confirmation": typeof modules_notifications_confirmation;
   "modules/notifications/matchInvite": typeof modules_notifications_matchInvite;
   "modules/notifications/matchInviteData": typeof modules_notifications_matchInviteData;
@@ -323,6 +332,7 @@ declare const fullApi: ApiFromModules<{
   "modules/points/version": typeof modules_points_version;
   "modules/points/wallet": typeof modules_points_wallet;
   "modules/pricing/lib": typeof modules_pricing_lib;
+  "modules/pricing/members": typeof modules_pricing_members;
   "modules/pricing/services": typeof modules_pricing_services;
   "modules/privacy/retention": typeof modules_privacy_retention;
   "modules/push/preferences": typeof modules_push_preferences;

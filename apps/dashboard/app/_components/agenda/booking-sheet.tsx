@@ -1,14 +1,17 @@
 "use client";
 
+import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
 import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Loader2, Mail, Phone, Undo2, Unlink } from "lucide-react";
+import { Loader2, Phone, Undo2, Unlink, UserRound } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Fragment, useRef, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
 import { ListGroup, ListRow } from "@/app/_components/list";
 import { SheetHeader } from "@/app/_components/sheet-header";
 import { StatusBadge } from "@/app/_components/status-badge";
+import { LevelBars } from "@/components/level-bars";
 import { Button } from "@/components/ui/button";
 import {
   ResponsiveDrawer,
@@ -17,24 +20,21 @@ import {
   useResponsiveDrawer,
 } from "@/components/ui/responsive-drawer";
 import { MAX_PLAYERS } from "@/lib/booking";
-import { cn } from "@/lib/utils";
 import { CourtDrawer, CourtEditor } from "./court-editor";
 import {
   authorLine,
   type Booking,
   clientReach,
-  DELIVERY_KIND_LABELS,
-  type Delivery,
   dayKey,
   dayLabel,
-  deliveryBadge,
   isCancelled,
   isPaidOnline,
   isPartial,
   isPending,
+  LEVEL_BARS,
   LEVEL_LABELS,
   needsRefund,
-  onSiteTotal,
+  partialLabel,
   timeRange,
   wasRefunded,
   whatsappNumber,
@@ -44,7 +44,16 @@ import {
   PlayersEditor,
   type PlayersPayload,
 } from "./players-editor";
+import { TotalRow } from "./price-breakdown";
+import {
+  RecipientsPanel,
+  type ResendEmail,
+  type ResendWhatsapp,
+} from "./recipients-panel";
 import { RescheduleDrawer, RescheduleEditor } from "./reschedule-editor";
+
+/** I pezzi della scheda che si modificano, uno alla volta. */
+type Part = "time" | "court" | "players";
 
 /**
  * I tasti di contatto: superficie bianca come le schede sotto, sempre.
@@ -58,7 +67,49 @@ const CONTACT_BUTTON =
   "h-12 rounded-2xl border-border bg-card shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-[transform,background-color] duration-150 hover:bg-card active:scale-[0.98] disabled:opacity-100 disabled:text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:bg-background";
 
 /**
- * Il dettaglio di una prenotazione, dal basso.
+ * Un tasto di contatto: un link quando c'è un indirizzo, un pulsante spento
+ * quando non c'è.
+ *
+ * Icona ed etichetta stanno sempre direttamente dentro il tasto, che le mette
+ * in fila. Prima il tasto spento le avvolgeva in uno `<span>`, e dentro uno
+ * span l'icona (che il reset di Tailwind rende `display: block`) andava a capo
+ * sopra il testo: le prenotazioni senza numero mostravano i tasti rotti.
+ */
+function ContactButton({
+  href,
+  external,
+  icon,
+  label,
+}: {
+  href?: string;
+  external?: boolean;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  if (!href) {
+    return (
+      <Button variant="outline" className={CONTACT_BUTTON} disabled>
+        {icon}
+        {label}
+      </Button>
+    );
+  }
+
+  return (
+    <Button asChild variant="outline" className={CONTACT_BUTTON}>
+      <a
+        href={href}
+        {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+      >
+        {icon}
+        {label}
+      </a>
+    </Button>
+  );
+}
+
+/**
+ * Il dettaglio di una prenotazione: dal basso da telefono, di lato da desktop.
  *
  * In cima i due gesti che servono davvero allo sportello — chiamare e
  * scrivere su WhatsApp — grandi quanto un pollice. Sotto i dati, in righe da
@@ -77,6 +128,8 @@ export function BookingSheet({
   onUpdatePlayers,
   onReschedule,
   onMoveCourt,
+  onResendWhatsapp,
+  onResendEmail,
   onSplit,
 }: {
   booking: Booking | null;
@@ -97,11 +150,23 @@ export function BookingSheet({
     notify: boolean,
   ) => Promise<boolean>;
   onMoveCourt: (booking: Booking, slotId: string) => Promise<boolean>;
+  onResendWhatsapp: ResendWhatsapp;
+  onResendEmail: ResendEmail;
   onSplit: (booking: Booking) => void;
 }) {
   return (
-    <ResponsiveDrawer open={booking !== null} setOpen={onOpenChange}>
-      <ResponsiveDrawerContent className="sm:max-w-md md:max-h-[90dvh] md:overflow-y-auto">
+    // Da desktop un pannello laterale: l'agenda resta a vista accanto, e la
+    // scheda lunga (avvisi, pagamenti) ha tutta l'altezza dello schermo.
+    <ResponsiveDrawer
+      open={booking !== null}
+      setOpen={onOpenChange}
+      desktop="sheet"
+    >
+      {/* Da telefono si apre già alta, quasi tutto lo schermo: la scheda è
+          lunga, e partire da metà vorrebbe dire trascinarla ogni volta. Con
+          la tastiera aperta si accorcia (`--drawer-max-height`,
+          components/ui/keyboard-inset.tsx), come «Assegna punti». */}
+      <ResponsiveDrawerContent className="data-[vaul-drawer-direction=bottom]:h-[min(88dvh,var(--drawer-max-height,88dvh))]! data-[vaul-drawer-direction=bottom]:max-h-[min(88dvh,var(--drawer-max-height,88dvh))] sm:max-w-md">
         {booking && (
           <Body
             // Un'altra prenotazione riparte da capo: modulo dei giocatori chiuso.
@@ -116,6 +181,8 @@ export function BookingSheet({
             onUpdatePlayers={onUpdatePlayers}
             onReschedule={onReschedule}
             onMoveCourt={onMoveCourt}
+            onResendWhatsapp={onResendWhatsapp}
+            onResendEmail={onResendEmail}
             onSplit={onSplit}
           />
         )}
@@ -135,6 +202,8 @@ function Body({
   onUpdatePlayers,
   onReschedule,
   onMoveCourt,
+  onResendWhatsapp,
+  onResendEmail,
   onSplit,
 }: {
   booking: Booking;
@@ -154,6 +223,8 @@ function Body({
     notify: boolean,
   ) => Promise<boolean>;
   onMoveCourt: (booking: Booking, slotId: string) => Promise<boolean>;
+  onResendWhatsapp: ResendWhatsapp;
+  onResendEmail: ResendEmail;
   onSplit: (booking: Booking) => void;
 }) {
   const pending = isPending(booking);
@@ -162,10 +233,9 @@ function Body({
   // Orario, campo e giocatori si modificano uno alla volta. Da telefono la
   // scheda è un drawer e ognuno si apre in uno annidato; da desktop è una
   // modale, e il modulo si apre dentro.
-  const [editing, setEditing] = useState<"time" | "court" | "players" | null>(
-    null,
-  );
+  const [editing, setEditing] = useState<Part | null>(null);
   const { isDesktop } = useResponsiveDrawer();
+  const router = useRouter();
 
   // Chiuso il modulo, il fuoco torna sulla riga che l'aveva aperto.
   const timeRow = useRef<HTMLButtonElement>(null);
@@ -173,13 +243,13 @@ function Body({
   const playersRow = useRef<HTMLButtonElement>(null);
   const rowOf = { time: timeRow, court: courtRow, players: playersRow };
 
-  const toggle = (part: "time" | "court" | "players") =>
+  const toggle = (part: Part) =>
     setEditing((current) => (current === part ? null : part));
-  const close = (part: "time" | "court" | "players") => {
+  const close = (part: Part) => {
     setEditing(null);
     requestAnimationFrame(() => rowOf[part].current?.focus());
   };
-  const openChange = (part: "time" | "court" | "players") => (open: boolean) =>
+  const openChange = (part: Part) => (open: boolean) =>
     setEditing(open ? part : null);
 
   const saveTime = (bookingDate: number, notify: boolean) =>
@@ -187,6 +257,20 @@ function Body({
   const saveCourt = (slotId: string) => onMoveCourt(booking, slotId);
   const savePlayers = (payload: PlayersPayload) =>
     onUpdatePlayers(booking, payload);
+
+  // La scheda del cliente, per correggerne i dati. Prima si scrive la
+  // prenotazione nell'indirizzo dell'agenda, senza aggiungere voci alla
+  // cronologia: tornando indietro la scheda si riapre (agenda.tsx legge
+  // `?booking=`), invece di lasciare l'agenda nuda.
+  // Vale per chi ha prenotato e per ogni giocatore con una scheda: dagli
+  // avvisi si apre quella di chi non è stato raggiunto.
+  const clientId = booking.createdByPlayer;
+  const openClient = (playerId: Id<"players">) => {
+    const here = new URL(window.location.href);
+    here.searchParams.set("booking", booking._id);
+    window.history.replaceState(window.history.state, "", here);
+    router.push(`/clients/${playerId}?from=agenda`);
+  };
 
   const courtRowProps = {
     title: "Campo",
@@ -227,7 +311,7 @@ function Body({
           {booking.mergedWith ? (
             <StatusBadge tone="info">Campo condiviso</StatusBadge>
           ) : isPartial(booking) && !cancelled ? (
-            <StatusBadge tone="warning">Cerca giocatori</StatusBadge>
+            <StatusBadge tone="warning">{partialLabel(booking)}</StatusBadge>
           ) : null}
           {clientReach(booking) === "unreached" && (
             <StatusBadge tone="danger">Cliente non avvisato</StatusBadge>
@@ -243,47 +327,32 @@ function Body({
 
         {/* Senza numero i due tasti restano, spenti: dove stanno non cambia. */}
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            asChild={Boolean(phone)}
-            variant="outline"
-            className={CONTACT_BUTTON}
-            disabled={!phone}
-          >
-            {phone ? (
-              <a href={`tel:${phone}`}>
-                <Phone className="size-4" />
-                Chiama
-              </a>
-            ) : (
-              <span>
-                <Phone className="size-4" />
-                Chiama
-              </span>
-            )}
-          </Button>
-          <Button
-            asChild={Boolean(phone)}
-            variant="outline"
-            className={CONTACT_BUTTON}
-            disabled={!phone}
-          >
-            {phone ? (
-              <a
-                href={`https://wa.me/${whatsappNumber(phone)}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <FaWhatsapp className="size-4" />
-                WhatsApp
-              </a>
-            ) : (
-              <span>
-                <FaWhatsapp className="size-4" />
-                WhatsApp
-              </span>
-            )}
-          </Button>
+          <ContactButton
+            href={phone ? `tel:${phone}` : undefined}
+            icon={<Phone className="size-4" />}
+            label="Chiama"
+          />
+          <ContactButton
+            href={phone ? `https://wa.me/${whatsappNumber(phone)}` : undefined}
+            external
+            icon={<FaWhatsapp className="size-4" />}
+            label="WhatsApp"
+          />
         </div>
+
+        {/* Nome, numero, email: i dati del cliente si correggono nella sua
+            scheda, e il numero nuovo arriva anche su questa prenotazione. */}
+        {clientId && (
+          <ListGroup>
+            <ListRow
+              leading={<UserRound className="size-5" />}
+              title="Scheda cliente"
+              subtitle="Anagrafica, contatti, tessera e punti"
+              chevron
+              onClick={() => openClient(clientId)}
+            />
+          </ListGroup>
+        )}
 
         <ListGroup>
           {/* L'orario si sposta nello stesso giorno: un tocco e si sceglie. */}
@@ -356,17 +425,16 @@ function Body({
           )}
           <ListRow
             title="Livello"
-            trailing={<Value>{LEVEL_LABELS[booking.level]}</Value>}
-          />
-          <ListRow
-            title="Totale in struttura"
-            subtitle={
-              isPaidOnline(booking)
-                ? `Già pagati online ${formatEuro(booking.paidAmount ?? 0)}`
-                : undefined
+            trailing={
+              <span className="flex items-center gap-1.5">
+                <Value>{LEVEL_LABELS[booking.level]}</Value>
+                <LevelBars filled={LEVEL_BARS[booking.level]} />
+              </span>
             }
-            trailing={<Value>{onSiteTotal(booking)}</Value>}
           />
+          {/* Quanto si incassa, e quanto deve ognuno quando non è uguale per
+              tutti: il tesserato paga meno. */}
+          <TotalRow booking={booking} isDesktop={isDesktop} />
           <ListRow
             title="Telefono"
             trailing={<Value>{phone || "Non indicato"}</Value>}
@@ -408,7 +476,14 @@ function Body({
 
         <OnlinePayment booking={booking} busy={busy} onRefund={onRefund} />
 
-        <Deliveries deliveries={booking.deliveries} />
+        <RecipientsPanel
+          booking={booking}
+          busy={busy}
+          isDesktop={isDesktop}
+          onResendWhatsapp={onResendWhatsapp}
+          onResendEmail={onResendEmail}
+          onOpenClient={openClient}
+        />
 
         {booking.mergedWith && (
           <ListGroup
@@ -438,7 +513,10 @@ function Body({
       </div>
 
       {!cancelled && (
-        <ResponsiveDrawerFooter className="grid grid-cols-2 gap-2 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-0">
+        // Le azioni stanno ferme in fondo, staccate dal contenuto che scorre
+        // da un filo da bordo a bordo: non sono l'ultima riga della scheda.
+        // Nessuno spazio sopra il filo: il contenuto scorre fino a lì.
+        <ResponsiveDrawerFooter className="border-foreground/10 grid grid-cols-2 gap-2 border-t pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:-mx-6 md:-mt-4 md:-mb-2 md:px-6 md:pt-4 md:pb-0">
           {pending ? (
             <>
               <Button
@@ -472,80 +550,6 @@ function Body({
         </ResponsiveDrawerFooter>
       )}
     </>
-  );
-}
-
-/**
- * Gli avvisi mandati al cliente su questa prenotazione, dal più recente.
- *
- * Una riga per canale e destinatario: «la mail è partita» e «la mail è
- * arrivata» sono due notizie diverse, e qui si legge la seconda. Il perché di
- * un mancato invio va a capo invece di troncarsi: è l'informazione che serve
- * per decidere se chiamare.
- */
-function Deliveries({ deliveries }: { deliveries?: Delivery[] }) {
-  if (!deliveries || deliveries.length === 0) return null;
-
-  const sorted = [...deliveries].sort(
-    (a, b) =>
-      b.createdAt - a.createdAt ||
-      Number(a.role === "guest") - Number(b.role === "guest"),
-  );
-
-  return (
-    <ListGroup
-      title="Avvisi al cliente"
-      footer="Lo stato si aggiorna da solo man mano che email e WhatsApp vengono consegnati."
-    >
-      {sorted.map((delivery) => {
-        const badge = deliveryBadge(delivery);
-        const email = delivery.channel === "email";
-        return (
-          <div
-            key={delivery._id}
-            className="flex min-h-14 items-start gap-3 px-4 py-2.5"
-          >
-            <span className="text-muted-foreground flex h-[22px] shrink-0 items-center">
-              {email ? (
-                <Mail className="size-5" />
-              ) : (
-                <FaWhatsapp className="size-5" />
-              )}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[15px] leading-snug">
-                {email ? "Email" : "WhatsApp"}
-                {delivery.role === "guest" && (
-                  <span className="text-muted-foreground"> · ospite</span>
-                )}
-              </span>
-              {delivery.recipient && (
-                <span className="text-muted-foreground mt-0.5 block truncate text-[13px] leading-snug">
-                  {delivery.recipient}
-                </span>
-              )}
-              <span className="text-muted-foreground mt-0.5 block text-[13px] leading-snug">
-                {DELIVERY_KIND_LABELS[delivery.kind]} ·{" "}
-                {format(delivery.updatedAt, "d MMM, HH:mm", { locale: it })}
-              </span>
-              {delivery.detail && (
-                <span
-                  className={cn(
-                    "mt-0.5 block text-[13px] leading-snug",
-                    delivery.status === "failed"
-                      ? "text-danger"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {delivery.detail}
-                </span>
-              )}
-            </span>
-            <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
-          </div>
-        );
-      })}
-    </ListGroup>
   );
 }
 

@@ -47,6 +47,26 @@ const payloadSchema = z.object({
   /** L'indirizzo in anagrafica, per chi non ha un account. */
   bookerEmail: z.string().optional(),
   guests: z.array(z.object({ name: z.string(), email: z.email() })),
+  /**
+   * I giocatori veri della prenotazione, oltre a chi l'ha presa: i clienti
+   * collegati dallo staff o chi è in partita. L'indirizzo si risolve da Clerk
+   * quando c'è un account, se no vale la copia in anagrafica.
+   */
+  playerRecipients: z
+    .array(
+      z.object({
+        playerId: z.string(),
+        name: z.string(),
+        email: z.string().optional(),
+        clerkUserId: z.string().optional(),
+      }),
+    )
+    .optional(),
+  /**
+   * La mail non è per chi ha prenotato (l'ha già avuta): va solo ai giocatori
+   * appena entrati, o a chi lo staff la sta rimandando.
+   */
+  bookerExcluded: z.boolean().optional(),
   /** Il gruppo con cui si divide il campo, quando la struttura ha unito due prenotazioni. */
   partner: z
     .object({ bookedBy: z.string(), players: z.array(z.string()) })
@@ -64,7 +84,9 @@ const payloadSchema = z.object({
 });
 
 type DeliveryResult = {
-  role: "booker" | "guest";
+  role: "booker" | "player" | "guest";
+  playerId?: string;
+  name?: string;
   email?: string;
   id?: string;
   error?: string;
@@ -110,25 +132,93 @@ export async function POST(request: Request) {
     }
   }
 
-  const recipients = [
-    ...(bookerEmail
-      ? [{ email: bookerEmail, name: booking.bookedBy, isBooker: true }]
-      : []),
-    ...booking.guests.map((guest) => ({
-      email: guest.email,
-      name: guest.name,
-      isBooker: false,
-    })),
-  ];
+  // Lo stesso per i giocatori, con una sola chiamata a Clerk per tutti.
+  const players = booking.playerRecipients ?? [];
+  const clerkEmails = new Map<string, string>();
+  const clerkIds = players.flatMap((player) =>
+    player.clerkUserId ? [player.clerkUserId] : [],
+  );
+  if (clerkIds.length > 0) {
+    try {
+      const clerk = await clerkClient();
+      const { data } = await clerk.users.getUserList({
+        userId: clerkIds,
+        limit: clerkIds.length,
+      });
+      for (const user of data) {
+        const address = user.primaryEmailAddress?.emailAddress;
+        if (address) clerkEmails.set(user.id, address);
+      }
+    } catch (error) {
+      console.error("Email dei giocatori non recuperate:", error);
+    }
+  }
 
-  // Chi ha prenotato senza un indirizzo è un'informazione per lo staff, non un
-  // errore: la scheda lo mostra come avviso non partito.
-  const bookerMissing: DeliveryResult[] = bookerEmail
-    ? []
-    : [{ role: "booker", skipped: NO_ADDRESS }];
+  type Recipient = {
+    email: string;
+    name: string;
+    role: DeliveryResult["role"];
+    playerId?: string;
+  };
+
+  // Una persona sola riceve una mail sola, anche se compare due volte: il
+  // compagno collegato dallo staff che aveva lasciato anche la mail da ospite.
+  const recipients: Recipient[] = [];
+  const seen = new Set<string>();
+  const add = (recipient: Recipient) => {
+    const key = recipient.email.trim().toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    recipients.push(recipient);
+  };
+
+  if (bookerEmail) {
+    add({ email: bookerEmail, name: booking.bookedBy, role: "booker" });
+  }
+
+  // Chi ha prenotato o un giocatore senza un indirizzo è un'informazione per
+  // lo staff, non un errore: la scheda lo mostra come avviso non partito.
+  const missing: DeliveryResult[] =
+    bookerEmail || booking.bookerExcluded
+      ? []
+      : [{ role: "booker", skipped: NO_ADDRESS }];
+
+  for (const player of players) {
+    const email =
+      (player.clerkUserId && clerkEmails.get(player.clerkUserId)) ||
+      player.email;
+    if (email) {
+      add({
+        email,
+        name: player.name,
+        role: "player",
+        playerId: player.playerId,
+      });
+    } else {
+      missing.push({
+        role: "player",
+        playerId: player.playerId,
+        name: player.name,
+        skipped: NO_ADDRESS,
+      });
+    }
+  }
+
+  for (const guest of booking.guests) {
+    add({ email: guest.email, name: guest.name, role: "guest" });
+  }
+
+  /** Chi era, per la riga del registro. */
+  const targetOf = (recipient: Recipient): DeliveryResult => ({
+    role: recipient.role,
+    email: recipient.email,
+    ...(recipient.role === "booker"
+      ? {}
+      : { playerId: recipient.playerId, name: recipient.name }),
+  });
 
   if (recipients.length === 0) {
-    return NextResponse.json({ notified: 0, results: bookerMissing });
+    return NextResponse.json({ notified: 0, results: missing });
   }
 
   if (booking.kind === "accepted" && !booking.code) {
@@ -158,8 +248,7 @@ export async function POST(request: Request) {
       notified: 0,
       results: recipients.map(
         (recipient): DeliveryResult => ({
-          role: recipient.isBooker ? "booker" : "guest",
-          email: recipient.email,
+          ...targetOf(recipient),
           error: "Invio delle mail non configurato",
         }),
       ),
@@ -189,7 +278,7 @@ export async function POST(request: Request) {
             html: await render(
               BookingAcceptedEmail({
                 recipientName: recipient.name,
-                isBooker: recipient.isBooker,
+                isBooker: recipient.role === "booker",
                 bookedBy: booking.bookedBy,
                 dayLabel,
                 timeLabel,
@@ -224,7 +313,7 @@ export async function POST(request: Request) {
             html: await render(
               BookingRescheduledEmail({
                 recipientName: recipient.name,
-                isBooker: recipient.isBooker,
+                isBooker: recipient.role === "booker",
                 bookedBy: booking.bookedBy,
                 dayLabel,
                 timeLabel,
@@ -249,7 +338,7 @@ export async function POST(request: Request) {
             html: await render(
               BookingMergedEmail({
                 recipientName: recipient.name,
-                isBooker: recipient.isBooker,
+                isBooker: recipient.role === "booker",
                 bookedBy: booking.bookedBy,
                 dayLabel,
                 timeLabel,
@@ -274,7 +363,7 @@ export async function POST(request: Request) {
           html: await render(
             BookingCancelledEmail({
               recipientName: recipient.name,
-              isBooker: recipient.isBooker,
+              isBooker: recipient.role === "booker",
               by: booking.kind === "cancelled_by_club" ? "club" : "player",
               bookedBy: booking.bookedBy,
               dayLabel,
@@ -302,12 +391,11 @@ export async function POST(request: Request) {
 
     // `sends` è nello stesso ordine di `recipients`: Promise.all lo conserva.
     const results: DeliveryResult[] = [
-      ...bookerMissing,
+      ...missing,
       ...recipients.map((recipient, index): DeliveryResult => {
         const send = sends[index];
         return {
-          role: recipient.isBooker ? "booker" : "guest",
-          email: recipient.email,
+          ...targetOf(recipient),
           id: send.data?.id,
           error: send.error ? send.error.message : undefined,
         };

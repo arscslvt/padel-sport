@@ -3,8 +3,10 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalAction, internalQuery } from "../../_generated/server";
 import { notificationKind } from "../../tables/bookingDeliveries";
+import type { Id } from "../../_generated/dataModel";
 import type { DeliveryEntry } from "../deliveries/lib";
 import { MATCH_DURATION_MS } from "../openMatches/lib";
+import { notifiedPlayers } from "./bookingPlayers";
 
 /**
  * Le mail che seguono una prenotazione dopo che è stata creata: la conferma
@@ -31,11 +33,16 @@ import { MATCH_DURATION_MS } from "../openMatches/lib";
  *
  * Ogni invio lascia le sue righe in `bookingDeliveries`, una per destinatario:
  * è da lì che la scheda della prenotazione sa se il cliente l'ha ricevuta.
+ *
+ * I destinatari sono chi ha prenotato, i giocatori veri della prenotazione
+ * (bookingPlayers.ts) e gli ospiti che hanno lasciato la mail.
  */
 
 /** Come risponde il sito (apps/web/app/api/bookings/notify), destinatario per destinatario. */
 type NotifyResult = {
-  role: "booker" | "guest";
+  role: "booker" | "player" | "guest";
+  playerId?: Id<"players">;
+  name?: string;
   email?: string;
   /** L'id dell'email su Resend: è quello che i webhook riportano */
   id?: string;
@@ -44,25 +51,20 @@ type NotifyResult = {
 };
 
 function toEntry(result: NotifyResult): DeliveryEntry {
+  const target = {
+    role: result.role,
+    playerId: result.playerId,
+    name: result.name,
+    recipient: result.email,
+  };
   if (result.id) {
-    return {
-      role: result.role,
-      recipient: result.email,
-      status: "queued",
-      providerId: result.id,
-    };
+    return { ...target, status: "queued", providerId: result.id };
   }
   if (result.skipped) {
-    return {
-      role: result.role,
-      recipient: result.email,
-      status: "skipped",
-      detail: result.skipped,
-    };
+    return { ...target, status: "skipped", detail: result.skipped };
   }
   return {
-    role: result.role,
-    recipient: result.email,
+    ...target,
     status: "failed",
     detail: result.error ?? "Resend non l'ha accettata",
   };
@@ -101,6 +103,17 @@ export const payload = internalQuery({
       ? await ctx.db.get(booking.mergedWith)
       : null;
 
+    // Come per chi ha prenotato, l'indirizzo di chi ha un account lo risolve
+    // il sito da Clerk; la copia in anagrafica vale per chi non ce l'ha.
+    const playerRecipients = (await notifiedPlayers(ctx, booking)).map(
+      (player) => ({
+      playerId: player._id,
+      name: player.name,
+      email: player.email,
+        clerkUserId: player.clerkUserId,
+      }),
+    );
+
     return {
       code: booking.code,
       start: booking.bookingDate,
@@ -117,6 +130,7 @@ export const payload = internalQuery({
       // La copia in anagrafica: chi non ha un account (la prenotazione presa
       // dallo staff a nome di un socio dello sportello) la mail la riceve qui.
       bookerEmail: creator?.email,
+      playerRecipients,
       guests: guests
         .filter((guest) => guest.email)
         .map((guest) => ({ name: guest.name, email: guest.email as string })),
@@ -130,14 +144,88 @@ export default internalAction({
     kind: notificationKind,
     /** Con `rescheduled`: l'orario di prima, perché la mail dica cosa cambia. */
     previousStart: v.optional(v.number()),
+    /**
+     * Solo queste persone, invece di tutti: chi entra in una prenotazione già
+     * confermata (bookingPlayers.ts), o chi non l'ha ricevuta e lo staff
+     * gliela rimanda (bookings/email.ts). Gli altri l'hanno già avuta.
+     */
+    only: v.optional(
+      v.object({
+        booker: v.boolean(),
+        playerIds: v.array(v.id("players")),
+        guestEmails: v.array(v.string()),
+      }),
+    ),
   },
-  handler: async (ctx, { bookingId, kind, previousStart }) => {
-    const data = await ctx.runQuery(
+  handler: async (ctx, { bookingId, kind, previousStart, only }) => {
+    const full = await ctx.runQuery(
       internal.modules.notifications.bookingMail.payload,
       { bookingId },
     );
 
-    if (!data) return;
+    if (!full) return;
+
+    const data = only
+      ? {
+          ...full,
+          bookerClerkUserId: only.booker ? full.bookerClerkUserId : undefined,
+          bookerEmail: only.booker ? full.bookerEmail : undefined,
+          guests: full.guests.filter((guest) =>
+            only.guestEmails.includes(guest.email.toLowerCase()),
+          ),
+          playerRecipients: full.playerRecipients.filter((player) =>
+            only.playerIds.includes(player.playerId),
+          ),
+        }
+      : full;
+    if (
+      only &&
+      !only.booker &&
+      data.playerRecipients.length === 0 &&
+      data.guests.length === 0
+    ) {
+      return;
+    }
+
+    // Quando la mail non parte per niente, la riga va a chi l'aspettava: chi
+    // ha prenotato, oppure, con `only`, ognuna delle persone scelte.
+    const failAll = (detail: string): DeliveryEntry[] => {
+      const booker: DeliveryEntry[] =
+        !only || only.booker
+          ? [
+              {
+                role: "booker",
+                recipient: data.bookerEmail,
+                status: "failed",
+                detail,
+              },
+            ]
+          : [];
+      if (!only) return booker;
+
+      return [
+        ...booker,
+        ...data.playerRecipients.map(
+          (player): DeliveryEntry => ({
+            role: "player",
+            playerId: player.playerId,
+            name: player.name,
+            recipient: player.email,
+            status: "failed",
+            detail,
+          }),
+        ),
+        ...data.guests.map(
+          (guest): DeliveryEntry => ({
+            role: "guest",
+            name: guest.name,
+            recipient: guest.email,
+            status: "failed",
+            detail,
+          }),
+        ),
+      ];
+    };
 
     const record = (entries: DeliveryEntry[]) =>
       ctx.runMutation(internal.modules.deliveries.record.default, {
@@ -159,22 +247,17 @@ export default internalAction({
       console.warn(
         `Mail della prenotazione non inviata: manca ${missing.join(" e ")} sul deployment Convex.`,
       );
-      await record([
-        {
-          role: "booker",
-          recipient: data.bookerEmail,
-          status: "failed",
-          detail: "Invio delle mail non configurato",
-        },
-      ]);
+      await record(failAll("Invio delle mail non configurato"));
       return;
     }
 
     // Nessuno a cui scrivere: né un account, né una mail in anagrafica, né
-    // ospiti con la mail.
+    // giocatori o ospiti con un indirizzo. I giocatori li controlla il sito,
+    // che li cerca anche su Clerk.
     if (
       !data.bookerClerkUserId &&
       !data.bookerEmail &&
+      data.playerRecipients.length === 0 &&
       data.guests.length === 0
     ) {
       await record([
@@ -190,7 +273,14 @@ export default internalAction({
           "Content-Type": "application/json",
           "x-booking-webhook-secret": secret,
         },
-        body: JSON.stringify({ ...data, kind, previousStart }),
+        body: JSON.stringify({
+          ...data,
+          kind,
+          previousStart,
+          // Il sito non segna «nessun indirizzo» a chi ha prenotato quando la
+          // mail non è per lui.
+          bookerExcluded: Boolean(only && !only.booker),
+        }),
       });
 
       const payload = (await response.json().catch(() => null)) as {
@@ -213,14 +303,7 @@ export default internalAction({
       // fallita fa partire l'avviso (deliveries/lib.ts).
       console.error("Mail della prenotazione non recapitata:", error);
 
-      await record([
-        {
-          role: "booker",
-          recipient: data.bookerEmail,
-          status: "failed",
-          detail: "Il sito non ha spedito la mail",
-        },
-      ]);
+      await record(failAll("Il sito non ha spedito la mail"));
     }
   },
 });

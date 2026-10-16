@@ -74,6 +74,8 @@ export function Agenda() {
     updatePlayers,
     reschedule,
     moveCourt,
+    resendWhatsapp,
+    resendEmail,
     split,
   } = useAgenda();
   const courts = useQuery(api.modules.settings.booking.courts, {});
@@ -330,23 +332,26 @@ export function Agenda() {
     return (
       <div className="space-y-6">
         <div className="space-y-3">
-          <ListGroup
-            title={dayLabel(day, today)}
-            action={
-              playing.length > 0 && (
+          {/* Ogni partita è una scheda a sé: sotto può spuntarle la tasca
+              con quel che c'è da fare (booking-row.tsx). */}
+          <section className="space-y-2">
+            <div className="flex items-baseline justify-between gap-3 px-1">
+              <h2 className="text-muted-foreground text-[13px] font-medium">
+                {dayLabel(day, today)}
+              </h2>
+              {playing.length > 0 && (
                 <span className="text-muted-foreground text-[13px] tabular-nums">
                   {playing.length}{" "}
                   {playing.length === 1 ? "partita" : "partite"}
                 </span>
-              )
-            }
-          >
+              )}
+            </div>
             {/*
              * Chiuso ma con delle partite: prese prima della chiusura, restano.
              * Lo staff le vede in cima, con il perché.
              */}
             {closed && playing.length > 0 && (
-              <div className="bg-warning-subtle text-warning-foreground flex items-center gap-3 px-4 py-2.5 text-[13px] leading-snug">
+              <div className="bg-warning-subtle text-warning-foreground border-warning-border flex items-center gap-3 rounded-2xl border px-4 py-2.5 text-[13px] leading-snug">
                 <CalendarOff className="size-4 shrink-0" />
                 <span>
                   <span className="font-medium">{closed.title}.</span>{" "}
@@ -355,7 +360,7 @@ export function Agenda() {
               </div>
             )}
             {playing.length === 0 && closed ? (
-              <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+              <div className="bg-card flex flex-col items-center gap-2 rounded-2xl border px-6 py-10 text-center">
                 <CalendarOff className="text-muted-foreground/60 size-7" />
                 <p className="text-[15px] font-medium">{closed.title}</p>
                 <p className="text-muted-foreground max-w-[32ch] text-sm">
@@ -363,7 +368,7 @@ export function Agenda() {
                 </p>
               </div>
             ) : playing.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+              <div className="bg-card flex flex-col items-center gap-2 rounded-2xl border px-6 py-10 text-center">
                 <CalendarCheck className="text-muted-foreground/60 size-7" />
                 <p className="text-[15px] font-medium">
                   Nessuna partita in agenda
@@ -374,16 +379,18 @@ export function Agenda() {
                 </p>
               </div>
             ) : (
-              playing.map((booking) => (
-                <BookingRow
-                  key={booking._id}
-                  booking={booking}
-                  court={courtNames.get(booking.slot)}
-                  onOpen={() => openRow(booking)}
-                />
-              ))
+              <div className="space-y-2.5">
+                {playing.map((booking) => (
+                  <BookingRow
+                    key={booking._id}
+                    booking={booking}
+                    court={courtNames.get(booking.slot)}
+                    onOpen={() => openRow(booking)}
+                  />
+                ))}
+              </div>
             )}
-          </ListGroup>
+          </section>
 
           {cancelled.length > 0 && (
             <section className="space-y-2 pt-3">
@@ -434,7 +441,7 @@ export function Agenda() {
                     }}
                     className="overflow-hidden"
                   >
-                    <div className="bg-card overflow-hidden rounded-2xl border [&>*+*]:border-t">
+                    <div className="space-y-2.5">
                       {cancelled.map((booking) => (
                         <BookingRow
                           key={booking._id}
@@ -532,22 +539,26 @@ export function Agenda() {
                       Nessuna prenotazione trovata.
                     </p>
                   ) : (
-                    <ListGroup
-                      title={`${results.length} ${results.length === 1 ? "prenotazione" : "prenotazioni"}`}
-                    >
-                      {results.map((booking) => (
-                        <div key={booking._id}>
-                          <p className="text-muted-foreground px-4 pt-2.5 text-xs font-medium">
-                            {dayLabel(dayKey(booking.bookingDate), today)}
-                          </p>
-                          <BookingRow
-                            booking={booking}
-                            court={courtNames.get(booking.slot)}
-                            onOpen={() => openRow(booking)}
-                          />
-                        </div>
-                      ))}
-                    </ListGroup>
+                    <section className="space-y-2">
+                      <h2 className="text-muted-foreground px-1 text-[13px] font-medium">
+                        {results.length}{" "}
+                        {results.length === 1 ? "prenotazione" : "prenotazioni"}
+                      </h2>
+                      <div className="space-y-3">
+                        {results.map((booking) => (
+                          <div key={booking._id} className="space-y-1">
+                            <p className="text-muted-foreground px-1 text-xs font-medium">
+                              {dayLabel(dayKey(booking.bookingDate), today)}
+                            </p>
+                            <BookingRow
+                              booking={booking}
+                              court={courtNames.get(booking.slot)}
+                              onOpen={() => openRow(booking)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </section>
                   ))}
               </motion.div>
             ) : (
@@ -615,6 +626,8 @@ export function Agenda() {
         onUpdatePlayers={updatePlayers}
         onReschedule={reschedule}
         onMoveCourt={moveCourt}
+        onResendWhatsapp={resendWhatsapp}
+        onResendEmail={resendEmail}
         onSplit={(booking) => void askSplit(booking)}
       />
 
@@ -668,7 +681,7 @@ export function Agenda() {
 const ICON_SWAP =
   "size-5 transition-[opacity,scale] duration-150 ease-(--ease-out) motion-reduce:scale-100";
 
-/** La forma della pagina mentre arriva: striscia dei giorni e righe. */
+/** La forma della pagina mentre arriva: striscia dei giorni e schede. */
 function AgendaSkeleton() {
   return (
     <PageBody>
@@ -684,12 +697,13 @@ function AgendaSkeleton() {
           </div>
         ))}
       </div>
-      <div className="bg-card overflow-hidden rounded-2xl border">
+      {/* Schede separate come quelle vere: arrivati i dati, niente salta. */}
+      <div className="space-y-2.5">
         {Array.from({ length: 4 }, (_, index) => (
           <div
             // biome-ignore lint/suspicious/noArrayIndexKey: segnaposto senza identità.
             key={index}
-            className="flex items-center gap-4 border-t px-4 py-3.5 first:border-t-0"
+            className="bg-card flex items-center gap-4 rounded-2xl border px-4 py-3.5"
           >
             <Skeleton className="h-9 w-12" />
             <div className="flex-1 space-y-1.5">

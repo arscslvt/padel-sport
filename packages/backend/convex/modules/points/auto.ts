@@ -11,6 +11,7 @@ import { clubDayKey, clubMoment } from "../settings/lib";
 import { applyPoints, balanceOf } from "./lib";
 import { activeRule, type PointRuleKey, ruleDefinition } from "./rules";
 import { programState } from "./terms";
+import { syncMemberPricing } from "../pricing/members";
 
 /**
  * I punti che arrivano da soli: prima partita, tre partite in settimana,
@@ -452,6 +453,9 @@ export async function bookingChanged(
   ctx: MutationCtx,
   bookingId: Id<"bookings">,
 ): Promise<void> {
+  // Chi gioca è cambiato: anche chi paga da tesserato può essere cambiato.
+  await syncMemberPricing(ctx, bookingId);
+
   await ctx.scheduler.runAfter(
     0,
     internal.modules.points.auto.onBookingChanged,

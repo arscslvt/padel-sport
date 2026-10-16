@@ -1,8 +1,17 @@
 "use client";
 
-import { BellOff, Building2, Loader2, UserRound, Users } from "lucide-react";
+import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
+import {
+  BellOff,
+  Building2,
+  CreditCard,
+  Loader2,
+  type LucideIcon,
+  UserRound,
+  Users,
+} from "lucide-react";
 
-import { StatusBadge } from "@/app/_components/status-badge";
+import { StatusBadge, type StatusTone } from "@/app/_components/status-badge";
 import { Button } from "@/components/ui/button";
 import { MATCH_DURATION_MS, MAX_PLAYERS } from "@/lib/booking";
 import { cn } from "@/lib/utils";
@@ -21,6 +30,7 @@ import {
   LEVEL_LABELS,
   needsRefund,
   onSiteTotal,
+  partialLabel,
   shortDayLabel,
   timeRange,
 } from "./lib";
@@ -46,6 +56,76 @@ function OriginMark({ booking }: { booking: Booking }) {
   );
 }
 
+interface Notice {
+  key: string;
+  tone: StatusTone;
+  icon: LucideIcon;
+  label: string;
+}
+
+/**
+ * Quel che la prenotazione chiede allo staff, dal più urgente: chi ha
+ * prenotato non sa niente, mancano giocatori, è già pagata (così non si
+ * incassa due volte). Vuoto per una partita a posto.
+ */
+function noticesOf(booking: Booking): Notice[] {
+  if (isCancelled(booking)) return [];
+
+  const notices: Notice[] = [];
+  if (clientReach(booking) === "unreached") {
+    notices.push({
+      key: "unreached",
+      tone: "danger",
+      icon: BellOff,
+      label: "Non avvisato",
+    });
+  }
+  if (isPartial(booking)) {
+    const missing = MAX_PLAYERS - booking.players.length;
+    notices.push({
+      key: "partial",
+      tone: "warning",
+      icon: Users,
+      label: `${partialLabel(booking)} · ${missing === 1 ? "manca 1" : `mancano ${missing}`}`,
+    });
+  }
+  // A destra lo dice già il badge quando non resta niente da incassare.
+  if (isPaidOnline(booking) && (isPending(booking) || dueOnSite(booking) > 0)) {
+    const due = dueOnSite(booking);
+    notices.push({
+      key: "paid",
+      tone: "success",
+      icon: CreditCard,
+      label:
+        due > 0
+          ? `Pagata online · restano ${formatEuro(due)}`
+          : "Pagata online",
+    });
+  }
+  return notices;
+}
+
+/**
+ * La tasca: continua la scheda verso il basso con i suoi stessi lati, più
+ * scura, e porta quel che c'è da fare in badge brevi, dal più urgente. I badge
+ * stanno in fila e vanno a capo solo se non ci stanno: la tasca resta bassa
+ * anche con più avvisi, e la giornata non si allunga. Lo stesso respiro su
+ * ogni lato: 8px.
+ */
+function NoticeTray({ notices }: { notices: Notice[] }) {
+  if (notices.length === 0) return null;
+
+  return (
+    <span className="bg-muted flex flex-wrap gap-1.5 rounded-b-2xl border border-t-0 p-2">
+      {notices.map((notice) => (
+        <StatusBadge key={notice.key} tone={notice.tone} icon={notice.icon}>
+          {notice.label}
+        </StatusBadge>
+      ))}
+    </span>
+  );
+}
+
 /**
  * Una partita nella giornata.
  *
@@ -54,8 +134,10 @@ function OriginMark({ booking }: { booking: Booking }) {
  * da dire — da confermare, annullata — e una partita confermata è una riga
  * pulita. Il tocco apre il dettaglio.
  *
- * Accanto al nome, la campanella barrata dice che nessun avviso è arrivato a
- * chi ha prenotato: è il caso in cui allo sportello conviene una telefonata.
+ * Sotto, nella tasca (`NoticeTray`), quel che c'è da fare: «Non avvisato»
+ * quando nessun avviso è arrivato a chi ha prenotato (allo sportello conviene
+ * una telefonata), «Da completare» o «Cerca giocatori» con quanti ne
+ * mancano. La riga dei dati resta intera.
  */
 export function BookingRow({
   booking,
@@ -67,84 +149,86 @@ export function BookingRow({
   onOpen: () => void;
 }) {
   const cancelled = isCancelled(booking);
-  const partial = isPartial(booking) && !cancelled;
+  const notices = noticesOf(booking);
 
   return (
     <button
       type="button"
       onClick={onOpen}
       className={cn(
-        "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors outline-none active:bg-muted/80 focus-visible:bg-muted/60 md:hover:bg-muted/50",
-        cancelled && "opacity-60",
+        "group flex w-full flex-col text-left outline-none",
+        "transition-transform duration-150 ease-out active:scale-[0.99] motion-reduce:transform-none",
       )}
     >
-      <span className="w-12 shrink-0 text-right">
-        <span
-          className={cn(
-            "block text-[15px] font-semibold tabular-nums",
-            cancelled && "line-through",
-          )}
-        >
-          {clubTime(booking.bookingDate)}
-        </span>
-        <span className="text-muted-foreground block text-xs tabular-nums">
-          {clubTime(booking.bookingDate + MATCH_DURATION_MS)}
-        </span>
-      </span>
-
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2">
-          <span className="truncate text-[15px] font-medium">
-            {booking.bookedBy}
-          </span>
-          <OriginMark booking={booking} />
-          {booking.mergedWith && (
-            <Users
-              aria-label="Campo condiviso"
-              className="text-info size-4 shrink-0"
-            />
-          )}
-          {clientReach(booking) === "unreached" && (
-            <BellOff
-              aria-label="Cliente non avvisato"
-              className="text-danger size-4 shrink-0"
-            />
-          )}
-        </span>
-        <span className="text-muted-foreground mt-0.5 block truncate text-[13px]">
-          {[
-            court,
-            `${booking.players.length}/${MAX_PLAYERS}`,
-            LEVEL_LABELS[booking.level],
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-          {partial && (
-            <span className="text-warning-foreground"> · cerca giocatori</span>
-          )}
-          {/* Il badge a destra lo dice solo quando non resta niente da
-              incassare: negli altri casi lo si scrive qui. */}
-          {isPaidOnline(booking) &&
-            !cancelled &&
-            (isPending(booking) || dueOnSite(booking) > 0) && (
-              <span className="text-success-foreground"> · pagata online</span>
+      {/* Lo sfondo della scheda è pieno anche al passaggio del mouse: è una
+          superficie, non un velo sulla pagina. */}
+      <span
+        className={cn(
+          "bg-card relative z-[1] flex w-full items-center gap-4 rounded-2xl border px-4 py-3 shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-colors",
+          // Con la tasca la scheda si apre in basso: lati dritti, che la
+          // tasca prosegue senza scalino.
+          notices.length > 0 && "rounded-b-none",
+          "group-active:bg-[color-mix(in_oklab,var(--color-card),var(--color-muted)_80%)] md:group-hover:bg-[color-mix(in_oklab,var(--color-card),var(--color-muted)_50%)]",
+          "group-focus-visible:ring-ring/50 group-focus-visible:ring-[3px]",
+          // Le annullate non hanno mai una tasca: la trasparenza qui non
+          // scopre niente.
+          cancelled && "opacity-60",
+        )}
+      >
+        <span className="w-12 shrink-0 text-right">
+          <span
+            className={cn(
+              "block text-[15px] font-semibold tabular-nums",
+              cancelled && "line-through",
             )}
+          >
+            {clubTime(booking.bookingDate)}
+          </span>
+          <span className="text-muted-foreground block text-xs tabular-nums">
+            {clubTime(booking.bookingDate + MATCH_DURATION_MS)}
+          </span>
         </span>
+
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-[15px] font-medium">
+              {booking.bookedBy}
+            </span>
+            <OriginMark booking={booking} />
+            {booking.mergedWith && (
+              <Users
+                aria-label="Campo condiviso"
+                className="text-info size-4 shrink-0"
+              />
+            )}
+          </span>
+          <span className="text-muted-foreground mt-0.5 block truncate text-[13px]">
+            {[
+              court,
+              `${booking.players.length}/${MAX_PLAYERS}`,
+              LEVEL_LABELS[booking.level],
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </span>
+
+        {isPending(booking) ? (
+          <StatusBadge tone="warning">Da confermare</StatusBadge>
+        ) : needsRefund(booking) ? (
+          <StatusBadge tone="danger">Da rimborsare</StatusBadge>
+        ) : cancelled ? (
+          <StatusBadge tone="danger">Annullata</StatusBadge>
+        ) : isPaidOnline(booking) && dueOnSite(booking) === 0 ? (
+          <StatusBadge tone="success">Pagata online</StatusBadge>
+        ) : (
+          <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
+            {onSiteTotal(booking)}
+          </span>
+        )}
       </span>
 
-      {isPending(booking) ? (
-        <StatusBadge tone="warning">Da confermare</StatusBadge>
-      ) : needsRefund(booking) ? (
-        <StatusBadge tone="danger">Da rimborsare</StatusBadge>
-      ) : cancelled ? (
-        <StatusBadge tone="danger">Annullata</StatusBadge>
-      ) : isPaidOnline(booking) && dueOnSite(booking) === 0 ? (
-        <StatusBadge tone="success">Pagata online</StatusBadge>
-      ) : (
-        <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
-          {onSiteTotal(booking)}
-        </span>
-      )}
+      <NoticeTray notices={notices} />
     </button>
   );
 }

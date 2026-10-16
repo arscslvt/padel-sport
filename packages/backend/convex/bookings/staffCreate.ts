@@ -18,6 +18,7 @@ import {
   isWithinOpeningHours,
 } from "../modules/settings/lib";
 import { recordDeliveries } from "../modules/deliveries/lib";
+import { confirmWhatsappToPlayers } from "../modules/notifications/bookingPlayers";
 import { bookingChanged } from "../modules/points/auto";
 import { assertServer } from "../utils/serverSecret";
 
@@ -224,6 +225,17 @@ export default mutation({
           },
         ]);
       }
+
+      // I clienti collegati agli altri nomi ricevono la stessa conferma: la
+      // mail li trova da sé (bookingMail.ts), il WhatsApp parte per ognuno.
+      const linked = await Promise.all(
+        (linkedPlayerIds ?? []).map((id) => ctx.db.get(id)),
+      );
+      await confirmWhatsappToPlayers(
+        ctx,
+        bookingId,
+        linked.filter((doc) => doc !== null),
+      );
     }
 
     return { bookingId, code };

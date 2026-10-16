@@ -1,6 +1,7 @@
 "use client";
 
-import { UserRound, X } from "lucide-react";
+import { format } from "date-fns";
+import { Cake, UserRound, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,8 @@ export interface ClientOption {
   name: string;
   phone?: string;
   email?: string;
+  /** A mezzogiorno del giorno di nascita: lo distingue dagli omonimi. */
+  birthDate?: number;
   level: number;
 }
 
@@ -78,6 +81,31 @@ export function useClientMatches(
   }, [clients, query, exclude]);
 }
 
+/**
+ * Una proposta dell'elenco: il nome, sotto la data di nascita se c'è, a
+ * destra il telefono. Due «Giuseppe Prova» si distinguono così senza aprire
+ * la scheda.
+ */
+export function ClientOptionLabel({ option }: { option: ClientOption }) {
+  return (
+    <>
+      <span className="min-w-0 flex-1 py-1.5">
+        <span className="block truncate text-[15px]">{option.name}</span>
+        {option.birthDate !== undefined && (
+          <span className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
+            <Cake aria-hidden className="size-3.5" />
+            <span className="sr-only">Nato il</span>
+            {format(option.birthDate, "dd/MM/yyyy")}
+          </span>
+        )}
+      </span>
+      <span className="text-muted-foreground shrink-0 text-xs">
+        {option.phone ?? "Cliente"}
+      </span>
+    </>
+  );
+}
+
 export function ClientSuggestions({
   options,
   onPick,
@@ -106,10 +134,7 @@ export function ClientSuggestions({
             onClick={() => onPick(option)}
             className="active:bg-muted/80 md:hover:bg-muted/50 flex min-h-11 w-full items-center justify-between gap-3 px-3 text-left"
           >
-            <span className="truncate text-[15px]">{option.name}</span>
-            <span className="text-muted-foreground shrink-0 text-xs">
-              {option.phone ?? "Cliente"}
-            </span>
+            <ClientOptionLabel option={option} />
           </button>
         </li>
       ))}
@@ -131,8 +156,10 @@ export function LinkedClient({
   return (
     <div
       className={cn(
-        "bg-muted/50 flex items-center gap-3 rounded-xl border px-3",
-        touch ? "min-h-11" : "min-h-9",
+        // Due righe, nome e «Cliente in anagrafica»: il padding le tiene
+        // lontane dal bordo anche dove la riga è più bassa (da desktop).
+        "bg-muted/50 flex items-center gap-3 rounded-xl border px-3 py-2",
+        touch ? "min-h-12" : "min-h-11",
       )}
     >
       <UserRound className="text-muted-foreground size-4 shrink-0" />

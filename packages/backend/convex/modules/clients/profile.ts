@@ -12,6 +12,7 @@ import {
 } from "../../tables/players";
 import { displayName } from "./lib";
 import { attachReferral } from "../referrals/lib";
+import { syncUpcomingPhone } from "../../bookings/whatsapp";
 
 /**
  * L'anagrafica del cliente: quella che compila lui iscrivendosi, e quella che
@@ -295,11 +296,13 @@ export const update = mutation({
       await assertEmailFree(ctx, email, playerId);
     }
 
+    const phone = clean(fields.phone) ?? player.phone;
+
     await ctx.db.patch(playerId, {
       firstName,
       lastName,
       email: email ?? player.email,
-      phone: clean(fields.phone) ?? player.phone,
+      phone,
       birthDate: fields.birthDate ?? player.birthDate,
       birthPlace: clean(fields.birthPlace) ?? player.birthPlace,
       gender: fields.gender ?? player.gender,
@@ -319,6 +322,12 @@ export const update = mutation({
       // lo staff legge sulle prenotazioni e sulle partite.
       name: displayName({ name: player.name, firstName, lastName }),
     });
+
+    // Un numero corretto qui vale anche per le partite già prenotate: è lì
+    // che lo legge il WhatsApp di conferma, anche quando lo staff lo rimanda.
+    if (phone && phone !== player.phone) {
+      await syncUpcomingPhone(ctx, playerId, phone);
+    }
   },
 });
 

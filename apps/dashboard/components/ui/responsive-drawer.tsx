@@ -12,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
 import {
   Drawer,
   DrawerContent,
@@ -22,6 +21,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 import type { ProviderProps } from "@/types/components/provider.type";
@@ -33,7 +33,15 @@ interface ResponsiveProviderContextProps {
   /** Dati inseriti e non salvati: il pannello non si chiude da solo. */
   dirty?: boolean;
   onCloseAttempt?: () => void;
+  desktop?: DesktopPresentation;
 }
+
+/**
+ * Come si presenta da desktop: una modale al centro, o un pannello laterale
+ * per le schede di dettaglio che si consultano tenendo d'occhio la pagina
+ * sotto (la prenotazione sopra l'agenda). Da telefono è sempre il drawer.
+ */
+type DesktopPresentation = "dialog" | "sheet";
 
 const ResponsiveProviderContext = React.createContext<
   ResponsiveProviderContextProps | undefined
@@ -60,6 +68,7 @@ export type ResponsiveDrawerProps = ProviderProps & {
    */
   dirty?: boolean;
   onCloseAttempt?: () => void;
+  desktop?: DesktopPresentation;
 };
 
 export function ResponsiveDrawer({
@@ -68,6 +77,7 @@ export function ResponsiveDrawer({
   setOpen,
   dirty = false,
   onCloseAttempt,
+  desktop = "dialog",
 }: ResponsiveDrawerProps) {
   // Impostiamo initializeWithValue:false per avere un primo render deterministico (false) sia su server che client
   const isDesktop = useMediaQuery("(min-width: 768px)", {
@@ -91,6 +101,7 @@ export function ResponsiveDrawer({
           isDesktop,
           dirty,
           onCloseAttempt,
+          desktop,
         }}
       >
         <Dialog open={open} onOpenChange={handleSetOpen}>
@@ -146,7 +157,7 @@ export function ResponsiveDrawerContent({
   className,
   ...props
 }: ResponsiveDrawerContentProps) {
-  const { open, setOpen, isDesktop, dirty, onCloseAttempt } =
+  const { open, setOpen, isDesktop, dirty, onCloseAttempt, desktop } =
     React.useContext(ResponsiveProviderContext) || {};
 
   // Con dati non salvati, un tocco fuori o Esc non chiudono: chiedono. Da
@@ -160,6 +171,27 @@ export function ResponsiveDrawerContent({
 
   // Gli altri attributi (per esempio `onPaste`) arrivano al contenitore vero,
   // modale o drawer che sia: è lui ad avere il fuoco quando si apre.
+  // Il pannello laterale ha lo stesso grigio e lo stesso respiro della
+  // modale: dentro, le schede bianche si staccano dallo sfondo allo stesso
+  // modo. Scorre il contenuto, non il pannello: testata e azioni restano.
+  if (isDesktop && desktop === "sheet") {
+    return (
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent
+          className={cn(
+            "bg-secondary flex w-full flex-col gap-4 overflow-hidden p-6 sm:max-w-md",
+            className,
+          )}
+          onPointerDownOutside={guardOutside}
+          onEscapeKeyDown={guardOutside}
+          {...props}
+        >
+          {children}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>

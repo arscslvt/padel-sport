@@ -1,11 +1,11 @@
 "use client";
 
 import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
+import type { RetryTarget } from "@padel-sport/backend/convex/modules/deliveries/retry";
 import type { RefundOutcome } from "@padel-sport/backend/convex/modules/payments/refund";
 import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-
 import { useCounts } from "@/app/_providers/counts.provider";
 import { PUSH_REFRESH_EVENT } from "@/lib/push";
 
@@ -278,6 +278,82 @@ export function useAgenda() {
       },
     );
 
+  /**
+   * Rimanda il WhatsApp di conferma, al numero corretto se serve. L'esito
+   * vero arriva dopo, nella scheda: qui si dice solo che è ripartito.
+   */
+  const resendWhatsapp = async (
+    booking: Booking,
+    phone: string,
+    /** Un giocatore della prenotazione invece di chi l'ha presa. */
+    playerId?: Id<"players">,
+  ) => {
+    setBusyId(booking._id);
+    try {
+      const payload = await request(
+        "/api/dashboard/bookings/whatsapp",
+        "POST",
+        {
+          bookingId: booking._id,
+          phone,
+          playerId,
+        },
+      );
+
+      toast.success("WhatsApp rimandato", {
+        description: payload?.clientUpdated
+          ? `A ${payload.phone}. Numero corretto anche nella scheda cliente.`
+          : `A ${payload?.phone ?? phone}. L'esito compare fra gli avvisi al cliente.`,
+      });
+
+      // Il tentativo nuovo lo scrive l'invio, un attimo dopo, e Twilio dice
+      // com'è andata in pochi secondi: si ricarica allora, senza aspettare il
+      // giro del minuto, e il dettaglio aperto si aggiorna da solo.
+      setTimeout(() => void load(true), 1_500);
+      setTimeout(() => void load(true), 6_000);
+      return true;
+    } catch (error) {
+      toast.error("WhatsApp non rimandato", {
+        description:
+          error instanceof Error ? error.message : "Riprova fra poco.",
+      });
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  /** Rimanda la mail di conferma a una persona che non l'ha ricevuta. */
+  const resendEmail = async (
+    booking: Booking,
+    target: RetryTarget,
+    name: string,
+  ) => {
+    setBusyId(booking._id);
+    try {
+      await request("/api/dashboard/bookings/email", "POST", {
+        bookingId: booking._id,
+        target,
+      });
+
+      toast.success("Mail rimandata", {
+        description: `A ${name}. L'esito compare fra gli avvisi.`,
+      });
+
+      // La riga nuova la scrive l'invio, quando il sito ha risposto.
+      setTimeout(() => void load(true), 3_000);
+      return true;
+    } catch (error) {
+      toast.error("Mail non rimandata", {
+        description:
+          error instanceof Error ? error.message : "Riprova fra poco.",
+      });
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const split = (booking: Booking) =>
     run(
       booking._id,
@@ -302,6 +378,8 @@ export function useAgenda() {
     updatePlayers,
     reschedule,
     moveCourt,
+    resendWhatsapp,
+    resendEmail,
     split,
   };
 }

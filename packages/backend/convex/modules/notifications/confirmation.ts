@@ -12,7 +12,9 @@ import {
 } from "../deliveries/lib";
 
 /**
- * Il WhatsApp di conferma, col template approvato su Twilio.
+ * Il WhatsApp di conferma, col template approvato su Twilio: a chi ha
+ * prenotato, o con `playerId` a un giocatore della prenotazione
+ * (bookingPlayers.ts). Il messaggio è lo stesso, cambia il nome nel saluto.
  *
  * Ogni tentativo lascia una riga in `bookingDeliveries`, anche quando non
  * parte: chi guarda la scheda deve poter distinguere «non c'era il numero» da
@@ -22,29 +24,50 @@ import {
 export const sendConfirmationWithWhatsapp = internalAction({
   args: {
     bookingId: v.id("bookings"),
+    /** Un giocatore della prenotazione invece di chi l'ha presa. */
+    playerId: v.optional(v.id("players")),
   },
-  handler: async (ctx, { bookingId }) => {
+  handler: async (ctx, { bookingId, playerId }) => {
     const booking = await ctx.runQuery(api.bookings.get.getById, { bookingId });
 
-    const record = (entry: DeliveryEntry) =>
+    const player = playerId
+      ? await ctx.runQuery(
+          internal.modules.notifications.bookingPlayers.contact,
+          { playerId },
+        )
+      : null;
+    if (playerId && !player) return;
+
+    const target = player
+      ? { role: "player" as const, playerId, name: player.name }
+      : { role: "booker" as const };
+    const phone = player ? player.phone : booking.phone;
+    const greeting = player ? player.firstName : booking.bookedBy;
+
+    const record = (entry: Omit<DeliveryEntry, "role" | "playerId" | "name">) =>
       ctx.runMutation(internal.modules.deliveries.record.default, {
         bookingId,
         kind: "accepted",
         channel: "whatsapp",
-        entries: [entry],
+        entries: [{ ...target, recipient: phone, ...entry }],
       });
 
-    const markFailed = () =>
-      ctx.runMutation(internal.bookings.update.notificationStatus, {
+    // Lo stato sulla prenotazione è di chi l'ha presa: lo legge chi conferma,
+    // per non mandargli il WhatsApp due volte.
+    const markStatus = async (
+      newStatus: "sent_with_whatsapp" | "failed_to_send_whatsapp",
+    ) => {
+      if (player) return;
+      await ctx.runMutation(internal.bookings.update.notificationStatus, {
         bookingId,
-        newStatus: "failed_to_send_whatsapp",
+        newStatus,
       });
+    };
+    const markFailed = () => markStatus("failed_to_send_whatsapp");
 
     if (!booking.code) {
       console.error("WhatsApp di conferma non inviato: prenotazione senza codice.");
       await record({
-        role: "booker",
-        recipient: booking.phone,
         status: "failed",
         detail: "Prenotazione senza codice",
       });
@@ -55,9 +78,8 @@ export const sendConfirmationWithWhatsapp = internalAction({
     // Le prenotazioni nate nell'app non raccolgono il recapito: senza, il
     // messaggio partirebbe verso `whatsapp:undefined` a ogni tentativo. La
     // conferma è comunque già andata via mail.
-    if (!booking.phone) {
+    if (!phone) {
       await record({
-        role: "booker",
         status: "skipped",
         detail: "Nessun numero di telefono",
       });
@@ -70,8 +92,6 @@ export const sendConfirmationWithWhatsapp = internalAction({
         "WhatsApp di conferma non inviato: TWILIO_SID, TWILIO_AUTH o TWILIO_PHONE_SENDER mancanti.",
       );
       await record({
-        role: "booker",
-        recipient: booking.phone,
         status: "failed",
         detail: "Invio WhatsApp non configurato",
       });
@@ -93,7 +113,7 @@ export const sendConfirmationWithWhatsapp = internalAction({
      * giorno cambia il percorso, il template su Twilio va rifatto e riapprovato.
      */
     const vars = {
-      "1": booking.bookedBy,
+      "1": greeting,
       "2": humanDate,
       "3": booking.code,
     };
@@ -107,7 +127,7 @@ export const sendConfirmationWithWhatsapp = internalAction({
       const client = getMessagingClient();
       const message = await client.messages.create({
         from: `whatsapp:${sender}`, // o numero business
-        to: `whatsapp:${booking.phone}`, // numero del cliente
+        to: `whatsapp:${phone}`, // numero del cliente
         // Sostituibile senza rilascio: cambiando il template su Twilio basta
         // aggiornare la variabile d'ambiente.
         contentSid:
@@ -118,16 +138,11 @@ export const sendConfirmationWithWhatsapp = internalAction({
       });
 
       await record({
-        role: "booker",
-        recipient: booking.phone,
         status: fromTwilioStatus(message.status) ?? "queued",
         providerId: message.sid,
       });
 
-      await ctx.runMutation(internal.bookings.update.notificationStatus, {
-        bookingId,
-        newStatus: "sent_with_whatsapp",
-      });
+      await markStatus("sent_with_whatsapp");
     } catch (error) {
       // Prima questo errore faceva fallire l'azione e basta: la prenotazione
       // restava «in attesa» di un WhatsApp che non sarebbe mai partito, e
@@ -135,8 +150,6 @@ export const sendConfirmationWithWhatsapp = internalAction({
       console.error("WhatsApp di conferma non inviato:", error);
 
       await record({
-        role: "booker",
-        recipient: booking.phone,
         status: "failed",
         detail: twilioErrorDetail(
           (error as { code?: unknown }).code,

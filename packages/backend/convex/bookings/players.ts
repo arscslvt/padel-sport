@@ -9,6 +9,7 @@ import {
   syncBookingPlayers,
   syncMatchStatus,
 } from "../modules/openMatches/lib";
+import { confirmToNewPlayers } from "../modules/notifications/bookingPlayers";
 import { bookingChanged } from "../modules/points/auto";
 import { assertServer } from "../utils/serverSecret";
 import { linkablePlayers } from "./staffCreate";
@@ -208,20 +209,29 @@ export const update = mutation({
     const wantedLinks = links?.filter((link) => names.includes(link.name));
 
     if (!match) {
+      const linkedPlayerIds = wantedLinks
+        ? await linkablePlayers(
+            ctx,
+            wantedLinks.map((link) => link.playerId),
+            booking.createdByPlayer,
+          )
+        : booking.linkedPlayerIds;
+
       await ctx.db.patch(bookingId, {
         players: names,
         bookForAll: names.length >= MAX_PLAYERS,
-        ...(wantedLinks
-          ? {
-              linkedPlayerIds: await linkablePlayers(
-                ctx,
-                wantedLinks.map((link) => link.playerId),
-                booking.createdByPlayer,
-              ),
-            }
-          : {}),
+        linkedPlayerIds,
       });
       await bookingChanged(ctx, bookingId);
+
+      // Un cliente collegato adesso a una prenotazione già confermata riceve
+      // la conferma ora: gli altri l'hanno avuta quando è stata confermata.
+      const before = new Set(booking.linkedPlayerIds ?? []);
+      await confirmToNewPlayers(
+        ctx,
+        bookingId,
+        (linkedPlayerIds ?? []).filter((id) => !before.has(id)),
+      );
       return { players: names };
     }
 
@@ -285,6 +295,7 @@ export const update = mutation({
     await replaceGuests(ctx, latest, guests);
     await syncBookingPlayers(ctx, latest);
     await syncMatchStatus(ctx, match._id);
+    await confirmToNewPlayers(ctx, bookingId, joining);
 
     const updated = await ctx.db.get(bookingId);
     return { players: updated?.players ?? names };

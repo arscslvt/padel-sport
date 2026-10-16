@@ -3,6 +3,11 @@ import { internalMutation, mutation } from "../_generated/server";
 import { notificationStatus as notification } from "../tables/bookings";
 import { api, internal } from "../_generated/api";
 import { recordDeliveries } from "../modules/deliveries/lib";
+import {
+  confirmWhatsappToPlayers,
+  notifiedPlayers,
+  skipWhatsappToPlayers,
+} from "../modules/notifications/bookingPlayers";
 import { bookingChanged } from "../modules/points/auto";
 import { assertServer } from "../utils/serverSecret";
 
@@ -62,6 +67,9 @@ export const accept = mutation({
     // La mail parte sempre: porta il QR d'ingresso, e senza quello il cliente
     // non ha modo di sapere che è stato accettato. Il WhatsApp invece resta a
     // discrezione di chi accetta, quindi non può essere l'unico canale.
+    // Entrambi vanno anche ai giocatori veri della prenotazione: la mail li
+    // trova da sé (bookingMail.ts), il WhatsApp parte qui sotto per ognuno.
+    const players = await notifiedPlayers(ctx, booking);
     await ctx.scheduler.runAfter(
       0,
       internal.modules.notifications.bookingMail.default,
@@ -78,6 +86,7 @@ export const accept = mutation({
             bookingId,
           },
         );
+      await confirmWhatsappToPlayers(ctx, bookingId, players);
     } else {
       // Anche un WhatsApp non mandato va scritto: nella scheda deve leggersi
       // «escluso alla conferma», non sembrare un invio perso.
@@ -89,6 +98,12 @@ export const accept = mutation({
           detail: "Escluso alla conferma",
         },
       ]);
+      await skipWhatsappToPlayers(
+        ctx,
+        bookingId,
+        players,
+        "Escluso alla conferma",
+      );
     }
 
     return true;

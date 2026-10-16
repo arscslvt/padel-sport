@@ -1,4 +1,10 @@
-import type { Doc } from "@padel-sport/backend/convex/_generated/dataModel";
+import type { Doc, Id } from "@padel-sport/backend/convex/_generated/dataModel";
+import {
+  emailRetryTargets,
+  hasEmailRetry,
+  onlyTarget,
+  type RetryTarget,
+} from "@padel-sport/backend/convex/modules/deliveries/retry";
 import type { PaymentReference } from "@padel-sport/backend/convex/modules/payments/lib";
 import {
   bookingTotal,
@@ -208,6 +214,23 @@ export function isPartial(booking: Booking): boolean {
   );
 }
 
+/**
+ * Come si chiama una prenotazione con meno di quattro giocatori. Quella del
+ * cliente «cerca giocatori»: è lui ad averla aperta perché qualcuno si unisca.
+ * Quella presa dallo staff è «da completare»: di solito la squadra c'è già, e
+ * i nomi mancanti si aggiungono allo sportello.
+ */
+export function partialLabel(booking: Booking): string {
+  return isStaffMade(booking) ? "Da completare" : "Cerca giocatori";
+}
+
+/** Le tacche accese di `LevelBars` (components/level-bars.tsx) per ogni fascia. */
+export const LEVEL_BARS: Record<Booking["level"], number> = {
+  principiante: 1,
+  intermedio: 2,
+  avanzato: 3,
+};
+
 export const LEVEL_LABELS: Record<Booking["level"], string> = {
   principiante: "Principiante",
   intermedio: "Intermedio",
@@ -276,6 +299,7 @@ export const DELIVERY_KIND_LABELS: Record<Delivery["kind"], string> = {
   cancelled_by_club: "Disdetta",
   cancelled_by_player: "Disdetta",
   rescheduled: "Cambio d'orario",
+  invited: "Invito alla partita",
 };
 
 /**
@@ -311,6 +335,230 @@ export function deliveryBadge(delivery: Delivery): {
         tone: "danger",
       };
   }
+}
+
+/* ------------------------------ Per persona ------------------------------ */
+
+/**
+ * Chi è stato avvisato, con tutti i suoi avvisi: la scheda li mostra persona
+ * per persona, non tentativo per tentativo. Con più giocatori in campo la
+ * domanda dello staff è «lui l'ha saputo?», e la risposta sta in una riga.
+ */
+export interface Recipient {
+  /** `booker`, `player:<id>` o `guest:<email>`: stabile fra un caricamento e l'altro. */
+  key: string;
+  role: Delivery["role"];
+  name: string;
+  playerId?: Id<"players">;
+  /** L'ospite non ha una scheda: lo riconosce l'indirizzo. */
+  email?: string;
+  /** Dal più recente. */
+  deliveries: Delivery[];
+}
+
+export const ROLE_LABELS: Record<Delivery["role"], string> = {
+  booker: "Ha prenotato",
+  player: "Giocatore",
+  guest: "Ospite",
+};
+
+function recipientKey(delivery: Delivery): string | null {
+  if (delivery.role === "booker") return "booker";
+  if (delivery.role === "player") {
+    return delivery.playerId ? `player:${delivery.playerId}` : null;
+  }
+  return delivery.recipient
+    ? `guest:${delivery.recipient.toLowerCase()}`
+    : null;
+}
+
+/**
+ * Le persone avvisate: prima chi ha prenotato, poi i giocatori, poi gli
+ * ospiti, ognuno nell'ordine in cui è stato avvisato la prima volta. Chi ha
+ * prenotato c'è anche senza avvisi quando gli si può ancora mandare la
+ * conferma: è da qui che la si manda.
+ */
+export function deliveryRecipients(
+  booking: Booking,
+  now = Date.now(),
+): Recipient[] {
+  const byKey = new Map<string, Recipient>();
+  const oldestFirst = [...(booking.deliveries ?? [])].sort(
+    (a, b) => a.createdAt - b.createdAt,
+  );
+
+  for (const delivery of oldestFirst) {
+    const key = recipientKey(delivery);
+    if (!key) continue;
+
+    let person = byKey.get(key);
+    if (!person) {
+      person = {
+        key,
+        role: delivery.role,
+        name:
+          delivery.role === "booker"
+            ? booking.bookedBy
+            : (delivery.name ?? delivery.recipient ?? "Giocatore"),
+        playerId: delivery.playerId,
+        email:
+          delivery.role === "guest"
+            ? delivery.recipient?.toLowerCase()
+            : undefined,
+        deliveries: [],
+      };
+      byKey.set(key, person);
+    }
+    // Il nome più recente vince: le righe vecchie potevano non averlo.
+    if (delivery.role !== "booker" && delivery.name)
+      person.name = delivery.name;
+    person.deliveries.unshift(delivery);
+  }
+
+  if (!byKey.has("booker")) {
+    const booker: Recipient = {
+      key: "booker",
+      role: "booker",
+      name: booking.bookedBy,
+      playerId: booking.createdByPlayer,
+      deliveries: [],
+    };
+    if (whatsappRetry(booking, booker, now)) byKey.set("booker", booker);
+  }
+
+  const order = { booker: 0, player: 1, guest: 2 } as const;
+  return [...byKey.values()].sort((a, b) => order[a.role] - order[b.role]);
+}
+
+/**
+ * Chi è in campo ma non riceve niente: un nome scritto a mano, senza scheda
+ * cliente e senza mail da ospite. Si trova per differenza fra i nomi della
+ * prenotazione e le persone avvisate: un nome per ogni persona, così due
+ * omonimi restano due. Chi ha prenotato è sempre fra gli avvisati.
+ */
+export function uncontactedNames(
+  booking: Booking,
+  people: Recipient[],
+): string[] {
+  const reached = people
+    .filter((person) => person.role !== "booker")
+    .map((person) => person.name);
+
+  return booking.players.slice(1).filter((name) => {
+    const index = reached.indexOf(name);
+    if (index === -1) return true;
+    reached.splice(index, 1);
+    return false;
+  });
+}
+
+/** L'ultimo avviso di una persona su un canale, di qualunque tipo. */
+export function latestOn(
+  person: Recipient,
+  channel: Delivery["channel"],
+): Delivery | undefined {
+  return person.deliveries.find((delivery) => delivery.channel === channel);
+}
+
+/**
+ * L'ha saputo? Basta un canale arrivato. Si guarda l'ultimo avviso di ogni
+ * canale: è quello che dice com'è adesso.
+ */
+export function recipientReach(person: Recipient): {
+  label: string;
+  tone: StatusTone;
+} {
+  const latest = (["whatsapp", "email"] as const)
+    .map((channel) => latestOn(person, channel))
+    .filter((delivery) => delivery !== undefined);
+  const has = (...statuses: Delivery["status"][]) =>
+    latest.some((delivery) => statuses.includes(delivery.status));
+
+  if (has("delivered", "read", "complained")) {
+    return { label: "Raggiunto", tone: "success" };
+  }
+  if (has("queued", "sent", "delayed")) {
+    return { label: "In consegna", tone: "info" };
+  }
+  if (has("failed")) return { label: "Non raggiunto", tone: "danger" };
+  return { label: "Non avvisato", tone: "neutral" };
+}
+
+function isActive(booking: Booking, now: number): boolean {
+  return (
+    booking.status === "accepted_on_site_payment" &&
+    booking.bookingDate + MATCH_DURATION_MS >= now
+  );
+}
+
+/**
+ * Si può (ri)mandare il WhatsApp di conferma a questa persona? Sì su una
+ * prenotazione confermata e non ancora giocata, quando il suo ultimo
+ * tentativo non è partito: fallito, saltato per mancanza del numero, escluso
+ * alla conferma. Uno in viaggio no, sarebbe un doppione. Gli ospiti non hanno
+ * un numero. È la stessa regola del server (bookings/whatsapp.ts).
+ *
+ * `last` è quel tentativo, per dire com'era andato; assente se non c'è mai
+ * stato (solo per chi ha prenotato, sulle prenotazioni di prima del registro).
+ */
+export function whatsappRetry(
+  booking: Booking,
+  person: Recipient,
+  now = Date.now(),
+): { last?: Delivery } | null {
+  if (!isActive(booking, now) || person.role === "guest") return null;
+
+  const last = person.deliveries.find(
+    (delivery) =>
+      delivery.channel === "whatsapp" && delivery.kind === "accepted",
+  );
+
+  if (!last) {
+    return person.role === "booker" &&
+      booking.notificationStatus !== "sent_with_whatsapp"
+      ? {}
+      : null;
+  }
+  return last.status === "failed" || last.status === "skipped"
+    ? { last }
+    : null;
+}
+
+/** Chi si sceglie per rimandargli la mail (bookings/email.ts). */
+export function retryTarget(person: Recipient): RetryTarget | null {
+  if (person.role === "booker") return { role: "booker" };
+  if (person.role === "player" && person.playerId) {
+    return { role: "player", playerId: person.playerId };
+  }
+  if (person.role === "guest" && person.email) {
+    return { role: "guest", email: person.email };
+  }
+  return null;
+}
+
+/**
+ * Si può rimandare la mail di conferma a questa persona? La regola è quella
+ * del server (modules/deliveries/retry.ts), ristretta a lei.
+ */
+export function emailRetry(
+  booking: Booking,
+  person: Recipient,
+  now = Date.now(),
+): boolean {
+  if (!isActive(booking, now)) return false;
+  const target = retryTarget(person);
+  if (!target) return false;
+  return hasEmailRetry(
+    onlyTarget(emailRetryTargets(booking, booking.deliveries ?? []), target),
+  );
+}
+
+/** La scheda cliente di questa persona, se ne ha una. */
+export function recipientCard(
+  booking: Booking,
+  person: Recipient,
+): Id<"players"> | undefined {
+  return person.role === "booker" ? booking.createdByPlayer : person.playerId;
 }
 
 /**

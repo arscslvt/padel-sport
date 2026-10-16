@@ -1,9 +1,10 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../../_generated/server";
+import { firstNameOf, whatsappPhone } from "./bookingPlayers";
 
 /**
- * Le letture e le scritture del WhatsApp d'invito (matchInvite.ts), che gira
- * su Node e il database non lo tocca direttamente.
+ * Le letture e le scritture dell'invito a una partita (matchInvite.ts), che
+ * gira su Node e il database non lo tocca direttamente.
  */
 
 export const payload = internalQuery({
@@ -16,16 +17,30 @@ export const payload = internalQuery({
       ctx.db.get(invite.matchId),
       ctx.db.get(invite.playerId),
     ]);
-    if (!match || match.status === "cancelled" || !invitee?.phone) return null;
+    if (!match || match.status === "cancelled" || !invitee) return null;
     if (match.matchDate <= Date.now()) return null;
 
-    const inviter = await ctx.db.get(match.creatorId);
+    const [inviter, booking] = await Promise.all([
+      ctx.db.get(match.creatorId),
+      ctx.db.get(match.bookingId),
+    ]);
+    if (!booking) return null;
+
+    const slot = await ctx.db.get(booking.slot);
 
     return {
-      phone: invitee.phone,
-      firstName: invitee.firstName ?? invitee.name.split(" ")[0],
+      bookingId: booking._id,
+      playerId: invitee._id,
+      name: invitee.name,
+      firstName: firstNameOf(invitee),
+      /** Pronto per Twilio; assente se in anagrafica non c'è. */
+      phone: whatsappPhone(invitee.phone),
+      email: invitee.email,
+      clerkUserId: invitee.clerkUserId,
       inviterName: inviter?.name ?? "Un amico",
       matchDate: match.matchDate,
+      court: slot?.name,
+      players: booking.players,
     };
   },
 });

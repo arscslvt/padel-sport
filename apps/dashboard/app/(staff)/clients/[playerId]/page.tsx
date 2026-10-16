@@ -17,8 +17,8 @@ export default async function DashboardClientPage({
   const { playerId } = await params;
   const { tab, from } = await searchParams;
 
-  // `?tab=` sceglie la linguetta, `?from=points` dice da dove si arriva: il
-  // tasto in alto torna lì invece che all'elenco clienti.
+  // `?tab=` sceglie la linguetta, `?from=points` o `?from=agenda` dice da
+  // dove si arriva: il tasto in alto torna lì invece che all'elenco clienti.
   const initialTab = CLIENT_TABS.includes(tab as ClientTab)
     ? (tab as ClientTab)
     : undefined;
@@ -30,7 +30,7 @@ export default async function DashboardClientPage({
       <ClientPage
         playerId={playerId}
         initialTab={initialTab}
-        fromPoints={from === "points"}
+        from={from === "points" || from === "agenda" ? from : undefined}
       />
     </div>
   );

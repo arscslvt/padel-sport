@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internalMutation } from "../../_generated/server";
 import {
   deliveryChannel,
+  deliveryEntry,
   deliveryStatus,
   notificationKind,
 } from "../../tables/bookingDeliveries";
@@ -23,15 +24,7 @@ export default internalMutation({
     bookingId: v.id("bookings"),
     kind: notificationKind,
     channel: deliveryChannel,
-    entries: v.array(
-      v.object({
-        role: v.union(v.literal("booker"), v.literal("guest")),
-        recipient: v.optional(v.string()),
-        status: deliveryStatus,
-        detail: v.optional(v.string()),
-        providerId: v.optional(v.string()),
-      }),
-    ),
+    entries: v.array(deliveryEntry),
   },
   handler: async (ctx, { bookingId, kind, channel, entries }) => {
     await recordDeliveries(ctx, bookingId, kind, channel, entries);
@@ -66,7 +59,11 @@ export const fromProvider = internalMutation({
 
         // Il vecchio stato sulla prenotazione resta vero: lo legge chi
         // conferma, per non mandare il WhatsApp due volte.
-        if (row.channel === "whatsapp" && row.kind === "accepted") {
+        if (
+          row.channel === "whatsapp" &&
+          row.kind === "accepted" &&
+          row.role === "booker"
+        ) {
           await ctx.db.patch(booking._id, {
             notificationStatus: "failed_to_send_whatsapp",
           });
