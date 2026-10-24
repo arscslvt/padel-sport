@@ -22,6 +22,16 @@ const createSchema = z.object({
   players: z.array(z.string().trim().max(80)).max(4),
   /** I compagni scelti fra i clienti in anagrafica. */
   linkedPlayerIds: z.array(z.string().min(1)).max(4).optional(),
+  /** Il recapito degli altri giocatori che non sono in anagrafica. */
+  guestContacts: z
+    .array(
+      z.object({
+        name: z.string().trim().max(80),
+        phone: z.string().trim().max(30),
+      }),
+    )
+    .max(4)
+    .optional(),
   level: z.enum(["principiante", "intermedio", "avanzato"]),
   notify: z.boolean(),
 });

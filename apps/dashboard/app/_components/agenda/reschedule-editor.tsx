@@ -404,7 +404,7 @@ export function RescheduleDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title="Cambia orario"
-      description={`${booking.bookedBy} · ${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
+      description={`${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
       trigger={children}
     >
       <DrawerForm booking={booking} busy={busy} onSave={onSave} />

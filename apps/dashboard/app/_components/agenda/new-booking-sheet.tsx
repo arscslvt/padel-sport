@@ -3,8 +3,8 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
 import { windowsForDay } from "@padel-sport/backend/convex/modules/settings/schedule";
 import { useQuery } from "convex/react";
-import { Loader2, UserRound, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Loader2, Phone } from "lucide-react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SheetHeader } from "@/app/_components/sheet-header";
 import { useConfirmLeave } from "@/app/_providers/confirm.provider";
@@ -29,7 +29,6 @@ import { cn } from "@/lib/utils";
 import {
   type ClientOption,
   ClientOptionLabel,
-  ClientSuggestions,
   LinkedClient,
   useClientMatches,
   useClients,
@@ -48,13 +47,22 @@ import {
  * Una prenotazione presa dallo staff: chi chiama al telefono, chi passa allo
  * sportello.
  *
- * Il modulo segue l'ordine della telefonata: chi sei, quando vuoi giocare, su
- * che campo, con chi. Il nome cerca fra i clienti in anagrafica e, se lo
- * trova, si porta dietro telefono e livello: la prenotazione resta legata a
- * quella persona e la ritrova sul sito e nell'app. Se non c'è, basta il nome.
+ * Un campo lo prende sempre un gruppo: il modulo chiede i quattro giocatori,
+ * tutti uguali, non un prenotante e i suoi compagni. Ogni nome cerca fra i
+ * clienti in anagrafica: collegato, la prenotazione compare anche sul sito e
+ * nell'app di quel cliente e la partita gli conta nei punti automatici. Chi
+ * non c'è resta un nome. Basta un giocatore; gli altri posti si riempiono
+ * anche dopo, dalla scheda.
  *
- * Anche i compagni si cercano in anagrafica: collegati a un cliente, la
- * partita conta per loro nei punti automatici. Chi non c'è resta un nome.
+ * Il telefono non si chiede: chi è in anagrafica ha già il suo numero nella
+ * scheda. Solo per chi resta un nome si può lasciare un recapito, per poterlo
+ * contattare.
+ *
+ * Sotto il dato resta quello di sempre: il primo nome scritto fa da
+ * riferimento della prenotazione (`bookedBy`, e `createdByPlayer` se è un
+ * cliente). Il suo numero — quello della scheda, o il recapito scritto qui —
+ * è `phone`, a cui parte il WhatsApp di conferma; quello degli altri senza
+ * scheda va in `guestContacts`. Se è un cliente porta anche il livello.
  *
  * Gli orari proposti sono quelli di apertura in cui c'è ancora un campo
  * libero, calcolati come sul sito; l'ultima parola resta del backend
@@ -121,7 +129,7 @@ function Form({
   onCreated,
 }: {
   initialDay: string;
-  /** Si è cominciato a inserire dati: orario, cliente, nome, telefono, compagni. */
+  /** Si è cominciato a inserire dati: orario, giocatori, recapiti. */
   onDirtyChange: (dirty: boolean) => void;
   onCancel: () => void;
   onCreated: (day: string) => void;
@@ -133,14 +141,9 @@ function Form({
   const [time, setTime] = useState<string | null>(null);
   const [slotId, setSlotId] = useState<string>("auto");
 
-  const [client, setClient] = useState<ClientOption | null>(null);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [others, setOthers] = useState<Other[]>([
-    { name: "" },
-    { name: "" },
-    { name: "" },
-  ]);
+  const [seats, setSeats] = useState<Seat[]>(() =>
+    Array.from({ length: MAX_PLAYERS }, () => ({ name: "" })),
+  );
   const [level, setLevel] = useState<Booking["level"]>("intermedio");
   const [notify, setNotify] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -149,27 +152,25 @@ function Form({
   // non è «aver cominciato». Lo è scegliere un orario o scrivere qualcosa.
   const dirty =
     time !== null ||
-    client !== null ||
-    name.trim() !== "" ||
-    phone.trim() !== "" ||
-    others.some((other) => other.name.trim() !== "");
+    seats.some(
+      (seat) => seat.name.trim() !== "" || Boolean(seat.phone?.trim()),
+    );
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
 
-  // L'anagrafica, per collegare la prenotazione e i compagni a un cliente.
+  // I posti scritti, nell'ordine: i vuoti in mezzo non contano.
+  const filled = seats
+    .map((seat) => ({ ...seat, name: seat.name.trim() }))
+    .filter((seat) => seat.name !== "");
+
+  // L'anagrafica, per collegare i giocatori a un cliente.
   const clients = useClients();
   const chosenIds = useMemo(
     () =>
-      [client?.id, ...others.map((other) => other.client?.id)].filter(
-        (id): id is string => Boolean(id),
-      ),
-    [client, others],
+      seats
+        .map((seat) => seat.client?.id)
+        .filter((id): id is string => Boolean(id)),
+    [seats],
   );
-  const bookerMatches = useClientMatches(
-    clients,
-    client ? "" : name,
-    chosenIds,
-  );
-  const suggestions = bookerMatches;
 
   // Gli orari liberi del giorno scelto: stesse finestre e stessa regola del sito.
   const settings = useQuery(api.modules.settings.booking.get, {});
@@ -230,17 +231,22 @@ function Form({
     setSlotId("auto");
   }, [day]);
 
-  const pickClient = (option: ClientOption) => {
-    setClient(option);
-    setName(option.name);
-    setPhone(option.phone ?? "");
-    setLevel(levelFromRating(option.level));
+  const changeSeat = (index: number, next: Seat) => {
+    setSeats((current) =>
+      current.map((row, position) => (position === index ? next : row)),
+    );
+
+    // Il primo posto, se è un cliente, porta il suo livello.
+    if (index === 0 && next.client) {
+      setLevel(levelFromRating(next.client.level));
+    }
   };
 
-  const canSave = name.trim().length >= 2 && chosen?.ok && !saving;
+  const canSave = (filled[0]?.name.length ?? 0) >= 2 && chosen?.ok && !saving;
 
   const save = async () => {
-    if (!chosen || !time) return;
+    const [first, ...rest] = filled;
+    if (!chosen || !time || !first) return;
     setSaving(true);
     try {
       const response = await fetch("/api/dashboard/bookings/new", {
@@ -249,16 +255,18 @@ function Form({
         body: JSON.stringify({
           bookingDate: combineDateAndTime(new Date(`${day}T00:00:00`), time),
           slotId: slotId === "auto" ? undefined : slotId,
-          playerId: client?.id,
-          bookedBy: name.trim(),
-          phone: phone.trim() || undefined,
-          players: [
-            name.trim(),
-            ...others.map((other) => other.name.trim()),
-          ].filter(Boolean),
-          linkedPlayerIds: others
-            .map((other) => other.client?.id)
+          playerId: first.client?.id,
+          bookedBy: first.name,
+          // Un cliente ha il numero nella scheda: lo prende il backend.
+          phone: first.client ? undefined : contactOf(first),
+          players: filled.map((seat) => seat.name),
+          linkedPlayerIds: rest
+            .map((seat) => seat.client?.id)
             .filter((id): id is string => Boolean(id)),
+          guestContacts: rest.flatMap((seat) => {
+            const phone = seat.client ? undefined : contactOf(seat);
+            return phone ? [{ name: seat.name, phone }] : [];
+          }),
           level,
           notify,
         }),
@@ -273,7 +281,7 @@ function Form({
       }
 
       toast.success("Prenotazione creata", {
-        description: `${name.trim()}, ${shortDayLabel(day)} alle ${time}. Codice ${payload?.code ?? ""}.`,
+        description: `${shortDayLabel(day)} alle ${time}. Codice ${payload?.code ?? ""}.`,
       });
       onCreated(day);
     } catch {
@@ -287,78 +295,40 @@ function Form({
 
   return (
     <>
-      <SheetHeader
-        title="Nuova prenotazione"
-        description="Nasce già confermata: la prendi tu per conto del club."
-      />
+      <SheetHeader title="Nuova prenotazione" />
 
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 pt-1 pb-2 md:-mx-1 md:px-1">
-        <Field label="Chi prenota" htmlFor="new-booking-name">
-          {client ? (
-            <div className="bg-muted/50 flex min-h-12 items-center gap-3 rounded-xl border px-3">
-              <UserRound className="text-muted-foreground size-5 shrink-0" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[15px] font-medium">
-                  {client.name}
-                </span>
-                <span className="text-muted-foreground block text-xs">
-                  Cliente in anagrafica
-                </span>
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-9 rounded-full"
-                aria-label="Scollega il cliente"
-                onClick={() => {
-                  setClient(null);
-                  setName("");
-                  setPhone("");
-                }}
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <Input
-                id="new-booking-name"
-                value={name}
-                autoComplete="off"
-                placeholder="Nome e cognome, o cerca un cliente"
-                className="bg-card h-12 rounded-xl text-base"
-                onChange={(event) => setName(event.target.value)}
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="text-sm font-medium">Giocatori</h3>
+            {/* Si aggiorna mentre si scrive, e lo legge anche lo screen reader. */}
+            <span
+              aria-live="polite"
+              className="text-muted-foreground text-[13px] tabular-nums"
+            >
+              {filled.length} di {MAX_PLAYERS}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {seats.map((seat, index) => (
+              <PlayerSeat
+                // biome-ignore lint/suspicious/noArrayIndexKey: i quattro posti sono fissi.
+                key={index}
+                index={index}
+                value={seat}
+                clients={clients}
+                exclude={chosenIds}
+                onChange={(next) => changeSeat(index, next)}
               />
-              {suggestions.length > 0 && (
-                <ul className="bg-card overflow-hidden rounded-xl border [&>*+*]:border-t">
-                  {suggestions.map((option) => (
-                    <li key={option.id}>
-                      <button
-                        type="button"
-                        onClick={() => pickClient(option)}
-                        className="active:bg-muted/80 md:hover:bg-muted/50 flex min-h-12 w-full items-center justify-between gap-3 px-3 text-left"
-                      >
-                        <ClientOptionLabel option={option} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </Field>
-
-        <Field label="Telefono" htmlFor="new-booking-phone">
-          <Input
-            id="new-booking-phone"
-            type="tel"
-            inputMode="tel"
-            value={phone}
-            placeholder="Per la conferma su WhatsApp"
-            className="bg-card h-12 rounded-xl text-base"
-            onChange={(event) => setPhone(event.target.value)}
-          />
-        </Field>
+            ))}
+          </div>
+          <p className="text-muted-foreground text-xs">
+            Scrivendo, scegli il cliente dall&apos;anagrafica: il numero lo
+            prende dalla sua scheda, e la partita gli conta nei punti. Se non
+            c&apos;è, usa solo il nome e lascia un recapito. Lascia vuoti i
+            posti ancora liberi.
+          </p>
+        </section>
 
         <section className="space-y-3">
           <h3 className="text-sm font-medium">Quando</h3>
@@ -458,43 +428,11 @@ function Form({
           </fieldset>
         </section>
 
-        <section className="space-y-3">
-          <h3 className="text-sm font-medium">
-            Altri giocatori{" "}
-            <span className="text-muted-foreground font-normal">
-              (facoltativi)
-            </span>
-          </h3>
-          <div className="space-y-2">
-            {others.map((other, index) => (
-              <OtherPlayer
-                // biome-ignore lint/suspicious/noArrayIndexKey: i tre posti sono fissi.
-                key={index}
-                index={index}
-                value={other}
-                clients={clients}
-                exclude={chosenIds}
-                onChange={(next) =>
-                  setOthers((current) =>
-                    current.map((row, position) =>
-                      position === index ? next : row,
-                    ),
-                  )
-                }
-              />
-            ))}
-          </div>
-          <p className="text-muted-foreground text-xs">
-            Scegli un cliente dall&apos;anagrafica per fargli contare la partita
-            nei punti, o scrivi solo il nome.
-          </p>
-        </section>
-
         <div className="flex items-center justify-between gap-4 rounded-xl border p-3">
           <div className="space-y-0.5">
-            <Label htmlFor="new-booking-notify">Avvisa il cliente</Label>
+            <Label htmlFor="new-booking-notify">Avvisa i giocatori</Label>
             <p className="text-muted-foreground text-xs">
-              Mail con il QR e WhatsApp, se ci sono i recapiti.
+              Mail con il QR e WhatsApp a chi ha i recapiti.
             </p>
           </div>
           <Switch
@@ -524,13 +462,30 @@ function Form({
   );
 }
 
-interface Other {
+interface Seat {
   name: string;
   client?: ClientOption;
+  /** Il recapito di chi non è in anagrafica. */
+  phone?: string;
 }
 
-/** Un compagno: si cerca in anagrafica, o resta un nome. */
-function OtherPlayer({
+function contactOf(seat: Seat): string | undefined {
+  return seat.phone?.trim() || undefined;
+}
+
+/**
+ * Un giocatore: si cerca in anagrafica, o resta un nome.
+ *
+ * Il posto è un blocco solo, come una casella con la sua tendina: sotto il
+ * nome, dentro la stessa cornice, i clienti che gli somigliano e in fondo
+ * «Usa solo il nome». Il recapito compare solo per un nome libero: quando
+ * nessun cliente somiglia, quando si sceglie «Usa solo il nome», o quando si
+ * lascia il campo senza sceglierne uno. Finché c'è un cliente da scegliere,
+ * il telefono non si mette in mezzo: chi è in anagrafica ha già il suo.
+ *
+ * Da tastiera le frecce scorrono l'elenco e Invio sceglie.
+ */
+function PlayerSeat({
   index,
   value,
   clients,
@@ -538,15 +493,18 @@ function OtherPlayer({
   onChange,
 }: {
   index: number;
-  value: Other;
+  value: Seat;
   clients: ClientOption[];
   exclude: string[];
-  onChange: (next: Other) => void;
+  onChange: (next: Seat) => void;
 }) {
-  const [focused, setFocused] = useState(false);
+  const listId = useId();
+  const phoneInput = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
   const matches = useClientMatches(
     clients,
-    focused && !value.client ? value.name : "",
+    open && !value.client ? value.name : "",
     exclude,
   );
 
@@ -560,41 +518,161 @@ function OtherPlayer({
     );
   }
 
+  const name = value.name.trim();
+  const listed = open && matches.length > 0;
+  // I clienti, poi «Usa solo il nome».
+  const rows = listed ? matches.length + 1 : 0;
+  const current = active < rows ? active : -1;
+  const showPhone =
+    name !== "" &&
+    (Boolean(value.phone?.trim()) ||
+      !open ||
+      (name.length >= 2 && matches.length === 0));
+
+  const close = () => {
+    setOpen(false);
+    setActive(-1);
+  };
+  const pick = (option: ClientOption) => {
+    close();
+    onChange({ name: option.name, client: option });
+  };
+  // Il nome resta libero: si passa subito al recapito.
+  const keepName = () => {
+    close();
+    requestAnimationFrame(() => phoneInput.current?.focus());
+  };
+  const choose = (row: number) =>
+    row < matches.length ? pick(matches[row]) : keepName();
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!listed) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActive((current + 1) % rows);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActive(current <= 0 ? rows - 1 : current - 1);
+    } else if (event.key === "Enter" && current >= 0) {
+      event.preventDefault();
+      choose(current);
+    }
+  };
+
+  const rowId = (row: number) => `${listId}-${row}`;
+  const rowClass = (row: number) =>
+    cn(
+      "flex min-h-11 cursor-pointer items-center justify-between gap-3 px-3 transition-colors md:hover:bg-muted/50",
+      current === row && "bg-muted md:hover:bg-muted",
+    );
+
   return (
-    <div className="space-y-1.5">
+    // Nome, tendina e recapito sono un blocco solo: la cornice li tiene
+    // insieme e si accende tutta, ovunque sia il cursore.
+    <div className="bg-card border-input focus-within:border-ring focus-within:ring-ring/50 dark:bg-input/30 overflow-hidden rounded-xl border shadow-xs transition-[color,box-shadow] focus-within:ring-[3px]">
       <Input
         value={value.name}
         autoComplete="off"
-        aria-label={`Giocatore ${index + 2}`}
-        placeholder={`Giocatore ${index + 2} di ${MAX_PLAYERS}`}
-        className="bg-card h-11 rounded-xl text-base"
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        onChange={(event) => onChange({ name: event.target.value })}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={listed}
+        aria-controls={listed ? listId : undefined}
+        aria-activedescendant={current >= 0 ? rowId(current) : undefined}
+        aria-label={`Giocatore ${index + 1}`}
+        placeholder={
+          index === 0
+            ? "Nome e cognome, o cerca un cliente"
+            : `Giocatore ${index + 1}`
+        }
+        className={SEAT_INPUT}
+        onFocus={() => setOpen(true)}
+        onBlur={close}
+        onKeyDown={onKeyDown}
+        onChange={(event) => {
+          setOpen(true);
+          setActive(-1);
+          onChange({ ...value, name: event.target.value });
+        }}
       />
-      <ClientSuggestions
-        options={matches}
-        onPick={(option) => onChange({ name: option.name, client: option })}
-      />
+
+      {listed && (
+        <div
+          id={listId}
+          role="listbox"
+          aria-label="Clienti in anagrafica"
+          className="border-border/70 border-t py-1"
+        >
+          {matches.map((option, row) => (
+            // biome-ignore lint/a11y/useKeyWithClickEvents: la tastiera passa dalla casella (aria-activedescendant).
+            <div
+              key={option.id}
+              id={rowId(row)}
+              role="option"
+              tabIndex={-1}
+              aria-selected={current === row}
+              // Prima del blur della casella: altrimenti il tocco chiude
+              // l'elenco prima di arrivare alla riga.
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => pick(option)}
+              className={rowClass(row)}
+            >
+              <ClientOptionLabel option={option} />
+            </div>
+          ))}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: la tastiera passa dalla casella (aria-activedescendant). */}
+          <div
+            id={rowId(matches.length)}
+            role="option"
+            tabIndex={-1}
+            aria-selected={current === matches.length}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={keepName}
+            className={cn(
+              rowClass(matches.length),
+              "border-border/70 mt-1 justify-start border-t",
+            )}
+          >
+            <span className="min-w-0 py-1.5">
+              <span className="block truncate text-[15px]">
+                Usa solo il nome «{name}»
+              </span>
+              <span className="text-muted-foreground mt-0.5 block text-xs">
+                Non è in anagrafica
+              </span>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {showPhone && (
+        <div className="border-border/70 ml-3 flex items-center gap-2 border-t">
+          <Phone
+            aria-hidden
+            className="text-muted-foreground size-4 shrink-0"
+          />
+          <Input
+            ref={phoneInput}
+            type="tel"
+            inputMode="tel"
+            autoComplete="off"
+            value={value.phone ?? ""}
+            aria-label={`Recapito di ${name}`}
+            placeholder={
+              index === 0
+                ? "Telefono per la conferma (facoltativo)"
+                : "Telefono per contattarlo (facoltativo)"
+            }
+            className={cn(SEAT_INPUT, "h-10 pl-1")}
+            onChange={(event) =>
+              onChange({ ...value, phone: event.target.value })
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
 
-function Field({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={htmlFor} className="text-sm font-medium">
-        {label}
-      </Label>
-      {children}
-    </div>
-  );
-}
+/** Gli input dentro la cornice del posto: il bordo e l'anello sono suoi. */
+const SEAT_INPUT =
+  "h-11 rounded-none border-0 bg-transparent text-base shadow-none focus-visible:ring-0 dark:bg-transparent";

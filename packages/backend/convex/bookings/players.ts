@@ -217,7 +217,16 @@ export const update = mutation({
           )
         : booking.linkedPlayerIds;
 
+      // Il recapito resta a chi è ancora in campo senza scheda: collegato a
+      // un cliente, il numero buono è quello della sua scheda.
+      const linkedNames = new Set((wantedLinks ?? []).map((link) => link.name));
+      const guestContacts = booking.guestContacts?.filter(
+        (contact) =>
+          names.includes(contact.name) && !linkedNames.has(contact.name),
+      );
+
       await ctx.db.patch(bookingId, {
+        guestContacts: guestContacts?.length ? guestContacts : undefined,
         players: names,
         // Il titolo della scheda è il primo nome: corretto lì, si corregge
         // anche «prenotato da».

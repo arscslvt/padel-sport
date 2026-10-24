@@ -74,11 +74,66 @@ export function isStaffMade(booking: Booking): boolean {
 }
 
 /**
+ * Come si chiama una prenotazione: i giocatori, separati da virgola. Un campo
+ * lo prende sempre un gruppo, e il gruppo è il nome. Chi mostra l'etichetta la
+ * tronca con i puntini quando non ci sta.
+ */
+export function playersLabel(
+  booking: Pick<Doc<"bookings">, "players" | "bookedBy">,
+): string {
+  return booking.players.join(", ") || booking.bookedBy;
+}
+
+/**
+ * Un giocatore in campo, con la sua scheda cliente se ne ha una, o il recapito
+ * lasciato allo staff se non ce l'ha.
+ */
+export interface RosterEntry {
+  name: string;
+  playerId?: Id<"players">;
+  phone?: string;
+}
+
+/**
+ * I giocatori della prenotazione, nell'ordine, ognuno con la sua scheda.
+ *
+ * Le schede sono quella di `createdByPlayer` (il nome è `bookedBy`) e quelle
+ * dei collegati (bookings/list.ts): ognuna va al primo nome uguale ancora
+ * libero, così due omonimi restano due. I recapiti di chi non ha scheda
+ * (`guestContacts`) vanno ai nomi rimasti senza, con la stessa regola.
+ */
+export function rosterOf(booking: Booking): RosterEntry[] {
+  const cards: RosterEntry[] = [
+    ...(booking.createdByPlayer
+      ? [{ name: booking.bookedBy, playerId: booking.createdByPlayer }]
+      : []),
+    ...(booking.linkedPlayers ?? []).map(({ name, playerId }) => ({
+      name,
+      playerId,
+    })),
+  ];
+
+  const contacts = [...(booking.guestContacts ?? [])];
+
+  return booking.players.map((name) => {
+    const index = cards.findIndex((card) => card.name === name);
+    if (index !== -1) {
+      return { name, playerId: cards.splice(index, 1)[0].playerId };
+    }
+    const contact = contacts.findIndex((row) => row.name === name);
+    if (contact === -1) return { name };
+    return { name, phone: contacts.splice(contact, 1)[0].phone };
+  });
+}
+
+/**
  * La riga in fondo alla scheda: chi ha creato la prenotazione, da dove e
- * quando. «Creata da Mario Rossi il 12 ottobre alle 9:41.»
+ * quando. «Creata da Mario Rossi il 12 ottobre alle 9:41.» Quella del cliente
+ * dice chi è stato: in cima la scheda mostra il gruppo, non chi ha prenotato.
  */
 export function authorLine(booking: Booking): string {
   const when = format(booking.createdAt, "d MMMM 'alle' H:mm", { locale: it });
+  const who = booking.bookedBy ? `da ${booking.bookedBy}` : "dal cliente";
 
   switch (booking.origin) {
     case "staff":
@@ -86,11 +141,11 @@ export function authorLine(booking: Booking): string {
         ? `Creata da ${booking.createdByStaff.name} il ${when}.`
         : `Creata dal gestionale il ${when}.`;
     case "web":
-      return `Prenotata dal cliente sul sito il ${when}.`;
+      return `Prenotata ${who} sul sito il ${when}.`;
     case "app":
-      return `Prenotata dal cliente nell'app il ${when}.`;
+      return `Prenotata ${who} nell'app il ${when}.`;
     case "client":
-      return `Prenotata dal cliente il ${when}.`;
+      return `Prenotata ${who} il ${when}.`;
     default:
       return `Prenotata il ${when}.`;
   }
@@ -376,8 +431,9 @@ export interface Recipient {
   deliveries: Delivery[];
 }
 
+// Chi ha prenotato è un giocatore come gli altri: la scheda non lo distingue.
 export const ROLE_LABELS: Record<Delivery["role"], string> = {
-  booker: "Ha prenotato",
+  booker: "Giocatore",
   player: "Giocatore",
   guest: "Ospite",
 };

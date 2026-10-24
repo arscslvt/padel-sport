@@ -78,6 +78,15 @@ const bookings = defineTable({
    */
   linkedPlayerIds: v.optional(v.array(v.id("players"))),
   /**
+   * Il recapito dei giocatori senza scheda cliente, lasciato allo staff per
+   * poterli contattare. Chi ha una scheda ha il numero lì; quello di chi fa
+   * da riferimento sta in `phone`. Il nome è quello in `players`: tolto il
+   * nome, o collegato a un cliente, il recapito se ne va (bookings/players.ts).
+   */
+  guestContacts: v.optional(
+    v.array(v.object({ name: v.string(), phone: v.string() })),
+  ),
+  /**
    * Da dove arriva: il cliente da sé, dal sito o dall'app, oppure lo staff dal
    * gestionale. Assente sulle prenotazioni più vecchie di questo campo: lì
    * l'agenda la ricava dalla partita collegata (bookings/list.ts).

@@ -4,7 +4,7 @@ import type { Id } from "@padel-sport/backend/convex/_generated/dataModel";
 import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Loader2, Phone, Undo2, Unlink, UserRound } from "lucide-react";
+import { Loader2, Phone, Undo2, Unlink, UserPen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Fragment, useRef, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
@@ -35,6 +35,8 @@ import {
   LEVEL_LABELS,
   needsRefund,
   partialLabel,
+  playersLabel,
+  rosterOf,
   timeRange,
   wasRefunded,
   whatsappNumber,
@@ -293,9 +295,8 @@ function Body({
   // prenotazione nell'indirizzo dell'agenda, senza aggiungere voci alla
   // cronologia: tornando indietro la scheda si riapre (agenda.tsx legge
   // `?booking=`), invece di lasciare l'agenda nuda.
-  // Vale per chi ha prenotato e per ogni giocatore con una scheda: dagli
-  // avvisi si apre quella di chi non è stato raggiunto.
-  const clientId = booking.createdByPlayer;
+  // Vale per ogni giocatore con una scheda: dall'elenco dei giocatori, e
+  // dagli avvisi per chi non è stato raggiunto.
   const openClient = (playerId: Id<"players">) => {
     const here = new URL(window.location.href);
     here.searchParams.set("booking", booking._id);
@@ -313,20 +314,24 @@ function Body({
     trailing: <Value>{timeRange(booking.bookingDate)}</Value>,
   };
 
-  const players = {
-    title: "Giocatori",
-    subtitle: booking.players.join(", "),
-    trailing: (
-      <Value>
-        {booking.players.length} di {MAX_PLAYERS}
-      </Value>
-    ),
+  // I quattro posti: chi c'è, poi quelli ancora liberi. Con il campo
+  // condiviso gli altri posti sono dell'altro gruppo, e da annullata non ci
+  // sono più posti da riempire: lì non si mostrano.
+  const roster = rosterOf(booking);
+  const freeSeats =
+    booking.mergedWith || cancelled
+      ? 0
+      : Math.max(0, MAX_PLAYERS - roster.length);
+
+  const editPlayers = {
+    leading: <UserPen className="size-5" />,
+    title: "Modifica giocatori",
   };
 
   return (
     <>
       <SheetHeader
-        title={booking.bookedBy}
+        title={playersLabel(booking)}
         description={`${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
       />
 
@@ -371,18 +376,77 @@ function Body({
           />
         </div>
 
-        {/* Nome, numero, email: i dati del cliente si correggono nella sua
-            scheda, e il numero nuovo arriva anche su questa prenotazione. */}
-        {clientId && (
-          <ListGroup>
+        {/* Il gruppo che ha preso il campo, un posto per riga. Chi ha una
+            scheda la apre con un tocco: nome, numero ed email si correggono
+            lì, e arrivano anche su questa prenotazione. Allo sportello si
+            scopre chi gioca davvero: in fondo si corregge. */}
+        <ListGroup
+          title="Giocatori"
+          action={
+            <span className="text-muted-foreground text-[13px] tabular-nums">
+              {roster.length} di {MAX_PLAYERS}
+            </span>
+          }
+        >
+          {roster.map(({ name, playerId, phone: contact }, index) =>
+            playerId ? (
+              <ListRow
+                // Due omonimi sono due righe: il nome da solo non basta.
+                key={`${index}-${name}`}
+                title={name}
+                subtitle="Cliente in anagrafica"
+                chevron
+                onClick={() => openClient(playerId)}
+              />
+            ) : contact ? (
+              // Non è in anagrafica, ma ha lasciato un recapito: si chiama da qui.
+              <ListRow
+                key={`${index}-${name}`}
+                title={name}
+                subtitle={contact}
+                trailing={<Phone className="text-muted-foreground size-4" />}
+                href={`tel:${contact}`}
+              />
+            ) : (
+              <ListRow key={`${index}-${name}`} title={name} />
+            ),
+          )}
+          {Array.from({ length: freeSeats }, (_, index) => (
             <ListRow
-              leading={<UserRound className="size-5" />}
-              title="Scheda cliente"
-              subtitle="Anagrafica, contatti, tessera e punti"
-              chevron
-              onClick={() => openClient(clientId)}
+              // biome-ignore lint/suspicious/noArrayIndexKey: posti vuoti, tutti uguali.
+              key={`free-${index}`}
+              title={
+                <span className="text-muted-foreground">Posto libero</span>
+              }
             />
-          </ListGroup>
+          ))}
+          {cancelled ? null : isDesktop ? (
+            <ListRow
+              {...editPlayers}
+              ref={playersRow}
+              aria-expanded={editing === "players"}
+              onClick={() => toggle("players")}
+            />
+          ) : (
+            <PlayersDrawer
+              booking={booking}
+              busy={busy}
+              open={editing === "players"}
+              onOpenChange={openChange("players")}
+              onSave={savePlayers}
+            >
+              <ListRow {...editPlayers} />
+            </PlayersDrawer>
+          )}
+        </ListGroup>
+
+        {isDesktop && editing === "players" && (
+          <PlayersEditor
+            booking={booking}
+            busy={busy}
+            onSave={savePlayers}
+            onClose={() => close("players")}
+          />
         )}
 
         <ListGroup>
@@ -430,29 +494,6 @@ function Body({
             >
               <ListRow {...courtRowProps} chevron />
             </CourtDrawer>
-          )}
-          {/* Allo sportello si scopre chi gioca davvero: un tocco e si
-              corregge. */}
-          {cancelled ? (
-            <ListRow {...players} />
-          ) : isDesktop ? (
-            <ListRow
-              {...players}
-              ref={playersRow}
-              chevron
-              aria-expanded={editing === "players"}
-              onClick={() => toggle("players")}
-            />
-          ) : (
-            <PlayersDrawer
-              booking={booking}
-              busy={busy}
-              open={editing === "players"}
-              onOpenChange={openChange("players")}
-              onSave={savePlayers}
-            >
-              <ListRow {...players} chevron />
-            </PlayersDrawer>
           )}
           <ListRow
             title="Livello"
@@ -513,15 +554,6 @@ function Body({
           />
         )}
 
-        {isDesktop && editing === "players" && (
-          <PlayersEditor
-            booking={booking}
-            busy={busy}
-            onSave={savePlayers}
-            onClose={() => close("players")}
-          />
-        )}
-
         {isDesktop && editing === "phone" && (
           <PhoneEditor
             booking={booking}
@@ -549,7 +581,7 @@ function Body({
             footer="Separando, la seconda prenotazione torna su un campo libero alla stessa ora."
           >
             <ListRow
-              title={partner?.bookedBy ?? "Altra prenotazione"}
+              title={partner ? playersLabel(partner) : "Altra prenotazione"}
               subtitle={
                 partner
                   ? `${partner.players.length} ${partner.players.length === 1 ? "giocatore" : "giocatori"}`

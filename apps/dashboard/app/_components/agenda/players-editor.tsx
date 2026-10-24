@@ -200,7 +200,7 @@ function usePlayersForm(booking: Booking) {
     data !== null &&
     (filled.join("\u0000") !== filledOf(data.original).join("\u0000") ||
       linkKey(linked, names) !== linkKey(data.originalLinks, data.original));
-  /** Nessun nome in tutta la prenotazione: chi ha prenotato non può sparire. */
+  /** Nessun nome in tutta la prenotazione: almeno un giocatore ci vuole. */
   const empty = submitted && data !== null && total === 0;
 
   /** I nomi da salvare, bloccati compresi, o `null` portando al campo da sistemare. */
@@ -353,12 +353,12 @@ function PlayersFields({
 
         {names.map((name, index) => {
           const position = data.locked.length + index + 1;
-          const booker = data.locked.length === 0 && index === 0;
+          const first = data.locked.length === 0 && index === 0;
           const fieldId = `${id}-player-${index}`;
           const errorId = `${fieldId}-error`;
           const error =
             errors[index] ??
-            (booker && empty ? "Inserisci il nome di chi prenota." : null);
+            (first && empty ? "Inserisci almeno un giocatore." : null);
           const link = linked[index];
 
           if (link) {
@@ -366,7 +366,7 @@ function PlayersFields({
               // biome-ignore lint/suspicious/noArrayIndexKey: posti fissi, non si riordinano.
               <div key={index} className="px-4 py-3">
                 <p className="mb-1.5 text-[13px] font-medium">
-                  {booker ? "Prenotato da" : `Giocatore ${position}`}
+                  Giocatore {position}
                 </p>
                 <LinkedClient
                   name={name}
@@ -388,7 +388,7 @@ function PlayersFields({
                 htmlFor={fieldId}
                 className="mb-1.5 block text-[13px] font-medium"
               >
-                {booker ? "Prenotato da" : `Giocatore ${position}`}
+                Giocatore {position}
               </label>
               <div className="relative">
                 <Input
@@ -399,7 +399,7 @@ function PlayersFields({
                   value={name}
                   maxLength={60}
                   disabled={busy}
-                  placeholder={booker ? "Nome e cognome" : "Posto libero"}
+                  placeholder={first ? "Nome e cognome" : "Posto libero"}
                   autoComplete="off"
                   autoCapitalize="words"
                   autoCorrect="off"
@@ -545,7 +545,7 @@ export function PlayersDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title="Giocatori"
-      description={`${booking.bookedBy} · ${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
+      description={`${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
       trigger={children}
     >
       <DrawerForm booking={booking} busy={busy} onSave={onSave} />

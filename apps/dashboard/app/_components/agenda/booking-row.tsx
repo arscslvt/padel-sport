@@ -31,6 +31,7 @@ import {
   needsRefund,
   onSiteTotal,
   partialLabel,
+  playersLabel,
   shortDayLabel,
   timeRange,
 } from "./lib";
@@ -191,8 +192,10 @@ export function BookingRow({
 
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
+            {/* I giocatori in fila finché ci stanno, poi i puntini: chi
+                gioca alle 18:30 si legge senza aprire la scheda. */}
             <span className="truncate text-[15px] font-medium">
-              {booking.bookedBy}
+              {playersLabel(booking)}
             </span>
             <OriginMark booking={booking} />
             {booking.mergedWith && (
@@ -263,7 +266,7 @@ export function PendingCard({
         <span className="flex items-center justify-between gap-3">
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate text-[15px] font-semibold">
-              {booking.bookedBy}
+              {playersLabel(booking)}
             </span>
             <OriginMark booking={booking} />
           </span>

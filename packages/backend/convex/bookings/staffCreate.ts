@@ -100,6 +100,13 @@ export default mutation({
      * conta per loro nei premi automatici (modules/points/auto.ts).
      */
     linkedPlayerIds: v.optional(v.array(v.id("players"))),
+    /**
+     * Il recapito degli altri giocatori senza scheda: lo staff li può
+     * contattare. Quello di chi prenota, se non è un cliente, è `phone`.
+     */
+    guestContacts: v.optional(
+      v.array(v.object({ name: v.string(), phone: v.string() })),
+    ),
     level: LEVEL,
     notify: v.boolean(),
     /** L'operatore che la prende: resta scritto nella scheda. */
@@ -148,6 +155,13 @@ export default mutation({
     const rawPhone = args.phone?.trim() || player?.phone;
     const phone = rawPhone ? normalizePhone(rawPhone) : undefined;
 
+    // Un recapito vale solo per un nome che è davvero in campo.
+    const contacts = (args.guestContacts ?? [])
+      .map(({ name, phone }) => ({ name: name.trim(), phone: phone.trim() }))
+      .filter(({ name, phone }) => phone && players.includes(name))
+      .map(({ name, phone }) => ({ name, phone: normalizePhone(phone) }));
+    const guestContacts = contacts.length > 0 ? contacts : undefined;
+
     const { free, blocked } = await courtsAt(ctx, args.bookingDate);
     if (free.length - blocked <= 0) {
       throw new Error("A quell'ora non c'è un campo libero.");
@@ -185,6 +199,7 @@ export default mutation({
       code,
       createdByPlayer: player?._id,
       linkedPlayerIds,
+      guestContacts,
       source: "staff",
       createdByStaff: args.staff,
     });

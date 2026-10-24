@@ -204,11 +204,11 @@ export function Agenda() {
     const result = await confirm({
       title: "Confermare la prenotazione?",
       description: isPaidOnline(booking)
-        ? `${booking.bookedBy} ha già pagato online ${formatEuro(booking.paidAmount ?? 0)}.`
-        : `${booking.bookedBy} pagherà in struttura all'arrivo.`,
+        ? `È già pagata online, ${formatEuro(booking.paidAmount ?? 0)}.`
+        : "Si paga in struttura all'arrivo.",
       confirmLabel: "Conferma",
       checkbox: {
-        label: "Avvisa il cliente su WhatsApp",
+        label: "Avvisa i giocatori su WhatsApp",
         defaultChecked: true,
       },
     });
@@ -221,7 +221,8 @@ export function Agenda() {
       title: isPending(booking)
         ? "Rifiutare la prenotazione?"
         : "Annullare la prenotazione?",
-      description: `${booking.bookedBy} riceve l'avviso della cancellazione e il campo torna libero. Non si può tornare indietro.`,
+      description:
+        "Parte l'avviso della cancellazione e il campo torna libero. Non si può tornare indietro.",
       confirmLabel: isPending(booking) ? "Rifiuta" : "Annulla prenotazione",
       cancelLabel: "Indietro",
       tone: "destructive",
@@ -246,7 +247,7 @@ export function Agenda() {
   ) => {
     const result = await confirm({
       title: "Rimborsare il pagamento?",
-      description: `${formatEuro(amount)} tornano a ${booking.bookedBy} sulla carta con cui ha pagato. La commissione SumUp non viene restituita, e il rimborso non si può annullare.`,
+      description: `${formatEuro(amount)} tornano sulla carta con cui è stata pagata. La commissione SumUp non viene restituita, e il rimborso non si può annullare.`,
       confirmLabel: `Rimborsa ${formatEuro(amount)}`,
       cancelLabel: "Indietro",
       tone: "destructive",

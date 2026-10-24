@@ -112,12 +112,7 @@ function Breakdown({
             // Due omonimi sono due righe: il nome da solo non basta.
             key={`${line.name}-${index}`}
             title={line.name}
-            subtitle={[
-              line.booker ? "Ha prenotato" : null,
-              line.member ? "Tesserato" : "Non tesserato",
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+            subtitle={line.member ? "Tesserato" : "Non tesserato"}
             trailing={<Amount>{formatEuro(line.price)}</Amount>}
           />
         ))}

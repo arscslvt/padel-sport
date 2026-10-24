@@ -157,8 +157,8 @@ export function useAgenda() {
       {
         success: "Prenotazione confermata",
         description: isPaidOnline(booking)
-          ? `${booking.bookedBy} ha già pagato online.`
-          : `${booking.bookedBy} pagherà in struttura all'arrivo.`,
+          ? "È già pagata online."
+          : "Si paga in struttura all'arrivo.",
         error: "Prenotazione non confermata",
       },
     );
@@ -179,7 +179,7 @@ export function useAgenda() {
         announceRefund(payload.refund as RefundOutcome, true);
       } else {
         toast.success("Prenotazione annullata", {
-          description: `${booking.bookedBy} riceve l'avviso della cancellazione.`,
+          description: "È partito l'avviso della cancellazione.",
         });
       }
 

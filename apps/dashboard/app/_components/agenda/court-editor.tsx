@@ -330,7 +330,7 @@ export function CourtDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title="Campo"
-      description={`${booking.bookedBy} · ${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
+      description={`${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
       trigger={children}
     >
       <DrawerForm booking={booking} busy={busy} onSave={onSave} />
