@@ -4,6 +4,7 @@ import { api } from "@padel-sport/backend/convex/_generated/api";
 import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import { useQuery } from "convex/react";
 import {
+  ArrowLeft,
   CalendarCheck,
   CalendarOff,
   ChevronDown,
@@ -34,7 +35,9 @@ import { cn } from "@/lib/utils";
 import MergePairs from "../merge-pairs";
 import { BookingRow, PendingCard } from "./booking-row";
 import { BookingSheet } from "./booking-sheet";
+import { DayNavigator } from "./day-navigator";
 import { DayPager, useDaySwipe } from "./day-pager";
+import { DayPickerButton } from "./day-picker";
 import { DayStrip } from "./day-strip";
 import {
   type Booking,
@@ -48,9 +51,11 @@ import {
   matchesSearch,
   stripDays,
 } from "./lib";
+import { isConcluded, isLive, LiveMatches, useNow } from "./live-matches";
 import { NewBookingSheet } from "./new-booking-sheet";
 import { useAgenda } from "./use-agenda";
-import { useHideCancelled } from "./use-hide-cancelled";
+import { useHideCancelled, useHideConcluded } from "./use-hide-cancelled";
+import { usePastDay } from "./use-past-day";
 
 /**
  * L'agenda: la prima pagina della dashboard e quella che lo staff apre di più.
@@ -96,6 +101,25 @@ export function Agenda() {
       ? linked
       : today;
   });
+  // Un giorno già passato, scelto dal calendario: si guarda da solo, fuori
+  // dalla striscia, che parte da oggi.
+  const [pastDay, setPastDay] = useState<string | null>(null);
+  const past = usePastDay(pastDay);
+
+  // Da telefono la striscia si apre a calendario (day-navigator.tsx).
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  const goToDay = (key: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return;
+    setSearching(false);
+    setCalendarOpen(false);
+    if (key < today) {
+      setPastDay(key);
+    } else {
+      setPastDay(null);
+      setSelectedDay(key);
+    }
+  };
   const [openId, setOpenId] = useState<string | null>(null);
   const [mergeOpen, setMergeOpen] = useState(
     () => searchParams.get("tab") === "merge",
@@ -117,7 +141,16 @@ export function Agenda() {
   );
 
   const list = bookings ?? [];
-  const pending = useMemo(() => list.filter(isPending), [list]);
+  // Da stamattina (use-agenda.ts): le partite di oggi già cominciate stanno
+  // in cima o fra le concluse, non fra quelle da confermare.
+  const now = useNow();
+  const pending = useMemo(
+    () =>
+      list.filter(
+        (booking) => isPending(booking) && booking.bookingDate >= Date.now(),
+      ),
+    [list],
+  );
   const pairs = useMemo(() => mergeablePairs(list), [list]);
   const days = useMemo(() => stripDays(list), [list]);
   const closedDays = useMemo(
@@ -168,6 +201,9 @@ export function Agenda() {
   // senza, e chi le cerca le trova. Chiuderlo vale per tutti i giorni.
   const [hideCancelled, setHideCancelled] = useHideCancelled();
   const cancelledListId = useId();
+  // Le concluse di oggi, come le annullate: in fondo, e si richiudono.
+  const [hideConcluded, setHideConcluded] = useHideConcluded();
+  const concludedListId = useId();
 
   const results = useMemo(() => {
     if (!query.trim()) return [];
@@ -188,7 +224,9 @@ export function Agenda() {
     setOpenId(booking._id);
   }, [bookings, searchParams]);
 
-  const open = list.find((booking) => booking._id === openId) ?? null;
+  const open =
+    [...list, ...(past.rows ?? [])].find((booking) => booking._id === openId) ??
+    null;
 
   // Partono messaggi veri a persone che non li aspettano più da giorni: si
   // chiede prima, dicendo a chi.
@@ -273,6 +311,15 @@ export function Agenda() {
       description="Le prenotazioni da confermare, la giornata per orario e campo, i campi da completare."
       actions={
         <div data-tour="agenda-actions" className="flex items-center gap-2">
+          {/* Un giorno qualsiasi fino a oggi, anche passato. */}
+          <DayPickerButton
+            selected={pastDay ?? selectedDay}
+            today={today}
+            active={pastDay !== null}
+            expanded={calendarOpen}
+            onToggle={() => setCalendarOpen((open) => !open)}
+            onPick={goToDay}
+          />
           <Button
             variant="secondary"
             size="icon"
@@ -332,21 +379,44 @@ export function Agenda() {
   const openRow = (booking: Booking) => setOpenId(booking._id);
 
   /**
-   * Un giorno dell'agenda: le partite, le annullate a parte, e le coppie da
-   * unire se ce ne sono. È una funzione perché da telefono se ne disegnano
-   * tre, il giorno scelto e i due accanto (day-pager.tsx).
+   * Un giorno dell'agenda: in cima quelle in corso, poi quelle da giocare, in
+   * fondo le concluse e le annullate, e le coppie da unire se ce ne sono. È
+   * una funzione perché da telefono se ne disegnano tre, il giorno scelto e i
+   * due accanto (day-pager.tsx).
    */
-  const renderDay = (day: string) => {
-    const rows = byDay.get(day) ?? [];
+  const renderDay = (day: string, override?: Booking[]) => {
+    const rows = override ?? byDay.get(day) ?? [];
+    // Un giorno passato è tutto giocato: le partite stanno nell'elenco
+    // principale, non ripiegate fra le concluse.
+    const isPast = day < today;
     const playing = rows.filter((booking) => !isCancelled(booking));
+    const live = isPast
+      ? []
+      : playing.filter((booking) => isLive(booking, now));
+    const concluded = isPast
+      ? []
+      : playing.filter((booking) => isConcluded(booking, now));
+    const upcoming = isPast
+      ? playing
+      : playing.filter(
+          (booking) => !live.includes(booking) && !concluded.includes(booking),
+        );
     const cancelled = rows.filter(isCancelled);
     const dayPairs = pairsByDay.get(day) ?? 0;
     const closed = closedDay(schedule, day);
     const cancelledId = `${cancelledListId}-${day}`;
+    const concludedId = `${concludedListId}-${day}`;
 
     return (
       <div className="space-y-6">
         <div className="space-y-3">
+          <LiveMatches
+            live={live}
+            now={now}
+            courtNames={courtNames}
+            onOpen={openRow}
+          />
+
           {/* Ogni partita è una scheda a sé: sotto può spuntarle la tasca
               con quel che c'è da fare (booking-row.tsx). */}
           <section className="space-y-2">
@@ -354,10 +424,11 @@ export function Agenda() {
               <h2 className="text-muted-foreground text-[13px] font-medium">
                 {dayLabel(day, today)}
               </h2>
-              {playing.length > 0 && (
+              {upcoming.length > 0 && (
                 <span className="text-muted-foreground text-[13px] tabular-nums">
-                  {playing.length}{" "}
-                  {playing.length === 1 ? "partita" : "partite"}
+                  {upcoming.length}{" "}
+                  {upcoming.length === 1 ? "partita" : "partite"}
+                  {isPast && (upcoming.length === 1 ? " giocata" : " giocate")}
                 </span>
               )}
             </div>
@@ -374,7 +445,22 @@ export function Agenda() {
                 </span>
               </div>
             )}
-            {playing.length === 0 && closed ? (
+            {isPast && playing.length === 0 ? (
+              <div className="bg-card flex flex-col items-center gap-2 rounded-2xl border px-6 py-10 text-center">
+                <CalendarCheck className="text-muted-foreground/60 size-7" />
+                <p className="text-[15px] font-medium">
+                  Nessuna partita giocata
+                </p>
+                <p className="text-muted-foreground max-w-[32ch] text-sm">
+                  In questo giorno non c&apos;erano prenotazioni.
+                </p>
+              </div>
+            ) : upcoming.length === 0 && playing.length > 0 ? (
+              // Oggi c'è stato o c'è del gioco, ma non resta altro in agenda.
+              <p className="text-muted-foreground bg-card rounded-2xl border px-4 py-3 text-sm">
+                Nessun'altra partita da giocare oggi.
+              </p>
+            ) : playing.length === 0 && closed ? (
               <div className="bg-card flex flex-col items-center gap-2 rounded-2xl border px-6 py-10 text-center">
                 <CalendarOff className="text-muted-foreground/60 size-7" />
                 <p className="text-[15px] font-medium">{closed.title}</p>
@@ -395,11 +481,12 @@ export function Agenda() {
               </div>
             ) : (
               <div className="space-y-2.5">
-                {playing.map((booking) => (
+                {upcoming.map((booking) => (
                   <BookingRow
                     key={booking._id}
                     booking={booking}
                     court={courtLabel(booking, courtNames)}
+                    concluded={isPast}
                     onOpen={() => openRow(booking)}
                   />
                 ))}
@@ -407,70 +494,40 @@ export function Agenda() {
             )}
           </section>
 
-          {cancelled.length > 0 && (
-            <section className="space-y-2 pt-3">
-              <div className="flex items-center justify-between gap-3 px-1">
-                <h2 className="text-muted-foreground text-[13px] font-medium">
-                  Annullate · {cancelled.length}
-                </h2>
-                <button
-                  type="button"
-                  aria-expanded={!hideCancelled}
-                  aria-controls={cancelledId}
-                  onClick={() => setHideCancelled(!hideCancelled)}
-                  className="text-muted-foreground hover:text-foreground focus-visible:text-foreground -my-2 -mr-2 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-[13px] font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  {hideCancelled ? "Mostra" : "Nascondi"}
-                  <ChevronDown
-                    aria-hidden
-                    className={cn(
-                      "size-4 transition-transform duration-200 ease-out motion-reduce:transition-none",
-                      hideCancelled && "-rotate-90",
-                    )}
-                  />
-                </button>
-              </div>
-              <AnimatePresence initial={false}>
-                {!hideCancelled && (
-                  <motion.div
-                    id={cancelledId}
-                    key="cancelled"
-                    initial={
-                      reduce ? { opacity: 0 } : { opacity: 0, height: 0 }
-                    }
-                    animate={{
-                      opacity: 1,
-                      height: "auto",
-                      transition: {
-                        duration: UI_DURATION.enter,
-                        ease: EASE_OUT,
-                      },
-                    }}
-                    exit={{
-                      opacity: 0,
-                      ...(reduce ? {} : { height: 0 }),
-                      transition: {
-                        duration: UI_DURATION.exit,
-                        ease: EASE_OUT,
-                      },
-                    }}
-                    className="overflow-hidden"
-                  >
-                    <div className="space-y-2.5">
-                      {cancelled.map((booking) => (
-                        <BookingRow
-                          key={booking._id}
-                          booking={booking}
-                          court={courtLabel(booking, courtNames)}
-                          onOpen={() => openRow(booking)}
-                        />
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </section>
-          )}
+          <FoldedList
+            id={concludedId}
+            title="Concluse"
+            count={concluded.length}
+            hidden={hideConcluded}
+            onToggle={() => setHideConcluded(!hideConcluded)}
+          >
+            {concluded.map((booking) => (
+              <BookingRow
+                key={booking._id}
+                booking={booking}
+                court={courtLabel(booking, courtNames)}
+                concluded
+                onOpen={() => openRow(booking)}
+              />
+            ))}
+          </FoldedList>
+
+          <FoldedList
+            id={cancelledId}
+            title="Annullate"
+            count={cancelled.length}
+            hidden={hideCancelled}
+            onToggle={() => setHideCancelled(!hideCancelled)}
+          >
+            {cancelled.map((booking) => (
+              <BookingRow
+                key={booking._id}
+                booking={booking}
+                court={courtLabel(booking, courtNames)}
+                onOpen={() => openRow(booking)}
+              />
+            ))}
+          </FoldedList>
         </div>
 
         {/* Solo nel giorno che ha davvero una coppia da unire. */}
@@ -603,21 +660,56 @@ export function Agenda() {
                 )}
 
                 <section className="space-y-3">
-                  <DayStrip
-                    days={days}
-                    selected={selectedDay}
-                    onSelect={setSelectedDay}
-                    marks={marks}
-                    closed={closedDays}
-                  />
+                  {/* Da chiusa la striscia, o il ritorno a oggi; aperta, il
+                      mese intero (solo da telefono). */}
+                  <DayNavigator
+                    expanded={calendarOpen}
+                    selected={pastDay ?? selectedDay}
+                    lastDay={days[days.length - 1] ?? today}
+                    booked={[...marks.keys()]}
+                    onPick={goToDay}
+                  >
+                    {pastDay ? (
+                      <Button
+                        variant="secondary"
+                        className="h-10 rounded-full"
+                        onClick={() => {
+                          setPastDay(null);
+                          setSelectedDay(today);
+                        }}
+                      >
+                        <ArrowLeft className="size-4" />
+                        Torna a oggi
+                      </Button>
+                    ) : (
+                      <DayStrip
+                        days={days}
+                        selected={selectedDay}
+                        onSelect={setSelectedDay}
+                        marks={marks}
+                        closed={closedDays}
+                      />
+                    )}
+                  </DayNavigator>
 
-                  <DayPager
-                    swipe={swipe}
-                    days={days}
-                    selected={selectedDay}
-                    onSelect={setSelectedDay}
-                    renderDay={renderDay}
-                  />
+                  {pastDay ? (
+                    past.rows === undefined ? (
+                      <div className="space-y-2.5">
+                        <Skeleton className="h-16 w-full rounded-2xl" />
+                        <Skeleton className="h-16 w-full rounded-2xl" />
+                      </div>
+                    ) : (
+                      renderDay(pastDay, past.rows ?? [])
+                    )
+                  ) : (
+                    <DayPager
+                      swipe={swipe}
+                      days={days}
+                      selected={selectedDay}
+                      onSelect={setSelectedDay}
+                      renderDay={renderDay}
+                    />
+                  )}
                 </section>
               </motion.div>
             )}
@@ -631,7 +723,11 @@ export function Agenda() {
         court={open ? courtLabel(open, courtNames) : undefined}
         busy={open ? busyId === open._id : false}
         onOpenChange={(next) => {
-          if (!next) setOpenId(null);
+          if (!next) {
+            setOpenId(null);
+            // Una modifica fatta dalla scheda si vede anche nel giorno passato.
+            past.reload();
+          }
         }}
         onAccept={(booking) => void askAccept(booking)}
         onCancel={(booking) => void askCancel(booking)}
@@ -733,5 +829,76 @@ function AgendaSkeleton() {
         ))}
       </div>
     </PageBody>
+  );
+}
+
+/**
+ * Un elenco in fondo alla giornata, che si richiude: le concluse, le
+ * annullate. La giornata si legge senza, e chi le cerca le trova.
+ */
+function FoldedList({
+  id,
+  title,
+  count,
+  hidden,
+  onToggle,
+  children,
+}: {
+  id: string;
+  title: string;
+  count: number;
+  hidden: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  const reduce = useReducedMotion();
+  if (count === 0) return null;
+
+  return (
+    <section className="space-y-2 pt-3">
+      <div className="flex items-center justify-between gap-3 px-1">
+        <h2 className="text-muted-foreground text-[13px] font-medium">
+          {title} · {count}
+        </h2>
+        <button
+          type="button"
+          aria-expanded={!hidden}
+          aria-controls={id}
+          onClick={onToggle}
+          className="text-muted-foreground hover:text-foreground focus-visible:text-foreground -my-2 -mr-2 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-[13px] font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          {hidden ? "Mostra" : "Nascondi"}
+          <ChevronDown
+            aria-hidden
+            className={cn(
+              "size-4 transition-transform duration-200 ease-out motion-reduce:transition-none",
+              hidden && "-rotate-90",
+            )}
+          />
+        </button>
+      </div>
+      <AnimatePresence initial={false}>
+        {!hidden && (
+          <motion.div
+            id={id}
+            key="list"
+            initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            animate={{
+              opacity: 1,
+              height: "auto",
+              transition: { duration: UI_DURATION.enter, ease: EASE_OUT },
+            }}
+            exit={{
+              opacity: 0,
+              ...(reduce ? {} : { height: 0 }),
+              transition: { duration: UI_DURATION.exit, ease: EASE_OUT },
+            }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-2.5">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
   );
 }

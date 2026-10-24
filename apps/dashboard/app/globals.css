@@ -457,3 +457,45 @@
 [data-keyboard-open] [data-slot="drawer-footer"] > :last-child {
   flex: 1 1 0%;
 }
+
+/*
+ * Le partite in corso (agenda/live-matches.tsx). Due movimenti soli, e tutti e
+ * due dicono la stessa cosa, «sta succedendo adesso»: il punto che si allarga
+ * come un'onda, e un riflesso che corre sulla barra del tempo già giocato. Chi
+ * ha chiesto meno animazioni vede il punto fermo e la barra senza riflesso.
+ */
+.live-ping {
+  animation: live-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes live-ping {
+  from {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.live-sweep {
+  animation: live-sweep 2.6s var(--ease-out) infinite;
+}
+
+@keyframes live-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-ping,
+  .live-sweep {
+    animation: none;
+    opacity: 0;
+  }
+}

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { onlinePayments } from "../modules/payments/lib";
+import { clubMoment } from "../modules/settings/lib";
 import { assertServer } from "../utils/serverSecret";
 import {
   notifiedPlayers,
@@ -48,6 +49,17 @@ export default query({
   args: {
     secret: v.string(),
     includePast: v.optional(v.boolean()),
+    /**
+     * Da mezzanotte di oggi, ora del club: l'agenda mostra anche le partite
+     * di oggi già cominciate o finite. Vince su `includePast`.
+     */
+    fromToday: v.optional(v.boolean()),
+    /**
+     * Solo un intervallo, `[from, to)`: un giorno passato aperto dall'agenda.
+     * Vince su `fromToday` e su `includePast`.
+     */
+    from: v.optional(v.number()),
+    to: v.optional(v.number()),
     withDeliveries: v.optional(v.boolean()),
     status: v.optional(
       v.union(
@@ -58,7 +70,15 @@ export default query({
   },
   handler: async (
     ctx,
-    { secret, includePast = true, withDeliveries = false, status },
+    {
+      secret,
+      includePast = true,
+      fromToday = false,
+      from: rangeFrom,
+      to: rangeTo,
+      withDeliveries = false,
+      status,
+    },
   ) => {
     assertServer(secret);
 
@@ -71,8 +91,16 @@ export default query({
           .collect()
       : await ctx.db.query("bookings").withIndex("by_created_at").collect();
 
+    // Mezzanotte di oggi al club: i minuti passati da allora, e i secondi.
+    const startOfToday = now - clubMoment(now).minutes * 60_000 - (now % 60_000);
+    const from =
+      rangeFrom ?? (fromToday ? startOfToday : includePast ? -Infinity : now);
+    const to = rangeTo ?? Infinity;
+
     const rows = bookings
-      .filter((booking) => includePast || booking.bookingDate >= now)
+      .filter(
+        (booking) => booking.bookingDate >= from && booking.bookingDate < to,
+      )
       .sort((a, b) => a.bookingDate - b.bookingDate);
 
     if (!withDeliveries) return rows;

@@ -286,6 +286,13 @@ export function courtsOf(
   return [booking.slot, ...(booking.extraSlots ?? [])];
 }
 
+/** Otto persone su due campi con una prenotazione sola (bookings/staffCreate.ts). */
+export function isQuadrangolare(
+  booking: Pick<Doc<"bookings">, "slot" | "extraSlots">,
+): boolean {
+  return courtsOf(booking).length > 1;
+}
+
 /** I posti in campo: quattro per ogni campo occupato. */
 export function seatsOf(
   booking: Pick<Doc<"bookings">, "slot" | "extraSlots">,

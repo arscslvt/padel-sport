@@ -79,7 +79,7 @@ export function useAgenda() {
 
   const load = useCallback(async (quiet = false) => {
     try {
-      const response = await fetch("/api/dashboard/bookings");
+      const response = await fetch("/api/dashboard/bookings?from=today");
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) throw new Error(payload?.error);

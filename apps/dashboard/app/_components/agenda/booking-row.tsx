@@ -4,6 +4,7 @@ import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
 import {
   BellOff,
   Building2,
+  Columns2,
   CreditCard,
   Loader2,
   type LucideIcon,
@@ -26,6 +27,7 @@ import {
   isPaidOnline,
   isPartial,
   isPending,
+  isQuadrangolare,
   isStaffMade,
   LEVEL_LABELS,
   needsRefund,
@@ -68,13 +70,15 @@ interface Notice {
 /**
  * Quel che la prenotazione chiede allo staff, dal più urgente: chi ha
  * prenotato non sa niente, mancano giocatori, è già pagata (così non si
- * incassa due volte). Vuoto per una partita a posto.
+ * incassa due volte). In fondo, che non è una partita come le altre: un
+ * quadrangolare occupa due campi. Vuoto per una partita a posto.
  */
-function noticesOf(booking: Booking): Notice[] {
+function noticesOf(booking: Booking, concluded = false): Notice[] {
   if (isCancelled(booking)) return [];
 
   const notices: Notice[] = [];
-  if (clientReach(booking) === "unreached") {
+  // A partita finita avvisare o completare la squadra non serve più.
+  if (!concluded && clientReach(booking) === "unreached") {
     notices.push({
       key: "unreached",
       tone: "danger",
@@ -82,7 +86,7 @@ function noticesOf(booking: Booking): Notice[] {
       label: "Non avvisato",
     });
   }
-  if (isPartial(booking)) {
+  if (!concluded && isPartial(booking)) {
     const missing = seatsOf(booking) - booking.players.length;
     notices.push({
       key: "partial",
@@ -102,6 +106,14 @@ function noticesOf(booking: Booking): Notice[] {
         due > 0
           ? `Pagata online · restano ${formatEuro(due)}`
           : "Pagata online",
+    });
+  }
+  if (isQuadrangolare(booking)) {
+    notices.push({
+      key: "quadrangolare",
+      tone: "info",
+      icon: Columns2,
+      label: "Quadrangolare",
     });
   }
   return notices;
@@ -144,14 +156,17 @@ function NoticeTray({ notices }: { notices: Notice[] }) {
 export function BookingRow({
   booking,
   court,
+  concluded = false,
   onOpen,
 }: {
   booking: Booking;
   court?: string;
+  /** Già giocata: più spenta, e senza gli avvisi che non servono più. */
+  concluded?: boolean;
   onOpen: () => void;
 }) {
   const cancelled = isCancelled(booking);
-  const notices = noticesOf(booking);
+  const notices = noticesOf(booking, concluded);
 
   return (
     <button
@@ -175,6 +190,7 @@ export function BookingRow({
           // Le annullate non hanno mai una tasca: la trasparenza qui non
           // scopre niente.
           cancelled && "opacity-60",
+          concluded && "opacity-75",
         )}
       >
         <span className="w-12 shrink-0 text-right">

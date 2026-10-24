@@ -31,6 +31,7 @@ import {
   isPaidOnline,
   isPartial,
   isPending,
+  isQuadrangolare,
   LEVEL_BARS,
   LEVEL_LABELS,
   needsRefund,
@@ -333,7 +334,7 @@ function Body({
     <>
       <SheetHeader
         title={playersLabel(booking)}
-        description={`${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
+        description={`${isQuadrangolare(booking) ? "Quadrangolare · " : ""}${dayLabel(dayKey(booking.bookingDate))}, ${timeRange(booking.bookingDate)}`}
       />
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pt-1 pb-2 md:-mx-1 md:px-1">

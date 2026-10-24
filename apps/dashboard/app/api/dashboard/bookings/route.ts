@@ -19,13 +19,26 @@ export async function GET(request: Request) {
   const gate = await staffGate();
   if (!gate.ok) return gate.response;
 
-  const includePast =
-    new URL(request.url).searchParams.get("includePast") === "true";
+  const params = new URL(request.url).searchParams;
+  const includePast = params.get("includePast") === "true";
+  // L'agenda: da stamattina, con le partite di oggi in corso e concluse.
+  const fromToday = params.get("from") === "today";
+  // Un giorno solo, anche passato: `from` e `to` in millisecondi.
+  const rangeFrom = Number(params.get("from"));
+  const rangeTo = Number(params.get("to"));
+  const range =
+    Number.isFinite(rangeFrom) &&
+    Number.isFinite(rangeTo) &&
+    rangeTo > rangeFrom
+      ? { from: rangeFrom, to: rangeTo }
+      : {};
 
   try {
     const bookings = await gate.convex.query(api.bookings.list.default, {
       secret: gate.secret,
       includePast,
+      fromToday,
+      ...range,
       // Con gli avvisi al cliente: la scheda dice se la conferma è arrivata.
       withDeliveries: true,
     });
