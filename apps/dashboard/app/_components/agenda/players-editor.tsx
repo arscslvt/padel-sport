@@ -370,6 +370,9 @@ function PlayersFields({
                 </p>
                 <LinkedClient
                   name={name}
+                  level={
+                    clients.find((client) => client.id === link.playerId)?.level
+                  }
                   touch={touch}
                   onUnlink={
                     link.fixed || busy ? undefined : () => form.unlink(index)

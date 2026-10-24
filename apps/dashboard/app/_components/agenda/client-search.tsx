@@ -3,8 +3,10 @@
 import { format } from "date-fns";
 import { Cake, UserRound, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { LevelBars } from "@/components/level-bars";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LEVEL_BARS, LEVEL_LABELS, levelFromRating } from "./lib";
 
 /**
  * Cercare un cliente in anagrafica mentre si scrive un nome: per chi prenota
@@ -82,15 +84,33 @@ export function useClientMatches(
 }
 
 /**
- * Una proposta dell'elenco: il nome, sotto la data di nascita se c'è, a
- * destra il telefono. Due «Giuseppe Prova» si distinguono così senza aprire
- * la scheda.
+ * Il livello del cliente in tacche, accanto al nome: si legge al volo, senza
+ * parole. L'etichetta resta per chi usa lo screen reader.
+ */
+function ClientLevel({ rating }: { rating?: number }) {
+  if (rating === undefined) return null;
+  const level = levelFromRating(rating);
+  return (
+    <>
+      <LevelBars filled={LEVEL_BARS[level]} />
+      <span className="sr-only">, livello {LEVEL_LABELS[level]}</span>
+    </>
+  );
+}
+
+/**
+ * Una proposta dell'elenco: il nome con il livello, sotto la data di nascita
+ * se c'è, a destra il telefono. Due «Giuseppe Prova» si distinguono così
+ * senza aprire la scheda.
  */
 export function ClientOptionLabel({ option }: { option: ClientOption }) {
   return (
     <>
       <span className="min-w-0 flex-1 py-1.5">
-        <span className="block truncate text-[15px]">{option.name}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-[15px]">{option.name}</span>
+          <ClientLevel rating={option.level} />
+        </span>
         {option.birthDate !== undefined && (
           <span className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
             <Cake aria-hidden className="size-3.5" />
@@ -145,10 +165,13 @@ export function ClientSuggestions({
 /** Il nome collegato: si vede chi è, e si scollega con la X. */
 export function LinkedClient({
   name,
+  level,
   onUnlink,
   touch,
 }: {
   name: string;
+  /** Il livello del cliente (1–5), se si conosce: diventa le tacche. */
+  level?: number;
   /** Assente: il collegamento non si toglie da qui. */
   onUnlink?: () => void;
   touch?: boolean;
@@ -164,8 +187,11 @@ export function LinkedClient({
     >
       <UserRound className="text-muted-foreground size-4 shrink-0" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] font-medium md:text-sm">
-          {name}
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-[15px] font-medium md:text-sm">
+            {name}
+          </span>
+          <ClientLevel rating={level} />
         </span>
         <span className="text-muted-foreground block text-xs">
           Cliente in anagrafica
