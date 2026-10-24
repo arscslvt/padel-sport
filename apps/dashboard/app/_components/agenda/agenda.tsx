@@ -39,6 +39,7 @@ import { DayStrip } from "./day-strip";
 import {
   type Booking,
   closedDay,
+  courtLabel,
   dayKey,
   dayLabel,
   isCancelled,
@@ -398,7 +399,7 @@ export function Agenda() {
                   <BookingRow
                     key={booking._id}
                     booking={booking}
-                    court={courtNames.get(booking.slot)}
+                    court={courtLabel(booking, courtNames)}
                     onOpen={() => openRow(booking)}
                   />
                 ))}
@@ -460,7 +461,7 @@ export function Agenda() {
                         <BookingRow
                           key={booking._id}
                           booking={booking}
-                          court={courtNames.get(booking.slot)}
+                          court={courtLabel(booking, courtNames)}
                           onOpen={() => openRow(booking)}
                         />
                       ))}
@@ -566,7 +567,7 @@ export function Agenda() {
                             </p>
                             <BookingRow
                               booking={booking}
-                              court={courtNames.get(booking.slot)}
+                              court={courtLabel(booking, courtNames)}
                               onOpen={() => openRow(booking)}
                             />
                           </div>
@@ -590,7 +591,7 @@ export function Agenda() {
                         <PendingCard
                           key={booking._id}
                           booking={booking}
-                          court={courtNames.get(booking.slot)}
+                          court={courtLabel(booking, courtNames)}
                           busy={busyId === booking._id}
                           onOpen={() => openRow(booking)}
                           onAccept={() => void askAccept(booking)}
@@ -627,7 +628,7 @@ export function Agenda() {
       <BookingSheet
         booking={open}
         partner={open ? mergedPartnerOf(open, list) : undefined}
-        court={open ? courtNames.get(open.slot) : undefined}
+        court={open ? courtLabel(open, courtNames) : undefined}
         busy={open ? busyId === open._id : false}
         onOpenChange={(next) => {
           if (!next) setOpenId(null);

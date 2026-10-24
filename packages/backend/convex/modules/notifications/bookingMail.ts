@@ -5,7 +5,7 @@ import { internalAction, internalQuery } from "../../_generated/server";
 import { notificationKind } from "../../tables/bookingDeliveries";
 import type { Id } from "../../_generated/dataModel";
 import type { DeliveryEntry } from "../deliveries/lib";
-import { MATCH_DURATION_MS } from "../openMatches/lib";
+import { courtLabel, MATCH_DURATION_MS } from "../openMatches/lib";
 import { notifiedPlayers } from "./bookingPlayers";
 
 /**
@@ -76,7 +76,7 @@ export const payload = internalQuery({
     const booking = await ctx.db.get(bookingId);
     if (!booking) return null;
 
-    const slot = await ctx.db.get(booking.slot);
+    const court = await courtLabel(ctx, booking);
 
     const match = await ctx.db
       .query("openMatches")
@@ -118,7 +118,7 @@ export const payload = internalQuery({
       code: booking.code,
       start: booking.bookingDate,
       end: booking.bookingDate + MATCH_DURATION_MS,
-      court: slot?.name,
+      court,
       bookedBy: booking.bookedBy,
       players: booking.players,
       accepted: booking.status === "accepted_on_site_payment",

@@ -30,6 +30,8 @@ function isPartial(booking: Booking, now: number): boolean {
   return (
     booking.status !== "cancelled" &&
     !booking.mergedWith &&
+    // Un gruppo su più campi non ne divide uno con altri (bookings/merge.ts).
+    !booking.extraSlots?.length &&
     booking.bookingDate > now &&
     booking.players.length < MAX_PLAYERS
   );

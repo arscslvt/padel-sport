@@ -65,6 +65,14 @@ const bookings = defineTable({
   ),
   createdAt: v.float64(),
   slot: v.id("slots"),
+  /**
+   * Gli altri campi occupati alla stessa ora, quando un gruppo più grande di
+   * quattro ne prende più d'uno: otto persone, due campi, una prenotazione
+   * sola. I posti sono quattro per campo (modules/openMatches/lib.ts,
+   * `seatsOf`). Solo lo staff le crea (bookings/staffCreate.ts); non si
+   * uniscono ad altre (bookings/merge.ts).
+   */
+  extraSlots: v.optional(v.array(v.id("slots"))),
   code: v.optional(v.string()),
   /** Giocatore dell'app mobile che ha creato la prenotazione (assente per il web) */
   createdByPlayer: v.optional(v.id("players")),
@@ -106,6 +114,11 @@ const bookings = defineTable({
    * prenotazione fatta da noi diventa un orario occupato anche là.
    */
   externalEventId: v.optional(v.string()),
+  /**
+   * Gli eventi sul calendario condiviso per `extraSlots`, nello stesso ordine:
+   * per SumUp ogni evento è un campo occupato.
+   */
+  extraExternalEventIds: v.optional(v.array(v.string())),
   /**
    * L'altra prenotazione con cui questa condivide il campo.
    *

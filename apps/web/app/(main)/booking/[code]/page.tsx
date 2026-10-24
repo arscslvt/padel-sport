@@ -66,7 +66,8 @@ export default async function BookingPage({
 
   const cancelled = booking.status === "cancelled";
   const confirmed = booking.status === "accepted_on_site_payment";
-  const missing = Math.max(0, MAX_PLAYERS - booking.players.length);
+  const seats = booking.seats ?? MAX_PLAYERS;
+  const missing = Math.max(0, seats - booking.players.length);
 
   return (
     <section className="mx-auto w-full max-w-2xl px-(--gutter) pb-24">
@@ -146,7 +147,7 @@ export default async function BookingPage({
         </div>
         <div className="border-border flex justify-between gap-6 border-b py-3.5">
           <dt className="text-muted-foreground text-sm">
-            In campo ({booking.players.length}/{MAX_PLAYERS})
+            In campo ({booking.players.length}/{seats})
           </dt>
           <dd className="text-right text-sm">
             {booking.players.join(", ") || "Da definire"}

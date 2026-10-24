@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
+import { courtLabel, seatsOf } from "../modules/openMatches/lib";
 
 /**
  * Prenotazione cercata per codice: è la pagina a cui punta il QR che finisce
@@ -24,14 +25,14 @@ export default query({
 
     if (!booking) return null;
 
-    const slot = await ctx.db.get(booking.slot);
-
     return {
       code: normalized,
       bookingDate: booking.bookingDate,
-      court: slot?.name,
+      court: await courtLabel(ctx, booking),
       level: booking.level,
       players: booking.players,
+      /** I posti in campo: quattro per campo occupato. */
+      seats: seatsOf(booking),
       status: booking.status,
     };
   },

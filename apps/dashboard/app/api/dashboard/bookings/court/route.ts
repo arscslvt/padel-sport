@@ -38,7 +38,8 @@ export async function GET(request: Request) {
 
 const bodySchema = z.object({
   bookingId: z.string().min(1),
-  slotId: z.string().min(1),
+  /** I campi nuovi, tanti quanti ne occupa la prenotazione. */
+  slotIds: z.array(z.string().min(1)).min(1).max(2),
 });
 
 export async function POST(request: Request) {
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     const result = await gate.convex.mutation(api.bookings.court.move, {
       secret: gate.secret,
       bookingId: parsed.data.bookingId as Id<"bookings">,
-      slotId: parsed.data.slotId as Id<"slots">,
+      slotIds: parsed.data.slotIds.map((id) => id as Id<"slots">),
     });
 
     return NextResponse.json(result);

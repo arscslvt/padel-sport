@@ -8,6 +8,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SheetHeader } from "@/app/_components/sheet-header";
 import { useConfirmLeave } from "@/app/_providers/confirm.provider";
+import { LevelBars } from "@/components/level-bars";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +38,7 @@ import { DayStrip } from "./day-strip";
 import {
   type Booking,
   closedDay,
+  LEVEL_BARS,
   LEVEL_LABELS,
   levelFromRating,
   nextDays,
@@ -62,14 +64,31 @@ import {
  * riferimento della prenotazione (`bookedBy`, e `createdByPlayer` se è un
  * cliente). Il suo numero — quello della scheda, o il recapito scritto qui —
  * è `phone`, a cui parte il WhatsApp di conferma; quello degli altri senza
- * scheda va in `guestContacts`. Se è un cliente porta anche il livello.
+ * scheda va in `guestContacts`.
  *
- * Gli orari proposti sono quelli di apertura in cui c'è ancora un campo
- * libero, calcolati come sul sito; l'ultima parola resta del backend
+ * Il livello si sceglie da sé: quello della maggior parte dei giocatori
+ * collegati all'anagrafica (`groupLevel`). Lo staff lo può sempre cambiare, e
+ * da lì resta il suo finché non torna a quello proposto.
+ *
+ * Si sceglie prima che cosa si prenota: la partita classica, quattro persone
+ * su un campo, o il quadrangolare, otto persone su due campi alla stessa ora
+ * con una prenotazione sola, invece di dividerle in due prenotazioni.
+ *
+ * Gli orari proposti sono quelli di apertura in cui ci sono ancora abbastanza
+ * campi liberi, calcolati come sul sito; l'ultima parola resta del backend
  * (bookings/staffCreate.ts), che ricontrolla al momento di salvare.
  */
 
 const DAYS_AHEAD = 30;
+/**
+ * Che cosa si prenota, e quanti campi prende (bookings/staffCreate.ts): i
+ * posti sono quattro per campo.
+ */
+const KINDS = [
+  { courts: 1, title: "Partita classica" },
+  { courts: 2, title: "Quadrangolare" },
+] as const;
+const MAX_COURTS = Math.max(...KINDS.map((kind) => kind.courts));
 const LEVELS = Object.keys(LEVEL_LABELS) as Booking["level"][];
 
 export function NewBookingSheet({
@@ -139,12 +158,20 @@ function Form({
     days.includes(initialDay) ? initialDay : days[0],
   );
   const [time, setTime] = useState<string | null>(null);
-  const [slotId, setSlotId] = useState<string>("auto");
+  /** I campi scelti a mano; vuoto vale «i primi liberi». */
+  const [slotIds, setSlotIds] = useState<string[]>([]);
+  const [courtCount, setCourtCount] = useState(1);
+  const seatCount = MAX_PLAYERS * courtCount;
 
+  // Tutti i posti possibili ci sono sempre: con un campo solo si vedono i
+  // primi quattro.
   const [seats, setSeats] = useState<Seat[]>(() =>
-    Array.from({ length: MAX_PLAYERS }, () => ({ name: "" })),
+    Array.from({ length: MAX_PLAYERS * MAX_COURTS }, () => ({
+      name: "",
+    })),
   );
-  const [level, setLevel] = useState<Booking["level"]>("intermedio");
+  /** Il livello scelto a mano; `null` segue quello dei giocatori. */
+  const [chosenLevel, setChosenLevel] = useState<Booking["level"] | null>(null);
   const [notify, setNotify] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -159,8 +186,18 @@ function Form({
 
   // I posti scritti, nell'ordine: i vuoti in mezzo non contano.
   const filled = seats
+    .slice(0, seatCount)
     .map((seat) => ({ ...seat, name: seat.name.trim() }))
     .filter((seat) => seat.name !== "");
+
+  // Il livello proposto: quello dei giocatori in anagrafica fra i posti scritti.
+  const suggestedLevel = groupLevel(
+    filled.flatMap((seat) => (seat.client ? [seat.client] : [])),
+  );
+  const level = chosenLevel ?? suggestedLevel ?? "intermedio";
+  const pickLevel = (value: Booking["level"]) =>
+    // Scegliere proprio quello proposto vuol dire tornare a seguirlo.
+    setChosenLevel(value === suggestedLevel ? null : value);
 
   // L'anagrafica, per collegare i giocatori a un cliente.
   const clients = useClients();
@@ -212,9 +249,9 @@ function Form({
               (court) => !overlapping.some((row) => row.slot === court._id),
             )
             .map((court) => court._id as string);
-      return { ...slot, free, ok: free.length - blocked > 0 };
+      return { ...slot, free, ok: free.length - blocked >= courtCount };
     });
-  }, [day, settings, availability, courts]);
+  }, [day, settings, availability, courts, courtCount]);
 
   const closedDays = useMemo(
     () => new Set(days.filter((key) => closedDay(settings, key))),
@@ -228,21 +265,56 @@ function Form({
   // biome-ignore lint/correctness/useExhaustiveDependencies: si azzera al cambio di giorno.
   useEffect(() => {
     setTime(null);
-    setSlotId("auto");
+    setSlotIds([]);
   }, [day]);
+
+  // Con un campo in più l'ora scelta può non avere abbastanza campi liberi.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: si azzera al cambio dei campi.
+  useEffect(() => {
+    setSlotIds([]);
+    setTime((current) =>
+      current && times.find((slot) => slot.time === current)?.ok
+        ? current
+        : null,
+    );
+  }, [courtCount]);
+
+  const changeCourtCount = (next: number) => {
+    // Tornando a un campo, i posti dal quinto in poi spariscono: se c'è
+    // scritto qualcosa, va tolto prima, non perso in silenzio.
+    if (
+      next < courtCount &&
+      seats
+        .slice(MAX_PLAYERS * next)
+        .some((seat) => seat.name.trim() || seat.phone?.trim())
+    ) {
+      const kind = KINDS.find((row) => row.courts === next);
+      toast.error(`${kind?.title} è per ${MAX_PLAYERS * next} giocatori`, {
+        description: "Togli prima i giocatori dei posti in più.",
+      });
+      return;
+    }
+    setCourtCount(next);
+  };
+
+  /** Un campo scelto a mano: con più campi si spunta e si toglie. */
+  const toggleCourt = (id: string) =>
+    setSlotIds((current) => {
+      if (courtCount === 1) return [id];
+      if (current.includes(id)) return current.filter((other) => other !== id);
+      return current.length < courtCount ? [...current, id] : current;
+    });
+  /** I primi liberi, o tanti campi quanti ne servono. */
+  const courtsReady = slotIds.length === 0 || slotIds.length === courtCount;
 
   const changeSeat = (index: number, next: Seat) => {
     setSeats((current) =>
       current.map((row, position) => (position === index ? next : row)),
     );
-
-    // Il primo posto, se è un cliente, porta il suo livello.
-    if (index === 0 && next.client) {
-      setLevel(levelFromRating(next.client.level));
-    }
   };
 
-  const canSave = (filled[0]?.name.length ?? 0) >= 2 && chosen?.ok && !saving;
+  const canSave =
+    (filled[0]?.name.length ?? 0) >= 2 && chosen?.ok && courtsReady && !saving;
 
   const save = async () => {
     const [first, ...rest] = filled;
@@ -254,7 +326,8 @@ function Form({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bookingDate: combineDateAndTime(new Date(`${day}T00:00:00`), time),
-          slotId: slotId === "auto" ? undefined : slotId,
+          courts: courtCount,
+          slotIds: slotIds.length > 0 ? slotIds : undefined,
           playerId: first.client?.id,
           bookedBy: first.name,
           // Un cliente ha il numero nella scheda: lo prende il backend.
@@ -299,6 +372,39 @@ function Form({
 
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 pt-1 pb-2 md:-mx-1 md:px-1">
         <section className="space-y-3">
+          <h3 className="text-sm font-medium">Tipo</h3>
+          <fieldset className="bg-muted grid grid-cols-2 gap-1 rounded-xl p-1">
+            <legend className="sr-only">Tipo di prenotazione</legend>
+            {KINDS.map(({ courts: count, title }) => (
+              <button
+                key={count}
+                type="button"
+                aria-pressed={courtCount === count}
+                onClick={() => changeCourtCount(count)}
+                className={cn(
+                  "flex min-h-14 flex-col items-center justify-center rounded-lg px-2 py-1.5 text-sm transition-colors",
+                  courtCount === count
+                    ? "bg-background font-medium shadow-xs"
+                    : "text-muted-foreground",
+                )}
+              >
+                {title}
+                <span className="text-muted-foreground text-xs font-normal">
+                  {MAX_PLAYERS * count} giocatori ·{" "}
+                  {count === 1 ? "1 campo" : `${count} campi`}
+                </span>
+              </button>
+            ))}
+          </fieldset>
+          {courtCount > 1 && (
+            <p className="text-muted-foreground text-xs">
+              Una prenotazione sola per tutto il gruppo: i {courtCount} campi
+              sono occupati alla stessa ora.
+            </p>
+          )}
+        </section>
+
+        <section className="space-y-3">
           <div className="flex items-baseline justify-between gap-3">
             <h3 className="text-sm font-medium">Giocatori</h3>
             {/* Si aggiorna mentre si scrive, e lo legge anche lo screen reader. */}
@@ -306,13 +412,13 @@ function Form({
               aria-live="polite"
               className="text-muted-foreground text-[13px] tabular-nums"
             >
-              {filled.length} di {MAX_PLAYERS}
+              {filled.length} di {seatCount}
             </span>
           </div>
           <div className="space-y-3">
-            {seats.map((seat, index) => (
+            {seats.slice(0, seatCount).map((seat, index) => (
               <PlayerSeat
-                // biome-ignore lint/suspicious/noArrayIndexKey: i quattro posti sono fissi.
+                // biome-ignore lint/suspicious/noArrayIndexKey: i posti sono fissi.
                 key={index}
                 index={index}
                 value={seat}
@@ -328,6 +434,20 @@ function Form({
             c&apos;è, usa solo il nome e lascia un recapito. Lascia vuoti i
             posti ancora liberi.
           </p>
+          {/* Chi avvisare sta accanto a chi gioca: si decide guardando i nomi. */}
+          <div className="flex items-center justify-between gap-4 rounded-xl border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="new-booking-notify">Avvisa i giocatori</Label>
+              <p className="text-muted-foreground text-xs">
+                Mail con il QR e WhatsApp a chi ha i recapiti.
+              </p>
+            </div>
+            <Switch
+              id="new-booking-notify"
+              checked={notify}
+              onCheckedChange={setNotify}
+            />
+          </div>
         </section>
 
         <section className="space-y-3">
@@ -358,7 +478,7 @@ function Form({
                   aria-pressed={time === slot.time}
                   onClick={() => {
                     setTime(slot.time);
-                    setSlotId("auto");
+                    setSlotIds([]);
                   }}
                   className={cn(
                     "h-11 rounded-xl border text-[15px] tabular-nums transition-[background-color,transform] active:scale-95 disabled:pointer-events-none disabled:line-through disabled:opacity-35",
@@ -376,32 +496,59 @@ function Form({
 
         {chosen?.ok && courts && (
           <section className="space-y-3">
-            <h3 className="text-sm font-medium">Campo</h3>
+            <h3 className="text-sm font-medium">
+              {courtCount === 1 ? "Campo" : "Quali campi"}
+            </h3>
             <div className="flex flex-wrap gap-2">
-              {[{ _id: "auto", name: "Il primo libero" }, ...courts].map(
-                (court) => {
-                  const free =
-                    court._id === "auto" || chosen.free.includes(court._id);
-                  return (
-                    <button
-                      key={court._id}
-                      type="button"
-                      disabled={!free}
-                      aria-pressed={slotId === court._id}
-                      onClick={() => setSlotId(court._id)}
-                      className={cn(
-                        "h-10 rounded-full border px-4 text-sm transition-[background-color,transform] active:scale-95 disabled:pointer-events-none disabled:opacity-35",
-                        slotId === court._id
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-card",
-                      )}
-                    >
-                      {court.name}
-                    </button>
-                  );
+              {[
+                {
+                  _id: "auto",
+                  name: courtCount === 1 ? "Il primo libero" : "I primi liberi",
                 },
-              )}
+                ...courts,
+              ].map((court) => {
+                const auto = court._id === "auto";
+                const pressed = auto
+                  ? slotIds.length === 0
+                  : slotIds.includes(court._id);
+                // Con più campi, a conto pieno se ne toglie uno prima di
+                // spuntarne un altro.
+                const free =
+                  auto ||
+                  (chosen.free.includes(court._id) &&
+                    (pressed ||
+                      courtCount === 1 ||
+                      slotIds.length < courtCount));
+                return (
+                  <button
+                    key={court._id}
+                    type="button"
+                    disabled={!free}
+                    aria-pressed={pressed}
+                    onClick={() =>
+                      auto ? setSlotIds([]) : toggleCourt(court._id)
+                    }
+                    className={cn(
+                      "h-10 rounded-full border px-4 text-sm transition-[background-color,transform] active:scale-95 disabled:pointer-events-none disabled:opacity-35",
+                      pressed
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card",
+                    )}
+                  >
+                    {court.name}
+                  </button>
+                );
+              })}
             </div>
+            {!courtsReady && (
+              <p className="text-muted-foreground text-xs" aria-live="polite">
+                Scegline{" "}
+                {courtCount - slotIds.length === 1
+                  ? "un altro"
+                  : `altri ${courtCount - slotIds.length}`}
+                , o lascia i primi liberi.
+              </p>
+            )}
           </section>
         )}
 
@@ -414,33 +561,43 @@ function Form({
                 key={value}
                 type="button"
                 aria-pressed={level === value}
-                onClick={() => setLevel(value)}
+                onClick={() => pickLevel(value)}
                 className={cn(
-                  "min-h-10 rounded-lg text-sm transition-colors",
+                  // Le tacche sopra il nome, come nel resto del gestionale:
+                  // impilate ci stanno anche in tre colonne da telefono.
+                  "flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-sm transition-colors",
                   level === value
                     ? "bg-background font-medium shadow-xs"
                     : "text-muted-foreground",
                 )}
               >
+                <LevelBars
+                  filled={LEVEL_BARS[value]}
+                  className={cn(level !== value && "opacity-60")}
+                />
                 {LEVEL_LABELS[value]}
               </button>
             ))}
           </fieldset>
+          {suggestedLevel &&
+            (chosenLevel === null ? (
+              <p className="text-muted-foreground text-xs">
+                Quello della maggior parte dei giocatori in anagrafica.
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-xs">
+                Scelto da te: i giocatori sono per lo più di livello{" "}
+                {LEVEL_LABELS[suggestedLevel].toLowerCase()}.{" "}
+                <button
+                  type="button"
+                  className="text-foreground font-medium underline underline-offset-2"
+                  onClick={() => setChosenLevel(null)}
+                >
+                  Usa questo
+                </button>
+              </p>
+            ))}
         </section>
-
-        <div className="flex items-center justify-between gap-4 rounded-xl border p-3">
-          <div className="space-y-0.5">
-            <Label htmlFor="new-booking-notify">Avvisa i giocatori</Label>
-            <p className="text-muted-foreground text-xs">
-              Mail con il QR e WhatsApp a chi ha i recapiti.
-            </p>
-          </div>
-          <Switch
-            id="new-booking-notify"
-            checked={notify}
-            onCheckedChange={setNotify}
-          />
-        </div>
       </div>
 
       <ResponsiveDrawerFooter className="flex flex-col-reverse gap-2 border-t pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] md:flex-row md:justify-end md:border-t-0 md:pb-0">
@@ -512,6 +669,7 @@ function PlayerSeat({
     return (
       <LinkedClient
         name={value.client.name}
+        level={value.client.level}
         touch
         onUnlink={() => onChange({ name: "" })}
       />
@@ -676,3 +834,25 @@ function PlayerSeat({
 /** Gli input dentro la cornice del posto: il bordo e l'anello sono suoi. */
 const SEAT_INPUT =
   "h-11 rounded-none border-0 bg-transparent text-base shadow-none focus-visible:ring-0 dark:bg-transparent";
+
+/**
+ * Il livello della maggior parte dei giocatori in anagrafica. A pari merito,
+ * quello della loro media: due principianti e due avanzati fanno una partita
+ * intermedia. `null` se nessuno è collegato a un cliente.
+ */
+function groupLevel(clients: ClientOption[]): Booking["level"] | null {
+  if (clients.length === 0) return null;
+
+  const counts = new Map<Booking["level"], number>();
+  for (const client of clients) {
+    const level = levelFromRating(client.level);
+    counts.set(level, (counts.get(level) ?? 0) + 1);
+  }
+  const top = Math.max(...counts.values());
+  const leaders = [...counts].filter(([, count]) => count === top);
+  if (leaders.length === 1) return leaders[0][0];
+
+  const average =
+    clients.reduce((sum, client) => sum + client.level, 0) / clients.length;
+  return levelFromRating(average);
+}

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { externalBlocksBetween } from "../modules/courtCalendar/lib";
+import { courtsOf } from "../modules/openMatches/lib";
 
 /**
  * Occupazione dei campi in un intervallo, ridotta all'osso: la pagina
@@ -39,10 +40,14 @@ export default query({
     return {
       busy: bookings
         .filter((booking) => booking.status !== "cancelled")
-        .map((booking) => ({
-          bookingDate: booking.bookingDate,
-          slot: booking.slot,
-        })),
+        // Una prenotazione su più campi è una riga per campo: chi legge
+        // ragiona per campo, e non deve sapere che sono la stessa.
+        .flatMap((booking) =>
+          courtsOf(booking).map((slot) => ({
+            bookingDate: booking.bookingDate,
+            slot,
+          })),
+        ),
       blocks: blocks.map((block) => ({
         start: block.start,
         end: block.end,

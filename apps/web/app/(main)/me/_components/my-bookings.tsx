@@ -136,7 +136,8 @@ export function MyBookings() {
                 <p className="text-muted-foreground mt-1 text-sm">
                   {formatClubSlotRange(booking.bookingDate)}
                   {booking.court ? ` · ${booking.court}` : ""} ·{" "}
-                  {booking.players.length}/{MAX_PLAYERS} giocatori
+                  {booking.players.length}/{booking.seats ?? MAX_PLAYERS}{" "}
+                  giocatori
                 </p>
 
                 {code && (

@@ -276,12 +276,42 @@ export function isCancelled(booking: Booking): boolean {
   return booking.status === "cancelled";
 }
 
-/** Prenotato per meno di quattro e non ancora unito a un altro gruppo. */
+/**
+ * I campi che occupa: il suo, e gli altri quando un gruppo più grande ne
+ * prende più d'uno alla stessa ora (bookings/staffCreate.ts).
+ */
+export function courtsOf(
+  booking: Pick<Doc<"bookings">, "slot" | "extraSlots">,
+): Id<"slots">[] {
+  return [booking.slot, ...(booking.extraSlots ?? [])];
+}
+
+/** I posti in campo: quattro per ogni campo occupato. */
+export function seatsOf(
+  booking: Pick<Doc<"bookings">, "slot" | "extraSlots">,
+): number {
+  return MAX_PLAYERS * courtsOf(booking).length;
+}
+
+/** I campi come li legge una persona: «Campo 1», o «Campo 1 e Campo 2». */
+export function courtLabel(
+  booking: Pick<Doc<"bookings">, "slot" | "extraSlots">,
+  courtNames: ReadonlyMap<string, string>,
+): string | undefined {
+  const names = courtsOf(booking)
+    .map((id) => courtNames.get(id))
+    .filter((name): name is string => Boolean(name))
+    .sort((a, b) => a.localeCompare(b, "it", { numeric: true }));
+  if (names.length <= 1) return names[0];
+  return `${names.slice(0, -1).join(", ")} e ${names.at(-1)}`;
+}
+
+/** Prenotato per meno dei posti che ha e non ancora unito a un altro gruppo. */
 export function isPartial(booking: Booking): boolean {
   return (
     !booking.bookForAll &&
     !booking.mergedWith &&
-    booking.players.length < MAX_PLAYERS
+    booking.players.length < seatsOf(booking)
   );
 }
 

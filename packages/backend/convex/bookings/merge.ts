@@ -58,6 +58,11 @@ function assertMergeable(booking: Doc<"bookings"> | null, label: string) {
     throw new Error(`${label} è stata annullata.`);
   }
 
+  // Un gruppo che prende più campi non ne divide uno con un altro.
+  if (booking.extraSlots?.length) {
+    throw new Error(`${label} occupa già più campi.`);
+  }
+
   if (booking.mergedWith) {
     throw new Error(`${label} condivide già il campo con un altro gruppo.`);
   }

@@ -114,15 +114,24 @@ export const bookingForCalendar = internalQuery({
     if (!booking) return null;
 
     const slot = await ctx.db.get(booking.slot);
+    const extra = await Promise.all(
+      (booking.extraSlots ?? []).map((id) => ctx.db.get(id)),
+    );
 
     return {
       start: booking.bookingDate,
       end: booking.bookingDate + MATCH_DURATION_MS,
       court: slot?.name,
+      /**
+       * Gli altri campi di un gruppo che ne prende più d'uno: per SumUp ogni
+       * campo è un evento a sé (push.ts).
+       */
+      extraCourts: extra.map((court) => court?.name),
       code: booking.code,
       bookedBy: booking.bookedBy,
       status: booking.status,
       externalEventId: booking.externalEventId,
+      extraEventIds: booking.extraExternalEventIds ?? [],
     };
   },
 });
@@ -137,5 +146,21 @@ export const attachEvent = internalMutation({
     if (!booking) return;
 
     await ctx.db.patch(bookingId, { externalEventId: eventId });
+  },
+});
+
+/** Gli eventi dei campi in più (`extraSlots`), tutti insieme. */
+export const attachExtraEvents = internalMutation({
+  args: {
+    bookingId: v.id("bookings"),
+    eventIds: v.array(v.string()),
+  },
+  handler: async (ctx, { bookingId, eventIds }) => {
+    const booking = await ctx.db.get(bookingId);
+    if (!booking) return;
+
+    await ctx.db.patch(bookingId, {
+      extraExternalEventIds: eventIds.length > 0 ? eventIds : undefined,
+    });
   },
 });

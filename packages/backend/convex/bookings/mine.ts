@@ -4,8 +4,10 @@ import {
   paymentSummary,
 } from "../modules/payments/lib";
 import {
+  courtLabel,
   getIdentityPlayer,
   MATCH_DURATION_MS,
+  seatsOf,
 } from "../modules/openMatches/lib";
 
 /**
@@ -64,7 +66,7 @@ export default query({
         .filter((booking) => booking.status !== "cancelled")
         .sort((a, b) => a.bookingDate - b.bookingDate)
         .map(async (booking) => {
-          const slot = await ctx.db.get(booking.slot);
+          const court = await courtLabel(ctx, booking);
 
           // Le prenotazioni nate prima delle partite aperte non hanno un
           // `openMatches`: senza, la mail di conferma non si può rimandare.
@@ -76,9 +78,11 @@ export default query({
           return {
             code: booking.code,
             bookingDate: booking.bookingDate,
-            court: slot?.name,
+            court,
             level: booking.level,
             players: booking.players,
+            /** I posti in campo: quattro per campo occupato. */
+            seats: seatsOf(booking),
             status: booking.status,
             matchId: match?._id,
             /** Prenotata da chi guarda, o una partita in cui gioca. */

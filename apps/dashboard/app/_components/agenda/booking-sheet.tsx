@@ -19,12 +19,12 @@ import {
   ResponsiveDrawerFooter,
   useResponsiveDrawer,
 } from "@/components/ui/responsive-drawer";
-import { MAX_PLAYERS } from "@/lib/booking";
 import { CourtDrawer, CourtEditor } from "./court-editor";
 import {
   authorLine,
   type Booking,
   clientReach,
+  courtsOf,
   dayKey,
   dayLabel,
   isCancelled,
@@ -37,6 +37,7 @@ import {
   partialLabel,
   playersLabel,
   rosterOf,
+  seatsOf,
   timeRange,
   wasRefunded,
   whatsappNumber,
@@ -154,7 +155,7 @@ export function BookingSheet({
     bookingDate: number,
     notify: boolean,
   ) => Promise<boolean>;
-  onMoveCourt: (booking: Booking, slotId: string) => Promise<boolean>;
+  onMoveCourt: (booking: Booking, slotIds: string[]) => Promise<boolean>;
   onUpdatePhone: (booking: Booking, phone: string) => Promise<boolean>;
   onResendWhatsapp: ResendWhatsapp;
   onResendEmail: ResendEmail;
@@ -233,7 +234,7 @@ function Body({
     bookingDate: number,
     notify: boolean,
   ) => Promise<boolean>;
-  onMoveCourt: (booking: Booking, slotId: string) => Promise<boolean>;
+  onMoveCourt: (booking: Booking, slotIds: string[]) => Promise<boolean>;
   onUpdatePhone: (booking: Booking, phone: string) => Promise<boolean>;
   onResendWhatsapp: ResendWhatsapp;
   onResendEmail: ResendEmail;
@@ -273,7 +274,7 @@ function Body({
 
   const saveTime = (bookingDate: number, notify: boolean) =>
     onReschedule(booking, bookingDate, notify);
-  const saveCourt = (slotId: string) => onMoveCourt(booking, slotId);
+  const saveCourt = (slotIds: string[]) => onMoveCourt(booking, slotIds);
   const savePhone = (value: string) => onUpdatePhone(booking, value);
 
   // Il numero di chi ha prenotato: si scrive se manca, si corregge se è
@@ -305,7 +306,7 @@ function Body({
   };
 
   const courtRowProps = {
-    title: "Campo",
+    title: courtsOf(booking).length > 1 ? "Campi" : "Campo",
     trailing: <Value>{court ?? "Da assegnare"}</Value>,
   };
 
@@ -314,14 +315,14 @@ function Body({
     trailing: <Value>{timeRange(booking.bookingDate)}</Value>,
   };
 
-  // I quattro posti: chi c'è, poi quelli ancora liberi. Con il campo
+  // I posti, quattro per campo: chi c'è, poi quelli ancora liberi. Con il campo
   // condiviso gli altri posti sono dell'altro gruppo, e da annullata non ci
   // sono più posti da riempire: lì non si mostrano.
   const roster = rosterOf(booking);
   const freeSeats =
     booking.mergedWith || cancelled
       ? 0
-      : Math.max(0, MAX_PLAYERS - roster.length);
+      : Math.max(0, seatsOf(booking) - roster.length);
 
   const editPlayers = {
     leading: <UserPen className="size-5" />,
@@ -384,7 +385,7 @@ function Body({
           title="Giocatori"
           action={
             <span className="text-muted-foreground text-[13px] tabular-nums">
-              {roster.length} di {MAX_PLAYERS}
+              {roster.length} di {seatsOf(booking)}
             </span>
           }
         >

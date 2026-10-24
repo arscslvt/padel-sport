@@ -3,6 +3,7 @@ import type { Doc } from "../../_generated/dataModel";
 import { internalMutation } from "../../_generated/server";
 import { formatClubTime } from "../../utils/clubTime";
 import { staffAgendaDayUrl, staffBookingUrl } from "../../utils/staffLinks";
+import { courtLabel } from "../openMatches/lib";
 import { clubDayKey } from "../settings/lib";
 
 /**
@@ -89,8 +90,7 @@ export default internalMutation({
       // Per campo: due gruppi uniti stanno sulla stessa riga.
       const lines = new Map<string, Line>();
       for (const booking of entry.bookings) {
-        const slot = await ctx.db.get(booking.slot);
-        const court = slot?.name ?? "Campo";
+        const court = (await courtLabel(ctx, booking)) ?? "Campo";
         const line = lines.get(court) ?? { court, names: [], pending: false };
         line.names.push(booking.bookedBy);
         line.pending ||= booking.status === "pending_on_site_payment";

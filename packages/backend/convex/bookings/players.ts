@@ -5,6 +5,7 @@ import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/
 import {
   guestsOf,
   MAX_PLAYERS,
+  seatsOf,
   occupancyOf,
   syncBookingPlayers,
   syncMatchStatus,
@@ -59,7 +60,7 @@ async function seatsFor(
   ctx: QueryCtx,
   booking: Doc<"bookings">,
 ): Promise<number> {
-  if (!booking.mergedWith) return MAX_PLAYERS;
+  if (!booking.mergedWith) return seatsOf(booking);
 
   const partner = await ctx.db.get(booking.mergedWith);
   return Math.max(1, MAX_PLAYERS - (partner?.players.length ?? 0));
@@ -197,9 +198,9 @@ export const update = mutation({
     const seats = await seatsFor(ctx, booking);
     if (names.length > seats) {
       throw new Error(
-        seats < MAX_PLAYERS
+        booking.mergedWith
           ? `Il campo è condiviso. Puoi inserire fino a ${seats} giocatori.`
-          : `Puoi inserire fino a ${MAX_PLAYERS} giocatori.`,
+          : `Puoi inserire fino a ${seats} giocatori.`,
       );
     }
 
@@ -214,6 +215,7 @@ export const update = mutation({
             ctx,
             wantedLinks.map((link) => link.playerId),
             booking.createdByPlayer,
+            seats,
           )
         : booking.linkedPlayerIds;
 
@@ -231,7 +233,7 @@ export const update = mutation({
         // Il titolo della scheda è il primo nome: corretto lì, si corregge
         // anche «prenotato da».
         bookedBy: names[0],
-        bookForAll: names.length >= MAX_PLAYERS,
+        bookForAll: names.length >= seats,
         linkedPlayerIds,
       });
       await bookingChanged(ctx, bookingId);

@@ -88,6 +88,47 @@ function overlaps(startA: number, endA: number, startB: number, endB: number) {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * I campi che una prenotazione occupa: il suo, e gli altri quando un gruppo
+ * più grande ne prende più d'uno alla stessa ora (`extraSlots`).
+ */
+export function courtsOf(
+  booking: Pick<Doc<"bookings">, "slot" | "extraSlots">,
+): Id<"slots">[] {
+  return [booking.slot, ...(booking.extraSlots ?? [])];
+}
+
+/** I posti in campo: quattro per ogni campo occupato. */
+export function seatsOf(
+  booking: Pick<Doc<"bookings">, "slot" | "extraSlots">,
+): number {
+  return MAX_PLAYERS * courtsOf(booking).length;
+}
+
+/**
+ * I campi di una prenotazione come li legge una persona: «Campo 1», o «Campo
+ * 1 e Campo 2» quando sono più d'uno.
+ */
+export async function courtLabel(
+  ctx: QueryCtx,
+  booking: Pick<Doc<"bookings">, "slot" | "extraSlots">,
+): Promise<string | undefined> {
+  const courts = await Promise.all(
+    courtsOf(booking).map((id) => ctx.db.get(id)),
+  );
+  const names = courts
+    .filter((court) => court !== null)
+    .sort(byCourtName)
+    .map((court) => court.name);
+  return names.length > 0 ? joinCourtNames(names) : undefined;
+}
+
+/** «Campo 1», «Campo 1 e Campo 2», «Campo 1, Campo 2 e Campo 3». */
+export function joinCourtNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} e ${names.at(-1)}`;
+}
+
 /** I campi come li legge una persona: «Campo 2» prima di «Campo 10». */
 function byCourtName(a: Doc<"slots">, b: Doc<"slots">): number {
   return a.name.localeCompare(b.name, "it", { numeric: true });
@@ -115,6 +156,32 @@ export async function pickCourt(
   ignore: readonly Id<"bookings">[] = [],
 ): Promise<Doc<"slots"> | null> {
   if (free.length <= 1) return free[0] ?? null;
+  return (await rankCourts(ctx, bookingDate, free, ignore))[0];
+}
+
+/**
+ * I campi per un gruppo che ne prende più d'uno: i `count` che lasciano meno
+ * buchi, con la stessa regola di `pickCourt`. `null` se non ce ne sono
+ * abbastanza.
+ */
+export async function pickCourts(
+  ctx: QueryCtx,
+  bookingDate: number,
+  free: Doc<"slots">[],
+  count: number,
+  ignore: readonly Id<"bookings">[] = [],
+): Promise<Doc<"slots">[] | null> {
+  if (free.length < count) return null;
+  return (await rankCourts(ctx, bookingDate, free, ignore)).slice(0, count);
+}
+
+/** I campi liberi, dal migliore al peggiore secondo i buchi che lasciano. */
+async function rankCourts(
+  ctx: QueryCtx,
+  bookingDate: number,
+  free: Doc<"slots">[],
+  ignore: readonly Id<"bookings">[],
+): Promise<Doc<"slots">[]> {
 
   const { weekday, minutes } = clubMoment(bookingDate);
   const start = minutes;
@@ -147,7 +214,7 @@ export async function pickCourt(
     for (const other of sameDay) {
       if (
         other.status === "cancelled" ||
-        other.slot !== court._id ||
+        !courtsOf(other).includes(court._id) ||
         ignore.includes(other._id)
       ) {
         continue;
@@ -167,7 +234,7 @@ export async function pickCourt(
   });
 
   scored.sort((a, b) => a.wasted - b.wasted || a.order - b.order);
-  return scored[0].court;
+  return scored.map((row) => row.court);
 }
 
 /**
@@ -238,7 +305,9 @@ export async function courtsAt(
         return false;
       }
 
-      return !existingBooking.slot || existingBooking.slot === slot._id;
+      return (
+        !existingBooking.slot || courtsOf(existingBooking).includes(slot._id)
+      );
     });
   });
 

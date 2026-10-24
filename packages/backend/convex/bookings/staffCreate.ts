@@ -8,7 +8,7 @@ import {
   MATCH_DURATION_MINUTES,
   MAX_PLAYERS,
   normalizePhone,
-  pickCourt,
+  pickCourts,
   SLOT_INTERVAL_MS,
 } from "../modules/openMatches/lib";
 import { matchPricing } from "../modules/pricing/lib";
@@ -37,9 +37,16 @@ import { assertServer } from "../utils/serverSecret";
  * sito e nell'app, con codice e QR. L'avviso — mail con il QR, WhatsApp — è
  * una scelta di chi la prende, come quando si accetta una prenotazione.
  *
+ * Un gruppo più grande di quattro prende più campi alla stessa ora con una
+ * prenotazione sola (`courts`): otto persone, due campi. I posti sono quattro
+ * per campo, e ogni campo conta come occupato ovunque (`extraSlots`).
+ *
  * Passa dalla route della dashboard (api/dashboard/bookings), che ha già
  * verificato che chi chiede è dello staff.
  */
+
+/** Quanti campi può prendere un gruppo: oltre, è un evento e non una partita. */
+const MAX_COURTS = 2;
 
 const LEVEL = v.union(
   v.literal("principiante"),
@@ -49,17 +56,19 @@ const LEVEL = v.union(
 
 /**
  * I clienti collegati ai nomi, senza doppioni e senza chi prenota (che conta
- * già come `createdByPlayer`). Al massimo quanti stanno in campo.
+ * già come `createdByPlayer`). Al massimo quanti stanno in campo: `seats`,
+ * quattro per ogni campo della prenotazione.
  */
 export async function linkablePlayers(
   ctx: MutationCtx,
   ids: Id<"players">[] | undefined,
   bookerId: Id<"players"> | undefined,
+  seats: number = MAX_PLAYERS,
 ): Promise<Id<"players">[] | undefined> {
   const unique = [...new Set(ids ?? [])].filter((id) => id !== bookerId);
   if (unique.length === 0) return undefined;
-  if (unique.length > MAX_PLAYERS) {
-    throw new Error(`In campo si sta in ${MAX_PLAYERS}.`);
+  if (unique.length > seats) {
+    throw new Error(`In campo si sta in ${seats}.`);
   }
 
   for (const id of unique) {
@@ -87,13 +96,18 @@ export default mutation({
   args: {
     secret: v.string(),
     bookingDate: v.number(),
-    /** Il campo scelto; senza, il primo libero come per i clienti. */
-    slotId: v.optional(v.id("slots")),
+    /** Quanti campi prende il gruppo: uno, o due per otto persone. */
+    courts: v.optional(v.number()),
+    /**
+     * I campi scelti, tanti quanti `courts`; senza, i primi liberi come per i
+     * clienti.
+     */
+    slotIds: v.optional(v.array(v.id("slots"))),
     /** Il cliente in anagrafica, se la prenotazione è sua. */
     playerId: v.optional(v.id("players")),
     bookedBy: v.string(),
     phone: v.optional(v.string()),
-    /** I nomi in campo: il primo è chi prenota. */
+    /** I nomi in campo, quattro per campo: il primo è chi prenota. */
     players: v.array(v.string()),
     /**
      * I clienti in anagrafica fra quei nomi, scelti dalla ricerca: la partita
@@ -140,16 +154,23 @@ export default mutation({
       throw new Error("Scrivi il nome di chi prenota.");
     }
 
-    const players = args.players
-      .map((name) => name.trim())
-      .filter(Boolean)
-      .slice(0, MAX_PLAYERS);
+    const courts = args.courts ?? 1;
+    if (!Number.isInteger(courts) || courts < 1 || courts > MAX_COURTS) {
+      throw new Error(`Si possono prendere da 1 a ${MAX_COURTS} campi.`);
+    }
+    const seats = MAX_PLAYERS * courts;
+
+    const players = args.players.map((name) => name.trim()).filter(Boolean);
+    if (players.length > seats) {
+      throw new Error(`Su ${courts === 1 ? "un campo" : `${courts} campi`} si sta in ${seats}.`);
+    }
     if (players.length === 0) players.push(bookedBy);
 
     const linkedPlayerIds = await linkablePlayers(
       ctx,
       args.linkedPlayerIds,
       player?._id,
+      seats,
     );
 
     const rawPhone = args.phone?.trim() || player?.phone;
@@ -163,20 +184,32 @@ export default mutation({
     const guestContacts = contacts.length > 0 ? contacts : undefined;
 
     const { free, blocked } = await courtsAt(ctx, args.bookingDate);
-    if (free.length - blocked <= 0) {
-      throw new Error("A quell'ora non c'è un campo libero.");
+    if (free.length - blocked < courts) {
+      throw new Error(
+        courts === 1
+          ? "A quell'ora non c'è un campo libero."
+          : `A quell'ora non ci sono ${courts} campi liberi.`,
+      );
     }
 
-    // «Automatico» sceglie come per i clienti: il campo che non lascia buchi.
-    let slotId: Id<"slots"> = (
-      (await pickCourt(ctx, args.bookingDate, free)) ?? free[0]
-    )._id;
-    if (args.slotId) {
-      if (!free.some((slot) => slot._id === args.slotId)) {
+    // «Automatico» sceglie come per i clienti: i campi che non lasciano buchi.
+    let slotIds: Id<"slots">[] = (
+      (await pickCourts(ctx, args.bookingDate, free, courts)) ?? []
+    ).map((slot) => slot._id);
+    if (args.slotIds?.length) {
+      const chosen = [...new Set(args.slotIds)];
+      if (chosen.length !== courts) {
+        throw new Error(
+          courts === 1 ? "Scegli un campo." : `Scegli ${courts} campi diversi.`,
+        );
+      }
+      if (!chosen.every((id) => free.some((slot) => slot._id === id))) {
         throw new Error("Il campo scelto è già occupato a quell'ora.");
       }
-      slotId = args.slotId;
+      slotIds = chosen;
     }
+    const [slotId, ...extraSlots] = slotIds;
+    if (!slotId) throw new Error("A quell'ora non c'è un campo libero.");
 
     const code = await bookingCode(ctx);
 
@@ -190,8 +223,9 @@ export default mutation({
       players,
       bookingDate: args.bookingDate,
       level: args.level,
-      bookForAll: players.length >= MAX_PLAYERS,
+      bookForAll: players.length >= seats,
       slot: slotId,
+      extraSlots: extraSlots.length > 0 ? extraSlots : undefined,
       ...pricing,
       paymentMode: "on_site",
       status: "accepted_on_site_payment",

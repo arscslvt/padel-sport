@@ -264,13 +264,13 @@ export function useAgenda() {
       },
     );
 
-  const moveCourt = (booking: Booking, slotId: string) =>
+  const moveCourt = (booking: Booking, slotIds: string[]) =>
     run(
       booking._id,
       () =>
         request("/api/dashboard/bookings/court", "POST", {
           bookingId: booking._id,
-          slotId,
+          slotIds,
         }),
       {
         success: "Campo aggiornato",

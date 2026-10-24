@@ -6,9 +6,12 @@ import { mutation, type QueryCtx, query } from "../_generated/server";
 import { recordDeliveries } from "../modules/deliveries/lib";
 import { bookingChanged } from "../modules/points/auto";
 import {
+  courtLabel,
   courtsAt,
+  courtsOf,
+  joinCourtNames,
   MATCH_DURATION_MINUTES,
-  pickCourt,
+  pickCourts,
   SLOT_INTERVAL_MINUTES,
   SLOT_INTERVAL_MS,
 } from "../modules/openMatches/lib";
@@ -33,7 +36,8 @@ import { assertServer } from "../utils/serverSecret";
  * che altrimenti occuperebbe il proprio campo.
  *
  * Il campo resta lo stesso se è libero anche all'orario nuovo; se no si passa
- * al primo libero, e il modulo lo dice prima di confermare.
+ * al primo libero, e il modulo lo dice prima di confermare. Una prenotazione
+ * su più campi ne cerca altrettanti, tenendo quelli suoi ancora liberi.
  *
  * Passa dalla route della dashboard (api/dashboard/bookings/reschedule), che
  * ha già verificato con Clerk che chi chiede è dello staff.
@@ -61,21 +65,40 @@ function moveBlocker(booking: Doc<"bookings">, now: number): string | null {
 }
 
 /**
- * Il campo che toccherebbe all'orario nuovo: lo stesso, se è libero, perché
- * chi ha prenotato se lo aspetta. Se no, quello che lascia meno buchi.
+ * I campi che toccherebbero all'orario nuovo, tanti quanti ne occupa: gli
+ * stessi, se sono liberi, perché chi ha prenotato se li aspetta. Per quelli
+ * che mancano, i liberi che lasciano meno buchi. `null` se non bastano.
  */
-async function courtFor(
+async function courtsFor(
   ctx: QueryCtx,
   booking: Doc<"bookings">,
   start: number,
-): Promise<Doc<"slots"> | null> {
+): Promise<Doc<"slots">[] | null> {
+  const mine = courtsOf(booking);
   const { free, blocked } = await courtsAt(ctx, start, [booking._id]);
-  if (free.length - blocked <= 0) return null;
+  if (free.length - blocked < mine.length) return null;
 
-  return (
-    free.find((slot) => slot._id === booking.slot) ??
-    (await pickCourt(ctx, start, free, [booking._id]))
+  const kept = free.filter((slot) => mine.includes(slot._id));
+  const others = free.filter((slot) => !mine.includes(slot._id));
+  const added = await pickCourts(
+    ctx,
+    start,
+    others,
+    mine.length - kept.length,
+    [booking._id],
   );
+  return added ? [...kept, ...added] : null;
+}
+
+/** I campi come li legge una persona, quando non sono più quelli di adesso. */
+function changedCourts(
+  booking: Doc<"bookings">,
+  courts: Doc<"slots">[] | null,
+): string | undefined {
+  if (!courts) return undefined;
+  const mine = courtsOf(booking);
+  if (courts.every((court) => mine.includes(court._id))) return undefined;
+  return joinCourtNames(courts.map((court) => court.name));
 }
 
 export const options = query({
@@ -89,7 +112,7 @@ export const options = query({
     const now = Date.now();
     const blocker = moveBlocker(booking, now);
     const current = clubMoment(booking.bookingDate);
-    const currentCourt = await ctx.db.get(booking.slot);
+    const currentCourt = await courtLabel(ctx, booking);
 
     if (blocker) {
       return { blocker, current: booking.bookingDate, times: [] };
@@ -121,19 +144,18 @@ export const options = query({
       [...new Set(starts)].map(async (minute) => {
         const start = booking.bookingDate + (minute - current.minutes) * 60_000;
         const isCurrent = start === booking.bookingDate;
-        const court =
+        const courts =
           isCurrent || start <= now
             ? null
-            : await courtFor(ctx, booking, start);
+            : await courtsFor(ctx, booking, start);
 
         return {
           start,
           time: clubTime(minute),
           current: isCurrent,
-          available: !isCurrent && court !== null,
-          /** Il campo che toccherebbe, quando non è quello di adesso. */
-          court:
-            court && court._id !== booking.slot ? court.name : undefined,
+          available: !isCurrent && courts !== null,
+          /** I campi che toccherebbero, quando non sono quelli di adesso. */
+          court: changedCourts(booking, courts),
         };
       }),
     );
@@ -141,7 +163,7 @@ export const options = query({
     return {
       blocker: null,
       current: booking.bookingDate,
-      currentCourt: currentCourt?.name,
+      currentCourt,
       // Gli orari già passati non si propongono: non sono una scelta.
       times: times.filter((time) => time.current || time.start > now),
     };
@@ -194,7 +216,8 @@ export const move = mutation({
       throw new Error("La struttura è chiusa a quest'ora.");
     }
 
-    const court = await courtFor(ctx, booking, bookingDate);
+    const courts = await courtsFor(ctx, booking, bookingDate);
+    const [court, ...extra] = courts ?? [];
     if (!court) {
       throw new Error(
         "Questo orario non è più disponibile. Scegline un altro.",
@@ -202,7 +225,11 @@ export const move = mutation({
     }
 
     const previous = booking.bookingDate;
-    await ctx.db.patch(bookingId, { bookingDate, slot: court._id });
+    await ctx.db.patch(bookingId, {
+      bookingDate,
+      slot: court._id,
+      extraSlots: extra.length > 0 ? extra.map((slot) => slot._id) : undefined,
+    });
 
     // La partita dell'app porta la sua data: senza, l'app mostrerebbe ancora
     // l'orario vecchio.
@@ -239,7 +266,11 @@ export const move = mutation({
       ]);
     }
 
-    return { bookingDate, court: court.name, previous };
+    return {
+      bookingDate,
+      court: joinCourtNames((courts ?? []).map((slot) => slot.name)),
+      previous,
+    };
   },
 });
 

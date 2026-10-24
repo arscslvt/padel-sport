@@ -30,7 +30,8 @@ import { type Booking, dayKey, dayLabel, timeRange } from "./lib";
  *
  * I campi liberi li dice il server (bookings/court.ts). Qui si sceglie da un
  * elenco come quelli delle Impostazioni di iOS: un campo per riga, la spunta
- * su quello scelto. Due forme come per orario e giocatori: da desktop dentro
+ * su quello scelto. Una prenotazione su più campi ne sceglie altrettanti:
+ * ogni riga si spunta e si toglie, finché il conto torna. Due forme come per orario e giocatori: da desktop dentro
  * la scheda (`CourtEditor`), da telefono in un drawer annidato (`CourtDrawer`).
  */
 
@@ -45,6 +46,8 @@ interface Options {
   blocker: string | null;
   /** Divide il campo con un'altra prenotazione: si spostano insieme. */
   shared: boolean;
+  /** Quanti campi va scelti: quanti ne occupa adesso. */
+  count: number;
   courts: CourtOption[];
 }
 
@@ -52,7 +55,7 @@ function useCourtForm(booking: Booking) {
   const [options, setOptions] = useState<Options | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[] | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` serve a ricaricare con «Riprova».
   useEffect(() => {
@@ -68,13 +71,14 @@ function useCourtForm(booking: Booking) {
         if (!response.ok) throw new Error(payload?.error);
         if (!alive) return;
         setOptions(payload);
-        // Si parte dal campo di adesso, già spuntato: si cambia toccandone un
-        // altro, come in ogni elenco di scelte.
+        // Si parte dai campi di adesso, già spuntati: si cambia toccandone
+        // un altro, come in ogni elenco di scelte.
         setSelected(
           (current) =>
             current ??
-            payload.courts?.find((court: CourtOption) => court.current)?.id ??
-            null,
+            (payload.courts ?? [])
+              .filter((court: CourtOption) => court.current)
+              .map((court: CourtOption) => court.id),
         );
       } catch {
         if (alive) {
@@ -90,20 +94,35 @@ function useCourtForm(booking: Booking) {
     };
   }, [booking._id, attempt]);
 
-  const currentId = options?.courts.find((court) => court.current)?.id;
-  /** Un campo diverso da quello di adesso: c'è qualcosa da salvare. */
-  const changed = selected !== null && selected !== currentId;
+  const count = options?.count ?? 1;
+  const picked = selected ?? [];
+  /** Tanti campi quanti servono, e non gli stessi di adesso: si può salvare. */
+  const changed =
+    picked.length === count &&
+    picked.some(
+      (id) => !options?.courts.find((court) => court.id === id)?.current,
+    );
   const choice = changed
-    ? (options?.courts.find((court) => court.id === selected) ?? null)
-    : null;
+    ? (options?.courts.filter((court) => picked.includes(court.id)) ?? [])
+    : [];
+
+  /** Con un campo solo si sostituisce; con più, si spunta e si toglie. */
+  const toggle = (id: string) =>
+    setSelected((current) => {
+      const list = current ?? [];
+      if (count === 1) return [id];
+      if (list.includes(id)) return list.filter((other) => other !== id);
+      return list.length < count ? [...list, id] : list;
+    });
 
   return {
     options,
     loadError,
-    selected,
+    selected: picked,
+    count,
     choice,
     changed,
-    setSelected,
+    toggle,
     retry: () => setAttempt((current) => current + 1),
   };
 }
@@ -111,7 +130,8 @@ function useCourtForm(booking: Booking) {
 type CourtForm = ReturnType<typeof useCourtForm>;
 
 function submitLabel(form: CourtForm): string {
-  return form.choice ? `Sposta sul ${form.choice.name}` : "Sposta";
+  if (form.choice.length === 1) return `Sposta sul ${form.choice[0].name}`;
+  return form.choice.length > 1 ? "Sposta sui campi scelti" : "Sposta";
 }
 
 function CourtFields({
@@ -174,19 +194,28 @@ function CourtFields({
     );
   }
 
+  const multiple = form.count > 1;
+  const full = selected.length >= form.count;
   const footer = options.shared
     ? "Anche la prenotazione abbinata si sposta sul nuovo campo."
-    : "Il cliente vede il nuovo campo nella pagina della prenotazione.";
+    : multiple
+      ? `Scegli ${form.count} campi: ${selected.length} di ${form.count} spuntati.`
+      : "Il cliente vede il nuovo campo nella pagina della prenotazione.";
 
   return (
     <ListGroup title={title} footer={footer}>
       {/* Radio veri dentro righe da toccare: frecce, Tab e lettori di
           schermo funzionano come in ogni gruppo di scelte. */}
       <fieldset ref={groupRef} disabled={busy} className="min-w-0">
-        <legend className="sr-only">Campo</legend>
+        <legend className="sr-only">{multiple ? "Campi" : "Campo"}</legend>
         <div className="divide-y">
           {options.courts.map((court) => {
-            const checked = court.id === selected;
+            const checked = selected.includes(court.id);
+            // Con più campi, a conto pieno se ne toglie uno prima di
+            // spuntarne un altro.
+            const unavailable =
+              (!court.available && !court.current) ||
+              (multiple && full && !checked);
             return (
               <label
                 key={court.id}
@@ -197,12 +226,12 @@ function CourtFields({
                 )}
               >
                 <input
-                  type="radio"
+                  type={multiple ? "checkbox" : "radio"}
                   name={`${id}-court`}
                   value={court.id}
                   checked={checked}
-                  disabled={!court.available && !court.current}
-                  onChange={() => form.setSelected(court.id)}
+                  disabled={unavailable}
+                  onChange={() => form.toggle(court.id)}
                   className="sr-only"
                 />
                 <span
@@ -249,8 +278,8 @@ export function CourtEditor({
 }: {
   booking: Booking;
   busy: boolean;
-  /** Il campo scelto. Dice se è andata. */
-  onSave: (slotId: string) => Promise<boolean>;
+  /** I campi scelti. Dice se è andata. */
+  onSave: (slotIds: string[]) => Promise<boolean>;
   onClose: () => void;
 }) {
   const form = useCourtForm(booking);
@@ -278,13 +307,18 @@ export function CourtEditor({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!form.changed || form.selected === null) return;
+    if (!form.changed) return;
     if (await onSave(form.selected)) onClose();
   };
 
   return (
     <form ref={container} className="space-y-3" onSubmit={submit} noValidate>
-      <CourtFields form={form} busy={busy} title="Campo" groupRef={group} />
+      <CourtFields
+        form={form}
+        busy={busy}
+        title={form.count > 1 ? "Campi" : "Campo"}
+        groupRef={group}
+      />
 
       <div className="flex justify-end gap-2">
         <Button
@@ -321,7 +355,7 @@ export function CourtDrawer({
   busy: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (slotId: string) => Promise<boolean>;
+  onSave: (slotIds: string[]) => Promise<boolean>;
   /** La riga che lo apre. */
   children: ReactNode;
 }) {
@@ -345,7 +379,7 @@ function DrawerForm({
 }: {
   booking: Booking;
   busy: boolean;
-  onSave: (slotId: string) => Promise<boolean>;
+  onSave: (slotIds: string[]) => Promise<boolean>;
 }) {
   const form = useCourtForm(booking);
   const close = useCloseNested();
@@ -353,7 +387,7 @@ function DrawerForm({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!form.changed || form.selected === null) return;
+    if (!form.changed) return;
     if (await onSave(form.selected)) close();
   };
 

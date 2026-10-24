@@ -13,7 +13,7 @@ import {
 
 import { StatusBadge, type StatusTone } from "@/app/_components/status-badge";
 import { Button } from "@/components/ui/button";
-import { MATCH_DURATION_MS, MAX_PLAYERS } from "@/lib/booking";
+import { MATCH_DURATION_MS } from "@/lib/booking";
 import { cn } from "@/lib/utils";
 
 import {
@@ -32,6 +32,7 @@ import {
   onSiteTotal,
   partialLabel,
   playersLabel,
+  seatsOf,
   shortDayLabel,
   timeRange,
 } from "./lib";
@@ -82,7 +83,7 @@ function noticesOf(booking: Booking): Notice[] {
     });
   }
   if (isPartial(booking)) {
-    const missing = MAX_PLAYERS - booking.players.length;
+    const missing = seatsOf(booking) - booking.players.length;
     notices.push({
       key: "partial",
       tone: "warning",
@@ -208,7 +209,7 @@ export function BookingRow({
           <span className="text-muted-foreground mt-0.5 block truncate text-[13px]">
             {[
               court,
-              `${booking.players.length}/${MAX_PLAYERS}`,
+              `${booking.players.length}/${seatsOf(booking)}`,
               LEVEL_LABELS[booking.level],
             ]
               .filter(Boolean)

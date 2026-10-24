@@ -15,13 +15,16 @@ import { staffGate } from "@/lib/dashboard-api";
 
 const createSchema = z.object({
   bookingDate: z.number(),
-  slotId: z.string().optional(),
+  /** Quanti campi prende il gruppo: due per otto persone. */
+  courts: z.number().int().min(1).max(2).optional(),
+  /** I campi scelti; senza, i primi liberi. */
+  slotIds: z.array(z.string().min(1)).max(2).optional(),
   playerId: z.string().optional(),
   bookedBy: z.string().trim().min(2).max(80),
   phone: z.string().trim().max(30).optional(),
-  players: z.array(z.string().trim().max(80)).max(4),
+  players: z.array(z.string().trim().max(80)).max(8),
   /** I compagni scelti fra i clienti in anagrafica. */
-  linkedPlayerIds: z.array(z.string().min(1)).max(4).optional(),
+  linkedPlayerIds: z.array(z.string().min(1)).max(8).optional(),
   /** Il recapito degli altri giocatori che non sono in anagrafica. */
   guestContacts: z
     .array(
@@ -30,7 +33,7 @@ const createSchema = z.object({
         phone: z.string().trim().max(30),
       }),
     )
-    .max(4)
+    .max(8)
     .optional(),
   level: z.enum(["principiante", "intermedio", "avanzato"]),
   notify: z.boolean(),
@@ -48,7 +51,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { slotId, playerId, phone, linkedPlayerIds, ...rest } = parsed.data;
+  const { slotIds, playerId, phone, linkedPlayerIds, ...rest } = parsed.data;
 
   // Chi la prende resta scritto nella scheda: il nome com'è oggi su Clerk.
   const user = await currentUser().catch(() => null);
@@ -64,7 +67,7 @@ export async function POST(request: Request) {
         secret: gate.secret,
         ...rest,
         phone: phone || undefined,
-        slotId: slotId ? (slotId as Id<"slots">) : undefined,
+        slotIds: slotIds?.map((id) => id as Id<"slots">),
         playerId: playerId ? (playerId as Id<"players">) : undefined,
         linkedPlayerIds: linkedPlayerIds?.map((id) => id as Id<"players">),
         staff: { userId: gate.userId, name: staffName },
