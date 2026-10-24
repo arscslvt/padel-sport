@@ -133,6 +133,13 @@ const players = defineTable({
   /** Quando la persona ha completato la propria iscrizione dal sito. */
   profileCompletedAt: v.optional(v.float64()),
   /**
+   * Già cliente del club prima di avere la scheda: giocava da noi ma non era
+   * ancora registrato in digitale. Lo segna lo staff quando apre la scheda, o
+   * dopo dalla linguetta Punti. Non riceve «Prima partita»
+   * (modules/points/rules.ts).
+   */
+  existingClient: v.optional(v.boolean()),
+  /**
    * Saldo punti: copia di comodo della somma di `pointTransactions`, che resta
    * la verità. Assente vale zero — è il punto di partenza di tutti.
    */

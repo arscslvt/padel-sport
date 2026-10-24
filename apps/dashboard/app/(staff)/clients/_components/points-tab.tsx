@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { POINTS_TERMS_LINK } from "@/lib/links";
 import { pointsLabel, signedPoints } from "@/lib/points";
@@ -68,6 +69,8 @@ interface PointsDetail {
   balance: number;
   /** Account sospeso: niente carichi, rimozioni o adesioni finché dura. */
   frozen: boolean;
+  /** Solo per le schede nate dopo il portale: le altre sono già escluse. */
+  firstMatch: { existingClient: boolean } | null;
   transactions: {
     id: string;
     delta: number;
@@ -235,6 +238,54 @@ export function PointsTab({
     if (saved) {
       setAmount("");
       setLabel("");
+    }
+  };
+
+  const saveExistingClient = async (existingClient: boolean) => {
+    setPending("existing");
+
+    try {
+      const response = await fetch(
+        `/api/dashboard/clients/${playerId}/points/existing-client`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ existingClient }),
+        },
+      );
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        toast.error("Non salvato", {
+          description: payload?.error ?? "Riprova fra poco.",
+        });
+        return;
+      }
+
+      // Il premio già dato non si storna da solo: chi ha messo la spunta deve
+      // saperlo, e decidere lui se toglierlo.
+      if (existingClient && payload.awarded) {
+        toast.warning("Segnato come cliente già esistente", {
+          description:
+            "Aveva già ricevuto «Prima partita»: se va tolto, fallo con un movimento a mano.",
+          duration: 8000,
+        });
+      } else {
+        toast.success(
+          existingClient
+            ? "Segnato come cliente già esistente"
+            : "Segnato come cliente nuovo",
+        );
+      }
+
+      onChanged();
+      await load();
+    } catch {
+      toast.error("Non salvato", {
+        description: "Controlla la connessione e riprova.",
+      });
+    } finally {
+      setPending(null);
     }
   };
 
@@ -661,6 +712,26 @@ export function PointsTab({
             ? ", con modulo firmato allo sportello."
             : ", dalla sua area personale."}
         </p>
+      )}
+
+      {detail.firstMatch && (
+        <section className="flex items-start justify-between gap-3 rounded-lg border p-3">
+          <div className="space-y-1">
+            <Label htmlFor="existing-client" className="text-sm font-semibold">
+              Era già cliente del club
+            </Label>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              Giocava già da noi ma non era ancora registrato: non riceve i
+              punti di «Prima partita».
+            </p>
+          </div>
+          <Switch
+            id="existing-client"
+            checked={detail.firstMatch.existingClient}
+            disabled={pending !== null}
+            onCheckedChange={(checked) => void saveExistingClient(checked)}
+          />
+        </section>
       )}
 
       {!detail.frozen &&

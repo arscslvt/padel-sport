@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { mutation, query } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
+import { reconcileFirstMatch } from "./auto";
 import {
   applyPoints,
   balanceOf,
@@ -10,6 +11,7 @@ import {
   recentTransactions,
   redemptionState,
 } from "./lib";
+import { FIRST_MATCH_NEWCOMERS_SINCE } from "./rules";
 import { programState } from "./terms";
 
 /**
@@ -77,6 +79,14 @@ export const detail = query({
       balance: balanceOf(player),
       /** Account sospeso: i punti sono congelati (lib.ts). */
       frozen: Boolean(player.suspension),
+      /**
+       * Solo le schede nate dopo il portale possono essere di clienti nuovi:
+       * per quelle lo staff dice se la persona era già cliente.
+       */
+      firstMatch:
+        player.createdAt >= FIRST_MATCH_NEWCOMERS_SINCE
+          ? { existingClient: Boolean(player.existingClient) }
+          : null,
       transactions: transactions.map((row) => ({
         id: row._id,
         delta: row.delta,
@@ -147,6 +157,44 @@ export const adjust = mutation({
       note: args.note,
       createdByClerkUserId: args.createdByClerkUserId,
     });
+  },
+});
+
+/**
+ * Segna se la persona era già cliente prima di avere la scheda.
+ *
+ * Tolta la spunta, «Prima partita» si rivaluta subito: se ha già una
+ * prenotazione confermata il premio arriva adesso. Messa la spunta, il premio
+ * già dato resta — come per le schede vecchie (auto.ts): se va tolto, lo
+ * staff lo fa con un movimento a mano, scrivendo lui il perché.
+ */
+export const setExistingClient = mutation({
+  args: {
+    secret: v.string(),
+    playerId: v.id("players"),
+    existingClient: v.boolean(),
+  },
+  handler: async (ctx, { secret, playerId, existingClient }) => {
+    assertServer(secret);
+
+    const player = await ctx.db.get(playerId);
+    if (!player) throw new Error("Cliente non trovato.");
+
+    await ctx.db.patch(playerId, {
+      existingClient: existingClient || undefined,
+    });
+    await reconcileFirstMatch(ctx, playerId);
+
+    const award = (
+      await ctx.db
+        .query("pointTransactions")
+        .withIndex("by_auto_key", (q) =>
+          q.eq("autoKey", `first_match:${playerId}`),
+        )
+        .collect()
+    ).find((row) => !row.reversedAt && !row.reversalOf);
+
+    return { awarded: Boolean(award) };
   },
 });
 

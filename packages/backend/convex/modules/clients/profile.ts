@@ -145,6 +145,11 @@ export const create = mutation({
      * sportello. Senza, l'invito si riconosce dalla mail (modules/referrals).
      */
     referralCode: v.optional(v.string()),
+    /**
+     * Giocava già al club senza essere registrato: non è un cliente nuovo, e
+     * il benvenuto «Prima partita» non gli spetta (modules/points/rules.ts).
+     */
+    existingClient: v.optional(v.boolean()),
   },
   handler: async (ctx, { secret, referralCode, ...fields }) => {
     assertServer(secret);
@@ -174,6 +179,7 @@ export const create = mutation({
       residence: cleanResidence(fields.residence),
       health: cleanHealth(fields.health),
       clubNotes: clean(fields.clubNotes),
+      existingClient: fields.existingClient || undefined,
       code: await generatePlayerCode(ctx),
       createdAt: Date.now(),
     });

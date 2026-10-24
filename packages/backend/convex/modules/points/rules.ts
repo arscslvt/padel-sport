@@ -31,13 +31,18 @@ import { MAX_DELTA } from "./lib";
  * è partito: molti giocavano da anni senza una prenotazione registrata, e il
  * controllo sulle prenotazioni (`pointRules.since`) non bastava a
  * riconoscerli.
+ *
+ * Anche dopo quella data lo staff può registrare chi era già cliente ma non
+ * aveva ancora la scheda: `existingClient` lo tiene fuori.
  */
 export const FIRST_MATCH_NEWCOMERS_SINCE = Date.parse(
   "2026-10-16T21:30:00+02:00",
 );
 
 export function isFirstMatchNewcomer(player: Doc<"players">): boolean {
-  return player.createdAt >= FIRST_MATCH_NEWCOMERS_SINCE;
+  return (
+    player.createdAt >= FIRST_MATCH_NEWCOMERS_SINCE && !player.existingClient
+  );
 }
 
 /** Il premio all'amico invitato: vive dentro «Amico invitato». */

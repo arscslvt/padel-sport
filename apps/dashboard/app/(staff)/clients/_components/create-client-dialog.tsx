@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +68,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
   const [residence, setResidence] = useState<Residence>({});
   const [optional, setOptional] = useState<OptionalFieldsValue>(EMPTY_OPTIONAL);
   const [referralCode, setReferralCode] = useState("");
+  const [existingClient, setExistingClient] = useState(false);
 
   const reset = () => {
     setFirstName("");
@@ -80,6 +82,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
     setResidence({});
     setOptional(EMPTY_OPTIONAL);
     setReferralCode("");
+    setExistingClient(false);
   };
 
   const create = async () => {
@@ -102,6 +105,7 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
           residence: residencePayload(residence),
           ...optionalPayload(optional),
           referralCode: referralCode.trim() || undefined,
+          existingClient,
         }),
       });
 
@@ -212,6 +216,27 @@ export function CreateClientDialog({ onCreated }: { onCreated: () => void }) {
               Se è stato invitato via mail lo riconosciamo anche
               dall&apos;email. Alla prima tessera pagata ricevono i punti sia il
               nuovo cliente sia chi l&apos;ha invitato.
+            </p>
+          </div>
+          {/* Chi giocava già da noi ma non aveva la scheda non è un cliente
+              nuovo: il benvenuto «Prima partita» non gli spetta. */}
+          <div className="space-y-1.5 sm:col-span-2">
+            <label
+              htmlFor="new-existing"
+              className="flex cursor-pointer items-center gap-2 text-sm"
+            >
+              <Checkbox
+                id="new-existing"
+                checked={existingClient}
+                onCheckedChange={(checked) =>
+                  setExistingClient(Boolean(checked))
+                }
+              />
+              Era già cliente del club
+            </label>
+            <p className="text-muted-foreground text-xs">
+              Giocava già da noi ma non era ancora registrato: non riceve i
+              punti di «Prima partita».
             </p>
           </div>
           <div className="space-y-1.5">

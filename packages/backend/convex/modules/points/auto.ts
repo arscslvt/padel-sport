@@ -347,6 +347,17 @@ async function reconcilePlayer(
   }
 }
 
+/**
+ * Rifà i conti di «Prima partita» per una persona, senza aspettare che cambi
+ * una prenotazione: serve quando lo staff corregge se era già cliente.
+ */
+export async function reconcileFirstMatch(
+  ctx: MutationCtx,
+  playerId: Id<"players">,
+) {
+  await reconcilePlayer(ctx, await loadRules(ctx), playerId, []);
+}
+
 async function ruleSince(ctx: QueryCtx, key: PointRuleKey) {
   const row = await ctx.db
     .query("pointRules")

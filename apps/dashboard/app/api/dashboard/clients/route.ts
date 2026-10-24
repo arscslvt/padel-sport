@@ -168,6 +168,8 @@ const createSchema = z.object({
   clubNotes: z.string().trim().max(1000).optional(),
   /** Il codice del cliente che l'ha invitato (modules/referrals). */
   referralCode: z.string().trim().max(10).optional(),
+  /** Giocava già al club senza scheda: niente «Prima partita». */
+  existingClient: z.boolean().optional(),
 });
 
 /**
