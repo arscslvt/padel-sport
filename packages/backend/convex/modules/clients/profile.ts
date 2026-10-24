@@ -4,6 +4,7 @@ import type { Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { generatePlayerCode, LEVEL_MAX, LEVEL_MIN } from "../openMatches/lib";
 import { assertServer } from "../../utils/serverSecret";
+import { clubMoment } from "../settings/lib";
 import {
   consents as consentsValidator,
   gender,
@@ -218,14 +219,31 @@ export const remove = mutation({
       );
     }
 
-    const booking = await ctx.db
+    // Bloccano solo le prenotazioni da oggi in avanti, non annullate: lì la
+    // scheda serve ancora (avvisi, punti, recapito). Quelle passate perdono
+    // il collegamento e tengono il nome scritto, come per un ospite.
+    const now = Date.now();
+    const startOfToday =
+      now - clubMoment(now).minutes * 60_000 - (now % 60_000);
+
+    const booked = await ctx.db
       .query("bookings")
       .withIndex("by_created_by_player", (q) => q.eq("createdByPlayer", playerId))
-      .first();
+      .collect();
+    const playing = await ctx.db
+      .query("bookingPlayers")
+      .withIndex("by_player", (q) => q.eq("playerId", playerId))
+      .collect();
 
-    if (booking) {
+    const upcoming =
+      booked.some(
+        (booking) =>
+          booking.status !== "cancelled" && booking.bookingDate >= startOfToday,
+      ) || playing.some((row) => row.bookingDate >= startOfToday);
+
+    if (upcoming) {
       throw new ConvexError(
-        "Questa persona ha delle prenotazioni: la scheda non si può eliminare.",
+        "Questa persona ha delle prenotazioni da oggi in avanti: annullale o cambia i giocatori, poi elimina la scheda.",
       );
     }
 
@@ -238,6 +256,30 @@ export const remove = mutation({
       throw new ConvexError(
         "Questa persona ha delle partite: la scheda non si può eliminare.",
       );
+    }
+
+    const pastIds = new Set([
+      ...booked.map((booking) => booking._id),
+      ...playing.map((row) => row.bookingId),
+    ]);
+    for (const bookingId of pastIds) {
+      const booking = await ctx.db.get(bookingId);
+      if (!booking) continue;
+      await ctx.db.patch(bookingId, {
+        createdByPlayer:
+          booking.createdByPlayer === playerId
+            ? undefined
+            : booking.createdByPlayer,
+        linkedPlayerIds: booking.linkedPlayerIds?.filter(
+          (id) => id !== playerId,
+        ),
+        memberPlayers: booking.memberPlayers?.filter(
+          (member) => member.playerId !== playerId,
+        ),
+      });
+    }
+    for (const row of playing) {
+      await ctx.db.delete(row._id);
     }
 
     for (const membership of await ctx.db

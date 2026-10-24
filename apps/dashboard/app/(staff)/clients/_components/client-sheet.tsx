@@ -51,6 +51,7 @@ import { AccountSuspension } from "./account-suspension";
 import { ClientPageLayout, ClientPageSkeleton } from "./client-page-layout";
 import { LevelSelect } from "./level-select";
 import { MembershipBadge } from "./membership-badge";
+import { MergeClient } from "./merge-client";
 import {
   EMPTY_OPTIONAL,
   OptionalFields,
@@ -876,19 +877,26 @@ export function ClientDetailView({
 
           {client.account.state === "none" && (
             <div className="border-t pt-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={confirmRemove}
-                disabled={busy}
-              >
-                <Trash2 className="size-4" />
-                Elimina questa scheda
-              </Button>
+              <div className="flex flex-wrap gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={confirmRemove}
+                  disabled={busy}
+                >
+                  <Trash2 className="size-4" />
+                  Elimina questa scheda
+                </Button>
+                <MergeClient
+                  client={client}
+                  disabled={busy}
+                  onMerged={onRemoved}
+                />
+              </div>
               <p className="text-muted-foreground mt-1 text-xs">
-                Possibile finché la persona non ha un account né prenotazioni
-                alle spalle.
+                Si elimina finché non ha un account né prenotazioni da oggi in
+                avanti. Se è un doppione, uniscila all'altra scheda.
               </p>
             </div>
           )}
@@ -1279,19 +1287,26 @@ export function ClientDetailView({
 
             {client.account.state === "none" && (
               <div className="border-t pt-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={confirmRemove}
-                  disabled={busy}
-                >
-                  <Trash2 className="size-4" />
-                  Elimina questa scheda
-                </Button>
+                <div className="flex flex-wrap gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={confirmRemove}
+                    disabled={busy}
+                  >
+                    <Trash2 className="size-4" />
+                    Elimina questa scheda
+                  </Button>
+                  <MergeClient
+                    client={client}
+                    disabled={busy}
+                    onMerged={onRemoved}
+                  />
+                </div>
                 <p className="text-muted-foreground mt-1 text-xs">
-                  Possibile finché la persona non ha un account né prenotazioni
-                  alle spalle.
+                  Si elimina finché non ha un account né prenotazioni da oggi in
+                  avanti. Se è un doppione, uniscila all'altra scheda.
                 </p>
               </div>
             )}

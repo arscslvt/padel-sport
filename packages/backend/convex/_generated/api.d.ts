@@ -44,6 +44,7 @@ import type * as modules_clients_invites from "../modules/clients/invites.js";
 import type * as modules_clients_lib from "../modules/clients/lib.js";
 import type * as modules_clients_list from "../modules/clients/list.js";
 import type * as modules_clients_membership from "../modules/clients/membership.js";
+import type * as modules_clients_merge from "../modules/clients/merge.js";
 import type * as modules_clients_profile from "../modules/clients/profile.js";
 import type * as modules_clients_self from "../modules/clients/self.js";
 import type * as modules_clients_suspension from "../modules/clients/suspension.js";
@@ -248,6 +249,7 @@ declare const fullApi: ApiFromModules<{
   "modules/clients/lib": typeof modules_clients_lib;
   "modules/clients/list": typeof modules_clients_list;
   "modules/clients/membership": typeof modules_clients_membership;
+  "modules/clients/merge": typeof modules_clients_merge;
   "modules/clients/profile": typeof modules_clients_profile;
   "modules/clients/self": typeof modules_clients_self;
   "modules/clients/suspension": typeof modules_clients_suspension;
