@@ -1,6 +1,7 @@
 import "server-only";
 
 import { clerkClient } from "@clerk/nextjs/server";
+import { ConvexError } from "convex/values";
 
 import { STAFF_ORG_SLUG } from "@/lib/clerk";
 
@@ -100,6 +101,17 @@ export async function clerkIdentities(
 
 /** Il messaggio dentro l'errore Convex, che altrimenti arriva incapsulato. */
 export function convexMessage(error: unknown, fallback: string): string {
+  // Un `ConvexError` porta il testo nei dati, e lo porta anche in produzione,
+  // dove invece il messaggio di un errore qualunque viene nascosto.
+  if (error instanceof ConvexError) {
+    const data: unknown = error.data;
+    if (typeof data === "string") return data;
+    if (data && typeof data === "object" && "message" in data) {
+      const { message } = data as { message: unknown };
+      if (typeof message === "string") return message;
+    }
+  }
+
   if (!(error instanceof Error)) return fallback;
 
   // Il sito chiama una funzione che il deployment non ha ancora: succede quando

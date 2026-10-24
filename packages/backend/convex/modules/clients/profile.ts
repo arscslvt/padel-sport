@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
 import type { Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
@@ -207,11 +207,13 @@ export const remove = mutation({
   handler: async (ctx, { secret, playerId }) => {
     assertServer(secret);
 
+    // `ConvexError` e non `Error`: in produzione Convex nasconde il testo degli
+    // errori qualunque, e allo sportello arriverebbe solo «non riesco».
     const player = await ctx.db.get(playerId);
-    if (!player) throw new Error("Scheda non trovata.");
+    if (!player) throw new ConvexError("Scheda non trovata.");
 
     if (player.clerkUserId) {
-      throw new Error(
+      throw new ConvexError(
         "Questa scheda è collegata a un account: annulla prima l'invito.",
       );
     }
@@ -222,7 +224,7 @@ export const remove = mutation({
       .first();
 
     if (booking) {
-      throw new Error(
+      throw new ConvexError(
         "Questa persona ha delle prenotazioni: la scheda non si può eliminare.",
       );
     }
@@ -233,7 +235,7 @@ export const remove = mutation({
       .first();
 
     if (match) {
-      throw new Error(
+      throw new ConvexError(
         "Questa persona ha delle partite: la scheda non si può eliminare.",
       );
     }
