@@ -30,13 +30,19 @@ export function DayStrip({
   /** I giorni in cui il club è chiuso. */
   closed?: ReadonlySet<string>;
 }) {
+  const stripRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
 
+  // Solo di lato, dentro la striscia: `scrollIntoView` farebbe scorrere anche
+  // ciò che la contiene, e un modulo in un drawer si aprirebbe a metà.
   // biome-ignore lint/correctness/useExhaustiveDependencies: si riallinea quando cambia il giorno scelto.
   useEffect(() => {
-    selectedRef.current?.scrollIntoView({
-      block: "nearest",
-      inline: "center",
+    const strip = stripRef.current;
+    const day = selectedRef.current;
+    if (!strip || !day) return;
+
+    strip.scrollTo({
+      left: day.offsetLeft - (strip.clientWidth - day.offsetWidth) / 2,
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ? "auto"
         : "smooth",
@@ -45,12 +51,13 @@ export function DayStrip({
 
   return (
     <div
+      ref={stripRef}
       role="tablist"
       aria-label="Giorno"
       data-tour="agenda-days"
       // Scorre di lato da sé: non sposta la giornata sotto (day-pager.tsx).
       data-swipe-ignore
-      className="-mx-4 flex snap-x scroll-px-4 gap-1 overflow-x-auto px-4 pb-1 md:scroll-px-6 [scrollbar-width:none] md:-mx-6 md:px-6 [&::-webkit-scrollbar]:hidden"
+      className="relative -mx-4 flex snap-x scroll-px-4 gap-1 overflow-x-auto px-4 pb-1 md:scroll-px-6 [scrollbar-width:none] md:-mx-6 md:px-6 [&::-webkit-scrollbar]:hidden"
     >
       {days.map((day) => {
         const isSelected = day === selected;
