@@ -72,8 +72,11 @@ export default query({
     const excluded = new Set(excludeClerkUserIds ?? []);
 
     // Le schede senza account non possono essere di nessuno dello staff.
+    // Le schede eliminate restano solo come copia: in elenco non ci sono.
     const players = (await ctx.db.query("players").collect()).filter(
-      (player) => !player.clerkUserId || !excluded.has(player.clerkUserId),
+      (player) =>
+        !player.deletion?.deletedAt &&
+        (!player.clerkUserId || !excluded.has(player.clerkUserId)),
     );
 
     const now = Date.now();
@@ -143,6 +146,16 @@ export const detail = query({
       residence: player.residence,
       health: player.health,
       clubNotes: player.clubNotes,
+      // A che punto è l'eliminazione dell'account (modules/clients/deletion.ts).
+      deletion: player.deletion
+        ? {
+            requestedAt: player.deletion.requestedAt,
+            requestedBy: player.deletion.requestedBy,
+            effectiveAt: player.deletion.effectiveAt,
+            deletedAt: player.deletion.deletedAt,
+            purgeAt: player.deletion.purgeAt,
+          }
+        : null,
       membershipState: state,
       memberships: history.map((row) => ({
         id: row._id,

@@ -40,6 +40,7 @@ import type * as modules_circles_list from "../modules/circles/list.js";
 import type * as modules_circles_remove from "../modules/circles/remove.js";
 import type * as modules_circles_respond from "../modules/circles/respond.js";
 import type * as modules_circles_update from "../modules/circles/update.js";
+import type * as modules_clients_deletion from "../modules/clients/deletion.js";
 import type * as modules_clients_invites from "../modules/clients/invites.js";
 import type * as modules_clients_lib from "../modules/clients/lib.js";
 import type * as modules_clients_list from "../modules/clients/list.js";
@@ -245,6 +246,7 @@ declare const fullApi: ApiFromModules<{
   "modules/circles/remove": typeof modules_circles_remove;
   "modules/circles/respond": typeof modules_circles_respond;
   "modules/circles/update": typeof modules_circles_update;
+  "modules/clients/deletion": typeof modules_clients_deletion;
   "modules/clients/invites": typeof modules_clients_invites;
   "modules/clients/lib": typeof modules_clients_lib;
   "modules/clients/list": typeof modules_clients_list;

@@ -185,10 +185,42 @@ const players = defineTable({
       suspendedByClerkUserId: v.optional(v.string()),
     }),
   ),
+  /**
+   * Eliminazione dell'account (modules/clients/deletion.ts).
+   *
+   * Controllata: chiesta dalla persona o dallo staff, diventa effettiva a
+   * `effectiveAt`, trenta giorni dopo; fino ad allora si annulla e l'account
+   * funziona come sempre. Immediata: `effectiveAt` è il momento della
+   * richiesta.
+   *
+   * Effettiva (`deletedAt`): l'utente Clerk viene cancellato e la scheda resta
+   * congelata come copia, senza email, account né codice — li tiene `backup`
+   * — così non la trova più nessuna ricerca né un nuovo accesso. A `purgeAt`,
+   * un anno dopo, se ne va del tutto.
+   */
+  deletion: v.optional(
+    v.object({
+      requestedAt: v.float64(),
+      requestedBy: v.union(v.literal("self"), v.literal("staff")),
+      requestedByClerkUserId: v.optional(v.string()),
+      effectiveAt: v.float64(),
+      deletedAt: v.optional(v.float64()),
+      purgeAt: v.optional(v.float64()),
+      backup: v.optional(
+        v.object({
+          clerkUserId: v.optional(v.string()),
+          email: v.optional(v.string()),
+          code: v.optional(v.string()),
+        }),
+      ),
+    }),
+  ),
 })
   .index("by_clerk_user_id", ["clerkUserId"])
   .index("by_code", ["code"])
   .index("by_email", ["email"])
+  .index("by_deletion_effective", ["deletion.effectiveAt"])
+  .index("by_deletion_purge", ["deletion.purgeAt"])
   .searchIndex("by_name", { searchField: "name" });
 
 export default players;

@@ -94,6 +94,19 @@ export interface ClientDetail extends Omit<Client, "membership"> {
   health?: Health;
   /** Note interne dello staff: non escono mai verso il cliente. */
   clubNotes?: string;
+  /**
+   * L'eliminazione dell'account: in corso finché non c'è `deletedAt`, poi la
+   * scheda è solo una copia fino a `purgeAt`.
+   */
+  deletion: ClientDeletion | null;
+}
+
+export interface ClientDeletion {
+  requestedAt: number;
+  requestedBy: "self" | "staff";
+  effectiveAt: number;
+  deletedAt?: number;
+  purgeAt?: number;
 }
 
 /**

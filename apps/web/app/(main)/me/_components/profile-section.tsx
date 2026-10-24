@@ -31,6 +31,7 @@ import { convexMessage } from "@/lib/clients";
 import { PERSONAL_AREA_LINK } from "@/lib/links";
 import { formatClubDate } from "@/lib/points";
 
+import { DeleteAccount, DeletionNotice } from "./account-deletion";
 import { SectionTitle } from "./section-title";
 
 /**
@@ -65,6 +66,7 @@ export function ProfileSection() {
 
   return (
     <div className="space-y-14">
+      <DeletionNotice />
       <ContactsAndDetails profile={profile} />
       <Findable searchable={profile.searchable} />
       <MembershipFacts profile={profile} />
@@ -94,6 +96,8 @@ export function ProfileSection() {
           Esci
         </Button>
       </section>
+
+      <DeleteAccount />
     </div>
   );
 }

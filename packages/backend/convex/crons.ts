@@ -45,6 +45,25 @@ crons.interval(
  * ora — ma parte solo alle 9 e alle 14 del club — i prossimi giorni ancora
  * senza partite.
  */
+/**
+ * L'eliminazione degli account (modules/clients/deletion.ts): ogni ora le
+ * cancellazioni controllate arrivate ai trenta giorni, ogni giorno le copie
+ * congelate da più di un anno.
+ */
+crons.interval(
+  "account da eliminare",
+  { hours: 1 },
+  internal.modules.clients.deletion.runDue,
+  {},
+);
+
+crons.interval(
+  "account eliminati da rimuovere",
+  { hours: 24 },
+  internal.modules.clients.deletion.purgeDue,
+  {},
+);
+
 crons.interval(
   "promemoria partite in partenza",
   { minutes: 1 },

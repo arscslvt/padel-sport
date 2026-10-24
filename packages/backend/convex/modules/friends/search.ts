@@ -44,7 +44,7 @@ export default query({
     const results: SearchResultView[] = [];
 
     for (const match of matches) {
-      if (match._id === player._id) continue;
+      if (match._id === player._id || match.deletion?.deletedAt) continue;
 
       const friendship = await friendshipBetween(ctx, player._id, match._id);
 

@@ -39,6 +39,11 @@ export function balanceOf(player: Doc<"players">): number {
  * riattiva. È quello che le promette la mail di sospensione.
  */
 export function assertPointsUnfrozen(player: Doc<"players">) {
+  if (player.deletion?.deletedAt) {
+    throw new Error(
+      "Questa scheda è stata eliminata: i suoi punti restano solo come copia.",
+    );
+  }
   if (player.suspension) {
     throw new Error(
       "L'account di questa persona è sospeso: i suoi punti sono congelati fino alla riattivazione.",

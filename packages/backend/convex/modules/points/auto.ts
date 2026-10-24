@@ -172,7 +172,7 @@ async function award(
   if (await activeAward(ctx, args.autoKey)) return;
 
   const player = await ctx.db.get(args.playerId);
-  if (!player || player.suspension) return;
+  if (!player || player.suspension || player.deletion?.deletedAt) return;
 
   const { transactionId } = await applyPoints(ctx, {
     playerId: args.playerId,
@@ -211,8 +211,9 @@ async function revoke(ctx: MutationCtx, autoKey: string) {
   const player = await ctx.db.get(transaction.playerId);
   if (!player) return;
 
-  // Congelati per la sospensione: lo storno aspetta la riattivazione.
-  if (player.suspension) return;
+  // Congelati per la sospensione: lo storno aspetta la riattivazione. Una
+  // scheda eliminata è solo una copia: non si tocca più.
+  if (player.suspension || player.deletion?.deletedAt) return;
 
   const now = Date.now();
   const amount = Math.min(transaction.delta, balanceOf(player));

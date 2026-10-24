@@ -130,6 +130,10 @@ async function mergeCards(
   ]);
   if (!from || !into) throw new ConvexError("Scheda non trovata.");
 
+  if (from.deletion?.deletedAt || into.deletion?.deletedAt) {
+    throw new ConvexError("Una delle due schede è stata eliminata.");
+  }
+
   if (from.clerkUserId) {
     throw new ConvexError(
       "Questa scheda è collegata a un account: unisci l'altra scheda a questa, non il contrario.",

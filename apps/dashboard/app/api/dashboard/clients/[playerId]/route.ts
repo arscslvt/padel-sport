@@ -126,29 +126,3 @@ export async function PATCH(
     );
   }
 }
-
-/** Elimina una scheda aperta per sbaglio. I paletti stanno nella mutation. */
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ playerId: string }> },
-) {
-  const gate = await staffGate();
-  if (!gate.ok) return gate.response;
-
-  const { playerId } = await params;
-
-  try {
-    await gate.convex.mutation(api.modules.clients.profile.remove, {
-      secret: gate.secret,
-      playerId: playerId as Id<"players">,
-    });
-
-    return NextResponse.json({ deleted: true });
-  } catch (error) {
-    console.error("Scheda non eliminata:", error);
-    return NextResponse.json(
-      { error: convexMessage(error, "Non riesco a eliminare la scheda.") },
-      { status: 400 },
-    );
-  }
-}

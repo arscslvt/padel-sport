@@ -49,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { AccountBadge } from "./account-badge";
 import { AccountSuspension } from "./account-suspension";
 import { ClientPageLayout, ClientPageSkeleton } from "./client-page-layout";
+import { DeleteClient, DeletionStatus } from "./delete-client";
 import { LevelSelect } from "./level-select";
 import { MembershipBadge } from "./membership-badge";
 import { MergeClient } from "./merge-client";
@@ -132,7 +133,11 @@ const detailCache = new Map<string, ClientDetail>();
  */
 function previewDetail(row: Client): ClientDetail {
   const { membership, ...rest } = row;
-  return { ...rest, memberships: membership ? [membership] : [] };
+  return {
+    ...rest,
+    memberships: membership ? [membership] : [],
+    deletion: null,
+  };
 }
 
 /** I valori del modulo anagrafico per una scheda, nella forma dei suoi campi. */
@@ -454,67 +459,6 @@ export function ClientDetailView({
     } finally {
       setSaving(false);
     }
-  };
-
-  const removeClient = async () => {
-    if (!playerId) return;
-
-    setSaving(true);
-    try {
-      const response = await fetch(`/api/dashboard/clients/${playerId}`, {
-        method: "DELETE",
-      });
-      const payload = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        toast.error("Scheda non eliminata", {
-          description: payload?.error ?? "Riprova fra poco.",
-        });
-        return;
-      }
-
-      toast.success("Scheda eliminata");
-      onRemoved();
-    } catch {
-      toast.error("Scheda non eliminata", {
-        description: "Controlla la connessione e riprova.",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  /** Eliminare un cliente non è un gesto da fare di sfuggita. */
-  const confirmRemove = () => {
-    toast("Eliminare questa scheda?", {
-      description: (
-        <>
-          <span className="font-medium">{client?.name}</span> sparisce
-          dall'anagrafica insieme alle sue tessere. Non è reversibile.
-          <div className="mt-3 flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1 bg-transparent"
-              onClick={() => toast.dismiss()}
-            >
-              Annulla
-            </Button>
-            <Button
-              variant="destructive"
-              className="flex-1"
-              onClick={() => {
-                toast.dismiss();
-                void removeClient();
-              }}
-            >
-              <Trash2 className="size-4" />
-              Elimina
-            </Button>
-          </div>
-        </>
-      ),
-      duration: Number.POSITIVE_INFINITY,
-    });
   };
 
   const saveProfile = async () => {
@@ -860,6 +804,15 @@ export function ClientDetailView({
         )}
       >
         <TabsContent value="profile" className="space-y-8 pt-5">
+          <DeletionStatus
+            client={client}
+            disabled={busy}
+            onChanged={() => {
+              onSaved();
+              void refresh();
+            }}
+            onDeleted={onRemoved}
+          />
           {profileForm}
 
           <Button
@@ -875,29 +828,24 @@ export function ClientDetailView({
             Salva anagrafica
           </Button>
 
-          {client.account.state === "none" && (
-            <div className="border-t pt-4">
-              <div className="flex flex-wrap gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={confirmRemove}
-                  disabled={busy}
-                >
-                  <Trash2 className="size-4" />
-                  Elimina questa scheda
-                </Button>
+          {!client.deletion && (
+            <div className="flex flex-wrap gap-1 border-t pt-4">
+              <DeleteClient
+                client={client}
+                disabled={busy}
+                onScheduled={() => {
+                  onSaved();
+                  void refresh();
+                }}
+                onDeleted={onRemoved}
+              />
+              {client.account.state === "none" && (
                 <MergeClient
                   client={client}
                   disabled={busy}
                   onMerged={onRemoved}
                 />
-              </div>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Si elimina finché non ha un account né prenotazioni da oggi in
-                avanti. Se è un doppione, uniscila all'altra scheda.
-              </p>
+              )}
             </div>
           )}
         </TabsContent>
@@ -1270,6 +1218,15 @@ export function ClientDetailView({
           )}
         >
           <TabsContent value="profile" className="space-y-8 pt-5">
+            <DeletionStatus
+              client={client}
+              disabled={busy}
+              onChanged={() => {
+                onSaved();
+                void refresh();
+              }}
+              onDeleted={onRemoved}
+            />
             {profileForm}
 
             <Button
@@ -1285,29 +1242,24 @@ export function ClientDetailView({
               Salva anagrafica
             </Button>
 
-            {client.account.state === "none" && (
-              <div className="border-t pt-4">
-                <div className="flex flex-wrap gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    onClick={confirmRemove}
-                    disabled={busy}
-                  >
-                    <Trash2 className="size-4" />
-                    Elimina questa scheda
-                  </Button>
+            {!client.deletion && (
+              <div className="flex flex-wrap gap-1 border-t pt-4">
+                <DeleteClient
+                  client={client}
+                  disabled={busy}
+                  onScheduled={() => {
+                    onSaved();
+                    void refresh();
+                  }}
+                  onDeleted={onRemoved}
+                />
+                {client.account.state === "none" && (
                   <MergeClient
                     client={client}
                     disabled={busy}
                     onMerged={onRemoved}
                   />
-                </div>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  Si elimina finché non ha un account né prenotazioni da oggi in
-                  avanti. Se è un doppione, uniscila all'altra scheda.
-                </p>
+                )}
               </div>
             )}
           </TabsContent>

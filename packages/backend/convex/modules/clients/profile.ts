@@ -1,10 +1,9 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 
 import type { Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { generatePlayerCode, LEVEL_MAX, LEVEL_MIN } from "../openMatches/lib";
 import { assertServer } from "../../utils/serverSecret";
-import { clubMoment } from "../settings/lib";
 import {
   consents as consentsValidator,
   gender,
@@ -190,129 +189,6 @@ export const create = mutation({
     await attachReferral(ctx, { _id: playerId, email }, referralCode);
 
     return playerId;
-  },
-});
-
-/**
- * Elimina la scheda aperta per sbaglio.
- *
- * Solo quella: si cancella una scheda che non è mai diventata nessuno — senza
- * account e senza aver mai messo piede in campo. Se la persona ha prenotato,
- * giocato o si è iscritta a una cerchia, cancellarla lascerebbe righe che
- * puntano nel vuoto, e il rimedio giusto è correggere i dati, non farla sparire.
- *
- * Tessere e inviti se ne vanno con lei: non sono di nessun altro.
- */
-export const remove = mutation({
-  args: { secret: v.string(), playerId: v.id("players") },
-  handler: async (ctx, { secret, playerId }) => {
-    assertServer(secret);
-
-    // `ConvexError` e non `Error`: in produzione Convex nasconde il testo degli
-    // errori qualunque, e allo sportello arriverebbe solo «non riesco».
-    const player = await ctx.db.get(playerId);
-    if (!player) throw new ConvexError("Scheda non trovata.");
-
-    if (player.clerkUserId) {
-      throw new ConvexError(
-        "Questa scheda è collegata a un account: annulla prima l'invito.",
-      );
-    }
-
-    // Bloccano solo le prenotazioni da oggi in avanti, non annullate: lì la
-    // scheda serve ancora (avvisi, punti, recapito). Quelle passate perdono
-    // il collegamento e tengono il nome scritto, come per un ospite.
-    const now = Date.now();
-    const startOfToday =
-      now - clubMoment(now).minutes * 60_000 - (now % 60_000);
-
-    const booked = await ctx.db
-      .query("bookings")
-      .withIndex("by_created_by_player", (q) => q.eq("createdByPlayer", playerId))
-      .collect();
-    const playing = await ctx.db
-      .query("bookingPlayers")
-      .withIndex("by_player", (q) => q.eq("playerId", playerId))
-      .collect();
-
-    const upcoming =
-      booked.some(
-        (booking) =>
-          booking.status !== "cancelled" && booking.bookingDate >= startOfToday,
-      ) || playing.some((row) => row.bookingDate >= startOfToday);
-
-    if (upcoming) {
-      throw new ConvexError(
-        "Questa persona ha delle prenotazioni da oggi in avanti: annullale o cambia i giocatori, poi elimina la scheda.",
-      );
-    }
-
-    const match = await ctx.db
-      .query("openMatches")
-      .withIndex("by_creator", (q) => q.eq("creatorId", playerId))
-      .first();
-
-    if (match) {
-      throw new ConvexError(
-        "Questa persona ha delle partite: la scheda non si può eliminare.",
-      );
-    }
-
-    const pastIds = new Set([
-      ...booked.map((booking) => booking._id),
-      ...playing.map((row) => row.bookingId),
-    ]);
-    for (const bookingId of pastIds) {
-      const booking = await ctx.db.get(bookingId);
-      if (!booking) continue;
-      await ctx.db.patch(bookingId, {
-        createdByPlayer:
-          booking.createdByPlayer === playerId
-            ? undefined
-            : booking.createdByPlayer,
-        linkedPlayerIds: booking.linkedPlayerIds?.filter(
-          (id) => id !== playerId,
-        ),
-        memberPlayers: booking.memberPlayers?.filter(
-          (member) => member.playerId !== playerId,
-        ),
-      });
-    }
-    for (const row of playing) {
-      await ctx.db.delete(row._id);
-    }
-
-    for (const membership of await ctx.db
-      .query("memberships")
-      .withIndex("by_player", (q) => q.eq("playerId", playerId))
-      .collect()) {
-      await ctx.db.delete(membership._id);
-    }
-
-    for (const invite of await ctx.db
-      .query("clientInvites")
-      .withIndex("by_player", (q) => q.eq("playerId", playerId))
-      .collect()) {
-      await ctx.db.delete(invite._id);
-    }
-
-    // Il conto punti di una scheda aperta per sbaglio non ha storia da
-    // conservare: se ne va con lei, come tessere e inviti.
-    for (const transaction of await ctx.db
-      .query("pointTransactions")
-      .withIndex("by_player", (q) => q.eq("playerId", playerId))
-      .collect()) {
-      await ctx.db.delete(transaction._id);
-    }
-
-    for (const redemption of await ctx.db
-      .query("rewardRedemptions")
-      .withIndex("by_player", (q) => q.eq("playerId", playerId))
-      .collect()) {
-      await ctx.db.delete(redemption._id);
-    }
-
-    await ctx.db.delete(playerId);
   },
 });
 
