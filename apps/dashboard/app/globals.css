@@ -68,6 +68,7 @@
   --color-info-foreground: var(--info-foreground);
   --color-info-subtle: var(--info-subtle);
   --color-info-border: var(--info-border);
+  --color-rain: var(--rain);
 
   /* Il verde del club: l'unico accento delle pagine d'accesso. */
   --color-club: var(--club);
@@ -140,6 +141,17 @@
   --info-foreground: oklch(0.4 0.1 255);
   --info-subtle: oklch(0.97 0.02 255);
   --info-border: oklch(0.9 0.05 255);
+
+  /*
+   * Il meteo in agenda (agenda/weather.tsx): la pioggia ha il suo azzurro, e
+   * il riquadro prende una velatura che cambia con il tempo che fa. Sono
+   * colori del cielo, non accenti: restano tenui.
+   */
+  --rain: oklch(0.62 0.13 245);
+  --weather-sun: oklch(0.88 0.11 85 / 0.45);
+  --weather-cloud: oklch(0.86 0.01 250 / 0.5);
+  --weather-rain: oklch(0.78 0.07 240 / 0.45);
+  --weather-storm: oklch(0.68 0.08 285 / 0.4);
 
   /* Banda scura (sezione "Prossimi Eventi"). */
   --ink: oklch(0.16 0 0);
@@ -246,6 +258,12 @@
   --info-foreground: oklch(0.87 0.07 255);
   --info-subtle: oklch(0.25 0.05 255);
   --info-border: oklch(0.38 0.08 255);
+
+  --rain: oklch(0.74 0.12 240);
+  --weather-sun: oklch(0.7 0.11 80 / 0.16);
+  --weather-cloud: oklch(0.6 0.01 250 / 0.14);
+  --weather-rain: oklch(0.6 0.1 240 / 0.2);
+  --weather-storm: oklch(0.55 0.1 285 / 0.22);
 
   /*
    * Al buio il verde profondo sparirebbe sul fondo: le pagine d'accesso
@@ -498,4 +516,71 @@
     animation: none;
     opacity: 0;
   }
+}
+
+/*
+ * L'entrata morbida dei pezzi che compaiono una volta per apertura: da sfocati
+ * a nitidi, come quando si mette a fuoco.
+ */
+@keyframes focus-in {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(0.3em);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+/*
+ * Il meteo che arriva (agenda/weather.tsx): i pezzi del riquadro si mettono a
+ * fuoco in cascata, prima il cielo, poi la temperatura, poi il responso e il
+ * grafico. Una volta per apertura: CSS e non JS perché è il momento in cui la
+ * pagina sta ancora caricando, e un'animazione sul thread principale
+ * perderebbe frame. `backwards` e non `both`: finita l'entrata l'elemento
+ * torna ai suoi stili, senza un `transform` incollato sopra.
+ */
+.weather-reveal {
+  animation: focus-in 640ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weather-reveal {
+    animation-name: auth-fade;
+    animation-duration: 300ms;
+  }
+}
+
+/*
+ * slot-text (i testi che rotolano: il titolo dell'agenda, i saldi dei punti).
+ *
+ * Quando il testo nuovo è più corto, la libreria svuota il misuratore delle
+ * caselle in avanzo: una casella vuota non ha altezza, e il suo ritaglio
+ * verticale nasconde di colpo la lettera che dovrebbe rotolare via. Da «Buon
+ * pomeriggio, Salvatore» ad «Agenda» sparivano così venti lettere in un
+ * colpo. Uno spazio senza larghezza tiene la casella alta quanto la riga, e
+ * la lettera esce rotolando come le altre.
+ */
+.char-sizer:empty::before {
+  content: "\200b";
+}
+
+/*
+ * Mentre le lettere rotolano, i bordi dei rulli sfumano invece di tagliare:
+ * la lettera che esce si dissolve verso l'alto, quella che entra affiora dal
+ * basso. Solo durante il rotolamento (`data-rolling`, agenda/greeting.tsx):
+ * da ferme le lettere restano intere, discendenti comprese.
+ */
+[data-rolling] > .slot-text {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 14%,
+    #000 86%,
+    transparent 100%
+  );
 }

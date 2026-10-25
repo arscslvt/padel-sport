@@ -78,4 +78,15 @@ crons.hourly(
   {},
 );
 
+/**
+ * Il meteo al club per l'agenda della dashboard: ogni ora, ma legge davvero
+ * solo a mezzanotte e alle 14 del club (modules/weather/refresh.ts).
+ */
+crons.hourly(
+  "meteo al club",
+  { minuteUTC: 0 },
+  internal.modules.weather.refresh.default,
+  {},
+);
+
 export default crons;

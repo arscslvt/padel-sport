@@ -7,18 +7,27 @@ import { staffAdminGate } from "@/lib/dashboard-api";
 
 /**
  * Le chiusure del club per date: aggiungerne una, toglierla. Solo staff.
- * Valgono subito, senza passare dal salvataggio degli orari.
+ * Valgono subito, senza passare dal salvataggio degli orari. Con `start` ed
+ * `end` chiudono solo una fascia del giorno (la pioggia, dall'agenda).
  */
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const time = z.string().regex(/^([01]\d|2[0-3]):(00|30)$/);
 
 const addSchema = z.object({
   from: day,
   to: day,
   reason: z.string().trim().max(60).optional(),
+  start: time.optional(),
+  end: time.optional(),
 });
 
-const removeSchema = z.object({ from: day, to: day });
+const removeSchema = z.object({
+  from: day,
+  to: day,
+  start: time.optional(),
+  end: time.optional(),
+});
 
 export async function POST(request: Request) {
   const gate = await staffAdminGate();

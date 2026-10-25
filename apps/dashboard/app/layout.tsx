@@ -6,6 +6,7 @@ import type React from "react";
 import { KeyboardInset } from "@/components/ui/keyboard-inset";
 import { APP_NAME, appIcon } from "@/lib/app";
 import { SIGN_IN_PATH } from "@/lib/auth-routes";
+import { StaffNameSync } from "@/lib/staff-name";
 import { ConvexClientProvider } from "@/providers/convex.provider";
 import { DASHBOARD_CHROME_COLOR } from "./_components/chrome";
 import { StatusBarScrim } from "./_components/status-bar-scrim";
@@ -134,6 +135,8 @@ export default function RootLayout({
             <ConvexClientProvider>{children}</ConvexClientProvider>
           </ThemeProvider>
           <StatusBarScrim />
+          {/* Il nome di chi è entrato, pronto per il saluto: lib/staff-name.ts */}
+          <StaffNameSync />
           {/* La tastiera misurata per i drawer: components/ui/keyboard-inset.tsx */}
           <KeyboardInset />
         </body>

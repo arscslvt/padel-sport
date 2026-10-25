@@ -22,12 +22,19 @@ export function PageHeader({
   actions,
   back,
   className,
+  clipTitle = true,
 }: {
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
   back?: { href: string; label: string };
   className?: string;
+  /**
+   * Un titolo troppo lungo finisce con i puntini. `false` per un titolo che
+   * si anima uscendo dai suoi bordi (il saluto dell'agenda, che si sfoca):
+   * resta su una riga, ma niente lo taglia.
+   */
+  clipTitle?: boolean;
 }) {
   return (
     <header
@@ -46,7 +53,12 @@ export function PageHeader({
         </Link>
       )}
       <div className="flex items-center justify-between gap-3">
-        <h1 className="min-w-0 truncate text-[1.75rem] leading-tight font-semibold tracking-[-0.02em] md:text-2xl">
+        <h1
+          className={cn(
+            "min-w-0 text-[1.75rem] leading-tight font-semibold tracking-[-0.02em] md:text-2xl",
+            clipTitle ? "truncate" : "whitespace-nowrap",
+          )}
+        >
           {title}
         </h1>
         {actions && (

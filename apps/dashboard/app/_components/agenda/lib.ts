@@ -210,8 +210,18 @@ export function timeRange(timestamp: number): string {
 export function dayLabel(key: string, today = dayKey(Date.now())): string {
   if (key === today) return "Oggi";
   if (key === dayKey(noonOf(today).getTime() + DAY_MS)) return "Domani";
+  return fullDayLabel(key);
+}
+
+/** «Domenica 25 ottobre», anche quando è oggi. */
+export function fullDayLabel(key: string): string {
   const label = format(noonOf(key), "EEEE d MMMM", { locale: it });
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/** Il giorno `count` giorni dopo `key`. */
+export function addDays(key: string, count: number): string {
+  return dayKey(noonOf(key).getTime() + count * DAY_MS);
 }
 
 /** «Sab 12 ott», per le righe dove lo spazio è poco. */

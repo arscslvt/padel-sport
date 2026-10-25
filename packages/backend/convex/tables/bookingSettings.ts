@@ -39,6 +39,13 @@ const bookingSettings = defineTable({
         from: v.string(),
         to: v.string(),
         reason: v.optional(v.string()),
+        /**
+         * Solo una fascia del giorno ("16:00"–"21:00", ora del club): la
+         * pioggia che rende i campi impraticabili per un pomeriggio. Senza,
+         * la chiusura vale tutto il giorno (modules/settings/schedule.ts).
+         */
+        start: v.optional(v.string()),
+        end: v.optional(v.string()),
       }),
     ),
   ),

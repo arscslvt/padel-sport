@@ -162,6 +162,8 @@ import type * as modules_tournaments_matches_edit from "../modules/tournaments/m
 import type * as modules_tournaments_matches_get from "../modules/tournaments/matches/get.js";
 import type * as modules_tournaments_players_add from "../modules/tournaments/players/add.js";
 import type * as modules_tournaments_teams_get from "../modules/tournaments/teams/get.js";
+import type * as modules_weather_data from "../modules/weather/data.js";
+import type * as modules_weather_refresh from "../modules/weather/refresh.js";
 import type * as slots_listActive from "../slots/listActive.js";
 import type * as tables_bookingDeliveries from "../tables/bookingDeliveries.js";
 import type * as tables_bookingPlayers from "../tables/bookingPlayers.js";
@@ -199,6 +201,7 @@ import type * as tables_rewards from "../tables/rewards.js";
 import type * as tables_services from "../tables/services.js";
 import type * as tables_slots from "../tables/slots.js";
 import type * as tables_supportRequests from "../tables/supportRequests.js";
+import type * as tables_weatherDays from "../tables/weatherDays.js";
 import type * as utils_clubTime from "../utils/clubTime.js";
 import type * as utils_hark from "../utils/hark.js";
 import type * as utils_notificationCategories from "../utils/notificationCategories.js";
@@ -368,6 +371,8 @@ declare const fullApi: ApiFromModules<{
   "modules/tournaments/matches/get": typeof modules_tournaments_matches_get;
   "modules/tournaments/players/add": typeof modules_tournaments_players_add;
   "modules/tournaments/teams/get": typeof modules_tournaments_teams_get;
+  "modules/weather/data": typeof modules_weather_data;
+  "modules/weather/refresh": typeof modules_weather_refresh;
   "slots/listActive": typeof slots_listActive;
   "tables/bookingDeliveries": typeof tables_bookingDeliveries;
   "tables/bookingPlayers": typeof tables_bookingPlayers;
@@ -405,6 +410,7 @@ declare const fullApi: ApiFromModules<{
   "tables/services": typeof tables_services;
   "tables/slots": typeof tables_slots;
   "tables/supportRequests": typeof tables_supportRequests;
+  "tables/weatherDays": typeof tables_weatherDays;
   "utils/clubTime": typeof utils_clubTime;
   "utils/hark": typeof utils_hark;
   "utils/notificationCategories": typeof utils_notificationCategories;

@@ -2,6 +2,7 @@
 
 import {
   type Closure,
+  closureHoursLabel,
   closureLength,
   localDayKey,
 } from "@padel-sport/backend/convex/modules/settings/schedule";
@@ -27,7 +28,8 @@ import { SettingsSection } from "./settings-section";
 
 /**
  * Le chiusure del club per date: Natale, Ferragosto, una manutenzione, una
- * giornata di pioggia. È la cosa che in Orari si tocca più spesso e con più
+ * giornata di pioggia. Quelle di poche ore, proposte dal meteo in agenda,
+ * stanno qui con le altre e si riaprono allo stesso modo. È la cosa che in Orari si tocca più spesso e con più
  * fretta, per questo sta in cima.
  *
  * Valgono subito, come i campi: non passano dalla barra «Modifiche non
@@ -84,6 +86,11 @@ export function closureTitle(closure: Closure): string {
     : `Dal ${formatDay(closure.from, { day: "numeric", month: "long" })} al ${formatDay(closure.to, { day: "numeric", month: "long" })}`;
 }
 
+/** Una chiusura si riconosce da date e ore: lo stesso giorno può averne più d'una. */
+function closureKey(closure: Closure): string {
+  return `${closure.from}_${closure.to}_${closure.start ?? ""}_${closure.end ?? ""}`;
+}
+
 export function ClosuresSettings({
   closures,
 }: {
@@ -96,10 +103,15 @@ export function ClosuresSettings({
   const upcoming = closures.filter((closure) => closure.to >= today);
 
   const remove = async (closure: Closure) => {
-    const key = `${closure.from}_${closure.to}`;
+    const key = closureKey(closure);
     setRemoving(key);
     try {
-      await request("DELETE", { from: closure.from, to: closure.to });
+      await request("DELETE", {
+        from: closure.from,
+        to: closure.to,
+        start: closure.start,
+        end: closure.end,
+      });
       toast.success("Chiusura tolta", {
         description:
           "Sito e app accettano di nuovo prenotazioni in quei giorni.",
@@ -121,9 +133,10 @@ export function ClosuresSettings({
     >
       <ListGroup>
         {upcoming.map((closure) => {
-          const key = `${closure.from}_${closure.to}`;
+          const key = closureKey(closure);
           const days = closureLength(closure);
           const ongoing = closure.from <= today;
+          const hours = closureHoursLabel(closure);
 
           return (
             <ListRow
@@ -131,8 +144,10 @@ export function ClosuresSettings({
               leading={<CalendarOff className="size-5" />}
               title={closureTitle(closure)}
               subtitle={
-                closure.reason ??
-                (days === 1 ? "Tutto il giorno" : `${days} giorni`)
+                hours
+                  ? `${hours.charAt(0).toUpperCase()}${hours.slice(1)}${closure.reason ? `, ${closure.reason.toLowerCase()}` : ""}`
+                  : (closure.reason ??
+                    (days === 1 ? "Tutto il giorno" : `${days} giorni`))
               }
               trailing={
                 <span className="flex items-center gap-1">

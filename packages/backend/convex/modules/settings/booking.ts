@@ -3,8 +3,20 @@ import { v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
 import { type MutationCtx, mutation, query } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
-import { bookingSettings, clubDayKey, DEFAULT_SETTINGS } from "./lib";
-import { type Closure, closureLength, DAY_KEY_PATTERN } from "./schedule";
+import { MATCH_DURATION_MINUTES } from "../openMatches/lib";
+import {
+  bookingSettings,
+  clubDayKey,
+  clubMoment,
+  DEFAULT_SETTINGS,
+  toMinutes,
+} from "./lib";
+import {
+  type Closure,
+  closureLength,
+  DAY_KEY_PATTERN,
+  isHourClosure,
+} from "./schedule";
 
 /**
  * Configurazione della prenotazione: quando si apre e con quali campi.
@@ -166,10 +178,17 @@ function utcMidnight(day: string): number {
 }
 
 /**
- * Chiude il club in uno o più giorni di fila. Le prenotazioni già prese in
- * quei giorni restano dove sono: annullarle avvisando i clienti è una scelta
- * dello staff, non un effetto collaterale. Per questo la risposta dice
- * quante sono, e la dashboard lo racconta.
+ * Chiude il club in uno o più giorni di fila, tutto il giorno o solo in una
+ * fascia (`start`–`end`: la pioggia, con il tempo per asciugare i campi).
+ *
+ * Le prenotazioni già prese restano dove sono: annullarle avvisando i clienti
+ * è una scelta dello staff, non un effetto collaterale. Per questo la
+ * risposta dice quante sono, e la dashboard lo racconta.
+ *
+ * Una chiusura di giorni interi assorbe le fasce chiuse che cadono dentro le
+ * sue date: chi prima chiude il pomeriggio e poi tutta la giornata non deve
+ * ritrovarsi due righe. Una fascia su un giorno già chiuso, o sopra un'altra
+ * fascia, invece non si aggiunge.
  */
 export const addClosure = mutation({
   args: {
@@ -177,8 +196,10 @@ export const addClosure = mutation({
     from: v.string(),
     to: v.string(),
     reason: v.optional(v.string()),
+    start: v.optional(v.string()),
+    end: v.optional(v.string()),
   },
-  handler: async (ctx, { secret, from, to, reason }) => {
+  handler: async (ctx, { secret, from, to, reason, start, end }) => {
     assertServer(secret);
 
     if (!DAY_KEY_PATTERN.test(from) || !DAY_KEY_PATTERN.test(to)) {
@@ -190,6 +211,17 @@ export const addClosure = mutation({
     if (to < clubDayKey(Date.now())) {
       throw new Error("Questi giorni sono già passati.");
     }
+    if (Boolean(start) !== Boolean(end)) {
+      throw new Error("Una fascia chiusa ha un inizio e una fine.");
+    }
+    if (start && end) {
+      if (!TIME_PATTERN.test(start) || !TIME_PATTERN.test(end)) {
+        throw new Error("Orari non validi.");
+      }
+      if (toMinutes(end) <= toMinutes(start)) {
+        throw new Error("La fascia finisce prima di cominciare.");
+      }
+    }
 
     const closure: Closure = { from, to };
     if (closureLength(closure) > MAX_CLOSURE_DAYS) {
@@ -197,23 +229,51 @@ export const addClosure = mutation({
     }
     const cleanReason = reason?.trim().slice(0, MAX_REASON_LENGTH);
     if (cleanReason) closure.reason = cleanReason;
+    if (start && end) {
+      closure.start = start;
+      closure.end = end;
+    }
+    const hours = isHourClosure(closure);
 
     const row = await settingsRow(ctx);
-    const closures = upcoming(row.closures);
+    let closures = upcoming(row.closures);
 
-    if (closures.some((other) => other.from <= to && from <= other.to)) {
-      throw new Error("Alcuni di questi giorni sono già chiusi.");
+    const datesOverlap = (other: Closure) =>
+      other.from <= to && from <= other.to;
+    const hoursOverlap = (other: Closure) =>
+      !isHourClosure(other) ||
+      (toMinutes(other.start ?? "00:00") < toMinutes(end ?? "24:00") &&
+        toMinutes(start ?? "00:00") < toMinutes(other.end ?? "24:00"));
+
+    if (hours) {
+      if (closures.some((other) => datesOverlap(other) && hoursOverlap(other))) {
+        throw new Error("Queste ore sono già chiuse.");
+      }
+    } else {
+      if (
+        closures.some((other) => !isHourClosure(other) && datesOverlap(other))
+      ) {
+        throw new Error("Alcuni di questi giorni sono già chiusi.");
+      }
+      // Le fasce chiuse dentro questi giorni non servono più.
+      closures = closures.filter(
+        (other) =>
+          !isHourClosure(other) || other.from < from || to < other.to,
+      );
     }
 
     await ctx.db.patch(row._id, {
-      closures: [...closures, closure].sort((a, b) =>
-        a.from.localeCompare(b.from),
+      closures: [...closures, closure].sort(
+        (a, b) =>
+          a.from.localeCompare(b.from) ||
+          (a.start ?? "").localeCompare(b.start ?? ""),
       ),
       updatedAt: Date.now(),
     });
 
-    // Le prenotazioni attive in quei giorni. Si legge un giorno in più per
-    // parte e si filtra nell'ora del club: i timestamp sono in UTC.
+    // Le prenotazioni attive in quei giorni (e in quelle ore). Si legge un
+    // giorno in più per parte e si filtra nell'ora del club: i timestamp
+    // sono in UTC.
     const rows = await ctx.db
       .query("bookings")
       .withIndex("by_booking_date", (q) =>
@@ -226,17 +286,30 @@ export const addClosure = mutation({
     const affected = rows.filter((booking) => {
       if (booking.status === "cancelled") return false;
       const day = clubDayKey(booking.bookingDate);
-      return from <= day && day <= to;
+      if (day < from || to < day) return false;
+      if (!start || !end) return true;
+      // Una partita tocca la fascia anche solo per un pezzo.
+      const { minutes } = clubMoment(booking.bookingDate);
+      return (
+        minutes < toMinutes(end) &&
+        toMinutes(start) < minutes + MATCH_DURATION_MINUTES
+      );
     }).length;
 
     return { affected };
   },
 });
 
-/** Riapre i giorni di una chiusura. */
+/** Riapre i giorni (o la fascia) di una chiusura. */
 export const removeClosure = mutation({
-  args: { secret: v.string(), from: v.string(), to: v.string() },
-  handler: async (ctx, { secret, from, to }) => {
+  args: {
+    secret: v.string(),
+    from: v.string(),
+    to: v.string(),
+    start: v.optional(v.string()),
+    end: v.optional(v.string()),
+  },
+  handler: async (ctx, { secret, from, to, start, end }) => {
     assertServer(secret);
 
     const row = await ctx.db.query("bookingSettings").first();
@@ -244,7 +317,11 @@ export const removeClosure = mutation({
 
     await ctx.db.patch(row._id, {
       closures: upcoming(row.closures).filter(
-        (closure) => closure.from !== from || closure.to !== to,
+        (closure) =>
+          closure.from !== from ||
+          closure.to !== to ||
+          closure.start !== start ||
+          closure.end !== end,
       ),
       updatedAt: Date.now(),
     });

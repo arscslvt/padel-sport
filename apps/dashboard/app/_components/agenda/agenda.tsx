@@ -2,6 +2,10 @@
 
 import { api } from "@padel-sport/backend/convex/_generated/api";
 import { formatEuro } from "@padel-sport/backend/convex/modules/pricing/lib";
+import {
+  closureHoursLabel,
+  hourClosuresOn,
+} from "@padel-sport/backend/convex/modules/settings/schedule";
 import { useQuery } from "convex/react";
 import {
   ArrowLeft,
@@ -15,7 +19,14 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { CountBadge } from "@/app/_components/count-badge";
 import { ListGroup, ListRow } from "@/app/_components/list";
 import { PageBody, PageHeader } from "@/app/_components/page-header";
@@ -30,6 +41,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { mergeablePairs, mergedPartnerOf } from "@/lib/booking-merge";
 import { EASE_OUT, UI_DURATION } from "@/lib/motion";
+import type { Viewer } from "@/lib/staff-name";
 import { cn } from "@/lib/utils";
 
 import MergePairs from "../merge-pairs";
@@ -39,12 +51,15 @@ import { DayNavigator } from "./day-navigator";
 import { DayPager, useDaySwipe } from "./day-pager";
 import { DayPickerButton } from "./day-picker";
 import { DayStrip } from "./day-strip";
+import { AgendaTitle } from "./greeting";
 import {
+  addDays,
   type Booking,
   closedDay,
   courtLabel,
   dayKey,
   dayLabel,
+  fullDayLabel,
   isCancelled,
   isPaidOnline,
   isPending,
@@ -56,6 +71,7 @@ import { NewBookingSheet } from "./new-booking-sheet";
 import { useAgenda } from "./use-agenda";
 import { useHideCancelled, useHideConcluded } from "./use-hide-cancelled";
 import { usePastDay } from "./use-past-day";
+import { FORECAST_DAYS, WeatherPanel, WeatherWidget } from "./weather";
 
 /**
  * L'agenda: la prima pagina della dashboard e quella che lo staff apre di più.
@@ -68,8 +84,19 @@ import { usePastDay } from "./use-past-day";
  * I link delle notifiche continuano a funzionare: `?booking=` apre il
  * dettaglio di quella prenotazione sul suo giorno, `?day=` apre un giorno,
  * `?tab=merge` apre i campi da completare (utils/staffLinks.ts sul backend).
+ *
+ * Il titolo saluta per qualche istante chi la apre (greeting.tsx), e accanto
+ * al giorno scelto c'è il meteo al
+ * club (weather.tsx): da desktop in una colonna a destra, da telefono in una
+ * riga bassa sotto la striscia dei giorni.
  */
-export function Agenda() {
+export function Agenda({
+  viewer,
+  canClose,
+}: {
+  viewer: Viewer | null;
+  canClose: boolean;
+}) {
   const {
     bookings,
     busyId,
@@ -152,6 +179,39 @@ export function Agenda() {
     [list],
   );
   const pairs = useMemo(() => mergeablePairs(list), [list]);
+
+  // Il meteo di tutti i giorni che Open-Meteo prevede, in una volta: si
+  // cambia giorno e c'è già. Un giorno passato si chiede a parte.
+  const weatherRows = useQuery(api.modules.weather.data.range, {
+    from: today,
+    to: addDays(today, FORECAST_DAYS - 1),
+  });
+  const pastWeather = useQuery(
+    api.modules.weather.data.range,
+    pastDay ? { from: pastDay, to: pastDay } : "skip",
+  );
+  const weather = {
+    day: pastDay ?? selectedDay,
+    today,
+    rows: pastDay ? pastWeather : weatherRows,
+    schedule,
+    now,
+    canClose,
+  };
+
+  /**
+   * L'agenda a sinistra e il meteo a destra, da desktop. Sotto quella
+   * larghezza la colonna non ci sta accanto alle schede: il meteo diventa la
+   * riga sotto la striscia dei giorni, e qui resta solo l'agenda.
+   */
+  const withWeather = (main: ReactNode) => (
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="relative min-w-0">{main}</div>
+      <aside className="hidden lg:sticky lg:top-6 lg:block">
+        <WeatherPanel {...weather} />
+      </aside>
+    </div>
+  );
   const days = useMemo(() => stripDays(list), [list]);
   const closedDays = useMemo(
     () => new Set(days.filter((day) => closedDay(schedule, day))),
@@ -307,8 +367,11 @@ export function Agenda() {
 
   const header = (
     <PageHeader
-      title="Agenda"
-      description="Le prenotazioni da confermare, la giornata per orario e campo, i campi da completare."
+      title={<AgendaTitle viewer={viewer} />}
+      // Il saluto si mette a fuoco da sfocato: la sfocatura deve poter
+      // uscire dai bordi del titolo invece di finire tagliata.
+      clipTitle={false}
+      description={fullDayLabel(today)}
       actions={
         <div data-tour="agenda-actions" className="flex items-center gap-2">
           {/* Un giorno qualsiasi fino a oggi, anche passato. */}
@@ -368,11 +431,15 @@ export function Agenda() {
   );
 
   if (bookings === undefined) {
+    // Intestazione e meteo nello stesso posto dell'albero in cui stanno ad
+    // agenda arrivata (il `div` qui sotto, più in basso): così React non li
+    // rimonta all'arrivo delle prenotazioni, e il saluto e l'entrata del meteo
+    // non ripartono da capo.
     return (
-      <>
+      <div className="flex flex-1 flex-col">
         {header}
-        <AgendaSkeleton />
-      </>
+        <PageBody>{withWeather(<AgendaSkeleton />)}</PageBody>
+      </div>
     );
   }
 
@@ -404,6 +471,8 @@ export function Agenda() {
     const cancelled = rows.filter(isCancelled);
     const dayPairs = pairsByDay.get(day) ?? 0;
     const closed = closedDay(schedule, day);
+    // Le ore chiuse per maltempo (o altro), dette in cima come la chiusura.
+    const closedHours = schedule ? hourClosuresOn(schedule, day) : [];
     const cancelledId = `${cancelledListId}-${day}`;
     const concludedId = `${concludedListId}-${day}`;
 
@@ -442,6 +511,24 @@ export function Agenda() {
                 <span>
                   <span className="font-medium">{closed.title}.</span>{" "}
                   {closed.detail}. Le partite già prese restano.
+                </span>
+              </div>
+            )}
+            {closedHours.length > 0 && (
+              <div className="bg-warning-subtle text-warning-foreground border-warning-border flex items-center gap-3 rounded-2xl border px-4 py-2.5 text-[13px] leading-snug">
+                <CalendarOff className="size-4 shrink-0" />
+                <span>
+                  <span className="font-medium">
+                    Chiuso{" "}
+                    {closedHours
+                      .map((closure) => closureHoursLabel(closure))
+                      .join(" e ")}
+                    {closedHours[0].reason
+                      ? `, ${closedHours[0].reason.toLowerCase()}`
+                      : ""}
+                    .
+                  </span>{" "}
+                  Le partite già prese in quelle ore restano.
                 </span>
               </div>
             )}
@@ -591,129 +678,145 @@ export function Agenda() {
         className="flex flex-1 flex-col max-md:touch-pan-y max-md:touch-pinch-zoom"
       >
         {header}
-        <PageBody className="relative">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {searching ? (
-              <motion.div key="search" {...view("above")} className="space-y-5">
-                <div className="relative">
-                  <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
-                  <Input
-                    autoFocus
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Nome, giocatore, telefono o codice"
-                    className="bg-card h-11 rounded-xl pl-10 text-base"
-                  />
-                </div>
-                {query.trim() &&
-                  (results.length === 0 ? (
-                    <p className="text-muted-foreground px-1 text-sm">
-                      Nessuna prenotazione trovata.
-                    </p>
-                  ) : (
+        <PageBody>
+          {withWeather(
+            <AnimatePresence mode="popLayout" initial={false}>
+              {searching ? (
+                <motion.div
+                  key="search"
+                  {...view("above")}
+                  className="space-y-5"
+                >
+                  <div className="relative">
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
+                    <Input
+                      autoFocus
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Nome, giocatore, telefono o codice"
+                      className="bg-card h-11 rounded-xl pl-10 text-base"
+                    />
+                  </div>
+                  {query.trim() &&
+                    (results.length === 0 ? (
+                      <p className="text-muted-foreground px-1 text-sm">
+                        Nessuna prenotazione trovata.
+                      </p>
+                    ) : (
+                      <section className="space-y-2">
+                        <h2 className="text-muted-foreground px-1 text-[13px] font-medium">
+                          {results.length}{" "}
+                          {results.length === 1
+                            ? "prenotazione"
+                            : "prenotazioni"}
+                        </h2>
+                        <div className="space-y-3">
+                          {results.map((booking) => (
+                            <div key={booking._id} className="space-y-1">
+                              <p className="text-muted-foreground px-1 text-xs font-medium">
+                                {dayLabel(dayKey(booking.bookingDate), today)}
+                              </p>
+                              <BookingRow
+                                booking={booking}
+                                court={courtLabel(booking, courtNames)}
+                                onOpen={() => openRow(booking)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="agenda"
+                  {...view("below")}
+                  className="space-y-6"
+                >
+                  {pending.length > 0 && (
                     <section className="space-y-2">
-                      <h2 className="text-muted-foreground px-1 text-[13px] font-medium">
-                        {results.length}{" "}
-                        {results.length === 1 ? "prenotazione" : "prenotazioni"}
+                      <h2 className="flex items-center gap-2 px-1 text-[13px] font-medium">
+                        <span className="text-muted-foreground">
+                          Da confermare
+                        </span>
+                        <CountBadge count={pending.length} />
                       </h2>
-                      <div className="space-y-3">
-                        {results.map((booking) => (
-                          <div key={booking._id} className="space-y-1">
-                            <p className="text-muted-foreground px-1 text-xs font-medium">
-                              {dayLabel(dayKey(booking.bookingDate), today)}
-                            </p>
-                            <BookingRow
-                              booking={booking}
-                              court={courtLabel(booking, courtNames)}
-                              onOpen={() => openRow(booking)}
-                            />
-                          </div>
+                      <div className="grid gap-2.5 md:grid-cols-2 2xl:grid-cols-3">
+                        {pending.map((booking) => (
+                          <PendingCard
+                            key={booking._id}
+                            booking={booking}
+                            court={courtLabel(booking, courtNames)}
+                            busy={busyId === booking._id}
+                            onOpen={() => openRow(booking)}
+                            onAccept={() => void askAccept(booking)}
+                            onReject={() => void askCancel(booking)}
+                          />
                         ))}
                       </div>
                     </section>
-                  ))}
-              </motion.div>
-            ) : (
-              <motion.div key="agenda" {...view("below")} className="space-y-6">
-                {pending.length > 0 && (
-                  <section className="space-y-2">
-                    <h2 className="flex items-center gap-2 px-1 text-[13px] font-medium">
-                      <span className="text-muted-foreground">
-                        Da confermare
-                      </span>
-                      <CountBadge count={pending.length} />
-                    </h2>
-                    <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-                      {pending.map((booking) => (
-                        <PendingCard
-                          key={booking._id}
-                          booking={booking}
-                          court={courtLabel(booking, courtNames)}
-                          busy={busyId === booking._id}
-                          onOpen={() => openRow(booking)}
-                          onAccept={() => void askAccept(booking)}
-                          onReject={() => void askCancel(booking)}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                )}
+                  )}
 
-                <section className="space-y-3">
-                  {/* Da chiusa la striscia, o il ritorno a oggi; aperta, il
+                  <section className="space-y-3">
+                    {/* Da chiusa la striscia, o il ritorno a oggi; aperta, il
                       mese intero (solo da telefono). */}
-                  <DayNavigator
-                    expanded={calendarOpen}
-                    selected={pastDay ?? selectedDay}
-                    lastDay={days[days.length - 1] ?? today}
-                    booked={[...marks.keys()]}
-                    onPick={goToDay}
-                  >
+                    <DayNavigator
+                      expanded={calendarOpen}
+                      selected={pastDay ?? selectedDay}
+                      lastDay={days[days.length - 1] ?? today}
+                      booked={[...marks.keys()]}
+                      onPick={goToDay}
+                    >
+                      {pastDay ? (
+                        <Button
+                          variant="secondary"
+                          className="h-10 rounded-full"
+                          onClick={() => {
+                            setPastDay(null);
+                            setSelectedDay(today);
+                          }}
+                        >
+                          <ArrowLeft className="size-4" />
+                          Torna a oggi
+                        </Button>
+                      ) : (
+                        <DayStrip
+                          days={days}
+                          selected={selectedDay}
+                          onSelect={setSelectedDay}
+                          marks={marks}
+                          closed={closedDays}
+                        />
+                      )}
+                    </DayNavigator>
+
+                    <div className="lg:hidden">
+                      <WeatherWidget {...weather} />
+                    </div>
+
                     {pastDay ? (
-                      <Button
-                        variant="secondary"
-                        className="h-10 rounded-full"
-                        onClick={() => {
-                          setPastDay(null);
-                          setSelectedDay(today);
-                        }}
-                      >
-                        <ArrowLeft className="size-4" />
-                        Torna a oggi
-                      </Button>
+                      past.rows === undefined ? (
+                        <div className="space-y-2.5">
+                          <Skeleton className="h-16 w-full rounded-2xl" />
+                          <Skeleton className="h-16 w-full rounded-2xl" />
+                        </div>
+                      ) : (
+                        renderDay(pastDay, past.rows ?? [])
+                      )
                     ) : (
-                      <DayStrip
+                      <DayPager
+                        swipe={swipe}
                         days={days}
                         selected={selectedDay}
                         onSelect={setSelectedDay}
-                        marks={marks}
-                        closed={closedDays}
+                        renderDay={renderDay}
                       />
                     )}
-                  </DayNavigator>
-
-                  {pastDay ? (
-                    past.rows === undefined ? (
-                      <div className="space-y-2.5">
-                        <Skeleton className="h-16 w-full rounded-2xl" />
-                        <Skeleton className="h-16 w-full rounded-2xl" />
-                      </div>
-                    ) : (
-                      renderDay(pastDay, past.rows ?? [])
-                    )
-                  ) : (
-                    <DayPager
-                      swipe={swipe}
-                      days={days}
-                      selected={selectedDay}
-                      onSelect={setSelectedDay}
-                      renderDay={renderDay}
-                    />
-                  )}
-                </section>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  </section>
+                </motion.div>
+              )}
+            </AnimatePresence>,
+          )}
         </PageBody>
       </div>
 
@@ -799,7 +902,7 @@ const ICON_SWAP =
 /** La forma della pagina mentre arriva: striscia dei giorni e schede. */
 function AgendaSkeleton() {
   return (
-    <PageBody>
+    <div className="space-y-6">
       <div className="flex gap-1">
         {Array.from({ length: 8 }, (_, index) => (
           <div
@@ -828,7 +931,7 @@ function AgendaSkeleton() {
           </div>
         ))}
       </div>
-    </PageBody>
+    </div>
   );
 }
 

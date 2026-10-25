@@ -34,6 +34,7 @@ import rewards from "./tables/rewards";
 import services from "./tables/services";
 import slots from "./tables/slots";
 import supportRequests from "./tables/supportRequests";
+import weatherDays from "./tables/weatherDays";
 
 export default defineSchema({
   events,
@@ -71,4 +72,5 @@ export default defineSchema({
   notificationPreferences,
   services,
   payments,
+  weatherDays,
 });
