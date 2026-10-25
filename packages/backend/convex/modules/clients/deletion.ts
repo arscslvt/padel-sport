@@ -313,6 +313,25 @@ export const purgeDue = internalMutation({
 });
 
 /**
+ * Dal terminale (`convex run`), per chi ha accesso al deployment: la copia
+ * di un account eliminato se ne va subito, senza aspettare l'anno. È quello
+ * che l'informativa privacy promette a chi lo chiede per email.
+ */
+export const purgeByAdmin = internalMutation({
+  args: { playerId: v.id("players") },
+  handler: async (ctx, { playerId }) => {
+    const player = await ctx.db.get(playerId);
+    if (!player) throw new ConvexError("Scheda non trovata.");
+    if (!isDeleted(player)) {
+      throw new ConvexError(
+        "La scheda non è ancora eliminata: prima va eliminato l'account.",
+      );
+    }
+    await purge(ctx, playerId);
+  },
+});
+
+/**
  * Toglie la scheda e ciò che è solo suo. Le prenotazioni restano al club col
  * nome scritto; le partite create da lei passano a un altro giocatore, o se
  * ne vanno se era sola. I pagamenti online restano: sono documenti contabili.

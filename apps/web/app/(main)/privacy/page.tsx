@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 /** Data dell'ultima revisione dei contenuti di questa pagina. */
-const LAST_UPDATE = "13 ottobre 2026";
+const LAST_UPDATE = "25 ottobre 2026";
 
 /**
  * Fornitori che trattano dati per conto del club (art. 28 GDPR).
@@ -131,6 +131,10 @@ const RETENTION: ReadonlyArray<{ what: string; how: string }> = [
 	{
 		what: "Account dell'area riservata",
 		how: "Per tutta la durata del rapporto associativo o di collaborazione, e 12 mesi dalla sua cessazione",
+	},
+	{
+		what: "Account eliminati",
+		how: "Quando l'account viene eliminato, l'accesso si chiude e della scheda teniamo una copia congelata per 12 mesi, fuori dall'anagrafica e dalle ricerche, per rispondere a eventuali contestazioni su prenotazioni, punti e tessere; poi la cancelliamo del tutto. Se non vuoi aspettare puoi chiederci di cancellarla subito: restano solo i dati che la legge ci obbliga a tenere, come i pagamenti online",
 	},
 	{
 		what: "Log tecnici di accesso",
@@ -678,6 +682,15 @@ export default function PrivacyPage() {
 						Per esercitarli basta una email a <MailLink />, anche di due righe.
 						Rispondiamo entro un mese; se la richiesta è complessa possiamo
 						impiegarne fino a tre, avvisandoti.
+					</p>
+					<p>
+						Per <Term>eliminare il tuo account</Term> non serve scriverci: lo
+						trovi in fondo al tuo profilo, nell'area personale. L'eliminazione
+						diventa effettiva dopo 30 giorni, durante i quali l'account funziona
+						come sempre e puoi annullarla. Poi conserviamo una copia dei tuoi
+						dati per 12 mesi, come spiegato sopra; se vuoi che la cancelliamo{" "}
+						<Term>subito</Term>, insieme all'account o anche dopo, scrivi a{" "}
+						<MailLink />.
 					</p>
 					<p>
 						Se ritieni che i tuoi dati siano trattati in violazione della legge
