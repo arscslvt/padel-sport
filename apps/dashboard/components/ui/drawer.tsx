@@ -76,7 +76,9 @@ function DrawerContent({
         )}
         {...props}
       >
-        <div className="bg-border mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
+        {/* La maniglia: piccola, come quella dei fogli di iOS. Dice che si
+            trascina, senza rubare spazio al contenuto. */}
+        <div className="bg-border mx-auto mt-3 hidden h-1.5 w-16 shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
         {children}
       </DrawerPrimitive.Content>
     </DrawerPortal>

@@ -47,10 +47,16 @@ import { ThemeSegmentedControl } from "./theme-picker";
  *
  * Il materiale è traslucido perché il contenuto ci scorre sotto. Per chi ha
  * chiesto meno trasparenza diventa pieno (`.dashboard-material`, globals.css).
+ *
+ * La voce toccata si accende subito, come in un'app, senza aspettare che la
+ * pagina nuova arrivi: finché l'indirizzo non cambia vale quella toccata
+ * (`pending`). La pagina intanto mostra il suo scheletro (i `loading.tsx`,
+ * page-skeleton.tsx), che Next scarica insieme ai link della barra.
  */
 export function BottomTabBar({ staffOrgSlug }: { staffOrgSlug: string }) {
   const pathname = usePathname();
-  const active = activeHref(pathname);
+  const [pending, setPending] = useState<string | null>(null);
+  const active = pending ?? activeHref(pathname);
   const { counts } = useCounts();
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -58,6 +64,7 @@ export function BottomTabBar({ staffOrgSlug }: { staffOrgSlug: string }) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: si chiude al cambio di rotta.
   useEffect(() => {
     setMoreOpen(false);
+    setPending(null);
   }, [pathname]);
 
   // Il profilo non è una voce della barra, ma ci si arriva da «Altro».
@@ -85,6 +92,7 @@ export function BottomTabBar({ staffOrgSlug }: { staffOrgSlug: string }) {
               item={item}
               active={active === item.href}
               count={item.count ? counts?.[item.count] : undefined}
+              onNavigate={() => setPending(item.href)}
             />
           ))}
           <button
@@ -127,16 +135,20 @@ function TabLink({
   item,
   active,
   count,
+  onNavigate,
 }: {
   item: NavItem;
   active: boolean;
   count?: number;
+  /** Il tocco che porta altrove: la voce si accende subito. */
+  onNavigate: () => void;
 }) {
   const label = item.short ?? item.name;
 
   return (
     <Link
       href={item.href}
+      onNavigate={onNavigate}
       aria-current={active ? "page" : undefined}
       aria-label={count ? `${item.name}, ${count} da gestire` : item.name}
       className={tabClass(active)}

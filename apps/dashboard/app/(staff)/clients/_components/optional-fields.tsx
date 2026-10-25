@@ -58,12 +58,16 @@ export function OptionalFields({
   return (
     <Accordion type="single" collapsible>
       <AccordionItem value="optional" className="border-b-0">
+        {/* Titolo e conteggio in un pezzo solo: il pulsante mette spazio fra
+            i suoi figli, e il conteggio finiva staccato in mezzo alla riga. */}
         <AccordionTrigger className="text-sm">
-          Altri dati{" "}
-          <span className="text-muted-foreground ml-1 font-normal">
-            {filled > 0
-              ? `— ${filled} compilat${filled === 1 ? "o" : "i"}`
-              : "— facoltativi"}
+          <span>
+            Altri dati{" "}
+            <span className="text-muted-foreground font-normal">
+              {filled > 0
+                ? `(${filled} compilat${filled === 1 ? "o" : "i"})`
+                : "(facoltativi)"}
+            </span>
           </span>
         </AccordionTrigger>
 

@@ -13,6 +13,8 @@ import {
   type Viewer,
 } from "@/lib/staff-name";
 
+import { dayKey, fullDayLabel } from "./lib";
+
 /**
  * Il titolo dell'agenda, che all'apertura saluta.
  *
@@ -280,4 +282,14 @@ export function AgendaTitle({ viewer }: { viewer?: Viewer | null }) {
       </span>
     </>
   );
+}
+
+/**
+ * La data di oggi sotto il titolo, scritta nel browser: lo scheletro
+ * dell'agenda (app/(staff)/loading.tsx) può essere preparato alla build, e
+ * una data scritta lì resterebbe quella del giorno del rilascio.
+ */
+export function TodayLabel() {
+  const [label] = useState(() => fullDayLabel(dayKey(Date.now())));
+  return <span suppressHydrationWarning>{label}</span>;
 }

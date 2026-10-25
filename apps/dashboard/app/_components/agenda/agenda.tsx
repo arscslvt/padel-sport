@@ -790,7 +790,26 @@ export function Agenda({
                       )}
                     </DayNavigator>
 
-                    <div className="lg:hidden">
+                    {/*
+                     * Centrato a occhio fra quel che sta sopra e la giornata.
+                     * Sotto i numeri della striscia c'è la riga dei puntini
+                     * (anche vuota) con i suoi margini, ~18px che non si
+                     * vedono: lì il widget sale di 10px. Col calendario aperto
+                     * o col «Torna a oggi» quella riga non c'è, e il widget
+                     * si stacca di 20px: non 12 + 20, perché due margini fra
+                     * fratelli si sovrappongono e vince il più grande.
+                     * Sotto si stacca 6px in più, ~20px per parte in tutti e
+                     * due i casi. `mb-4.5` e non `mb-1.5`: `space-y-3` dà a
+                     * ogni figlio 12px di margine sotto, e un `mb-*` li
+                     * sostituisce. Il passaggio segue l'apertura del
+                     * calendario, stessa durata e stessa curva.
+                     */}
+                    <div
+                      className={cn(
+                        "mb-4.5 transition-[margin] duration-300 ease-(--ease-out) motion-reduce:transition-none lg:hidden",
+                        calendarOpen || pastDay ? "mt-5" : "-mt-2.5",
+                      )}
+                    >
                       <WeatherWidget {...weather} />
                     </div>
 
@@ -900,7 +919,7 @@ const ICON_SWAP =
   "size-5 transition-[opacity,scale] duration-150 ease-(--ease-out) motion-reduce:scale-100";
 
 /** La forma della pagina mentre arriva: striscia dei giorni e schede. */
-function AgendaSkeleton() {
+export function AgendaSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex gap-1">

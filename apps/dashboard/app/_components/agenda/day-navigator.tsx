@@ -93,10 +93,17 @@ export function DayNavigator({
       }
       className={cn(
         "relative overflow-hidden transition-[background-color,border-radius,margin] duration-300 ease-(--ease-out) motion-reduce:transition-none",
+        // I colori del mese aperto. Di giorno è una scheda scura sulla
+        // pagina chiara, il giorno scelto pieno e chiaro; di notte uno
+        // scuro pieno sarebbe un foglio bianco abbagliante, e il mese prende
+        // il fondo delle schede, col giorno scelto nella menta del marchio
+        // come nella striscia.
+        "[--cal-ink:var(--background)] [--cal-pick-ink:var(--foreground)] [--cal-pick:var(--background)] [--cal-surface:var(--foreground)]",
+        "dark:[--cal-ink:var(--foreground)] dark:[--cal-pick-ink:var(--primary-foreground)] dark:[--cal-pick:var(--primary)] dark:[--cal-surface:var(--card)]",
         // Da chiusa arriva ai bordi dello schermo come la striscia; aperta è
         // una scheda dentro i margini della pagina.
         expanded
-          ? "bg-foreground text-background mx-0 rounded-3xl"
+          ? "mx-0 rounded-3xl bg-(--cal-surface) text-(--cal-ink) dark:ring-1 dark:ring-border dark:ring-inset"
           : "-mx-4 rounded-none md:-mx-6",
       )}
     >
@@ -123,9 +130,10 @@ export function DayNavigator({
 }
 
 /**
- * Il mese, chiaro su scuro. Il calendario di shadcn parla i colori della
- * pagina: qui si rovesciano, dal giorno scelto (chiaro, pieno) ai giorni
- * fuori portata (spenti).
+ * Il mese, nei colori del contenitore (`--cal-*`, in `DayNavigator`): chiaro
+ * su scuro di giorno, sul fondo delle schede di notte. Il calendario di
+ * shadcn parla i colori della pagina, e qui li prende da lì, dal giorno
+ * scelto (pieno) ai giorni fuori portata (spenti).
  */
 function MonthCalendar({
   selected,
@@ -157,7 +165,7 @@ function MonthCalendar({
         modifiersClassNames={{
           // Il puntino della striscia, anche qui: c'è qualcosa in agenda.
           booked:
-            "after:bg-background/50 after:absolute after:bottom-1 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full",
+            "after:bg-(--cal-ink)/50 after:absolute after:bottom-1 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full",
         }}
         onSelect={(date) => {
           if (date) onPick(format(date, "yyyy-MM-dd"));
@@ -165,21 +173,21 @@ function MonthCalendar({
         className={cn(
           "w-full bg-transparent p-0 [--cell-size:--spacing(10)]",
           // Su scuro: numeri chiari, il giorno scelto pieno e chiaro.
-          "[&_button]:text-background [&_button:hover]:bg-background/10!",
-          "[&_[data-selected-single=true]]:bg-background! [&_[data-selected-single=true]]:text-foreground!",
-          "[&_.rdp-outside_button]:text-background/35 [&_.rdp-disabled_button]:text-background/25",
-          "[&_.rdp-weekday]:text-background/55",
+          "[&_button]:text-(--cal-ink) [&_button:hover]:bg-(--cal-ink)/10!",
+          "[&_[data-selected-single=true]]:bg-(--cal-pick)! [&_[data-selected-single=true]]:text-(--cal-pick-ink)!",
+          "[&_.rdp-outside_button]:text-(--cal-ink)/35 [&_.rdp-disabled_button]:text-(--cal-ink)/25",
+          "[&_.rdp-weekday]:text-(--cal-ink)/55",
         )}
         classNames={{
           week: "mt-1 flex w-full",
           // Oggi, quando non è il giorno scelto: un anello, non un fondo.
-          today: "[&>button]:ring-1 [&>button]:ring-background/40",
+          today: "[&>button]:ring-1 [&>button]:ring-(--cal-ink)/40",
           day: "relative flex-1 p-0 text-center select-none [&>button]:aspect-auto [&>button]:h-10 [&>button]:w-full",
         }}
       />
       <Button
         variant="ghost"
-        className="text-background hover:bg-background/10 hover:text-background h-10 self-center rounded-full px-4"
+        className="h-10 self-center rounded-full px-4 text-(--cal-ink) hover:bg-(--cal-ink)/10 hover:text-(--cal-ink)"
         onClick={() => onPick(format(new Date(), "yyyy-MM-dd"))}
       >
         Oggi

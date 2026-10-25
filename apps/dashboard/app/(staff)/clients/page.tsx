@@ -1,7 +1,3 @@
-import {
-  PageBody,
-  PageHeader,
-} from "@/app/_components/page-header";
 import { requireStaffMember } from "@/lib/staff";
 import { ClientsPanel } from "./_components/clients-panel";
 
@@ -11,15 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardClientsPage() {
   await requireStaffMember();
 
-  return (
-    <>
-      <PageHeader
-        title="Clienti"
-        description="Anagrafica, tessera annuale, account e punti di chi frequenta il club."
-      />
-      <PageBody>
-        <ClientsPanel />
-      </PageBody>
-    </>
-  );
+  // Intestazione e corpo li disegna il pannello: da telefono il pulsante del
+  // nuovo cliente sta nell'intestazione e apre un modulo del pannello.
+  return <ClientsPanel />;
 }

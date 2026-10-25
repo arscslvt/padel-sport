@@ -18,7 +18,14 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { SlotText } from "slot-text/react";
 import { toast } from "sonner";
 import "slot-text/style.css";
@@ -165,7 +172,7 @@ export function WeatherPanel(props: WeatherProps) {
         <div className="weather-reveal flex flex-col items-start gap-3">
           <CloudOff className="text-muted-foreground/60 size-7" />
           <div className="space-y-1">
-            <Swap id={day}>
+            <Swap id={`${dayLabel(day, today)}|${state.reason}`}>
               <p className="text-muted-foreground text-[13px] font-medium">
                 {dayLabel(day, today)}
               </p>
@@ -191,7 +198,7 @@ export function WeatherPanel(props: WeatherProps) {
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1.5">
             <div className="weather-reveal" style={reveal(0)}>
-              <Swap id={day}>
+              <Swap id={dayLabel(day, today)}>
                 <p className="text-muted-foreground text-[13px] font-medium">
                   {dayLabel(day, today)}
                 </p>
@@ -204,7 +211,7 @@ export function WeatherPanel(props: WeatherProps) {
               min={weather.tempMin}
             />
             <div className="weather-reveal" style={reveal(2)}>
-              <Swap id={`${day}-${verdict.code}`}>
+              <Swap id={conditionLabel(verdict.code)}>
                 <p className="text-muted-foreground text-sm">
                   {conditionLabel(verdict.code)}
                 </p>
@@ -220,7 +227,7 @@ export function WeatherPanel(props: WeatherProps) {
         </div>
 
         <div className="weather-reveal" style={reveal(3)}>
-          <Swap id={`${day}-${verdict.title}-${verdict.detail}`}>
+          <Swap id={`${verdict.title}|${verdict.detail}`}>
             <p className="text-[17px] leading-snug font-semibold tracking-[-0.01em]">
               {verdict.title}
             </p>
@@ -272,7 +279,7 @@ export function WeatherWidget(props: WeatherProps) {
     return (
       <div className="bg-card weather-reveal flex min-h-11 items-center gap-3 rounded-2xl border px-3.5 py-2.5">
         <CloudOff className="text-muted-foreground/60 size-5 shrink-0" />
-        <Swap id={day} className="min-w-0 flex-1">
+        <Swap id={state.reason} className="min-w-0 flex-1">
           <p className="text-muted-foreground truncate text-[13px]">
             {state.reason}
           </p>
@@ -300,11 +307,7 @@ export function WeatherWidget(props: WeatherProps) {
           className="relative flex min-h-11 w-full items-center gap-3 px-3.5 py-2.5 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <SkyIcon code={verdict.code} className="size-5 shrink-0" />
-          <Swap
-            inline
-            id={`${day}-${verdict.title}`}
-            className="min-w-0 flex-1"
-          >
+          <Swap inline id={verdict.title} className="min-w-0 flex-1">
             <span className="block truncate text-[14px] font-medium">
               {verdict.title}
             </span>
@@ -346,7 +349,7 @@ export function WeatherWidget(props: WeatherProps) {
               className="relative overflow-hidden"
             >
               <div className="space-y-4 px-3.5 pt-0.5 pb-3.5">
-                <Swap id={`${day}-${verdict.detail}`}>
+                <Swap id={`${conditionLabel(verdict.code)}|${verdict.detail}`}>
                   <p className="text-muted-foreground text-[13px] leading-relaxed">
                     {conditionLabel(verdict.code)}. {verdict.detail}
                   </p>
@@ -459,7 +462,6 @@ function RainClosure({
   };
 
   const view = closures.length > 0 ? "closed" : proposal ? "proposal" : "none";
-  if (view === "none") return null;
 
   /**
    * Da desktop la proposta è un riquadro dentro il riquadro del meteo; da
@@ -475,90 +477,135 @@ function RainClosure({
     ? "border-rain/20 mx-3.5 border-t pt-3 pb-3.5"
     : "rounded-2xl border p-3.5";
 
+  // Si anima solo quando cambia quel che si legge: due giorni con la stessa
+  // proposta (o la stessa chiusura) non fanno ripartire lo scambio.
+  const contentKey =
+    view === "closed"
+      ? `closed|${closures.map((closure) => closureHoursLabel(closure) ?? "giorno").join("+")}|${closures[0].reason ?? ""}`
+      : proposal
+        ? `proposal|${proposal.storm}|${rainLabel(proposal)}|${rangesLabel(proposal)}|${proposalDetail(proposal)}`
+        : view;
+
+  /**
+   * Passando a un giorno che ha (o non ha più) una proposta o una chiusura,
+   * la scheda non scatta: si allunga o si accorcia seguendo il contenuto, che
+   * entra ed esce sfocato. Quando il contenuto cambia (proposta → chiusura),
+   * l'altezza segue morbida mentre le parole si scambiano.
+   *
+   * Da desktop lo spazio verso il grafico sta dentro il pezzo che si apre
+   * (`pb-5`), e il suo margine è zero: `space-y-5` dà a ogni figlio 20px di
+   * margine sotto, e un margine fuori non si chiuderebbe con lui (il vuoto
+   * raddoppiava, e a pezzo chiuso scattava di 20px).
+   */
+  const reduce = useReducedMotion();
+  const hidden = reduce
+    ? { opacity: 0, height: 0 }
+    : { opacity: 0, height: 0, filter: "blur(4px)" };
+
   return (
-    <div className={cn(compact && "relative")}>
-      <Swap id={`${day}-${view}`}>
-        {view === "closed" ? (
-          <div
-            className={cn(
-              "text-warning-foreground flex items-center gap-3 text-[13px] leading-snug",
-              frame,
-              compact
-                ? "border-warning-border"
-                : "bg-warning-subtle border-warning-border py-2.5",
-            )}
-          >
-            <CalendarOff className="size-4 shrink-0" />
-            <span>
-              <span className="font-medium">
-                {closures.some((closure) => !isHourClosure(closure))
-                  ? "Club chiuso tutto il giorno"
-                  : `Chiuso ${closures.map((closure) => closureHoursLabel(closure)).join(" e ")}`}
-              </span>
-              {closures[0].reason
-                ? `, ${closures[0].reason.toLowerCase()}`
-                : ""}
-              .
-            </span>
-          </div>
-        ) : proposal ? (
-          <div
-            className={cn(
-              "space-y-3",
-              frame,
-              !compact && "border-rain/25 bg-rain/[0.07]",
-            )}
-          >
-            <div className="flex gap-3">
-              {proposal.storm ? (
-                <CloudLightning className="text-rain mt-0.5 size-5 shrink-0" />
-              ) : (
-                <CloudRain className="text-rain mt-0.5 size-5 shrink-0" />
-              )}
-              <div className="min-w-0 space-y-0.5">
-                <p className="text-[15px] leading-snug font-semibold md:text-[14px]">
-                  {proposal.storm ? "Temporali" : "Pioggia forte"}{" "}
-                  {rainLabel(proposal)}
-                </p>
-                <p className="text-muted-foreground text-[13px] leading-relaxed">
-                  {proposalDetail(proposal)}
-                </p>
-              </div>
-            </div>
-            {canClose ? (
-              <div
-                className={cn(
-                  "flex gap-2",
-                  proposal.fullDay ? "flex-col-reverse" : "flex-col",
-                  !compact && "xl:flex-row",
-                )}
-              >
-                <ClosureButton
-                  primary={!proposal.fullDay}
-                  busy={busy === "hours"}
-                  disabled={busy !== null}
-                  onClick={() => void close(false)}
+    <AnimatePresence initial={false}>
+      {view !== "none" && (
+        <motion.div
+          key="rain-closure"
+          initial={hidden}
+          animate={{
+            opacity: 1,
+            height: "auto",
+            filter: "blur(0px)",
+            transition: { duration: 0.32, ease: EASE_OUT },
+          }}
+          exit={{
+            ...hidden,
+            transition: { duration: 0.22, ease: EASE_OUT },
+          }}
+          className={cn("overflow-hidden", !compact && "!mb-0")}
+        >
+          <AutoHeight className={cn(compact ? "relative" : "pb-5")}>
+            <Swap id={contentKey}>
+              {view === "closed" ? (
+                <div
+                  className={cn(
+                    "text-warning-foreground flex items-center gap-3 text-[13px] leading-snug",
+                    frame,
+                    compact
+                      ? "border-warning-border"
+                      : "bg-warning-subtle border-warning-border py-2.5",
+                  )}
                 >
-                  Chiudi {rangesLabel(proposal)}
-                </ClosureButton>
-                <ClosureButton
-                  primary={proposal.fullDay}
-                  busy={busy === "day"}
-                  disabled={busy !== null}
-                  onClick={() => void close(true)}
+                  <CalendarOff className="size-4 shrink-0" />
+                  <span>
+                    <span className="font-medium">
+                      {closures.some((closure) => !isHourClosure(closure))
+                        ? "Club chiuso tutto il giorno"
+                        : `Chiuso ${closures.map((closure) => closureHoursLabel(closure)).join(" e ")}`}
+                    </span>
+                    {closures[0].reason
+                      ? `, ${closures[0].reason.toLowerCase()}`
+                      : ""}
+                    .
+                  </span>
+                </div>
+              ) : proposal ? (
+                <div
+                  className={cn(
+                    "space-y-3",
+                    frame,
+                    !compact && "border-rain/25 bg-rain/[0.07]",
+                  )}
                 >
-                  Chiudi tutto il giorno
-                </ClosureButton>
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-xs">
-                Può chiudere il club un amministratore dello staff.
-              </p>
-            )}
-          </div>
-        ) : null}
-      </Swap>
-    </div>
+                  <div className="flex gap-3">
+                    {proposal.storm ? (
+                      <CloudLightning className="text-rain mt-0.5 size-5 shrink-0" />
+                    ) : (
+                      <CloudRain className="text-rain mt-0.5 size-5 shrink-0" />
+                    )}
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="text-[15px] leading-snug font-semibold md:text-[14px]">
+                        {proposal.storm ? "Temporali" : "Pioggia forte"}{" "}
+                        {rainLabel(proposal)}
+                      </p>
+                      <p className="text-muted-foreground text-[13px] leading-relaxed">
+                        {proposalDetail(proposal)}
+                      </p>
+                    </div>
+                  </div>
+                  {canClose ? (
+                    <div
+                      className={cn(
+                        "flex gap-2",
+                        proposal.fullDay ? "flex-col-reverse" : "flex-col",
+                        !compact && "xl:flex-row",
+                      )}
+                    >
+                      <ClosureButton
+                        primary={!proposal.fullDay}
+                        busy={busy === "hours"}
+                        disabled={busy !== null}
+                        onClick={() => void close(false)}
+                      >
+                        Chiudi {rangesLabel(proposal)}
+                      </ClosureButton>
+                      <ClosureButton
+                        primary={proposal.fullDay}
+                        busy={busy === "day"}
+                        disabled={busy !== null}
+                        onClick={() => void close(true)}
+                      >
+                        Chiudi tutto il giorno
+                      </ClosureButton>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-xs">
+                      Può chiudere il club un amministratore dello staff.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </Swap>
+          </AutoHeight>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -630,6 +677,48 @@ function proposalDetail(proposal: ClosureProposal): string {
         ? ` ancora ${drying / 60} ore`
         : "";
   return `${amount} I campi restano bagnati${wait} dopo la pioggia: si riapre alle ${spokenTime(range.end)}.`;
+}
+
+/**
+ * Un contenitore che segue l'altezza del suo contenuto con un'animazione:
+ * quando dentro una frase lascia il posto a un'altra più lunga o più corta,
+ * il bordo sotto scivola invece di saltare. L'altezza si misura
+ * (`ResizeObserver`) e si anima davvero, come la striscia dei giorni che si
+ * apre a calendario (day-navigator.tsx): uno `scale` deformerebbe il testo.
+ */
+function AutoHeight({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  const reduce = useReducedMotion();
+  const content = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | "auto">("auto");
+
+  useLayoutEffect(() => {
+    const node = content.current;
+    if (!node) return;
+    const observer = new ResizeObserver(([entry]) =>
+      setHeight(entry.borderBoxSize[0]?.blockSize ?? entry.contentRect.height),
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <motion.div
+      initial={false}
+      animate={{ height }}
+      transition={reduce ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT }}
+      className="overflow-hidden"
+    >
+      <div ref={content} className={className}>
+        {children}
+      </div>
+    </motion.div>
+  );
 }
 
 const reveal = (index: number) => ({ "--i": index }) as React.CSSProperties;

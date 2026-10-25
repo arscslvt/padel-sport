@@ -584,3 +584,50 @@
     transparent 100%
   );
 }
+
+/*
+ * Lo scheletro di una pagina che arriva dal server (page-skeleton.tsx): il
+ * titolo c'è subito, il contenuto compare un soffio dopo. Se la pagina vera
+ * arriva prima, lo scheletro non fa in tempo a lampeggiare.
+ */
+.page-skeleton {
+  animation: auth-fade 200ms ease-out 150ms backwards;
+}
+
+/*
+ * I drawer senza intestazione fissa, dove scorre anche il titolo (per esempio
+ * il nuovo cliente, clients/_components/create-client-sheet.tsx): in cima il
+ * contenuto sfuma invece di finire tagliato di netto sotto la maniglia.
+ *
+ * La sfumatura cresce con lo scorrimento (`animation-timeline: scroll()`):
+ * in cima è zero e il titolo resta intero, dopo i primi 32px è piena. È
+ * un'animazione legata allo scorrimento, non al tempo: la fa il browser fuori
+ * dal thread principale, senza ascoltare lo scroll da JavaScript. La
+ * proprietà non si eredita, così cambiarla non ricalcola gli stili dei
+ * campi dentro. Dove queste animazioni non ci sono, niente sfumatura: meglio
+ * un taglio che un titolo velato anche da fermo.
+ */
+@property --scroll-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes scroll-fade {
+  to {
+    --scroll-fade: 1.75rem;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .drawer-scroll-fade {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 var(--scroll-fade)
+    );
+    animation: scroll-fade linear both;
+    animation-timeline: scroll(self);
+    animation-range: 0 2rem;
+  }
+}

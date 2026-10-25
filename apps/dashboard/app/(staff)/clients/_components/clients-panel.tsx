@@ -2,13 +2,22 @@
 
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { AlertCircle, Loader2, Search, UserRoundX, Users } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  Search,
+  UserPlus,
+  UserRoundX,
+  Users,
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { PageBody, PageHeader } from "@/app/_components/page-header";
 import { LevelBars } from "@/components/level-bars";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyDescription,
@@ -23,7 +32,7 @@ import { Input } from "../../../_components/input";
 import { AccountBadge } from "./account-badge";
 import { ClientSheet } from "./client-sheet";
 import { ClientsSummary } from "./clients-summary";
-import { CreateClientDialog } from "./create-client-dialog";
+import { CreateClientSheet } from "./create-client-sheet";
 import {
   activeCount,
   type ClientFilters,
@@ -181,6 +190,9 @@ export function hasClientsReturn(): boolean {
 }
 
 export function ClientsPanel() {
+  // Il modulo del nuovo cliente: lo apre il pulsante in alto da telefono,
+  // quello in fila con la ricerca da desktop.
+  const [creating, setCreating] = useState(false);
   // Il ritorno dalla pagina di un cliente: si riparte da dove si era.
   const [restored] = useState(() => returnSnapshot);
   const [clients, setClients] = useState<Client[] | null>(
@@ -313,135 +325,169 @@ export function ClientsPanel() {
 
   return (
     <>
-      {allClients === null ? (
-        // La forma del riepilogo mentre arriva: un «0 clienti» di passaggio
-        // direbbe una cosa falsa.
-        <div className="space-y-3" aria-busy="true">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-2.5 w-full rounded-full" />
-          <Skeleton className="h-5 w-64" />
-        </div>
-      ) : (
-        <ClientsSummary
-          clients={summarySource}
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
-      )}
-
-      {/*
-       * Da telefono la barra è una riga sola — ricerca, filtri, nuovo
-       * cliente — e i filtri vivono nel drawer. Da 768px in su tornano in
-       * fila sotto la ricerca, dove c'è spazio per vederli tutti.
-       */}
-      <div
-        data-tour="clients-search"
-        className="mt-6 flex items-center gap-2 md:gap-3"
-      >
-        <div className="relative min-w-0 flex-1">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-          <Input
-            placeholder="Cerca per nome, cognome, email o telefono…"
-            className="h-10 bg-card pl-9"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          {loading && clients !== null && (
-            <Loader2
-              aria-label="Ricerca in corso"
-              className="text-muted-foreground absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin"
-            />
-          )}
-        </div>
-        <div className="md:hidden">
-          <MobileFiltersButton
-            activeCount={activeCount(filters, sort)}
-            onClick={() => setFiltersOpen(true)}
-          />
-        </div>
-        <CreateClientDialog onCreated={() => void load(query.trim())} />
-      </div>
-
-      <div className="md:hidden">
-        <ActiveFilterChips
-          filters={filters}
-          onFiltersChange={setFilters}
-          sort={sort}
-          onSortChange={setSort}
-        />
-      </div>
-
-      <MobileFiltersDrawer
-        open={filtersOpen}
-        onOpenChange={setFiltersOpen}
-        filters={filters}
-        onFiltersChange={setFilters}
-        sort={sort}
-        onSortChange={setSort}
-        counts={filterCounts}
-        resultCount={visible.length}
+      <PageHeader
+        title="Clienti"
+        description="Anagrafica, tessera annuale, account e punti di chi frequenta il club."
+        actions={
+          // Da telefono, come il «+» di Agenda e il «Nuovo premio» di Punti:
+          // in alto a destra, dove arriva il pollice. Da desktop il pulsante
+          // con l'etichetta sta in fila con la ricerca.
+          <Button
+            size="icon"
+            aria-label="Crea cliente"
+            onClick={() => setCreating(true)}
+            className="size-10 rounded-full md:hidden"
+          >
+            {/* Centrata a occhio: la figura pesa a sinistra e il «+» è
+                leggero, e a riquadro centrato l'icona pareva spostata. */}
+            <UserPlus className="size-5 translate-x-px" />
+          </Button>
+        }
       />
+      <PageBody>
+        {allClients === null ? (
+          // La forma del riepilogo mentre arriva: un «0 clienti» di passaggio
+          // direbbe una cosa falsa.
+          <div className="space-y-3" aria-busy="true">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-2.5 w-full rounded-full" />
+            <Skeleton className="h-5 w-64" />
+          </div>
+        ) : (
+          <ClientsSummary
+            clients={summarySource}
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
+        )}
 
-      <div className="hidden md:block">
-        <FiltersToolbar
+        {/*
+         * Da telefono la barra è una riga sola, ricerca e filtri, e i filtri
+         * vivono nel drawer; il nuovo cliente sta in alto a destra. Da 768px
+         * in su i filtri tornano in fila sotto la ricerca, dove c'è spazio per
+         * vederli tutti, e il nuovo cliente accanto alla ricerca.
+         */}
+        <div
+          data-tour="clients-search"
+          className="mt-6 flex items-center gap-2 md:gap-3"
+        >
+          <div className="relative min-w-0 flex-1">
+            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+            <Input
+              placeholder="Cerca per nome, cognome, email o telefono…"
+              className="h-10 bg-card pl-9"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            {loading && clients !== null && (
+              <Loader2
+                aria-label="Ricerca in corso"
+                className="text-muted-foreground absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin"
+              />
+            )}
+          </div>
+          <div className="md:hidden">
+            <MobileFiltersButton
+              activeCount={activeCount(filters, sort)}
+              onClick={() => setFiltersOpen(true)}
+            />
+          </div>
+          {/* Da desktop accanto alla ricerca; da telefono è in alto a destra. */}
+          <Button
+            onClick={() => setCreating(true)}
+            className="hidden h-10 shrink-0 px-4 md:inline-flex"
+          >
+            <UserPlus className="size-4" />
+            Crea cliente
+          </Button>
+          <CreateClientSheet
+            open={creating}
+            onOpenChange={setCreating}
+            onCreated={() => void load(query.trim())}
+          />
+        </div>
+
+        <div className="md:hidden">
+          <ActiveFilterChips
+            filters={filters}
+            onFiltersChange={setFilters}
+            sort={sort}
+            onSortChange={setSort}
+          />
+        </div>
+
+        <MobileFiltersDrawer
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
           filters={filters}
           onFiltersChange={setFilters}
           sort={sort}
           onSortChange={setSort}
           counts={filterCounts}
           resultCount={visible.length}
-          totalCount={scoped.length}
         />
-      </div>
 
-      <div className="mt-4 overflow-hidden rounded-lg border">
-        {clients === null ? (
-          <div className="space-y-2 p-4">
-            <Skeleton className="h-14 w-full" />
-            <Skeleton className="h-14 w-full" />
-            <Skeleton className="h-14 w-full" />
-          </div>
-        ) : visible.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                {query ? (
-                  <UserRoundX className="size-5" />
-                ) : (
-                  <Users className="size-5" />
-                )}
-              </EmptyMedia>
-              <EmptyTitle>
-                {query ? "Nessun cliente trovato" : "Nessun cliente"}
-              </EmptyTitle>
-              <EmptyDescription>
-                {query
-                  ? "Prova con un'altra parte del nome, o con l'email."
-                  : "Invita la prima persona: riceverà il link per iscriversi da sé."}
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          <ul className="divide-y bg-card">
-            {visible.map((client) => (
-              <ClientRow
-                key={client.id}
-                client={client}
-                sortKey={sort.key}
-                onOpen={openClientFromList}
-              />
-            ))}
-          </ul>
-        )}
-      </div>
+        <div className="hidden md:block">
+          <FiltersToolbar
+            filters={filters}
+            onFiltersChange={setFilters}
+            sort={sort}
+            onSortChange={setSort}
+            counts={filterCounts}
+            resultCount={visible.length}
+            totalCount={scoped.length}
+          />
+        </div>
 
-      <ClientSheet
-        playerId={openClient}
-        preview={clients?.find((client) => client.id === openClient)}
-        open={openClient !== null}
-        onOpenChange={(open) => !open && setOpenClient(null)}
-        onSaved={() => void load(query.trim())}
-      />
+        <div className="mt-4 overflow-hidden rounded-lg border">
+          {clients === null ? (
+            <div className="space-y-2 p-4">
+              <Skeleton className="h-14 w-full" />
+              <Skeleton className="h-14 w-full" />
+              <Skeleton className="h-14 w-full" />
+            </div>
+          ) : visible.length === 0 ? (
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  {query ? (
+                    <UserRoundX className="size-5" />
+                  ) : (
+                    <Users className="size-5" />
+                  )}
+                </EmptyMedia>
+                <EmptyTitle>
+                  {query ? "Nessun cliente trovato" : "Nessun cliente"}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {query
+                    ? "Prova con un'altra parte del nome, o con l'email."
+                    : "Invita la prima persona: riceverà il link per iscriversi da sé."}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <ul className="divide-y bg-card">
+              {visible.map((client) => (
+                <ClientRow
+                  key={client.id}
+                  client={client}
+                  sortKey={sort.key}
+                  onOpen={openClientFromList}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <ClientSheet
+          playerId={openClient}
+          preview={clients?.find((client) => client.id === openClient)}
+          open={openClient !== null}
+          onOpenChange={(open) => !open && setOpenClient(null)}
+          onSaved={() => void load(query.trim())}
+        />
+      </PageBody>
     </>
   );
 }
