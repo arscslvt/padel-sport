@@ -141,7 +141,7 @@ Niente in produzione. Mezza giornata.
       pubblica dell'uno restituisce righe dell'altro. Nasce con i wrapper
       della Fase 2 e cresce con loro.
 - [x] Componente `@convex-dev/migrations` in `convex.config.ts`.
-- [ ] Backup di produzione dalla dashboard di Convex (Backups), lasciato lì.
+- [x] Backup di produzione dalla dashboard di Convex (Backups), lasciato lì.
       Le prove si fanno in dev con dati finti: i dati di produzione sono dati
       personali dei clienti e non vanno copiati in dev o in locale.
 
@@ -168,8 +168,10 @@ indietro senza danni: il campo è facoltativo e il codice vecchio lo ignora.
 - [x] Migrazione che riempie `clubId` su ogni riga esistente, a lotti e
       ripetibile: `modules/clubs/backfill:run`.
 - [x] Controllo: per ogni tabella, zero righe senza `clubId`
-      (`modules/clubs/backfill:missing`). In dev: fatto il 27/10/2026.
-- [ ] Rilascio: `convex deploy`, poi main (anche se il sito non cambia).
+      (`modules/clubs/backfill:missing`). Fatto in dev e in prod il 27/10/2026,
+      dopo il backup di prod: circa 1.000 righe in 25 tabelle.
+- [x] Rilascio: `convex deploy`, poi main (anche se il sito non cambia).
+      In prod il 27/10/2026, main a `4e6553e`.
 
 ## Fase 2: il codice diventa multi-club
 
