@@ -1,0 +1,456 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Vetro ha un tema solo, chiaro: il grigio zinc-50 del sito del club, con il
+ * suo verde come unico accento. Il verde profondo torna pieno in una banda
+ * sola, quella della richiesta demo, come la banda dell'assistenza sul sito
+ * del club. I componenti di prodotto usano il tema chiaro del gestionale:
+ * quello che si vede qui è quello che lo staff trova aprendolo.
+ */
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-heading: var(--font-display);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-field: var(--field);
+  --color-ring: var(--ring);
+
+  /*
+   * Il marchio. `brand` è il verde da testo (il corsivo dei titoli, le
+   * icone), `brand-soft` il suo fondo tenue. `club` è il verde profondo
+   * delle bande, `mint` il verde chiaro che ci va sopra.
+   */
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-club: var(--club);
+  --color-mint: var(--mint);
+
+  /* Gli stati del gestionale, gli stessi del suo tema chiaro. */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-border: var(--success-border);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-border: var(--warning-border);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-border: var(--info-border);
+
+  /*
+   * Una scala di raggi sola.
+   * Tasti, badge e pillole sono tondi pieni. Le card stanno a 20px come sul
+   * sito del club, le cornici dei componenti di prodotto a 28px. Le righe
+   * dentro il prodotto a 16px, come nel gestionale; i campi a 12px.
+   */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-card: 1.25rem;
+  --radius-frame: 1.75rem;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+:root {
+  color-scheme: light;
+
+  --background: var(--color-zinc-50);
+  --foreground: var(--color-zinc-950);
+  --surface: var(--color-zinc-100);
+  --card: var(--color-white);
+  --card-foreground: var(--color-zinc-950);
+  --popover: var(--color-white);
+  --popover-foreground: var(--color-zinc-950);
+  --secondary: var(--color-zinc-100);
+  --secondary-foreground: var(--color-zinc-900);
+  --muted: var(--color-zinc-100);
+  /* zinc-600 e non zinc-500: il testo secondario resta sopra 7:1. */
+  --muted-foreground: var(--color-zinc-600);
+  --accent: var(--color-zinc-100);
+  --accent-foreground: var(--color-zinc-900);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: var(--color-zinc-200);
+  /* Il bordo dei campi arriva a 3:1 sul bianco: il campo si vede anche vuoto. */
+  --input: var(--color-zinc-400);
+  --field: var(--color-white);
+  --ring: oklch(0.45 0.1 165 / 45%);
+
+  --brand: oklch(0.45 0.1 165);
+  --brand-soft: oklch(0.94 0.04 165);
+  --club: oklch(0.29 0.055 165);
+  --mint: oklch(0.905 0.093 164.15);
+
+  /* Il tasto principale: il verde del club, con il bianco sopra. */
+  --primary: var(--club);
+  --primary-foreground: oklch(0.985 0.005 140);
+
+  --success: oklch(0.6 0.14 152);
+  --success-foreground: oklch(0.36 0.08 152);
+  --success-subtle: oklch(0.97 0.03 152);
+  --success-border: oklch(0.9 0.06 152);
+  --warning: oklch(0.72 0.15 70);
+  --warning-foreground: oklch(0.42 0.09 60);
+  --warning-subtle: oklch(0.975 0.035 85);
+  --warning-border: oklch(0.9 0.08 85);
+  --danger: oklch(0.6 0.2 27);
+  --danger-foreground: oklch(0.42 0.14 27);
+  --danger-subtle: oklch(0.97 0.02 27);
+  --danger-border: oklch(0.9 0.05 27);
+  --info: oklch(0.58 0.15 255);
+  --info-foreground: oklch(0.4 0.1 255);
+  --info-subtle: oklch(0.97 0.02 255);
+  --info-border: oklch(0.9 0.05 255);
+
+  /*
+   * Due margini laterali, come sul sito del club. `--gutter` è quello del
+   * testo. `--gutter-frame` è quello delle superfici che arrivano quasi al
+   * bordo (le schede, la banda verde, la cornice dell'agenda, la pillola
+   * di navigazione): tutte sulla stessa linea, più vicine al bordo del testo.
+   */
+  --page-max: 76rem;
+  --gutter: 1rem;
+  --gutter-frame: 0.5rem;
+}
+
+@media (width >= 40rem) {
+  :root {
+    --gutter: 1.75rem;
+    --gutter-frame: 0.75rem;
+  }
+}
+
+@media (width >= 64rem) {
+  :root {
+    --gutter: 2.5rem;
+    --gutter-frame: 1rem;
+  }
+}
+
+/*
+ * La banda verde del club.
+ * Ridichiara i token: dentro la banda testi, bordi, campi e tasti si
+ * adeguano da soli, senza varianti nei componenti. È lo stesso meccanismo
+ * di `tone-emerald` sul sito del club.
+ */
+.tone-club {
+  --background: var(--club);
+  --foreground: oklch(0.985 0.005 140);
+  --card: oklch(1 0 0 / 6%);
+  --card-foreground: oklch(0.985 0.005 140);
+  --muted: oklch(1 0 0 / 7%);
+  --muted-foreground: oklch(0.985 0.005 140 / 72%);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 28%);
+  --field: oklch(1 0 0 / 7%);
+  --ring: oklch(0.905 0.093 164.15 / 55%);
+  --brand: var(--mint);
+  --brand-soft: oklch(0.905 0.093 164.15 / 14%);
+  --primary: oklch(0.979 0.021 166.113);
+  --primary-foreground: oklch(0.17 0.025 166);
+  --danger-foreground: oklch(0.86 0.09 25);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+@utility page-container {
+  width: 100%;
+  max-width: calc(var(--page-max) + var(--gutter) * 2);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/*
+ * Dentro un `page-container`: porta una superficie dal margine del testo a
+ * quello delle superfici. Da telefono e tablet le schede stanno così sulla
+ * stessa linea della banda verde.
+ */
+@utility frame-bleed {
+  margin-inline: calc(var(--gutter-frame) - var(--gutter));
+}
+
+/*
+ * Raggi concentrici, la regola di tutta la pagina.
+ *
+ * 1. Ciò che sta nell'angolo di un contenitore (tocca il suo margine su
+ *    entrambi i lati) ha la stessa distanza dai due lati.
+ * 2. Il raggio del contenitore è il raggio di quel figlio più la distanza:
+ *    così le due curve corrono parallele, come in una cornice.
+ * 3. Ciò che non sta in un angolo non supera mai il raggio di chi lo
+ *    contiene.
+ *
+ * `concentric` mette in pratica le prime due: il contenitore dichiara il
+ * raggio dei figli d'angolo (`--inner`) e il margine (`--pad`), e prende la
+ * somma come raggio. Se il margine cambia con lo schermo, il raggio lo segue
+ * da solo. Non va usata insieme a classi `p-*` o `rounded-*`.
+ */
+@utility concentric {
+  padding: var(--pad);
+  border-radius: calc(var(--inner) + var(--pad));
+}
+
+/*
+ * Il materiale del marchio: una lastra di vetro. Bianca e traslucida, con il
+ * bordo sottile e il riflesso in alto, come la pillola del sito del club.
+ * Sotto `prefers-reduced-transparency` diventa una superficie piena.
+ */
+@utility glass {
+  background: oklch(1 0 0 / 72%);
+  border: 1px solid oklch(0 0 0 / 7%);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 80%),
+    0 1px 2px oklch(0.2 0.02 165 / 5%),
+    0 16px 40px -20px oklch(0.2 0.02 165 / 30%);
+  /* Una dichiarazione sola: il prefisso per Safari lo aggiunge la build.
+     Scritte tutte e due, Lightning CSS teneva solo quella con il prefisso,
+     e Chrome restava senza blur. */
+  backdrop-filter: blur(20px) saturate(170%);
+}
+
+/* biome-ignore lint/correctness/noUnknownMediaFeatureName: Chrome e Safari lo supportano, gli altri lo ignorano. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--color-white);
+    backdrop-filter: none;
+  }
+}
+
+/*
+ * L'ombra dei componenti di prodotto: lunga, morbida e tinta del verde del
+ * marchio, mai nera piena sul grigio chiaro.
+ */
+@utility shadow-frame {
+  box-shadow:
+    0 0 0 1px oklch(0.2 0.02 165 / 6%),
+    0 2px 4px oklch(0.2 0.02 165 / 4%),
+    0 24px 48px -16px oklch(0.2 0.02 165 / 14%),
+    0 60px 120px -40px oklch(0.2 0.04 165 / 22%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Il taglio orizzontale anche sulla radice: su iOS quello del solo body
+     non impedisce alla pagina di scorrere di lato. */
+  html {
+    background-color: var(--background);
+    overflow-x: clip;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    overflow-x: clip;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: oklch(0.905 0.093 164.15 / 60%);
+    color: var(--color-zinc-950);
+  }
+
+  [id] {
+    scroll-margin-top: 6rem;
+  }
+}
+
+/*
+ * L'entrata dell'hero.
+ *
+ * In CSS e non in JavaScript: parte appena arriva il foglio di stile, gira
+ * fuori dal thread principale e non perde fotogrammi mentre la pagina finisce
+ * di caricare, che è proprio il momento in cui la si guarda. Ogni elemento ha
+ * il suo indice in `--i`.
+ */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em);
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.rise-in {
+  animation: rise-in 900ms var(--ease-out) both;
+  animation-delay: calc(120ms + var(--i, 0) * 55ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-in {
+    animation: fade-in 300ms ease both;
+  }
+}
+
+/* La fascia delle funzioni: moto costante, quindi lineare. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee 70s linear infinite;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
+
+/* Il punto «in campo»: uno stato reale, l'unico che pulsa. */
+@keyframes live-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  80%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.live-ping {
+  animation: live-ping 1.8s var(--ease-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-ping {
+    animation: none;
+  }
+}
+
+/*
+ * La grana: un velo fisso e inerte sopra tutto, mai sopra un contenitore che
+ * scorre, così non costringe il browser a ridipingere a ogni scroll. Sul
+ * grigio chiaro basta pochissimo: toglie al fondo l'effetto plastica.
+ */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/*
+ * Il bordo che si accende sotto il puntatore, nelle card delle funzioni.
+ * La posizione (`--x`, `--y`) la scrive il gestore del puntatore sulla card
+ * stessa, non sul contenitore: così il ricalcolo degli stili resta a una
+ * card per volta. Sui dispositivi senza puntatore non c'è.
+ */
+.spotlight {
+  position: relative;
+  isolation: isolate;
+}
+
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 1px;
+  background: radial-gradient(
+    22rem circle at var(--x, -100%) var(--y, -100%),
+    oklch(0.55 0.12 165 / 70%),
+    transparent 60%
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .spotlight-group:hover .spotlight::before {
+    opacity: 1;
+  }
+}
+
+/*
+ * L'avanzamento delle storie: una barra che si riempie a velocità costante,
+ * quindi lineare. È un'animazione CSS e non un timer: si mette in pausa con
+ * `animation-play-state` e riprende da dove era, e la sua fine
+ * (`animationend`) è il segnale per passare alla storia dopo.
+ */
+@keyframes story-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.story-fill {
+  transform-origin: left;
+  animation: story-fill var(--story-duration, 6s) linear forwards;
+}

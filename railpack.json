@@ -12,9 +12,10 @@
         { "src": "apps/web/package.json", "dest": "apps/web/package.json" },
         { "src": "apps/dashboard/package.json", "dest": "apps/dashboard/package.json" },
         { "src": "apps/mobile/package.json", "dest": "apps/mobile/package.json" },
+        { "src": "apps/vetro/package.json", "dest": "apps/vetro/package.json" },
         { "src": "packages/backend/package.json", "dest": "packages/backend/package.json" },
         { "src": "packages/one-time-code/package.json", "dest": "packages/one-time-code/package.json" },
-        "bun install --frozen-lockfile --filter ./apps/web --filter ./apps/dashboard"
+        "bun install --frozen-lockfile --filter ./apps/web --filter ./apps/dashboard --filter ./apps/vetro"
       ]
     }
   },

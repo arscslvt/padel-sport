@@ -8,7 +8,7 @@
 # Railway (vedi railpack.json), invece dell'intero monorepo con i suoi
 # node_modules, app mobile compresa.
 #
-# Uso: sh scripts/stage-standalone.sh web|dashboard
+# Uso: sh scripts/stage-standalone.sh web|dashboard|vetro
 set -eu
 
 app="$1"

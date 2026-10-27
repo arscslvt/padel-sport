@@ -6,13 +6,16 @@
   "scripts": {
     "dev:web": "bun run --cwd apps/web dev",
     "dev:dashboard": "bun run --cwd apps/dashboard dev",
+    "dev:vetro": "bun run --cwd apps/vetro dev",
     "dev:mobile": "bun run --cwd apps/mobile dev",
     "dev:mobile:clean": "bun run --cwd apps/mobile dev:clean",
     "dev:backend": "bun run --cwd packages/backend dev",
     "build:web": "bun run --cwd apps/web build && sh scripts/stage-standalone.sh web",
     "build:dashboard": "bun run --cwd apps/dashboard build && sh scripts/stage-standalone.sh dashboard",
+    "build:vetro": "bun run --cwd apps/vetro build && sh scripts/stage-standalone.sh vetro",
     "start:web": "HOSTNAME=0.0.0.0 node .deploy/web/apps/web/server.js",
-    "start:dashboard": "HOSTNAME=0.0.0.0 node .deploy/dashboard/apps/dashboard/server.js"
+    "start:dashboard": "HOSTNAME=0.0.0.0 node .deploy/dashboard/apps/dashboard/server.js",
+    "start:vetro": "HOSTNAME=0.0.0.0 node .deploy/vetro/apps/vetro/server.js"
   },
   "workspaces": [
     "apps/*",
