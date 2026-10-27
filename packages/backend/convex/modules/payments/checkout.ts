@@ -11,6 +11,7 @@ import {
 } from "../../_generated/server";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
+import { defaultClubId } from "../clubs/lib";
 import { getIdentityPlayer, requirePlayer } from "../openMatches/lib";
 import { bookingChanged } from "../points/auto";
 import { bookingTotal, formatEuro } from "../pricing/lib";
@@ -162,6 +163,7 @@ export const open = internalMutation({
 
     const expiresAt = now + CHECKOUT_SESSION_MS;
     const paymentId = await ctx.db.insert("payments", {
+      clubId: await defaultClubId(ctx),
       bookingId: booking._id,
       playerId: player._id,
       provider: "sumup",

@@ -1,5 +1,6 @@
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import type { PlayerView } from "../openMatches/lib";
 
 /**
@@ -123,6 +124,7 @@ export async function ensureFriendRequest(
   }
 
   const friendshipId = await ctx.db.insert("friendships", {
+    clubId: await defaultClubId(ctx),
     requesterId: from,
     addresseeId: to,
     status: "pending",

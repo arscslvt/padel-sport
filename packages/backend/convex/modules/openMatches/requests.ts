@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation, query } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import { addPlayerToMatch, requirePlayer, toPlayerView } from "./lib";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
@@ -46,6 +47,7 @@ export const request = mutation({
     }
 
     const requestId = await ctx.db.insert("joinRequests", {
+      clubId: await defaultClubId(ctx),
       matchId,
       playerId: player._id,
       status: "pending",

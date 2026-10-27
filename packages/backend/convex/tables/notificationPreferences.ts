@@ -12,10 +12,14 @@ import { notificationCategory } from "../utils/notificationCategories";
  * dover toccare le righe che ci sono già. Nessuna riga, tutto acceso.
  */
 const notificationPreferences = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   /** `userId` Clerk */
   userId: v.string(),
   muted: v.array(notificationCategory),
   updatedAt: v.float64(),
-}).index("by_user", ["userId"]);
+})
+  .index("by_user", ["userId"])
+  .index("by_club_user", ["clubId", "userId"]);
 
 export default notificationPreferences;

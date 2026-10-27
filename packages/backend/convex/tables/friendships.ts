@@ -11,6 +11,8 @@ import { v } from "convex/values";
  * di nuovo più avanti.
  */
 const friendships = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   requesterId: v.id("players"),
   addresseeId: v.id("players"),
   status: v.union(v.literal("pending"), v.literal("accepted")),
@@ -19,6 +21,7 @@ const friendships = defineTable({
 })
   .index("by_requester", ["requesterId", "status"])
   .index("by_addressee", ["addresseeId", "status"])
-  .index("by_pair", ["requesterId", "addresseeId"]);
+  .index("by_pair", ["requesterId", "addresseeId"])
+  .index("by_club", ["clubId"]);
 
 export default friendships;

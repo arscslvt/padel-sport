@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { mutation, query } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 import { activeRewards, rewardImageUrl } from "./lib";
 
 /**
@@ -101,6 +102,7 @@ export const save = mutation({
 
     if (!rewardId) {
       return await ctx.db.insert("rewards", {
+        clubId: await defaultClubId(ctx),
         ...values,
         imageStorageId: fields.imageStorageId,
         archived: false,

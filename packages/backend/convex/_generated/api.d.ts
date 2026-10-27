@@ -49,6 +49,9 @@ import type * as modules_clients_merge from "../modules/clients/merge.js";
 import type * as modules_clients_profile from "../modules/clients/profile.js";
 import type * as modules_clients_self from "../modules/clients/self.js";
 import type * as modules_clients_suspension from "../modules/clients/suspension.js";
+import type * as modules_clubs_backfill from "../modules/clubs/backfill.js";
+import type * as modules_clubs_lib from "../modules/clubs/lib.js";
+import type * as modules_clubs_seed from "../modules/clubs/seed.js";
 import type * as modules_courtCalendar_client from "../modules/courtCalendar/client.js";
 import type * as modules_courtCalendar_data from "../modules/courtCalendar/data.js";
 import type * as modules_courtCalendar_lib from "../modules/courtCalendar/lib.js";
@@ -173,6 +176,7 @@ import type * as tables_circleInvites from "../tables/circleInvites.js";
 import type * as tables_circleMembers from "../tables/circleMembers.js";
 import type * as tables_circles from "../tables/circles.js";
 import type * as tables_clientInvites from "../tables/clientInvites.js";
+import type * as tables_clubs from "../tables/clubs.js";
 import type * as tables_eventCommunicationDeliveries from "../tables/eventCommunicationDeliveries.js";
 import type * as tables_eventCommunications from "../tables/eventCommunications.js";
 import type * as tables_eventRsvps from "../tables/eventRsvps.js";
@@ -258,6 +262,9 @@ declare const fullApi: ApiFromModules<{
   "modules/clients/profile": typeof modules_clients_profile;
   "modules/clients/self": typeof modules_clients_self;
   "modules/clients/suspension": typeof modules_clients_suspension;
+  "modules/clubs/backfill": typeof modules_clubs_backfill;
+  "modules/clubs/lib": typeof modules_clubs_lib;
+  "modules/clubs/seed": typeof modules_clubs_seed;
   "modules/courtCalendar/client": typeof modules_courtCalendar_client;
   "modules/courtCalendar/data": typeof modules_courtCalendar_data;
   "modules/courtCalendar/lib": typeof modules_courtCalendar_lib;
@@ -382,6 +389,7 @@ declare const fullApi: ApiFromModules<{
   "tables/circleMembers": typeof tables_circleMembers;
   "tables/circles": typeof tables_circles;
   "tables/clientInvites": typeof tables_clientInvites;
+  "tables/clubs": typeof tables_clubs;
   "tables/eventCommunicationDeliveries": typeof tables_eventCommunicationDeliveries;
   "tables/eventCommunications": typeof tables_eventCommunications;
   "tables/eventRsvps": typeof tables_eventRsvps;
@@ -448,4 +456,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   tournaments: import("../components/tournaments/_generated/component.js").ComponentApi<"tournaments">;
+  migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
 };

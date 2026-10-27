@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import { generatePlayerCode, getIdentityPlayer, requirePlayer } from "../openMatches/lib";
 import { activeRule } from "../points/rules";
 
@@ -85,6 +86,7 @@ export const create = mutation({
       });
     } else {
       await ctx.db.insert("referrals", {
+        clubId: await defaultClubId(ctx),
         inviterId: inviter._id,
         email,
         name,

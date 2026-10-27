@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
 import { internalMutation } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import { syncParticipants } from "./auto";
 import { POINT_RULES, ruleRow } from "./rules";
 
@@ -45,6 +46,7 @@ export default internalMutation({
     for (const rule of POINT_RULES) {
       if (await ruleRow(ctx, rule.key)) continue;
       await ctx.db.insert("pointRules", {
+        clubId: await defaultClubId(ctx),
         key: rule.key,
         points: rule.defaultPoints,
         enabled: true,

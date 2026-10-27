@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import { requirePlayer } from "../openMatches/lib";
 import { inviteToCircle } from "./invite";
 import { assertCircleQuota } from "./lib";
@@ -35,12 +36,14 @@ export default mutation({
     await assertCircleQuota(ctx, player._id);
 
     const circleId = await ctx.db.insert("circles", {
+      clubId: await defaultClubId(ctx),
       name: trimmed,
       ownerId: player._id,
       createdAt: Date.now(),
     });
 
     await ctx.db.insert("circleMembers", {
+      clubId: await defaultClubId(ctx),
       circleId,
       playerId: player._id,
       role: "owner",

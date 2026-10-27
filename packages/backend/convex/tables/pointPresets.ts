@@ -13,10 +13,14 @@ import { v } from "convex/values";
  * tolto (modules/points/presets.ts).
  */
 const pointPresets = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   label: v.string(),
   points: v.float64(),
   archived: v.boolean(),
   createdAt: v.float64(),
-}).index("by_archived", ["archived"]);
+})
+  .index("by_archived", ["archived"])
+  .index("by_club_archived", ["clubId", "archived"]);
 
 export default pointPresets;

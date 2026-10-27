@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 import {
   assertGuests,
   confirmedRsvps,
@@ -80,6 +81,7 @@ export default mutation({
     }
 
     const id = await ctx.db.insert("eventRsvps", {
+      clubId: await defaultClubId(ctx),
       eventId: args.eventId,
       blockKey: args.blockKey,
       eventSlug: args.eventSlug,
@@ -165,6 +167,7 @@ export const byStaff = mutation({
     }
 
     const id = await ctx.db.insert("eventRsvps", {
+      clubId: await defaultClubId(ctx),
       eventId: args.eventId,
       blockKey: args.blockKey,
       eventSlug: args.eventSlug,

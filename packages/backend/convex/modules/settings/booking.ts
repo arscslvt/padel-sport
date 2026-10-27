@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
 import { type MutationCtx, mutation, query } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 import { MATCH_DURATION_MINUTES } from "../openMatches/lib";
 import {
   bookingSettings,
@@ -131,6 +132,7 @@ export const update = mutation({
     }
 
     return await ctx.db.insert("bookingSettings", {
+      clubId: await defaultClubId(ctx),
       windows,
       bookableDays,
       closedWeekdays,
@@ -153,6 +155,7 @@ async function settingsRow(ctx: MutationCtx): Promise<Doc<"bookingSettings">> {
 
   const { closures: _closures, ...defaults } = DEFAULT_SETTINGS;
   const id = await ctx.db.insert("bookingSettings", {
+    clubId: await defaultClubId(ctx),
     ...defaults,
     updatedAt: Date.now(),
   });
@@ -374,6 +377,7 @@ export const saveCourt = mutation({
     }
 
     return await ctx.db.insert("slots", {
+      clubId: await defaultClubId(ctx),
       name: trimmed,
       description,
       active,

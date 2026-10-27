@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
 import { mutation } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import { ensureFriendRequest } from "../friends/lib";
 import { requirePlayer } from "../openMatches/lib";
 import { MAX_CIRCLE_MEMBERS, membersOf, requireCircleOwner } from "./lib";
@@ -71,6 +72,7 @@ export async function inviteToCircle(
     }
 
     await ctx.db.insert("circleInvites", {
+      clubId: await defaultClubId(ctx),
       circleId: circle._id,
       inviterId: inviter._id,
       inviteeId: playerId,

@@ -7,6 +7,7 @@ import {
   type MutationCtx,
   type QueryCtx,
 } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import { clubDayKey, clubMoment } from "../settings/lib";
 import { applyPoints, balanceOf } from "./lib";
 import {
@@ -130,6 +131,7 @@ export async function syncParticipants(
   for (const playerId of wanted) {
     if (rows.some((row) => row.playerId === playerId)) continue;
     await ctx.db.insert("bookingPlayers", {
+      clubId: await defaultClubId(ctx),
       bookingId: booking._id,
       playerId,
       bookingDate: booking.bookingDate,
@@ -226,6 +228,7 @@ async function revoke(ctx: MutationCtx, autoKey: string) {
 
   const balance = balanceOf(player) - amount;
   const reversalId = await ctx.db.insert("pointTransactions", {
+    clubId: await defaultClubId(ctx),
     playerId: player._id,
     delta: -amount,
     label: `Storno: ${transaction.label}`,

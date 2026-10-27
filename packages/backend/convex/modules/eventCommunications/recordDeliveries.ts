@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 
 /**
  * Segna a chi è arrivata una comunicazione, un blocco di destinatari alla
@@ -43,6 +44,7 @@ export default mutation({
       known.add(recipient.rsvpId);
 
       await ctx.db.insert("eventCommunicationDeliveries", {
+        clubId: await defaultClubId(ctx),
         communicationId: args.communicationId,
         documentId: args.documentId,
         blockKey: args.blockKey,

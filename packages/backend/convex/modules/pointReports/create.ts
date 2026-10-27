@@ -4,6 +4,7 @@ import { mutation } from "../../_generated/server";
 import { pointReportCategory } from "../../tables/pointReports";
 import { excerpt } from "../../utils/hark";
 import { staffPointReportUrl } from "../../utils/staffLinks";
+import { defaultClubId } from "../clubs/lib";
 import { requirePlayer } from "../openMatches/lib";
 import { CATEGORY_LABELS, MAX_MESSAGE, MIN_MESSAGE } from "./lib";
 
@@ -62,6 +63,7 @@ export default mutation({
     }
 
     const reportId = await ctx.db.insert("pointReports", {
+      clubId: await defaultClubId(ctx),
       playerId: player._id,
       transactionId: transaction?._id,
       category: args.category,

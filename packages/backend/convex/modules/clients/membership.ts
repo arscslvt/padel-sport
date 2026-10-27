@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { paymentMethod } from "../../tables/memberships";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 import { reconcileReferral } from "../points/auto";
 import { lastMembership, membershipEnd } from "./lib";
 
@@ -73,6 +74,7 @@ export const save = mutation({
       (previous && previous.endsAt > now ? previous.endsAt : now);
 
     const membershipId = await ctx.db.insert("memberships", {
+      clubId: await defaultClubId(ctx),
       playerId: args.playerId,
       startsAt,
       endsAt: membershipEnd(startsAt),

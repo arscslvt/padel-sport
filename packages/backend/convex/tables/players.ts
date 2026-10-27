@@ -83,6 +83,8 @@ const health = v.object({
  * perché non c'è nessuno da autenticare.
  */
 const players = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   clerkUserId: v.optional(v.string()),
   name: v.string(),
   level: v.float64(),
@@ -221,7 +223,10 @@ const players = defineTable({
   .index("by_email", ["email"])
   .index("by_deletion_effective", ["deletion.effectiveAt"])
   .index("by_deletion_purge", ["deletion.purgeAt"])
-  .searchIndex("by_name", { searchField: "name" });
+  .searchIndex("by_name", { searchField: "name" })
+  .index("by_club_clerk_user_id", ["clubId", "clerkUserId"])
+  .index("by_club_email", ["clubId", "email"])
+  .index("by_club_code", ["clubId", "code"]);
 
 export default players;
 export { consents, gender, health, residence };

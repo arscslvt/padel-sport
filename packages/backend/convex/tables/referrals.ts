@@ -25,6 +25,8 @@ import { v } from "convex/values";
 const referralStatus = v.union(v.literal("pending"), v.literal("joined"));
 
 const referrals = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   inviterId: v.id("players"),
   /** Minuscolo: è così che lo si confronta con la scheda nuova. */
   email: v.optional(v.string()),
@@ -41,7 +43,8 @@ const referrals = defineTable({
   .index("by_email", ["email"])
   .index("by_token", ["token"])
   .index("by_inviter", ["inviterId", "createdAt"])
-  .index("by_invitee", ["inviteeId"]);
+  .index("by_invitee", ["inviteeId"])
+  .index("by_club_email", ["clubId", "email"]);
 
 export default referrals;
 export { referralStatus };

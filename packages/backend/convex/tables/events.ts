@@ -8,6 +8,8 @@ import { v } from "convex/values";
  */
 
 const events = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   title: v.string(),
   description: v.string(),
   date: v.float64(),
@@ -20,6 +22,8 @@ const events = defineTable({
       facebookPost: v.optional(v.string()),
     }),
   ),
-}).index("by_date", ["date"]);
+})
+  .index("by_date", ["date"])
+  .index("by_club_date", ["clubId", "date"]);
 
 export default events;

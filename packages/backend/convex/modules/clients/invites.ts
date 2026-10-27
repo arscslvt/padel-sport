@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { mutation, query } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 import { displayName } from "./lib";
 
 /**
@@ -135,6 +136,7 @@ export const send = mutation({
     }
 
     const inviteId = await ctx.db.insert("clientInvites", {
+      clubId: await defaultClubId(ctx),
       token: args.token,
       email,
       firstName: player.firstName ?? displayName(player),

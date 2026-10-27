@@ -1,0 +1,87 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+
+import { internal } from "../../_generated/api";
+import { setupTest } from "../../test.setup";
+
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => vi.useRealTimers());
+
+const day = (key: string, tempMax: number) => ({
+  day: key,
+  code: 0,
+  tempMax,
+  tempMin: 12,
+  precipitation: 0,
+  hours: [],
+  fetchedAt: Date.now(),
+});
+
+describe("club di oggi", () => {
+  test("la riga di Padel Sport nasce una volta sola", async () => {
+    const t = setupTest();
+    const first = await t.mutation(internal.modules.clubs.seed.padelSport, {});
+    const second = await t.mutation(internal.modules.clubs.seed.padelSport, {});
+
+    expect(first.created).toBe(true);
+    expect(second).toEqual({ clubId: first.clubId, created: false });
+    const clubs = await t.run((ctx) => ctx.db.query("clubs").collect());
+    expect(clubs).toHaveLength(1);
+  });
+
+  test("le righe nuove nascono col club, anche quando il meteo le riscrive", async () => {
+    const t = setupTest();
+    const { clubId } = await t.mutation(
+      internal.modules.clubs.seed.padelSport,
+      {},
+    );
+
+    await t.mutation(internal.modules.weather.data.store, {
+      days: [day("2026-10-28", 20)],
+    });
+    // La seconda lettura passa da `replace`, che riscrive la riga intera.
+    await t.mutation(internal.modules.weather.data.store, {
+      days: [day("2026-10-28", 22)],
+    });
+
+    const rows = await t.run((ctx) => ctx.db.query("weatherDays").collect());
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ clubId, tempMax: 22 });
+  });
+
+  test("senza la riga del club si scrive lo stesso, senza club", async () => {
+    const t = setupTest();
+    await t.mutation(internal.modules.weather.data.store, {
+      days: [day("2026-10-28", 20)],
+    });
+    const rows = await t.run((ctx) => ctx.db.query("weatherDays").collect());
+    expect(rows[0].clubId).toBeUndefined();
+  });
+});
+
+describe("riempimento di clubId", () => {
+  test("ogni riga senza club prende Padel Sport, le altre restano", async () => {
+    const t = setupTest();
+
+    // Righe di prima della migrazione: nessun club.
+    await t.run(async (ctx) => {
+      await ctx.db.insert("slots", { name: "Campo 1", active: true });
+      await ctx.db.insert("slots", { name: "Campo 2", active: true });
+      await ctx.db.insert("weatherDays", day("2026-10-27", 19));
+    });
+    const before = await t.query(internal.modules.clubs.backfill.missing, {});
+    expect(before).toEqual({ slots: 2, weatherDays: 1 });
+
+    const { clubId } = await t.mutation(
+      internal.modules.clubs.seed.padelSport,
+      {},
+    );
+    await t.mutation(internal.modules.clubs.backfill.run, {});
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+    expect(await t.query(internal.modules.clubs.backfill.missing, {})).toEqual(
+      {},
+    );
+    const slots = await t.run((ctx) => ctx.db.query("slots").collect());
+    expect(slots.map((slot) => slot.clubId)).toEqual([clubId, clubId]);
+  });
+});

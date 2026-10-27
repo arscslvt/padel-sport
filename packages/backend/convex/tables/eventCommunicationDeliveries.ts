@@ -18,6 +18,8 @@ import { v } from "convex/values";
  * `eventRsvps`: un indice fa quel lavoro, un campo array no.
  */
 const eventCommunicationDeliveries = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   /** L'invio che ha prodotto questa consegna */
   communicationId: v.id("eventCommunications"),
   /** `_id` del documento Sanity e `_key` del modulo: la coppia di `eventCommunications` */
@@ -35,6 +37,7 @@ const eventCommunicationDeliveries = defineTable({
   .index("by_document", ["documentId", "blockKey"])
   // Le consegne se ne vanno con l'iscrizione, quando scade il tempo di
   // conservazione (modules/privacy/retention.ts).
-  .index("by_rsvp", ["rsvpId"]);
+  .index("by_rsvp", ["rsvpId"])
+  .index("by_club", ["clubId"]);
 
 export default eventCommunicationDeliveries;

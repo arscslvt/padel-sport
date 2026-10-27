@@ -10,6 +10,8 @@ const joinRequestStatus = v.union(
 
 /** Richiesta di partecipazione a una partita aperta in modalità "request". */
 const joinRequests = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   matchId: v.id("openMatches"),
   playerId: v.id("players"),
   status: joinRequestStatus,
@@ -17,7 +19,8 @@ const joinRequests = defineTable({
 })
   .index("by_match_status", ["matchId", "status"])
   .index("by_match_player", ["matchId", "playerId"])
-  .index("by_player", ["playerId", "status"]);
+  .index("by_player", ["playerId", "status"])
+  .index("by_club", ["clubId"]);
 
 export default joinRequests;
 export { joinRequestStatus };

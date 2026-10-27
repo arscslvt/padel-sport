@@ -9,6 +9,7 @@ import {
 } from "../../_generated/server";
 import { notificationCategory } from "../../utils/notificationCategories";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 
 /**
  * I dispositivi dello staff che ricevono le notifiche push.
@@ -64,6 +65,7 @@ export const subscribe = mutation({
     }
 
     return await ctx.db.insert("pushSubscriptions", {
+      clubId: await defaultClubId(ctx),
       ...args,
       createdAt: now,
       lastSeenAt: now,

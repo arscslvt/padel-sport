@@ -19,6 +19,8 @@ import { v } from "convex/values";
  * un'azione premiata partisse (`pointRules.since`).
  */
 const bookingPlayers = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   bookingId: v.id("bookings"),
   playerId: v.id("players"),
   bookingDate: v.float64(),
@@ -26,6 +28,7 @@ const bookingPlayers = defineTable({
   confirmed: v.boolean(),
 })
   .index("by_booking", ["bookingId"])
-  .index("by_player", ["playerId", "bookingDate"]);
+  .index("by_player", ["playerId", "bookingDate"])
+  .index("by_club", ["clubId"]);
 
 export default bookingPlayers;

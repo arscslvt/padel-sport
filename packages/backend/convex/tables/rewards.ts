@@ -21,6 +21,8 @@ import { v } from "convex/values";
  * Assente vuol dire attivo: i premi creati prima non vanno migrati.
  */
 const rewards = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   title: v.string(),
   description: v.string(),
   cost: v.float64(),
@@ -30,6 +32,8 @@ const rewards = defineTable({
   archived: v.boolean(),
   disabled: v.optional(v.boolean()),
   createdAt: v.float64(),
-}).index("by_archived", ["archived"]);
+})
+  .index("by_archived", ["archived"])
+  .index("by_club_archived", ["clubId", "archived"]);
 
 export default rewards;

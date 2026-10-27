@@ -24,6 +24,8 @@ const clientInviteStatus = v.union(
  * persona è già stata invitata, quando e quante volte.
  */
 const clientInvites = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   token: v.string(),
   email: v.string(),
   firstName: v.string(),
@@ -51,7 +53,9 @@ const clientInvites = defineTable({
   .index("by_token", ["token"])
   .index("by_email", ["email"])
   .index("by_player", ["playerId"])
-  .index("by_status", ["status"]);
+  .index("by_status", ["status"])
+  .index("by_club_email", ["clubId", "email"])
+  .index("by_club_status", ["clubId", "status"]);
 
 export default clientInvites;
 export { clientInviteStatus };

@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { mutation, query } from "../../_generated/server";
 import { notificationCategory } from "../../utils/notificationCategories";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 
 /**
  * Quali tipi di avviso un membro dello staff ha spento.
@@ -45,6 +46,7 @@ export const set = mutation({
       await ctx.db.patch(row._id, { muted: unique, updatedAt: Date.now() });
     } else {
       await ctx.db.insert("notificationPreferences", {
+        clubId: await defaultClubId(ctx),
         userId,
         muted: unique,
         updatedAt: Date.now(),

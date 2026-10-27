@@ -3,6 +3,7 @@ import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
 import { mutation } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import {
   invitesOf,
   occupancyOf,
@@ -76,6 +77,7 @@ export async function inviteToMatch(
       });
     } else {
       inviteId = await ctx.db.insert("matchInvites", {
+        clubId: await defaultClubId(ctx),
         matchId: match._id,
         playerId,
         kind: "direct",

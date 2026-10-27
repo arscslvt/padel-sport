@@ -1,4 +1,5 @@
 import { internalMutation } from "../_generated/server";
+import { defaultClubId } from "../modules/clubs/lib";
 import { newEventSchema } from "../types/events/event.new.type";
 
 export default internalMutation({
@@ -6,7 +7,10 @@ export default internalMutation({
     newEventSchema: newEventSchema,
   },
   handler: async (ctx, { newEventSchema }) => {
-    const id = await ctx.db.insert("events", newEventSchema);
+    const id = await ctx.db.insert("events", {
+      ...newEventSchema,
+      clubId: await defaultClubId(ctx),
+    });
     return id;
   },
 });

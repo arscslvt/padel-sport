@@ -22,6 +22,8 @@ const redemptionStatus = v.union(
  * cron per tenerlo vero.
  */
 const rewardRedemptions = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   playerId: v.id("players"),
   rewardId: v.id("rewards"),
   title: v.string(),
@@ -35,7 +37,8 @@ const rewardRedemptions = defineTable({
 })
   .index("by_player", ["playerId", "createdAt"])
   .index("by_code", ["code"])
-  .index("by_status", ["status"]);
+  .index("by_status", ["status"])
+  .index("by_club_status", ["clubId", "status"]);
 
 export default rewardRedemptions;
 export { redemptionStatus };

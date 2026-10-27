@@ -33,6 +33,8 @@ const matchVisibility = v.union(
  * resta lì a dire da dove è nata.
  */
 const openMatches = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   bookingId: v.id("bookings"),
   creatorId: v.id("players"),
   /** Giocatori in partita, creatore incluso */
@@ -53,7 +55,9 @@ const openMatches = defineTable({
   .index("by_date", ["matchDate"])
   .index("by_booking", ["bookingId"])
   .index("by_creator", ["creatorId"])
-  .index("by_circle_date", ["circleId", "matchDate"]);
+  .index("by_circle_date", ["circleId", "matchDate"])
+  .index("by_club_status_date", ["clubId", "status", "matchDate"])
+  .index("by_club_date", ["clubId", "matchDate"]);
 
 export default openMatches;
 export { joinMode, matchVisibility, openMatchStatus };

@@ -3,6 +3,7 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
 import { membersOf, requireCircleMember } from "../circles/lib";
+import { defaultClubId } from "../clubs/lib";
 import { friendshipBetween } from "../friends/lib";
 import { isMembershipValid, membershipStatus } from "../clients/lib";
 import { matchPricing } from "../pricing/lib";
@@ -235,8 +236,10 @@ export default mutation({
     // Il prezzo del listino di oggi, con la tariffa tesserati per chi prenota.
     const pricing = await matchPricing(ctx, player._id);
     const origin = args.origin ?? "app";
+    const clubId = await defaultClubId(ctx);
 
     const bookingId = await ctx.db.insert("bookings", {
+      clubId,
       bookedBy: player.name,
       phone,
       players: [player.name],
@@ -254,6 +257,7 @@ export default mutation({
     });
 
     const matchId = await ctx.db.insert("openMatches", {
+      clubId,
       bookingId,
       creatorId: player._id,
       playerIds: [player._id],
@@ -295,6 +299,7 @@ export default mutation({
           .filter((playerId) => !invitePlayerIds.includes(playerId))
           .map((playerId) =>
             ctx.db.insert("matchInvites", {
+              clubId,
               matchId,
               circleId,
               playerId,

@@ -8,6 +8,8 @@ const notificationStatus = v.union(
 );
 
 const bookings = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   bookedBy: v.string(),
   phone: v.optional(v.string()),
   players: v.array(v.string()),
@@ -141,7 +143,11 @@ const bookings = defineTable({
   .index("by_status", ["status"])
   .index("by_code", ["code"])
   .index("by_notification_status", ["notificationStatus"])
-  .index("by_created_by_player", ["createdByPlayer", "bookingDate"]);
+  .index("by_created_by_player", ["createdByPlayer", "bookingDate"])
+  .index("by_club_booking_date", ["clubId", "bookingDate"])
+  .index("by_club_created_at", ["clubId", "createdAt"])
+  .index("by_club_status", ["clubId", "status"])
+  .index("by_club_notification_status", ["clubId", "notificationStatus"]);
 
 export default bookings;
 export { notificationStatus };

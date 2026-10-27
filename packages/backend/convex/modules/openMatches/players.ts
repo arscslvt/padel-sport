@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import {
   generatePlayerCode,
   getIdentityPlayer,
@@ -82,6 +83,7 @@ export const upsertProfile = mutation({
     }
 
     return await ctx.db.insert("players", {
+      clubId: await defaultClubId(ctx),
       clerkUserId: identity.subject,
       name: trimmedName,
       level,

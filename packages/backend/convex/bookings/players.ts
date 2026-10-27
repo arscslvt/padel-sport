@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
+import { defaultClubId } from "../modules/clubs/lib";
 import {
   guestsOf,
   MAX_PLAYERS,
@@ -151,6 +152,7 @@ async function replaceGuests(
 
   for (const name of toAdd) {
     await ctx.db.insert("matchGuests", {
+      clubId: await defaultClubId(ctx),
       matchId: match._id,
       name,
       addedBy: match.creatorId,

@@ -20,6 +20,8 @@ const pointReportCategory = v.union(
  * dell'assistenza: una segnalazione si risolve o si archivia allo stesso modo.
  */
 const pointReports = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   playerId: v.id("players"),
   /** Il movimento contestato. Assente quando mancano punti mai caricati. */
   transactionId: v.optional(v.id("pointTransactions")),
@@ -31,7 +33,8 @@ const pointReports = defineTable({
   createdAt: v.float64(),
 })
   .index("by_created", ["createdAt"])
-  .index("by_player", ["playerId", "createdAt"]);
+  .index("by_player", ["playerId", "createdAt"])
+  .index("by_club_created", ["clubId", "createdAt"]);
 
 export default pointReports;
 export { pointReportCategory };

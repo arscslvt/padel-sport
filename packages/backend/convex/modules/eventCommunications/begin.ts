@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 
 /**
  * Dopo quanto un invio «in corso» si considera morto.
@@ -88,6 +89,7 @@ export default mutation({
     }
 
     const id = await ctx.db.insert("eventCommunications", {
+      clubId: await defaultClubId(ctx),
       documentId: args.documentId,
       eventId: args.eventId,
       blockKey: args.blockKey,

@@ -26,6 +26,8 @@ const matchRequestStatus = v.union(
  * lasciati nel modulo.
  */
 const matchRequests = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   name: v.string(),
   email: v.string(),
   phone: v.string(),
@@ -42,7 +44,10 @@ const matchRequests = defineTable({
 })
   .index("by_status_date", ["status", "matchDate"])
   .index("by_date", ["matchDate"])
-  .index("by_email", ["email"]);
+  .index("by_email", ["email"])
+  .index("by_club_status_date", ["clubId", "status", "matchDate"])
+  .index("by_club_date", ["clubId", "matchDate"])
+  .index("by_club_email", ["clubId", "email"]);
 
 export default matchRequests;
 export { matchRequestLevel, matchRequestStatus };

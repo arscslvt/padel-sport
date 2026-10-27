@@ -17,6 +17,8 @@ import { pointRuleKey } from "./pointRules";
  * l'elenco lo mostra senza dover risommare tutto.
  */
 const pointTransactions = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   playerId: v.id("players"),
   delta: v.float64(),
   label: v.string(),
@@ -52,6 +54,7 @@ const pointTransactions = defineTable({
   createdAt: v.float64(),
 })
   .index("by_player", ["playerId", "createdAt"])
-  .index("by_auto_key", ["autoKey"]);
+  .index("by_auto_key", ["autoKey"])
+  .index("by_club", ["clubId"]);
 
 export default pointTransactions;

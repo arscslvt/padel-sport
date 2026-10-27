@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import { MATCH_DURATION_MS } from "../openMatches/lib";
 import { SYNC_WINDOW_DAYS } from "./lib";
 
@@ -62,6 +63,7 @@ export const applyBlocks = internalMutation({
       }
 
       await ctx.db.insert("externalBookings", {
+        clubId: await defaultClubId(ctx),
         source: "sumup",
         externalId: block.externalId,
         start: block.start,

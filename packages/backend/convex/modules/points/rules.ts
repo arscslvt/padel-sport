@@ -9,6 +9,7 @@ import {
 } from "../../_generated/server";
 import { pointRuleKey } from "../../tables/pointRules";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 import { MAX_DELTA } from "./lib";
 
 /**
@@ -219,6 +220,7 @@ async function writeRule(
   }
 
   return await ctx.db.insert("pointRules", {
+    clubId: await defaultClubId(ctx),
     key,
     points,
     enabled,

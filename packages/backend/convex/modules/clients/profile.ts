@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import type { Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import { generatePlayerCode, LEVEL_MAX, LEVEL_MIN } from "../openMatches/lib";
 import { assertServer } from "../../utils/serverSecret";
 import {
@@ -166,6 +167,7 @@ export const create = mutation({
     if (email) await assertEmailFree(ctx, email);
 
     const playerId = await ctx.db.insert("players", {
+      clubId: await defaultClubId(ctx),
       name: displayName({ name: `${firstName} ${lastName}`, firstName, lastName }),
       firstName,
       lastName,

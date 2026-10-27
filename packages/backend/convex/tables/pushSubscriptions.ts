@@ -20,6 +20,8 @@ import { v } from "convex/values";
  * la riga si cancella al primo invio che lo scopre (modules/push/send.ts).
  */
 const pushSubscriptions = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   endpoint: v.string(),
   p256dh: v.string(),
   auth: v.string(),
@@ -44,6 +46,7 @@ const pushSubscriptions = defineTable({
   failures: v.float64(),
 })
   .index("by_endpoint", ["endpoint"])
-  .index("by_user", ["userId"]);
+  .index("by_user", ["userId"])
+  .index("by_club_user", ["clubId", "userId"]);
 
 export default pushSubscriptions;

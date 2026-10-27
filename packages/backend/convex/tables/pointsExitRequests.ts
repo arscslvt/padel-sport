@@ -13,6 +13,8 @@ import { v } from "convex/values";
  * caso e trattato come una password. Mandarne uno nuovo ritira i precedenti.
  */
 const pointsExitRequests = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   playerId: v.id("players"),
   token: v.string(),
   /** L'indirizzo a cui è partita la mail, com'era in quel momento. */
@@ -29,6 +31,7 @@ const pointsExitRequests = defineTable({
   confirmedAt: v.optional(v.float64()),
 })
   .index("by_token", ["token"])
-  .index("by_player", ["playerId"]);
+  .index("by_player", ["playerId"])
+  .index("by_club", ["clubId"]);
 
 export default pointsExitRequests;

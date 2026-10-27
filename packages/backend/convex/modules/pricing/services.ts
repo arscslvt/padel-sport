@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { mutation, query } from "../../_generated/server";
 import { serviceKind } from "../../tables/services";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 import { getIdentityPlayer } from "../openMatches/lib";
 import {
   isWholeCents,
@@ -93,6 +94,7 @@ export const save = mutation({
     }
 
     return await ctx.db.insert("services", {
+      clubId: await defaultClubId(ctx),
       kind,
       price,
       memberPrice,

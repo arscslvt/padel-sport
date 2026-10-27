@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
 import { mutation } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import {
   occupancyOf,
   requirePlayer,
@@ -46,6 +47,7 @@ export async function addGuestToMatch(
   }
 
   const guestId = await ctx.db.insert("matchGuests", {
+    clubId: await defaultClubId(ctx),
     matchId: match._id,
     name,
     email,

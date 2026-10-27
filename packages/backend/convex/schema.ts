@@ -7,6 +7,7 @@ import circleInvites from "./tables/circleInvites";
 import circleMembers from "./tables/circleMembers";
 import circles from "./tables/circles";
 import clientInvites from "./tables/clientInvites";
+import clubs from "./tables/clubs";
 import eventCommunicationDeliveries from "./tables/eventCommunicationDeliveries";
 import eventCommunications from "./tables/eventCommunications";
 import eventRsvps from "./tables/eventRsvps";
@@ -37,6 +38,7 @@ import supportRequests from "./tables/supportRequests";
 import weatherDays from "./tables/weatherDays";
 
 export default defineSchema({
+  clubs,
   events,
   bookings,
   bookingDeliveries,

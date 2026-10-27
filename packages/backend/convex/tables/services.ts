@@ -17,6 +17,8 @@ const serviceKind = v.literal("match");
  * partenza.
  */
 const services = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   kind: serviceKind,
   /** Euro a giocatore. */
   price: v.float64(),
@@ -26,7 +28,9 @@ const services = defineTable({
    */
   memberPrice: v.optional(v.float64()),
   updatedAt: v.float64(),
-}).index("by_kind", ["kind"]);
+})
+  .index("by_kind", ["kind"])
+  .index("by_club_kind", ["clubId", "kind"]);
 
 export default services;
 export { serviceKind };

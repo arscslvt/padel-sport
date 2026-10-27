@@ -33,6 +33,8 @@ const paymentStatus = v.union(
  * costruzione, e riporta dritto qui dal pannello di SumUp.
  */
 const payments = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   bookingId: v.id("bookings"),
   /** Chi ha aperto il pagamento: il titolare della prenotazione. */
   playerId: v.id("players"),
@@ -68,7 +70,8 @@ const payments = defineTable({
   updatedAt: v.float64(),
 })
   .index("by_booking", ["bookingId"])
-  .index("by_checkout", ["checkoutId"]);
+  .index("by_checkout", ["checkoutId"])
+  .index("by_club", ["clubId"]);
 
 export default payments;
 export { paymentStatus };

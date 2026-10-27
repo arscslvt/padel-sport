@@ -11,6 +11,8 @@ const circleRole = v.union(v.literal("owner"), v.literal("member"));
  * `by_player`, che le abbia create lui o no.
  */
 const circleMembers = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   circleId: v.id("circles"),
   playerId: v.id("players"),
   role: circleRole,
@@ -18,7 +20,8 @@ const circleMembers = defineTable({
 })
   .index("by_circle", ["circleId"])
   .index("by_player", ["playerId"])
-  .index("by_circle_player", ["circleId", "playerId"]);
+  .index("by_circle_player", ["circleId", "playerId"])
+  .index("by_club", ["clubId"]);
 
 export default circleMembers;
 export { circleRole };

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 
 const DEFAULT_COUNTRY_CODE = "+39";
 
@@ -43,6 +44,7 @@ export default mutation({
     }
 
     return await ctx.db.insert("supportRequests", {
+      clubId: await defaultClubId(ctx),
       name,
       email,
       phone,

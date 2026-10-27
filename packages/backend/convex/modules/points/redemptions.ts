@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { mutation, query } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
 import { displayName } from "../clients/lib";
+import { defaultClubId } from "../clubs/lib";
 import { requirePlayer } from "../openMatches/lib";
 import {
   applyPoints,
@@ -59,6 +60,7 @@ export const redeem = mutation({
     const now = Date.now();
 
     const redemptionId = await ctx.db.insert("rewardRedemptions", {
+      clubId: await defaultClubId(ctx),
       playerId: player._id,
       rewardId,
       title: reward.title,

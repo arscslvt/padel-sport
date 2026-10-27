@@ -9,6 +9,7 @@ import {
   query,
 } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 import { requirePlayer } from "../openMatches/lib";
 import { balanceOf, closeExit, creditPending, exitDeadline } from "./lib";
 import { programState } from "./terms";
@@ -161,6 +162,7 @@ export const requestByEmail = mutation({
     const expiresAt = now + REQUEST_TTL_MS;
 
     await ctx.db.insert("pointsExitRequests", {
+      clubId: await defaultClubId(ctx),
       playerId: args.playerId,
       token: args.token,
       email: args.email,

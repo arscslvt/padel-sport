@@ -37,6 +37,8 @@ const matchInviteKind = v.union(v.literal("direct"), v.literal("circle"));
  * l'hanno: erano tutte di cerchia, ed è così che vanno lette.
  */
 const matchInvites = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   matchId: v.id("openMatches"),
   circleId: v.optional(v.id("circles")),
   playerId: v.id("players"),
@@ -53,7 +55,8 @@ const matchInvites = defineTable({
 })
   .index("by_match", ["matchId"])
   .index("by_match_player", ["matchId", "playerId"])
-  .index("by_player_status", ["playerId", "status"]);
+  .index("by_player_status", ["playerId", "status"])
+  .index("by_club", ["clubId"]);
 
 export default matchInvites;
 export { matchInviteKind, matchInviteStatus };

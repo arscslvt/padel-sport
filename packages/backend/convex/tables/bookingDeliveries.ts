@@ -72,6 +72,8 @@ const deliveryStatus = v.union(
  * messaggio su Twilio, ed è così che un evento ritrova la sua riga.
  */
 const bookingDeliveries = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   bookingId: v.id("bookings"),
   kind: notificationKind,
   channel: deliveryChannel,
@@ -90,7 +92,8 @@ const bookingDeliveries = defineTable({
   updatedAt: v.float64(),
 })
   .index("by_booking", ["bookingId"])
-  .index("by_provider_id", ["providerId"]);
+  .index("by_provider_id", ["providerId"])
+  .index("by_club", ["clubId"]);
 
 export default bookingDeliveries;
 /** Un tentativo come lo scrive chi l'ha fatto (modules/deliveries/record.ts). */

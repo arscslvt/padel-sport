@@ -1,5 +1,6 @@
 import type { Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import { reconcileReferral } from "../points/auto";
 
 /**
@@ -53,6 +54,7 @@ export async function attachReferral(
     });
   } else if (inviterId) {
     await ctx.db.insert("referrals", {
+      clubId: await defaultClubId(ctx),
       inviterId,
       email,
       status: "joined",

@@ -18,6 +18,8 @@ import { v } from "convex/values";
  * pomeriggio di un'ora.
  */
 const weatherDays = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   /** "AAAA-MM-GG" nell'ora del club. */
   day: v.string(),
   /** Codice WMO della giornata (0 sereno … 99 temporale con grandine). */
@@ -49,6 +51,8 @@ const weatherDays = defineTable({
   ),
   /** Quando è arrivata questa versione della previsione. */
   fetchedAt: v.float64(),
-}).index("by_day", ["day"]);
+})
+  .index("by_day", ["day"])
+  .index("by_club_day", ["clubId", "day"]);
 
 export default weatherDays;

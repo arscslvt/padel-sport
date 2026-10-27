@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../../_generated/server";
+import { defaultClubId } from "../clubs/lib";
 import { acceptPendingFriendship } from "../friends/lib";
 import { requirePlayer } from "../openMatches/lib";
 import { assertCircleQuota, MAX_CIRCLE_MEMBERS, membersOf } from "./lib";
@@ -73,6 +74,7 @@ export default mutation({
     }
 
     await ctx.db.insert("circleMembers", {
+      clubId: await defaultClubId(ctx),
       circleId: circle._id,
       playerId: player._id,
       role: "member",

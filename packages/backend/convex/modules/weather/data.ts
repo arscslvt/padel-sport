@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internalMutation, query } from "../../_generated/server";
 import weatherDays from "../../tables/weatherDays";
+import { defaultClubId } from "../clubs/lib";
 import { clubDayKey } from "../settings/lib";
 
 /**
@@ -19,13 +20,16 @@ const dayValidator = v.object(weatherDays.validator.fields);
 export const store = internalMutation({
   args: { days: v.array(dayValidator) },
   handler: async (ctx, { days }) => {
+    // `replace` riscrive la riga intera: il club va rimesso ogni volta, o
+    // l'aggiornamento successivo al riempimento lo cancellerebbe.
+    const clubId = await defaultClubId(ctx);
     for (const day of days) {
       const existing = await ctx.db
         .query("weatherDays")
         .withIndex("by_day", (q) => q.eq("day", day.day))
         .unique();
-      if (existing) await ctx.db.replace(existing._id, day);
-      else await ctx.db.insert("weatherDays", day);
+      if (existing) await ctx.db.replace(existing._id, { ...day, clubId });
+      else await ctx.db.insert("weatherDays", { ...day, clubId });
     }
     return { stored: days.length };
   },

@@ -34,6 +34,8 @@ const communicationStatus = v.union(
  * chi l'ha ricevuta no. Lo storico deve dire cosa è stato spedito davvero.
  */
 const eventCommunications = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   /** `_id` del documento Sanity, senza il prefisso `drafts.` */
   documentId: v.string(),
   /** `_id` dell'evento e `_key` del modulo destinatario: la stessa coppia di `eventRsvps` */
@@ -73,7 +75,8 @@ const eventCommunications = defineTable({
   // La coppia è quella del lucchetto: la stessa comunicazione può essere
   // mandata a moduli diversi dello stesso evento, e restano invii distinti.
   .index("by_document", ["documentId", "blockKey"])
-  .index("by_event", ["eventId"]);
+  .index("by_event", ["eventId"])
+  .index("by_club", ["clubId"]);
 
 export default eventCommunications;
 export { communicationAudience, communicationStatus };

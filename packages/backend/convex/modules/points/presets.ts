@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { mutation, query } from "../../_generated/server";
 import { assertServer } from "../../utils/serverSecret";
+import { defaultClubId } from "../clubs/lib";
 import { DEFAULT_PRESETS, MAX_DELTA } from "./lib";
 
 /**
@@ -51,6 +52,7 @@ export const ensureDefaults = mutation({
     const now = Date.now();
     for (const preset of DEFAULT_PRESETS) {
       await ctx.db.insert("pointPresets", {
+        clubId: await defaultClubId(ctx),
         label: preset.label,
         points: preset.points,
         archived: false,
@@ -85,6 +87,7 @@ export const save = mutation({
     }
 
     return await ctx.db.insert("pointPresets", {
+      clubId: await defaultClubId(ctx),
       label: clean,
       points,
       archived: false,

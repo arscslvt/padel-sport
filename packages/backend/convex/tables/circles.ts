@@ -10,9 +10,13 @@ import { v } from "convex/values";
  * applicare il limite di tre cerchie a testa, e su un array non si indicizza.
  */
 const circles = defineTable({
+  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
+  clubId: v.optional(v.id("clubs")),
   name: v.string(),
   ownerId: v.id("players"),
   createdAt: v.float64(),
-}).index("by_owner", ["ownerId"]);
+})
+  .index("by_owner", ["ownerId"])
+  .index("by_club", ["clubId"]);
 
 export default circles;
