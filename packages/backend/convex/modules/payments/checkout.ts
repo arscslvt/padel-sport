@@ -2,16 +2,15 @@ import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
+import type { ActionCtx } from "../../_generated/server";
 import {
-  type ActionCtx,
-  action,
+  clubAction,
   internalAction,
   internalMutation,
   internalQuery,
-} from "../../_generated/server";
+} from "../../functions";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
-import { defaultClubId } from "../clubs/lib";
 import { getIdentityPlayer, requirePlayer } from "../openMatches/lib";
 import { bookingChanged } from "../points/auto";
 import { bookingTotal, formatEuro } from "../pricing/lib";
@@ -163,7 +162,7 @@ export const open = internalMutation({
 
     const expiresAt = now + CHECKOUT_SESSION_MS;
     const paymentId = await ctx.db.insert("payments", {
-      clubId: await defaultClubId(ctx),
+      clubId: booking.clubId,
       bookingId: booking._id,
       playerId: player._id,
       provider: "sumup",
@@ -233,7 +232,7 @@ export const abandon = internalMutation({
  * Il browser ci va con un redirect; quando il cliente torna, la pagina della
  * prenotazione chiama `refresh`.
  */
-export const start = action({
+export const start = clubAction({
   args: { code: v.string() },
   handler: async (ctx, { code }): Promise<{ url: string }> => {
     const config = sumupConfig();
@@ -399,7 +398,7 @@ export const syncCheckout = internalAction({
  * Il cliente è tornato da SumUp: l'esito si rilegge subito, senza aspettare il
  * webhook. Restituisce lo stato dell'ultimo tentativo.
  */
-export const refresh = action({
+export const refresh = clubAction({
   args: { code: v.string() },
   handler: async (ctx, { code }): Promise<PaymentStatus | null> => {
     const attempts: Doc<"payments">[] = await ctx.runQuery(

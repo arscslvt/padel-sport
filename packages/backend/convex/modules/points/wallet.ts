@@ -1,4 +1,4 @@
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import { getIdentityPlayer } from "../openMatches/lib";
 import {
   availableRewards,
@@ -23,7 +23,8 @@ import { POINTS_TERMS_VERSION, programState } from "./terms";
 
 const HISTORY_LIMIT = 12;
 
-export default query({
+export default clubQuery({
+  args: {},
   handler: async (ctx) => {
     const player = await getIdentityPlayer(ctx);
     if (!player) return null;

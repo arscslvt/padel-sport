@@ -1,6 +1,5 @@
 import type { Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
 import { reconcileReferral } from "../points/auto";
 
 /**
@@ -13,7 +12,7 @@ import { reconcileReferral } from "../points/auto";
  */
 export async function attachReferral(
   ctx: MutationCtx,
-  invitee: { _id: Id<"players">; email?: string },
+  invitee: { _id: Id<"players">; email?: string; clubId?: Id<"clubs"> },
   code: string | undefined,
 ): Promise<Id<"players"> | null> {
   const now = Date.now();
@@ -54,7 +53,7 @@ export async function attachReferral(
     });
   } else if (inviterId) {
     await ctx.db.insert("referrals", {
-      clubId: await defaultClubId(ctx),
+      clubId: invitee.clubId,
       inviterId,
       email,
       status: "joined",

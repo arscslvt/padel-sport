@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
-import { type QueryCtx, query } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
+import { serverQuery } from "../functions";
 import { onlinePayments } from "../modules/payments/lib";
 import { clubMoment } from "../modules/settings/lib";
-import { assertServer } from "../utils/serverSecret";
 import {
   notifiedPlayers,
   whatsappPhone,
@@ -45,9 +45,8 @@ async function originOf(
   return match ? "client" : "staff";
 }
 
-export default query({
+export default serverQuery({
   args: {
-    secret: v.string(),
     includePast: v.optional(v.boolean()),
     /**
      * Da mezzanotte di oggi, ora del club: l'agenda mostra anche le partite
@@ -71,7 +70,6 @@ export default query({
   handler: async (
     ctx,
     {
-      secret,
       includePast = true,
       fromToday = false,
       from: rangeFrom,
@@ -80,8 +78,6 @@ export default query({
       status,
     },
   ) => {
-    assertServer(secret);
-
     const now = Date.now();
 
     const bookings = status

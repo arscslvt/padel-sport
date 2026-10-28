@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
+import { clubMutation, clubQuery } from "../../functions";
 import { generatePlayerCode, getIdentityPlayer, requirePlayer } from "../openMatches/lib";
 import { activeRule } from "../points/rules";
 
@@ -17,7 +16,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DAILY_LIMIT = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const create = mutation({
+export const create = clubMutation({
   args: {
     email: v.string(),
     name: v.optional(v.string()),
@@ -86,7 +85,7 @@ export const create = mutation({
       });
     } else {
       await ctx.db.insert("referrals", {
-        clubId: await defaultClubId(ctx),
+        clubId: ctx.club._id,
         inviterId: inviter._id,
         email,
         name,
@@ -116,7 +115,7 @@ export const create = mutation({
  * La pagina a cui porta la mail. Pubblica, protetta solo dal token: dice chi
  * ha invitato, con quale mail iscriversi e il codice amico.
  */
-export const byToken = query({
+export const byToken = clubQuery({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
     if (token.length < 32) return null;
@@ -150,7 +149,7 @@ export const byToken = query({
 });
 
 /** Gli amici invitati da chi guarda, e il suo codice amico. */
-export const mine = query({
+export const mine = clubQuery({
   args: {},
   handler: async (ctx) => {
     const player = await getIdentityPlayer(ctx);

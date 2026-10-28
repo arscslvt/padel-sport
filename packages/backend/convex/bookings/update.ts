@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { internalMutation, mutation } from "../_generated/server";
+import { internalMutation, serverMutation } from "../functions";
 import { notificationStatus as notification } from "../tables/bookings";
-import { api, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import { recordDeliveries } from "../modules/deliveries/lib";
 import {
   confirmWhatsappToPlayers,
@@ -9,7 +9,6 @@ import {
   skipWhatsappToPlayers,
 } from "../modules/notifications/bookingPlayers";
 import { bookingChanged } from "../modules/points/auto";
-import { assertServer } from "../utils/serverSecret";
 
 export const notificationStatus = internalMutation({
   args: {
@@ -36,18 +35,13 @@ export const notificationStatus = internalMutation({
  * questa mutation è stata pubblica chiunque conoscesse l'URL del deployment
  * poteva confermare prenotazioni al posto dello staff, mail compresa.
  */
-export const accept = mutation({
+export const accept = serverMutation({
   args: {
-    secret: v.string(),
     bookingId: v.id("bookings"),
     withNotification: v.optional(v.boolean()),
   },
-  handler: async (ctx, { secret, bookingId, withNotification = true }) => {
-    assertServer(secret);
-
-    const booking = await ctx.runQuery(api.bookings.get.getById, {
-      bookingId,
-    });
+  handler: async (ctx, { bookingId, withNotification = true }) => {
+    const booking = await ctx.db.get(bookingId);
 
     if (!booking) {
       throw new Error("Prenotazione non trovata.");

@@ -1,8 +1,8 @@
 import { components } from "../../../_generated/api";
-import { query } from "../../../_generated/server";
+import { clubQuery } from "../../../functions";
 import { v } from "convex/values";
 
-export const byTournamentId = query({
+export const byTournamentId = clubQuery({
   args: {
     tournamentId: v.string(),
   },

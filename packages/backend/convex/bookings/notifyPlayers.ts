@@ -1,11 +1,10 @@
 import { v } from "convex/values";
 
-import { mutation } from "../_generated/server";
+import { serverMutation } from "../functions";
 import {
   confirmToNewPlayers,
   notifiedPlayers,
 } from "../modules/notifications/bookingPlayers";
-import { assertServer } from "../utils/serverSecret";
 
 /**
  * La conferma ai giocatori collegati che non l'hanno mai avuta: mail con il
@@ -19,11 +18,9 @@ import { assertServer } from "../utils/serverSecret";
  *
  * Passa dalla route della dashboard (api/dashboard/bookings/notify-players).
  */
-export const sendMissing = mutation({
-  args: { secret: v.string(), bookingId: v.id("bookings") },
-  handler: async (ctx, { secret, bookingId }) => {
-    assertServer(secret);
-
+export const sendMissing = serverMutation({
+  args: { bookingId: v.id("bookings") },
+  handler: async (ctx, { bookingId }) => {
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
     if (booking.status !== "accepted_on_site_payment") {

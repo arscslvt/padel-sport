@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
-import { mutation, query } from "../../_generated/server";
+import { clubMutation, clubQuery } from "../../functions";
 import {
   addPlayerToMatch,
   getIdentityPlayer,
@@ -26,7 +26,7 @@ export interface MatchInviteView {
  * l'invito come accettato, così il percorso è lo stesso anche per chi entra
  * dalla partita invece che dall'invito.
  */
-export const respond = mutation({
+export const respond = clubMutation({
   args: {
     inviteId: v.id("matchInvites"),
     accept: v.boolean(),
@@ -101,7 +101,7 @@ export interface MatchInviteDetail {
  * Gli inviti a cui si è già risposto restano leggibili: chi riapre il
  * messaggio dopo aver accettato deve trovare la partita, non un errore.
  */
-export const getMine = query({
+export const getMine = clubQuery({
   args: { inviteId: v.string() },
   handler: async (ctx, { inviteId }): Promise<MatchInviteDetail | null> => {
     const player = await getIdentityPlayer(ctx);
@@ -150,7 +150,7 @@ export const getMine = query({
  * quelli arrivati da una cerchia. Gli inviti a partite ormai passate o
  * cancellate non vengono mostrati.
  */
-export const listMine = query({
+export const listMine = clubQuery({
   args: {},
   handler: async (ctx): Promise<MatchInviteView[]> => {
     const player = await getIdentityPlayer(ctx);

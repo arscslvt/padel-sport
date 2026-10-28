@@ -1,8 +1,8 @@
 import { components } from "../../../_generated/api";
-import { mutation } from "../../../_generated/server";
+import { clubMutation } from "../../../functions";
 import { v } from "convex/values";
 
-export const editMatch = mutation({
+export const editMatch = clubMutation({
   args: {
     matchId: v.string(),
     status: v.optional(

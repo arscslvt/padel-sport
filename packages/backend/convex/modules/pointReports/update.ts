@@ -1,8 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { mutation } from "../../_generated/server";
+import { serverMutation } from "../../functions";
 import { supportRequestStatus } from "../../tables/supportRequests";
-import { assertServer } from "../../utils/serverSecret";
 import { MAX_REPLY } from "./lib";
 
 /** Gli stati che il cliente viene a sapere: gli altri sono ordine interno. */
@@ -16,16 +15,13 @@ const NOTIFIED = new Set(["in_progress", "resolved"]);
  * stesso stato non deve fargli arrivare un doppione. `reply` vale solo per
  * «risolta» ed è la spiegazione che legge nella mail.
  */
-export default mutation({
+export default serverMutation({
   args: {
-    secret: v.string(),
     reportId: v.id("pointReports"),
     status: supportRequestStatus,
     reply: v.optional(v.string()),
   },
-  handler: async (ctx, { secret, reportId, status, reply }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { reportId, status, reply }) => {
     const report = await ctx.db.get(reportId);
     if (!report) {
       throw new Error("Segnalazione non trovata.");

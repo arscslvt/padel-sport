@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import { getIdentityPlayer, toPlayerView } from "../openMatches/lib";
 import { friendshipBetween, relationOf, type SearchResultView } from "./lib";
 
@@ -16,7 +16,7 @@ const CODE_PATTERN = /^\d{4,6}$/;
  * l'app mostra "già amico" o "richiesta inviata" invece di riproporre
  * un'azione che verrebbe rifiutata.
  */
-export default query({
+export default clubQuery({
   args: { term: v.string() },
   handler: async (ctx, { term }): Promise<SearchResultView[]> => {
     const player = await getIdentityPlayer(ctx);

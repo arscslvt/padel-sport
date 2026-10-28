@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { internalMutation, query } from "../../_generated/server";
+import { clubQuery, internalMutation } from "../../functions";
 import weatherDays from "../../tables/weatherDays";
 import { defaultClubId } from "../clubs/lib";
 import { clubDayKey } from "../settings/lib";
@@ -42,7 +42,7 @@ export const store = internalMutation({
  * Pubblica come gli orari del club: è il tempo che fa a Melilli, non un dato
  * di qualcuno.
  */
-export const range = query({
+export const range = clubQuery({
   args: { from: v.string(), to: v.string() },
   handler: async (ctx, { from, to }) => {
     const rows = await ctx.db

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { clubQuery } from "../functions";
 import { externalBlocksBetween } from "../modules/courtCalendar/lib";
 import { courtsOf } from "../modules/openMatches/lib";
 
@@ -20,7 +20,7 @@ import { courtsOf } from "../modules/openMatches/lib";
  * `slot` blocca *tutti* i campi (è la semantica delle righe più vecchie),
  * mentre un'occupazione esterna ne toglie soltanto uno.
  */
-export default query({
+export default clubQuery({
   args: {
     from: v.number(),
     to: v.number(),

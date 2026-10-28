@@ -1,8 +1,6 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
+import { serverMutation, serverQuery } from "../../functions";
 import { DEFAULT_PRESETS, MAX_DELTA } from "./lib";
 
 /**
@@ -19,11 +17,9 @@ function assertPoints(points: number) {
   }
 }
 
-export const list = query({
-  args: { secret: v.string() },
-  handler: async (ctx, { secret }) => {
-    assertServer(secret);
-
+export const list = serverQuery({
+  args: {},
+  handler: async (ctx) => {
     const rows = await ctx.db
       .query("pointPresets")
       .withIndex("by_archived", (q) => q.eq("archived", false))
@@ -42,17 +38,15 @@ export const list = query({
  * «Partita vinta» è una scelta, e ritrovarselo la volta dopo sarebbe un
  * dispetto.
  */
-export const ensureDefaults = mutation({
-  args: { secret: v.string() },
-  handler: async (ctx, { secret }) => {
-    assertServer(secret);
-
+export const ensureDefaults = serverMutation({
+  args: {},
+  handler: async (ctx) => {
     if (await ctx.db.query("pointPresets").first()) return { seeded: false };
 
     const now = Date.now();
     for (const preset of DEFAULT_PRESETS) {
       await ctx.db.insert("pointPresets", {
-        clubId: await defaultClubId(ctx),
+        clubId: ctx.club._id,
         label: preset.label,
         points: preset.points,
         archived: false,
@@ -64,15 +58,13 @@ export const ensureDefaults = mutation({
   },
 });
 
-export const save = mutation({
+export const save = serverMutation({
   args: {
-    secret: v.string(),
     presetId: v.optional(v.id("pointPresets")),
     label: v.string(),
     points: v.float64(),
   },
-  handler: async (ctx, { secret, presetId, label, points }) => {
-    assertServer(secret);
+  handler: async (ctx, { presetId, label, points }) => {
     assertPoints(points);
 
     const clean = label.trim();
@@ -87,7 +79,7 @@ export const save = mutation({
     }
 
     return await ctx.db.insert("pointPresets", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       label: clean,
       points,
       archived: false,
@@ -96,10 +88,9 @@ export const save = mutation({
   },
 });
 
-export const archive = mutation({
-  args: { secret: v.string(), presetId: v.id("pointPresets") },
-  handler: async (ctx, { secret, presetId }) => {
-    assertServer(secret);
+export const archive = serverMutation({
+  args: { presetId: v.id("pointPresets") },
+  handler: async (ctx, { presetId }) => {
     await ctx.db.patch(presetId, { archived: true });
   },
 });

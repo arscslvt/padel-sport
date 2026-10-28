@@ -1,8 +1,7 @@
 import { v } from "convex/values";
 
 import type { Doc } from "../../_generated/dataModel";
-import { mutation } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { clubMutation, serverMutation } from "../../functions";
 import { requirePlayer } from "../openMatches/lib";
 import {
   assertPointsUnfrozen,
@@ -66,7 +65,7 @@ export function programState(
 }
 
 /** Il cliente aderisce dalla propria area personale. */
-export const accept = mutation({
+export const accept = clubMutation({
   args: { version: v.string() },
   handler: async (ctx, { version }) => {
     const player = await requirePlayer(ctx);
@@ -103,15 +102,12 @@ export const accept = mutation({
  * e per chi preferisce la carta. Il club deve conservare il modulo firmato: è
  * quello, non questa riga, a provare che la persona ha accettato.
  */
-export const recordAtDesk = mutation({
+export const recordAtDesk = serverMutation({
   args: {
-    secret: v.string(),
     playerId: v.id("players"),
     recordedByClerkUserId: v.optional(v.string()),
   },
-  handler: async (ctx, { secret, playerId, recordedByClerkUserId }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { playerId, recordedByClerkUserId }) => {
     const player = await ctx.db.get(playerId);
     if (!player) throw new Error("Cliente non trovato.");
     // L'adesione accredita i punti in attesa: da sospeso resterebbero fermi

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import {
   playerInviteFor,
   requirePlayer,
@@ -18,7 +18,7 @@ import {
  * Restare l'unico giocatore non è previsto: in quel caso la partita va
  * eliminata (modules/openMatches/cancel.ts), così il campo torna libero.
  */
-export default mutation({
+export default clubMutation({
   args: { matchId: v.id("openMatches") },
   handler: async (ctx, { matchId }) => {
     const player = await requirePlayer(ctx);

@@ -2,8 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
-import { mutation } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
+import { clubMutation } from "../../functions";
 import {
   invitesOf,
   occupancyOf,
@@ -77,7 +76,7 @@ export async function inviteToMatch(
       });
     } else {
       inviteId = await ctx.db.insert("matchInvites", {
-        clubId: await defaultClubId(ctx),
+        clubId: match.clubId,
         matchId: match._id,
         playerId,
         kind: "direct",
@@ -105,7 +104,7 @@ export async function inviteToMatch(
 }
 
 /** Invita giocatori a una partita già creata. Solo chi l'ha creata. */
-export default mutation({
+export default clubMutation({
   args: {
     matchId: v.id("openMatches"),
     playerIds: v.array(v.id("players")),

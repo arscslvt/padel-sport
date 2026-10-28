@@ -2,13 +2,13 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { mutation, type QueryCtx, query } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
+import { serverMutation, serverQuery } from "../functions";
 import {
   courtsAt,
   courtsOf,
   joinCourtNames,
 } from "../modules/openMatches/lib";
-import { assertServer } from "../utils/serverSecret";
 
 /**
  * Lo staff cambia il campo di una prenotazione, alla stessa ora.
@@ -39,11 +39,9 @@ async function groupOf(
     : [booking];
 }
 
-export const options = query({
-  args: { secret: v.string(), bookingId: v.id("bookings") },
-  handler: async (ctx, { secret, bookingId }) => {
-    assertServer(secret);
-
+export const options = serverQuery({
+  args: { bookingId: v.id("bookings") },
+  handler: async (ctx, { bookingId }) => {
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
 
@@ -86,16 +84,13 @@ export const options = query({
   },
 });
 
-export const move = mutation({
+export const move = serverMutation({
   args: {
-    secret: v.string(),
     bookingId: v.id("bookings"),
     /** I campi nuovi, tanti quanti ne occupa la prenotazione. */
     slotIds: v.array(v.id("slots")),
   },
-  handler: async (ctx, { secret, bookingId, slotIds }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { bookingId, slotIds }) => {
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
     if (booking.status === "cancelled") {

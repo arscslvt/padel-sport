@@ -1,15 +1,13 @@
 import { v } from "convex/values";
 
 import type { Doc } from "../../_generated/dataModel";
+import type { QueryCtx } from "../../_generated/server";
 import {
-  type MutationCtx,
-  mutation,
-  type QueryCtx,
-  query,
-} from "../../_generated/server";
+  type ClubMutationCtx,
+  serverMutation,
+  serverQuery,
+} from "../../functions";
 import { pointRuleKey } from "../../tables/pointRules";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
 import { MAX_DELTA } from "./lib";
 
 /**
@@ -130,11 +128,9 @@ function assertRulePoints(points: number) {
   }
 }
 
-export const list = query({
-  args: { secret: v.string() },
-  handler: async (ctx, { secret }) => {
-    assertServer(secret);
-
+export const list = serverQuery({
+  args: {},
+  handler: async (ctx) => {
     return await Promise.all(
       POINT_RULES.filter((rule) => !isPaired(rule.key)).map(async (rule) => {
         const row = await ruleRow(ctx, rule.key);
@@ -157,9 +153,8 @@ export const list = query({
   },
 });
 
-export const save = mutation({
+export const save = serverMutation({
   args: {
-    secret: v.string(),
     key: pointRuleKey,
     points: v.float64(),
     /** Per «Amico invitato»: i punti all'amico. Senza, restano quelli di prima. */
@@ -168,7 +163,6 @@ export const save = mutation({
     clerkUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
     ruleDefinition(args.key);
     if (isPaired(args.key)) {
       throw new Error("Questi punti si cambiano da «Amico invitato».");
@@ -198,7 +192,7 @@ export const save = mutation({
  * del giorno in cui li ha guadagnati.
  */
 async function writeRule(
-  ctx: MutationCtx,
+  ctx: ClubMutationCtx,
   key: PointRuleKey,
   { points, enabled, clerkUserId }: {
     points: number;
@@ -220,7 +214,7 @@ async function writeRule(
   }
 
   return await ctx.db.insert("pointRules", {
-    clubId: await defaultClubId(ctx),
+    clubId: ctx.club._id,
     key,
     points,
     enabled,

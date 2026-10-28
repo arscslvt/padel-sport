@@ -1,9 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { membersOf, requireCircleMember } from "../circles/lib";
-import { defaultClubId } from "../clubs/lib";
 import { friendshipBetween } from "../friends/lib";
 import { isMembershipValid, membershipStatus } from "../clients/lib";
 import { matchPricing } from "../pricing/lib";
@@ -45,7 +44,7 @@ import { formatClubDateTime } from "../../utils/clubTime";
  * tre". Se poi la partita non si riempie, da privata o da cerchia il creatore
  * può aprirla a tutti (modules/openMatches/publish.ts).
  */
-export default mutation({
+export default clubMutation({
   args: {
     bookingDate: v.number(),
     levelMin: v.number(),
@@ -236,7 +235,7 @@ export default mutation({
     // Il prezzo del listino di oggi, con la tariffa tesserati per chi prenota.
     const pricing = await matchPricing(ctx, player._id);
     const origin = args.origin ?? "app";
-    const clubId = await defaultClubId(ctx);
+    const clubId = ctx.club._id;
 
     const bookingId = await ctx.db.insert("bookings", {
       clubId,

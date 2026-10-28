@@ -211,7 +211,7 @@ function Form({
 
   // Gli orari liberi del giorno scelto: stesse finestre e stessa regola del sito.
   const settings = useQuery(api.modules.settings.booking.get, {});
-  const courts = useQuery(api.slots.listActive.default);
+  const courts = useQuery(api.slots.listActive.default, {});
   const range = useMemo(() => {
     const from = new Date(`${day}T00:00:00`).getTime();
     return { from, to: from + 24 * 60 * 60 * 1000 - 1 };

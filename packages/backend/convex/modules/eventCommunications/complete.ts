@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { serverMutation } from "../../functions";
 
 /**
  * Chiude un invio aperto da `begin`, con l'esito.
@@ -10,17 +9,14 @@ import { assertServer } from "../../utils/serverSecret";
  * lo storico deve dirlo — chi l'ha ricevuta non la riceve una seconda volta.
  * `failed` resta accanto per far vedere quanto è andato storto.
  */
-export default mutation({
+export default serverMutation({
   args: {
-    secret: v.string(),
     id: v.id("eventCommunications"),
     delivered: v.float64(),
     failed: v.float64(),
     error: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     const row = await ctx.db.get(args.id);
     if (!row) return;
 

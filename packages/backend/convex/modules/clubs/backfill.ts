@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 import { components, internal } from "../../_generated/api";
 import type { DataModel, Id, TableNames } from "../../_generated/dataModel";
-import { internalMutation, internalQuery } from "../../_generated/server";
+import { internalMutation, internalQuery } from "../../functions";
 import { defaultClubId } from "./lib";
 
 /**

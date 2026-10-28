@@ -137,7 +137,7 @@ Niente in produzione. Mezza giornata.
       Convex resta sulla 1.42 per non aggiungere rischi al rilascio.
 - [x] Test della Fase 1 (`modules/clubs/clubs.test.ts`): riga del club unica,
       righe nuove col club anche quando il meteo le riscrive, riempimento.
-- [ ] Un test di isolamento: due club con dati propri, e nessuna query
+- [x] Un test di isolamento: due club con dati propri, e nessuna query
       pubblica dell'uno restituisce righe dell'altro. Nasce con i wrapper
       della Fase 2 e cresce con loro.
 - [x] Componente `@convex-dev/migrations` in `convex.config.ts`.
@@ -180,20 +180,40 @@ Da 4 a 7 giorni.
 
 - [ ] **Componente tournaments**: `clubId` sulla tabella dei tornei, passato
       dalle funzioni dell'app che lo chiamano (`modules/tournaments`).
-- [ ] **Wrapper** in `convex/functions.ts`:
-  - [ ] `clubQuery` e `clubMutation` (sito, area personale, app): club dallo
-        slug, facoltativo con Padel Sport come valore predefinito finché
-        esistono versioni vecchie dell'app;
-  - [ ] `staffQuery` e `staffMutation` (gestionale): segreto più
-        organizzazione Clerk, e da lì il club;
-  - [ ] `clubInternalQuery`, `clubInternalMutation`, `clubInternalAction` per
-        cron, webhook e scheduler, con `clubId` esplicito;
-  - [ ] `ctx.db` avvolto da `convex-helpers/server/rowLevelSecurity`: una riga
-        di un altro club non si legge e non si scrive;
-  - [ ] in manutenzione le mutation rifiutano con un errore riconoscibile,
-        tranne per l'amministratore della piattaforma.
-- [ ] **Regola di Biome** che vieta di importare `query`, `mutation` e simili
-      da `_generated/server` fuori da `functions.ts`.
+- [x] **Wrapper** in `convex/functions.ts` (in dev il 28/10/2026), con
+      tutte le funzioni già passate di lì:
+  - [x] `clubQuery`, `clubMutation`, `clubAction` (sito, area personale,
+        app): club dallo slug `clubSlug`, facoltativo con Padel Sport come
+        valore predefinito finché esistono versioni vecchie dell'app;
+  - [x] `serverQuery`, `serverMutation`, `serverAction`: chiamate col
+        segreto condiviso. Nel piano erano `staffQuery` e `staffMutation`, ma
+        le usano anche le route del sito (`apps/web/app/api`), non solo il
+        gestionale. Il club arriva dall'organizzazione Clerk (`clerkOrgId`) o
+        dallo slug; senza nessuno dei due, Padel Sport;
+  - [x] `internalQuery`, `internalMutation`, `internalAction` per cron,
+        webhook e scheduler: **senza** `clubId` esplicito, diversamente dal
+        piano. Quasi tutte partono da un record (prenotazione, pagamento,
+        giocatore) e il club lo leggono da lì; alcuni job aspettano giorni in
+        coda (chiusura dell'uscita dal programma punti), e un argomento nuovo
+        obbligatorio li farebbe fallire. Il `clubId` esplicito arriva con i
+        cron per club;
+  - [x] `ctx.db` avvolto da `convex-helpers/server/rowLevelSecurity`: una riga
+        di un altro club non si legge e non si scrive, e una patch non può
+        spostarla in un altro club. Le query sui vecchi indici restano giuste
+        anche con più club, solo più lente: i nuovi indici sono il passo
+        dopo;
+  - [x] in manutenzione le mutation rifiutano con `CLUB_MAINTENANCE`, tranne
+        per gli id Clerk in `PLATFORM_ADMIN_USER_IDS` (variabile di Convex;
+        dal gestionale vale `actorUserId`).
+- [x] **Il controllo sugli import** non è una regola di Biome, che nel
+      backend non gira: è un test (`functions.test.ts`) che fallisce se un
+      file importa i costruttori da `_generated/server` invece che da
+      `functions.ts`.
+- [x] `bookings/get:getById` è diventata interna: era pubblica e restituiva
+      la prenotazione intera, telefono compreso, a chiunque avesse l'id.
+- [x] Test di isolamento (`functions.test.ts`): due club, query pubbliche,
+      scritture dello staff, righe di un altro club, giocatori per club,
+      segreto sbagliato, manutenzione.
 - [ ] **Modulo per modulo**, passando ai wrapper e ai nuovi indici, con i test
       di isolamento che crescono insieme:
   - [ ] settings e slots (`bookingSettings` per club, niente più `.first()`

@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { serverQuery } from "../../functions";
 
 /**
  * Quanti destinatari raggiungerebbe una comunicazione, modulo per modulo.
@@ -14,14 +13,11 @@ import { assertServer } from "../../utils/serverSecret";
  * le *caselle di posta*, che sono un'altra cosa: un iscritto con tre
  * accompagnatori resta una mail sola.
  */
-export default query({
+export default serverQuery({
   args: {
-    secret: v.string(),
     forms: v.array(v.object({ eventId: v.string(), blockKey: v.string() })),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     return await Promise.all(
       args.forms.map(async (form) => {
         const entries = await ctx.db

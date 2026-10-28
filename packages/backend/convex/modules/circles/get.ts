@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import {
   getIdentityPlayer,
   type OpenMatchView,
@@ -41,7 +41,7 @@ export interface CircleDetailView {
  * Dettaglio di una cerchia: membri, inviti in sospeso e partite in programma.
  * Restituisce `null` a chi non ne fa parte, così la pagina non espone nulla.
  */
-export default query({
+export default clubQuery({
   args: { circleId: v.id("circles") },
   handler: async (ctx, { circleId }): Promise<CircleDetailView | null> => {
     const player = await getIdentityPlayer(ctx);

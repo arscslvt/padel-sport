@@ -1,7 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { mutation } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
+import { clubMutation, serverMutation } from "../../functions";
 import {
   assertGuests,
   confirmedRsvps,
@@ -42,7 +40,7 @@ const rsvpArgs = {
  * mutation Convex sono transazionali, quindi due iscrizioni simultanee
  * sull'ultimo posto non possono passare entrambe.
  */
-export default mutation({
+export default clubMutation({
   args: {
     ...rsvpArgs,
     maxGuests: v.optional(v.number()),
@@ -81,7 +79,7 @@ export default mutation({
     }
 
     const id = await ctx.db.insert("eventRsvps", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       eventId: args.eventId,
       blockKey: args.blockKey,
       eventSlug: args.eventSlug,
@@ -118,9 +116,8 @@ export default mutation({
  * così chi sta al banco decide sapendo. Con `override` passa — a volte la
  * persona è lì davanti e la sedia si trova.
  */
-export const byStaff = mutation({
+export const byStaff = serverMutation({
   args: {
-    secret: v.string(),
     ...rsvpArgs,
     /** Iscrive anche oltre la capienza: è la seconda pressione sul tasto. */
     override: v.optional(v.boolean()),
@@ -128,7 +125,6 @@ export const byStaff = mutation({
   handler: async (ctx, args) => {
     // Iscrivere qualcun altro è un atto della struttura: «essere loggati» lo è
     // anche il cliente che sta aspettando dall'altra parte del banco.
-    assertServer(args.secret);
 
     const name = normalizedName(
       args.name,
@@ -167,7 +163,7 @@ export const byStaff = mutation({
     }
 
     const id = await ctx.db.insert("eventRsvps", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       eventId: args.eventId,
       blockKey: args.blockKey,
       eventSlug: args.eventSlug,

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { clubQuery } from "../functions";
 import { courtLabel, seatsOf } from "../modules/openMatches/lib";
 
 /**
@@ -10,7 +10,7 @@ import { courtLabel, seatsOf } from "../modules/openMatches/lib";
  * Per questo la vista è volutamente povera: data, campo, livello e nomi di
  * battesimo della squadra. Telefono, email e id restano fuori.
  */
-export default query({
+export default clubQuery({
   args: {
     code: v.string(),
   },

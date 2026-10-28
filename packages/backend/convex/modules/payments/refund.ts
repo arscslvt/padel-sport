@@ -2,8 +2,7 @@ import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
-import { action, internalMutation } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { internalMutation, serverAction } from "../../functions";
 import { bookingChanged } from "../points/auto";
 import { roundEuro } from "../pricing/lib";
 import { getCheckout, refundTransaction, snapshot, sumupConfig } from "./sumup";
@@ -164,17 +163,14 @@ export interface RefundOutcome {
   failed: string[];
 }
 
-export default action({
+export default serverAction({
   args: {
-    secret: v.string(),
     bookingId: v.id("bookings"),
     paymentId: v.optional(v.id("payments")),
     /** Chi dello staff lo chiede: resta sul pagamento. */
     staffUserId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<RefundOutcome> => {
-    assertServer(args.secret);
-
     const config = sumupConfig();
     if (!config) {
       throw new Error(

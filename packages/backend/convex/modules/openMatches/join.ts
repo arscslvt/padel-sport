@@ -1,13 +1,13 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { membershipOf } from "../circles/lib";
 import { addPlayerToMatch, requirePlayer, visibilityOf } from "./lib";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
 
 /** Unisciti subito a una partita aperta in modalità "direct". */
-export default mutation({
+export default clubMutation({
   args: { matchId: v.id("openMatches") },
   handler: async (ctx, { matchId }) => {
     const player = await requirePlayer(ctx);

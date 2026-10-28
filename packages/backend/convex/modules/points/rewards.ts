@@ -1,8 +1,6 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
+import { serverMutation, serverQuery } from "../../functions";
 import { activeRewards, rewardImageUrl } from "./lib";
 
 /**
@@ -15,11 +13,9 @@ function cleanText(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-export const list = query({
-  args: { secret: v.string() },
-  handler: async (ctx, { secret }) => {
-    assertServer(secret);
-
+export const list = serverQuery({
+  args: {},
+  handler: async (ctx) => {
     const rewards = await activeRewards(ctx);
 
     const redemptions = await ctx.db
@@ -53,17 +49,15 @@ export const list = query({
  * tramite a un'immagine di qualche mega sbatterebbe contro il limite del corpo
  * delle funzioni di Vercel. L'URL scade dopo un'ora e vale per un solo file.
  */
-export const uploadUrl = mutation({
-  args: { secret: v.string() },
-  handler: async (ctx, { secret }) => {
-    assertServer(secret);
+export const uploadUrl = serverMutation({
+  args: {},
+  handler: async (ctx) => {
     return await ctx.storage.generateUploadUrl();
   },
 });
 
-export const save = mutation({
+export const save = serverMutation({
   args: {
-    secret: v.string(),
     rewardId: v.optional(v.id("rewards")),
     title: v.string(),
     description: v.string(),
@@ -74,9 +68,7 @@ export const save = mutation({
     imageStorageId: v.optional(v.id("_storage")),
     removeImage: v.optional(v.boolean()),
   },
-  handler: async (ctx, { secret, rewardId, ...fields }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { rewardId, ...fields }) => {
     const title = fields.title.trim();
     const description = fields.description.trim();
 
@@ -102,7 +94,7 @@ export const save = mutation({
 
     if (!rewardId) {
       return await ctx.db.insert("rewards", {
-        clubId: await defaultClubId(ctx),
+        clubId: ctx.club._id,
         ...values,
         imageStorageId: fields.imageStorageId,
         archived: false,
@@ -131,10 +123,9 @@ export const save = mutation({
 });
 
 /** Toglie il premio dalla vetrina. Chi l'ha già riscattato lo tiene. */
-export const archive = mutation({
-  args: { secret: v.string(), rewardId: v.id("rewards") },
-  handler: async (ctx, { secret, rewardId }) => {
-    assertServer(secret);
+export const archive = serverMutation({
+  args: { rewardId: v.id("rewards") },
+  handler: async (ctx, { rewardId }) => {
     await ctx.db.patch(rewardId, { archived: true });
   },
 });
@@ -143,15 +134,12 @@ export const archive = mutation({
  * Mette in pausa il premio o lo riattiva. Disattivato sparisce dalla vetrina
  * e non si riscatta; chi l'ha già riscattato lo ritira lo stesso.
  */
-export const setDisabled = mutation({
+export const setDisabled = serverMutation({
   args: {
-    secret: v.string(),
     rewardId: v.id("rewards"),
     disabled: v.boolean(),
   },
-  handler: async (ctx, { secret, rewardId, disabled }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { rewardId, disabled }) => {
     const reward = await ctx.db.get(rewardId);
     if (!reward || reward.archived) throw new Error("Premio non trovato.");
 

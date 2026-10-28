@@ -2,8 +2,8 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { type MutationCtx, mutation } from "../_generated/server";
-import { defaultClubId } from "../modules/clubs/lib";
+import type { MutationCtx } from "../_generated/server";
+import { serverMutation } from "../functions";
 import {
   courtsAt,
   MATCH_DURATION_MINUTES,
@@ -21,7 +21,6 @@ import {
 import { recordDeliveries } from "../modules/deliveries/lib";
 import { confirmWhatsappToPlayers } from "../modules/notifications/bookingPlayers";
 import { bookingChanged } from "../modules/points/auto";
-import { assertServer } from "../utils/serverSecret";
 
 /**
  * Una prenotazione presa dallo staff: al telefono, allo sportello, a voce.
@@ -93,9 +92,8 @@ async function bookingCode(ctx: MutationCtx): Promise<string> {
   throw new Error("Non è stato possibile generare il codice. Riprova.");
 }
 
-export default mutation({
+export default serverMutation({
   args: {
-    secret: v.string(),
     bookingDate: v.number(),
     /** Quanti campi prende il gruppo: uno, o due per otto persone. */
     courts: v.optional(v.number()),
@@ -128,8 +126,6 @@ export default mutation({
     staff: v.optional(v.object({ userId: v.string(), name: v.string() })),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     if (args.bookingDate <= Date.now()) {
       throw new Error("La data e l'ora devono essere nel futuro.");
     }
@@ -219,7 +215,7 @@ export default mutation({
     const pricing = await matchPricing(ctx, player?._id);
 
     const bookingId = await ctx.db.insert("bookings", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       bookedBy,
       phone,
       players,

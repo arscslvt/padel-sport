@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 
 /**
  * Segna che le mail di notifica sono partite.
@@ -9,7 +9,7 @@ import { mutation } from "../../_generated/server";
  * È pubblica perché il chiamante è un route handler senza sessione: l'unico
  * effetto è scrivere un timestamp su una richiesta già esistente.
  */
-export default mutation({
+export default clubMutation({
   args: {
     id: v.id("matchRequests"),
   },

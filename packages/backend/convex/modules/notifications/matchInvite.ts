@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { internalAction } from "../../_generated/server";
+import { internalAction } from "../../functions";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { getMessagingClient } from "../../utils/notification_client";
 import {

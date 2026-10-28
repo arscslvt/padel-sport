@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
-import { internalAction, internalQuery } from "../../_generated/server";
+import { internalAction, internalQuery } from "../../functions";
 import { notificationKind } from "../../tables/bookingDeliveries";
 import type { Id } from "../../_generated/dataModel";
 import type { DeliveryEntry } from "../deliveries/lib";

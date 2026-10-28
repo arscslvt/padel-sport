@@ -2,13 +2,13 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { type MutationCtx, mutation } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
+import { serverMutation } from "../functions";
 import {
   MATCH_DURATION_MINUTES,
   normalizePhone,
 } from "../modules/openMatches/lib";
 import { notifiedPlayers } from "../modules/notifications/bookingPlayers";
-import { assertServer } from "../utils/serverSecret";
 
 /**
  * Il WhatsApp di conferma, mandato di nuovo dallo staff.
@@ -78,9 +78,8 @@ export async function setBookerPhone(
 /** Stati di un WhatsApp che è partito o sta partendo: rimandarlo sarebbe un doppione. */
 const ON_ITS_WAY = new Set(["queued", "sent", "delivered", "read"]);
 
-export const resend = mutation({
+export const resend = serverMutation({
   args: {
-    secret: v.string(),
     bookingId: v.id("bookings"),
     /** Il numero a cui mandarlo: quello della prenotazione, o corretto. */
     phone: v.string(),
@@ -91,9 +90,7 @@ export const resend = mutation({
      */
     playerId: v.optional(v.id("players")),
   },
-  handler: async (ctx, { secret, bookingId, phone: rawPhone, playerId }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { bookingId, phone: rawPhone, playerId }) => {
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
 

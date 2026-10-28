@@ -11,7 +11,6 @@ import type {
 } from "../../tables/bookingDeliveries";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
-import { defaultClubId } from "../clubs/lib";
 
 /**
  * Le regole del registro degli avvisi ai clienti (tables/bookingDeliveries.ts):
@@ -220,7 +219,7 @@ export async function recordDeliveries(
   if (!booking) return;
 
   const now = Date.now();
-  const clubId = await defaultClubId(ctx);
+  const clubId = booking.clubId;
 
   for (const entry of entries) {
     const row = {

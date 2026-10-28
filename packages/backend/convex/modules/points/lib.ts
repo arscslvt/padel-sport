@@ -1,7 +1,6 @@
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
 import { programState } from "./terms";
 
 /**
@@ -119,7 +118,7 @@ export async function applyPoints(
     }
 
     const transactionId = await ctx.db.insert("pointTransactions", {
-      clubId: await defaultClubId(ctx),
+      clubId: player.clubId,
       playerId: args.playerId,
       delta: args.delta,
       label: args.label.trim(),
@@ -143,7 +142,7 @@ export async function applyPoints(
   }
 
   const transactionId = await ctx.db.insert("pointTransactions", {
-    clubId: await defaultClubId(ctx),
+    clubId: player.clubId,
     playerId: args.playerId,
     delta: args.delta,
     label: args.label.trim(),
@@ -244,7 +243,7 @@ export async function closeExit(
 
   if (forfeited > 0) {
     await ctx.db.insert("pointTransactions", {
-      clubId: await defaultClubId(ctx),
+      clubId: player.clubId,
       playerId,
       delta: -forfeited,
       label: "Punti decaduti con l'uscita dal programma",

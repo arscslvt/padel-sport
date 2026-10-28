@@ -1,7 +1,6 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { serverQuery } from "../../functions";
 import { matchRequestStatus } from "../../tables/matchRequests";
-import { assertServer } from "../../utils/serverSecret";
 
 /**
  * Le richieste di giocatori arrivate dal modulo pubblico del sito.
@@ -10,14 +9,11 @@ import { assertServer } from "../../utils/serverSecret";
  * dell'assistenza: qui non c'è un `players` collegato, solo i recapiti lasciati
  * nel modulo da chi cerca compagni di partita.
  */
-export default query({
+export default serverQuery({
   args: {
-    secret: v.string(),
     status: v.optional(matchRequestStatus),
   },
-  handler: async (ctx, { secret, status }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { status }) => {
     const requests = status
       ? await ctx.db
           .query("matchRequests")

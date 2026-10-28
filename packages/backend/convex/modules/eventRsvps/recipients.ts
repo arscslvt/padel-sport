@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { serverQuery } from "../../functions";
 import {
   communicationCoverage,
   isReached,
@@ -27,9 +26,8 @@ import {
  * rimandarla a tutti. Anche questo filtro sta qui per lo stesso motivo — è la
  * differenza fra una mail nuova e una mail doppia.
  */
-export default query({
+export default serverQuery({
   args: {
-    secret: v.string(),
     eventId: v.string(),
     blockKey: v.string(),
     /** `_id` del documento Sanity: serve solo a sapere chi l'ha già ricevuto */
@@ -37,8 +35,6 @@ export default query({
     audience: v.optional(v.union(v.literal("all"), v.literal("pending"))),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     const entries = await ctx.db
       .query("eventRsvps")
       .withIndex("by_form", (q) =>

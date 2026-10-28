@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import { getIdentityPlayer } from "../openMatches/lib";
 import { bookingTotal } from "../pricing/lib";
 import { bookingSettings } from "../settings/lib";
@@ -16,7 +16,7 @@ import { sumupConfig } from "./sumup";
  * Il club ha attivato il pagamento online: decide se il modulo di
  * prenotazione propone la scelta «online adesso / in struttura».
  */
-export const enabled = query({
+export const enabled = clubQuery({
   args: {},
   handler: async (ctx) => await onlinePaymentsActive(ctx),
 });
@@ -26,7 +26,7 @@ export const enabled = query({
  * club è acceso ma le chiavi mancano, la dashboard deve poterlo dire invece di
  * lasciar credere che i clienti stiano pagando online.
  */
-export const setup = query({
+export const setup = clubQuery({
   args: {},
   handler: async (ctx) => ({
     configured: sumupConfig() !== null,
@@ -41,7 +41,7 @@ export const setup = query({
  * Per chiunque altro restituisce `null`: la pagina della prenotazione è
  * pubblica (ci si arriva dal QR), il pulsante «Paga ora» no.
  */
-export const forCode = query({
+export const forCode = clubQuery({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
     const player = await getIdentityPlayer(ctx);

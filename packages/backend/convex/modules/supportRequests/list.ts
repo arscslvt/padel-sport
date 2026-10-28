@@ -1,7 +1,6 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { serverQuery } from "../../functions";
 import { supportRequestStatus } from "../../tables/supportRequests";
-import { assertServer } from "../../utils/serverSecret";
 
 /**
  * Le richieste di assistenza arrivate dal modulo del sito.
@@ -11,14 +10,11 @@ import { assertServer } from "../../utils/serverSecret";
  * staff lo sa Clerk, e il controllo vero sta nella route che chiama
  * (app/api/dashboard/requests).
  */
-export default query({
+export default serverQuery({
   args: {
-    secret: v.string(),
     status: v.optional(supportRequestStatus),
   },
-  handler: async (ctx, { secret, status }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { status }) => {
     const requests = status
       ? await ctx.db
           .query("supportRequests")

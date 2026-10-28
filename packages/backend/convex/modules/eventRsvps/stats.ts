@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 
 /**
  * Quanti posti sono occupati su un modulo RSVP.
@@ -8,7 +8,7 @@ import { query } from "../../_generated/server";
  * per questo restituisce solo numeri: nessun nome, nessuna email. L'elenco
  * con i dati personali sta in `list.ts`, che richiede un'identità.
  */
-export default query({
+export default clubQuery({
   args: {
     eventId: v.string(),
     blockKey: v.string(),

@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 
 import type { Doc } from "../../_generated/dataModel";
-import { type MutationCtx, mutation } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import type { MutationCtx } from "../../_generated/server";
+import { serverMutation } from "../../functions";
 import { balanceOf, isRedemptionUsable } from "../points/lib";
 
 /**
@@ -46,16 +46,13 @@ async function mailFacts(ctx: MutationCtx, player: Doc<"players">) {
   };
 }
 
-export const suspend = mutation({
+export const suspend = serverMutation({
   args: {
-    secret: v.string(),
     playerId: v.id("players"),
     reason: v.string(),
     suspendedByClerkUserId: v.optional(v.string()),
   },
-  handler: async (ctx, { secret, playerId, reason, suspendedByClerkUserId }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { playerId, reason, suspendedByClerkUserId }) => {
     const player = await ctx.db.get(playerId);
     if (!player) throw new Error("Cliente non trovato.");
 
@@ -89,11 +86,9 @@ export const suspend = mutation({
   },
 });
 
-export const reactivate = mutation({
-  args: { secret: v.string(), playerId: v.id("players") },
-  handler: async (ctx, { secret, playerId }) => {
-    assertServer(secret);
-
+export const reactivate = serverMutation({
+  args: { playerId: v.id("players") },
+  handler: async (ctx, { playerId }) => {
     const player = await ctx.db.get(playerId);
     if (!player) throw new Error("Cliente non trovato.");
 
@@ -112,9 +107,8 @@ export const reactivate = mutation({
  * riuscito a riaprire l'accesso: meglio un account sospeso per davvero che uno
  * che il club crede attivo e che invece non entra.
  */
-export const restore = mutation({
+export const restore = serverMutation({
   args: {
-    secret: v.string(),
     playerId: v.id("players"),
     suspension: v.object({
       reason: v.string(),
@@ -122,8 +116,7 @@ export const restore = mutation({
       suspendedByClerkUserId: v.optional(v.string()),
     }),
   },
-  handler: async (ctx, { secret, playerId, suspension }) => {
-    assertServer(secret);
+  handler: async (ctx, { playerId, suspension }) => {
     await ctx.db.patch(playerId, { suspension });
   },
 });

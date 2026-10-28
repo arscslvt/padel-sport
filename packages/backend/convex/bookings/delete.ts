@@ -1,8 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { mutation } from "../_generated/server";
+import { serverMutation } from "../functions";
 import { bookingChanged } from "../modules/points/auto";
-import { assertServer } from "../utils/serverSecret";
 import { releaseMerge } from "./lib";
 
 /**
@@ -12,14 +11,11 @@ import { releaseMerge } from "./lib";
  * partita di un altro, mail di disdetta compresa. Ora è riservata alla
  * struttura, come l'accettazione.
  */
-export default mutation({
+export default serverMutation({
   args: {
-    secret: v.string(),
     bookingId: v.id("bookings"),
   },
-  handler: async (ctx, { secret, bookingId }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { bookingId }) => {
     // Prima di annullare: se il campo era condiviso, l'altro gruppo resta e
     // va rimesso su un campo tutto suo (bookings/lib.ts).
     await releaseMerge(ctx, bookingId);

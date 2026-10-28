@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { components } from "../../_generated/api";
-import { mutation, query } from "../../_generated/server";
+import { clubMutation, clubQuery } from "../../functions";
 
 const stageValidator = v.union(
   v.literal("quarter"),
@@ -8,7 +8,7 @@ const stageValidator = v.union(
   v.literal("final"),
 );
 
-export const getCategoryStandings = query({
+export const getCategoryStandings = clubQuery({
   args: { tournamentCategoryId: v.string() },
   handler: async (ctx, args) =>
     await ctx.runQuery(
@@ -17,7 +17,7 @@ export const getCategoryStandings = query({
     ),
 });
 
-export const getSelectionByCategoryStage = query({
+export const getSelectionByCategoryStage = clubQuery({
   args: { tournamentCategoryId: v.string(), stage: stageValidator },
   handler: async (ctx, args) =>
     await ctx.runQuery(
@@ -26,7 +26,7 @@ export const getSelectionByCategoryStage = query({
     ),
 });
 
-export const getKnockoutCandidatesByCategoryStage = query({
+export const getKnockoutCandidatesByCategoryStage = clubQuery({
   args: { tournamentCategoryId: v.string(), stage: stageValidator },
   handler: async (ctx, args) =>
     await ctx.runQuery(
@@ -36,7 +36,7 @@ export const getKnockoutCandidatesByCategoryStage = query({
     ),
 });
 
-export const saveSelectionByCategoryStage = mutation({
+export const saveSelectionByCategoryStage = clubMutation({
   args: {
     tournamentCategoryId: v.string(),
     stage: stageValidator,
@@ -58,7 +58,7 @@ export const saveSelectionByCategoryStage = mutation({
     ),
 });
 
-export const generateKnockoutMatches = mutation({
+export const generateKnockoutMatches = clubMutation({
   args: {
     tournamentCategoryId: v.string(),
     stage: stageValidator,
@@ -70,7 +70,7 @@ export const generateKnockoutMatches = mutation({
     ),
 });
 
-export const resetKnockoutMatches = mutation({
+export const resetKnockoutMatches = clubMutation({
   args: {
     tournamentCategoryId: v.string(),
     stage: stageValidator,

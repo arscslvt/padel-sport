@@ -6,7 +6,7 @@ import webpush, { WebPushError } from "web-push";
 
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
-import { internalAction } from "../../_generated/server";
+import { internalAction } from "../../functions";
 import { notificationCategory } from "../../utils/notificationCategories";
 import { staffBookingsUrl } from "../../utils/staffLinks";
 

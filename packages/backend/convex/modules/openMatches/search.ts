@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import { getIdentityPlayer } from "./lib";
 
 const MAX_RESULTS = 6;
@@ -17,7 +17,7 @@ const SCAN = 40;
  *
  * Chi non c'è si scrive a mano, come sempre: il campo resta libero.
  */
-export default query({
+export default clubQuery({
   args: { term: v.string() },
   handler: async (ctx, { term }) => {
     const player = await getIdentityPlayer(ctx);

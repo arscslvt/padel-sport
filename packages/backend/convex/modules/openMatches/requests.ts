@@ -1,13 +1,12 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { mutation, query } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
+import { clubMutation, clubQuery } from "../../functions";
 import { addPlayerToMatch, requirePlayer, toPlayerView } from "./lib";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
 
 /** Invia una richiesta di partecipazione a una partita in modalità "request". */
-export const request = mutation({
+export const request = clubMutation({
   args: { matchId: v.id("openMatches") },
   handler: async (ctx, { matchId }) => {
     const player = await requirePlayer(ctx);
@@ -47,7 +46,7 @@ export const request = mutation({
     }
 
     const requestId = await ctx.db.insert("joinRequests", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       matchId,
       playerId: player._id,
       status: "pending",
@@ -73,7 +72,7 @@ export const request = mutation({
 });
 
 /** Il creatore accetta o rifiuta una richiesta di partecipazione. */
-export const respond = mutation({
+export const respond = clubMutation({
   args: {
     requestId: v.id("joinRequests"),
     accept: v.boolean(),
@@ -117,7 +116,7 @@ export const respond = mutation({
 });
 
 /** Richieste pendenti di una partita, visibili solo al creatore. */
-export const listForMatch = query({
+export const listForMatch = clubQuery({
   args: { matchId: v.id("openMatches") },
   handler: async (ctx, { matchId }) => {
     const player = await requirePlayer(ctx);

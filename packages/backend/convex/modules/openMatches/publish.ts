@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { LEVEL_MAX, LEVEL_MIN, requirePlayer, visibilityOf } from "./lib";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
@@ -17,7 +17,7 @@ import { staffBookingUrl } from "../../utils/staffLinks";
  * `circleId` non viene cancellato: la partita continua a raccontare da dove
  * arriva, e gli inviti ancora in sospeso restano validi.
  */
-export default mutation({
+export default clubMutation({
   args: {
     matchId: v.id("openMatches"),
     levelMin: v.number(),

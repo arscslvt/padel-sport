@@ -1,6 +1,6 @@
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
-import { internalMutation } from "../../_generated/server";
+import { internalMutation } from "../../functions";
 import { formatClubTime } from "../../utils/clubTime";
 import { staffAgendaDayUrl, staffBookingUrl } from "../../utils/staffLinks";
 import { courtLabel } from "../openMatches/lib";

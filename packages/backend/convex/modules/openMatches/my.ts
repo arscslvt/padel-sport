@@ -1,4 +1,4 @@
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import {
   getIdentityPlayer,
   MATCH_DURATION_MS,
@@ -23,7 +23,7 @@ export interface MyBookingView {
  * Prenotazioni e partite dell'utente: quelle create da lui (aperte o chiuse)
  * e quelle a cui si è unito, a partire da quelle in corso.
  */
-export default query({
+export default clubQuery({
   args: {},
   handler: async (ctx): Promise<MyBookingView[] | null> => {
     const player = await getIdentityPlayer(ctx);

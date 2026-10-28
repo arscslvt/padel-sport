@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
-import { internalAction } from "../../_generated/server";
+import { internalAction } from "../../functions";
 import { CLUB_TIME_ZONE } from "../../utils/clubTime";
 import { clubMoment } from "../settings/lib";
 

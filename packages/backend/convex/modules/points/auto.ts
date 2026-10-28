@@ -2,12 +2,8 @@ import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
-import {
-  internalMutation,
-  type MutationCtx,
-  type QueryCtx,
-} from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
+import { internalMutation } from "../../functions";
 import { clubDayKey, clubMoment } from "../settings/lib";
 import { applyPoints, balanceOf } from "./lib";
 import {
@@ -131,7 +127,7 @@ export async function syncParticipants(
   for (const playerId of wanted) {
     if (rows.some((row) => row.playerId === playerId)) continue;
     await ctx.db.insert("bookingPlayers", {
-      clubId: await defaultClubId(ctx),
+      clubId: booking.clubId,
       bookingId: booking._id,
       playerId,
       bookingDate: booking.bookingDate,
@@ -228,7 +224,7 @@ async function revoke(ctx: MutationCtx, autoKey: string) {
 
   const balance = balanceOf(player) - amount;
   const reversalId = await ctx.db.insert("pointTransactions", {
-    clubId: await defaultClubId(ctx),
+    clubId: player.clubId,
     playerId: player._id,
     delta: -amount,
     label: `Storno: ${transaction.label}`,

@@ -1,4 +1,4 @@
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import { getIdentityPlayer, type PlayerView, toPlayerView } from "../openMatches/lib";
 import { type FriendRequestView, friendshipsOf, otherSide } from "./lib";
 
@@ -14,7 +14,7 @@ export interface FriendsView {
  * Amici del giocatore e richieste ancora in sospeso, nei due versi.
  * Restituisce `null` se non c'è ancora un profilo giocatore.
  */
-export default query({
+export default clubQuery({
   args: {},
   handler: async (ctx): Promise<FriendsView | null> => {
     const player = await getIdentityPlayer(ctx);

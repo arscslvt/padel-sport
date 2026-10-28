@@ -1,13 +1,9 @@
 import { ConvexError, v } from "convex/values";
 
 import type { Doc, Id } from "../../_generated/dataModel";
-import {
-  internalMutation,
-  type MutationCtx,
-  mutation,
-} from "../../_generated/server";
+import type { MutationCtx } from "../../_generated/server";
+import { internalMutation, serverMutation } from "../../functions";
 import { syncUpcomingPhone } from "../../bookings/whatsapp";
-import { assertServer } from "../../utils/serverSecret";
 import { bookingChanged, reconcileReferral } from "../points/auto";
 
 /**
@@ -94,10 +90,9 @@ const mergeArgs = {
 };
 
 /** Dalla scheda cliente della dashboard. */
-export const merge = mutation({
-  args: { secret: v.string(), ...mergeArgs },
-  handler: async (ctx, { secret, ...args }) => {
-    assertServer(secret);
+export const merge = serverMutation({
+  args: { ...mergeArgs },
+  handler: async (ctx, { ...args }) => {
     return await mergeCards(ctx, args);
   },
 });

@@ -1,8 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { mutation } from "../../_generated/server";
+import { serverMutation } from "../../functions";
 import { notificationCategory } from "../../utils/notificationCategories";
-import { assertServer } from "../../utils/serverSecret";
 
 /**
  * L'avviso allo staff chiesto dal sito: richieste di assistenza, richieste di
@@ -14,18 +13,15 @@ import { assertServer } from "../../utils/serverSecret";
  * chiunque conosca l'URL del deployment potrebbe far suonare il telefono
  * dello staff.
  */
-export default mutation({
+export default serverMutation({
   args: {
-    secret: v.string(),
     category: notificationCategory,
     title: v.string(),
     message: v.string(),
     url: v.optional(v.string()),
     idempotencyKey: v.optional(v.string()),
   },
-  handler: async (ctx, { secret, ...notification }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { ...notification }) => {
     await ctx.scheduler.runAfter(
       0,
       internal.modules.notifications.alert.default,

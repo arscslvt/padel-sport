@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { requirePlayer } from "../openMatches/lib";
 import { requireCircleMember } from "./lib";
 
@@ -12,7 +12,7 @@ import { requireCircleMember } from "./lib";
  * Le partite di cerchia a cui si era già uniti restano: il campo è prenotato e
  * gli altri contano su quel giocatore.
  */
-export default mutation({
+export default clubMutation({
   args: { circleId: v.id("circles") },
   handler: async (ctx, { circleId }) => {
     const player = await requirePlayer(ctx);

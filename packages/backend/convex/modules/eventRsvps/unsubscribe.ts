@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 
 /** Quel che serve alla pagina di conferma per dire cosa è appena successo. */
 function snapshot(rsvp: Doc<"eventRsvps">, alreadyUnsubscribed: boolean) {
@@ -30,7 +30,7 @@ function snapshot(rsvp: Doc<"eventRsvps">, alreadyUnsubscribed: boolean) {
  *
  * Idempotente come la gemella: un secondo clic dice «eri già disiscritto».
  */
-export default mutation({
+export default clubMutation({
   args: {
     token: v.string(),
   },

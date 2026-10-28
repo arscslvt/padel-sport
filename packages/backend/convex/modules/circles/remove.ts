@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { requirePlayer } from "../openMatches/lib";
 import { membershipOf, requireCircleOwner } from "./lib";
 
@@ -10,7 +10,7 @@ import { membershipOf, requireCircleOwner } from "./lib";
  * Chi viene rimosso resta nelle partite di cerchia a cui si era già unito: il
  * campo è prenotato e togliergli il posto all'ultimo sarebbe peggio.
  */
-export default mutation({
+export default clubMutation({
   args: {
     circleId: v.id("circles"),
     playerId: v.id("players"),

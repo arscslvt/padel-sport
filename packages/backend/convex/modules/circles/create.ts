@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { mutation } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
+import { clubMutation } from "../../functions";
 import { requirePlayer } from "../openMatches/lib";
 import { inviteToCircle } from "./invite";
 import { assertCircleQuota } from "./lib";
@@ -15,7 +14,7 @@ const NAME_MAX = 40;
  * tutti gli altri, così il conteggio delle cerchie a testa non deve trattarlo
  * come un caso a parte.
  */
-export default mutation({
+export default clubMutation({
   args: {
     name: v.string(),
     playerIds: v.optional(v.array(v.id("players"))),
@@ -36,14 +35,14 @@ export default mutation({
     await assertCircleQuota(ctx, player._id);
 
     const circleId = await ctx.db.insert("circles", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       name: trimmed,
       ownerId: player._id,
       createdAt: Date.now(),
     });
 
     await ctx.db.insert("circleMembers", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       circleId,
       playerId: player._id,
       role: "owner",

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { requirePlayer } from "../openMatches/lib";
 
 /**
@@ -8,7 +8,7 @@ import { requirePlayer } from "../openMatches/lib";
  * Il rifiuto cancella la riga invece di conservarne lo stato: i due tornano
  * estranei e la richiesta si può rifare più avanti.
  */
-export default mutation({
+export default clubMutation({
   args: {
     friendshipId: v.id("friendships"),
     accept: v.boolean(),

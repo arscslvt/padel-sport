@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 
 /**
  * Conteggi di più moduli in una volta, per il selettore della dashboard: senza
@@ -8,7 +8,7 @@ import { query } from "../../_generated/server";
  *
  * Pubblica come `stats.ts`, e per lo stesso motivo: restituisce soli numeri.
  */
-export default query({
+export default clubQuery({
   args: {
     forms: v.array(
       v.object({

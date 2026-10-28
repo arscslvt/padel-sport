@@ -1,7 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
-import { mutation } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { clubMutation, serverMutation } from "../../functions";
 
 /** Quel che serve a chi annulla per capire cosa ha annullato, e al club per saperlo. */
 function snapshot(rsvp: Doc<"eventRsvps">, alreadyCancelled: boolean) {
@@ -30,7 +29,7 @@ function snapshot(rsvp: Doc<"eventRsvps">, alreadyCancelled: boolean) {
  * già annullata», non esplodere. I posti si liberano da soli, perché capienza
  * e duplicati contano solo le righe `confirmed` (vedi `create.ts`).
  */
-export default mutation({
+export default clubMutation({
   args: {
     token: v.string(),
   },
@@ -66,15 +65,13 @@ export default mutation({
  * Stesso effetto, chiave diversa: qui la riga si indica per `_id` e a
  * legittimare la richiesta è la sessione dello staff, non il token.
  */
-export const byStaff = mutation({
+export const byStaff = serverMutation({
   args: {
-    secret: v.string(),
     id: v.id("eventRsvps"),
   },
-  handler: async (ctx, { secret, id }) => {
+  handler: async (ctx, { id }) => {
     // Annullare l'iscrizione di qualcun altro è un atto della struttura:
     // «essere loggati» lo è anche il cliente al quale la si sta cancellando.
-    assertServer(secret);
 
     const rsvp = await ctx.db.get(id);
     if (!rsvp) {

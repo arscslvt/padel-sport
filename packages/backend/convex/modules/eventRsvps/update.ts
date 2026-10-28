@@ -1,6 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { mutation } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { serverMutation } from "../../functions";
 import {
   assertGuests,
   confirmedRsvps,
@@ -26,9 +25,8 @@ import {
  * capienza che la route ha appena riletto è quella di *quel* modulo, e senza
  * il confronto basterebbe un id sbagliato per misurarla su un altro evento.
  */
-export default mutation({
+export default serverMutation({
   args: {
-    secret: v.string(),
     id: v.id("eventRsvps"),
     /** Il modulo da cui arriva la richiesta: la riga deve appartenergli. */
     eventId: v.string(),
@@ -40,7 +38,6 @@ export default mutation({
     override: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
     assertGuests(args.guests, STAFF_MAX_GUESTS);
 
     const rsvp = await ctx.db.get(args.id);

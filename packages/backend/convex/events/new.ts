@@ -1,4 +1,4 @@
-import { internalMutation } from "../_generated/server";
+import { internalMutation } from "../functions";
 import { defaultClubId } from "../modules/clubs/lib";
 import { newEventSchema } from "../types/events/event.new.type";
 

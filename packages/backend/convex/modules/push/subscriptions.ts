@@ -4,12 +4,10 @@ import { internal } from "../../_generated/api";
 import {
   internalMutation,
   internalQuery,
-  mutation,
-  query,
-} from "../../_generated/server";
+  serverMutation,
+  serverQuery,
+} from "../../functions";
 import { notificationCategory } from "../../utils/notificationCategories";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
 
 /**
  * I dispositivi dello staff che ricevono le notifiche push.
@@ -28,9 +26,8 @@ import { defaultClubId } from "../clubs/lib";
  */
 const MAX_FAILURES = 5;
 
-export const subscribe = mutation({
+export const subscribe = serverMutation({
   args: {
-    secret: v.string(),
     userId: v.string(),
     userName: v.optional(v.string()),
     device: v.string(),
@@ -38,9 +35,7 @@ export const subscribe = mutation({
     p256dh: v.string(),
     auth: v.string(),
   },
-  handler: async (ctx, { secret, ...args }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { ...args }) => {
     if (!args.endpoint.startsWith("https://")) {
       throw new Error("Indirizzo del servizio push non valido.");
     }
@@ -65,7 +60,7 @@ export const subscribe = mutation({
     }
 
     return await ctx.db.insert("pushSubscriptions", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       ...args,
       createdAt: now,
       lastSeenAt: now,
@@ -75,15 +70,12 @@ export const subscribe = mutation({
 });
 
 /** Toglie un dispositivo: il proprio (per `endpoint`) o quello di un collega (per `id`). */
-export const remove = mutation({
+export const remove = serverMutation({
   args: {
-    secret: v.string(),
     endpoint: v.optional(v.string()),
     id: v.optional(v.id("pushSubscriptions")),
   },
-  handler: async (ctx, { secret, endpoint, id }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { endpoint, id }) => {
     const row = id
       ? await ctx.db.get(id)
       : endpoint
@@ -103,11 +95,9 @@ export const remove = mutation({
  * più ricevere avvisi, che contengono nomi e orari dei clienti. Le sue
  * preferenze restano: se rientra, ritrova gli avvisi come li aveva lasciati.
  */
-export const removeForUser = mutation({
-  args: { secret: v.string(), userId: v.string() },
-  handler: async (ctx, { secret, userId }) => {
-    assertServer(secret);
-
+export const removeForUser = serverMutation({
+  args: { userId: v.string() },
+  handler: async (ctx, { userId }) => {
     const rows = await ctx.db
       .query("pushSubscriptions")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -125,11 +115,9 @@ export const removeForUser = mutation({
  * privata vive su questo deployment, e due copie della pubblica in due posti
  * diversi sono il modo più semplice per farle divergere.
  */
-export const list = query({
-  args: { secret: v.string() },
-  handler: async (ctx, { secret }) => {
-    assertServer(secret);
-
+export const list = serverQuery({
+  args: {},
+  handler: async (ctx) => {
     const rows = await ctx.db.query("pushSubscriptions").collect();
 
     return {
@@ -152,11 +140,9 @@ export const list = query({
 });
 
 /** Una notifica di prova al solo dispositivo che l'ha chiesta. */
-export const test = mutation({
-  args: { secret: v.string(), endpoint: v.string() },
-  handler: async (ctx, { secret, endpoint }) => {
-    assertServer(secret);
-
+export const test = serverMutation({
+  args: { endpoint: v.string() },
+  handler: async (ctx, { endpoint }) => {
     const row = await ctx.db
       .query("pushSubscriptions")
       .withIndex("by_endpoint", (q) => q.eq("endpoint", endpoint))

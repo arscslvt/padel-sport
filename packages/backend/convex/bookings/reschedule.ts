@@ -2,7 +2,8 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { mutation, type QueryCtx, query } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
+import { serverMutation, serverQuery } from "../functions";
 import { recordDeliveries } from "../modules/deliveries/lib";
 import { bookingChanged } from "../modules/points/auto";
 import {
@@ -24,7 +25,6 @@ import {
   toMinutes,
 } from "../modules/settings/lib";
 import { windowsForDay } from "../modules/settings/schedule";
-import { assertServer } from "../utils/serverSecret";
 
 /**
  * Lo staff sposta l'orario di una prenotazione, nello stesso giorno.
@@ -101,11 +101,9 @@ function changedCourts(
   return joinCourtNames(courts.map((court) => court.name));
 }
 
-export const options = query({
-  args: { secret: v.string(), bookingId: v.id("bookings") },
-  handler: async (ctx, { secret, bookingId }) => {
-    assertServer(secret);
-
+export const options = serverQuery({
+  args: { bookingId: v.id("bookings") },
+  handler: async (ctx, { bookingId }) => {
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
 
@@ -170,17 +168,14 @@ export const options = query({
   },
 });
 
-export const move = mutation({
+export const move = serverMutation({
   args: {
-    secret: v.string(),
     bookingId: v.id("bookings"),
     bookingDate: v.number(),
     /** La spunta «Avvisa il cliente via email». */
     notify: v.boolean(),
   },
-  handler: async (ctx, { secret, bookingId, bookingDate, notify }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { bookingId, bookingDate, notify }) => {
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
 

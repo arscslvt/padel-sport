@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import { membershipOf } from "../circles/lib";
 import {
   bestInvitePerPlayer,
@@ -33,7 +33,7 @@ export interface MatchInviteeView {
  * tutti gli altri risponde `null`, altrimenti basterebbe conoscere l'id per
  * leggere una partita che non li riguarda.
  */
-export default query({
+export default clubQuery({
   args: { matchId: v.id("openMatches") },
   handler: async (ctx, { matchId }) => {
     const match = await ctx.db.get(matchId);

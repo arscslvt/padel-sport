@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { requirePlayer } from "../openMatches/lib";
 import { ensureFriendRequest } from "./lib";
 
@@ -10,7 +10,7 @@ import { ensureFriendRequest } from "./lib";
  * accettata invece di crearne una seconda in senso opposto: due persone che
  * si cercano a vicenda diventano amiche senza altri passaggi.
  */
-export default mutation({
+export default clubMutation({
   args: { playerId: v.id("players") },
   handler: async (ctx, { playerId }) => {
     const player = await requirePlayer(ctx);

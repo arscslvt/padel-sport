@@ -1,10 +1,9 @@
 import { v } from "convex/values";
 
 import type { Id } from "../../_generated/dataModel";
-import { type MutationCtx, mutation } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
+import type { MutationCtx } from "../../_generated/server";
+import { serverMutation } from "../../functions";
 import { generatePlayerCode, LEVEL_MAX, LEVEL_MIN } from "../openMatches/lib";
-import { assertServer } from "../../utils/serverSecret";
 import {
   consents as consentsValidator,
   gender,
@@ -126,9 +125,8 @@ async function assertEmailFree(
  * a tutti gli effetti, che paga la quota e gioca — e semplicemente non si può
  * ancora invitare.
  */
-export const create = mutation({
+export const create = serverMutation({
   args: {
-    secret: v.string(),
     firstName: v.string(),
     lastName: v.string(),
     email: v.optional(v.string()),
@@ -152,8 +150,7 @@ export const create = mutation({
      */
     existingClient: v.optional(v.boolean()),
   },
-  handler: async (ctx, { secret, referralCode, ...fields }) => {
-    assertServer(secret);
+  handler: async (ctx, { referralCode, ...fields }) => {
     assertLevel(fields.level);
 
     const firstName = clean(fields.firstName);
@@ -167,7 +164,7 @@ export const create = mutation({
     if (email) await assertEmailFree(ctx, email);
 
     const playerId = await ctx.db.insert("players", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       name: displayName({ name: `${firstName} ${lastName}`, firstName, lastName }),
       firstName,
       lastName,
@@ -194,16 +191,14 @@ export const create = mutation({
   },
 });
 
-export const update = mutation({
+export const update = serverMutation({
   args: {
-    secret: v.string(),
     playerId: v.id("players"),
     email: v.optional(v.string()),
     clubNotes: v.optional(v.string()),
     ...profileFields,
   },
-  handler: async (ctx, { secret, playerId, ...fields }) => {
-    assertServer(secret);
+  handler: async (ctx, { playerId, ...fields }) => {
     assertLevel(fields.level);
 
     const player = await ctx.db.get(playerId);
@@ -276,9 +271,8 @@ export const update = mutation({
  * Scrive solo dove è vuoto o diverso: non deve sporcare l'anagrafica che lo
  * staff ha corretto a mano.
  */
-export const syncFromClerk = mutation({
+export const syncFromClerk = serverMutation({
   args: {
-    secret: v.string(),
     people: v.array(
       v.object({
         playerId: v.id("players"),
@@ -289,9 +283,7 @@ export const syncFromClerk = mutation({
       }),
     ),
   },
-  handler: async (ctx, { secret, people }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { people }) => {
     let updated = 0;
 
     for (const person of people) {
@@ -340,9 +332,8 @@ export const syncFromClerk = mutation({
  * scritto, si corregge quel che serve, e soprattutto si danno i consensi, che
  * nessun altro può dare al posto della persona.
  */
-export const complete = mutation({
+export const complete = serverMutation({
   args: {
-    secret: v.string(),
     token: v.string(),
     clerkUserId: v.string(),
     email: v.string(),
@@ -362,7 +353,6 @@ export const complete = mutation({
     avatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
     assertLevel(args.level);
 
     const invite = await ctx.db

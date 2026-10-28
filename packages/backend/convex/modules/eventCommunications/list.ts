@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { serverQuery } from "../../functions";
 
 /**
  * Gli invii già fatti per un insieme di comunicazioni, per lo storico in
@@ -13,14 +12,11 @@ import { assertServer } from "../../utils/serverSecret";
  * qui dentro, ma sapere quante comunicazioni ha mandato il club e a quante
  * persone non è affare di chi passa dall'URL del deployment.
  */
-export default query({
+export default serverQuery({
   args: {
-    secret: v.string(),
     documentIds: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     const groups = await Promise.all(
       args.documentIds.map((documentId) =>
         ctx.db

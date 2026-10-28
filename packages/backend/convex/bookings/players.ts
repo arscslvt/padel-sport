@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 
 import type { Doc, Id } from "../_generated/dataModel";
-import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
-import { defaultClubId } from "../modules/clubs/lib";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { serverMutation, serverQuery } from "../functions";
 import {
   guestsOf,
   MAX_PLAYERS,
@@ -13,7 +13,6 @@ import {
 } from "../modules/openMatches/lib";
 import { confirmToNewPlayers } from "../modules/notifications/bookingPlayers";
 import { bookingChanged } from "../modules/points/auto";
-import { assertServer } from "../utils/serverSecret";
 import { linkablePlayers } from "./staffCreate";
 
 /**
@@ -105,11 +104,9 @@ async function linksOf(
 }
 
 /** Quel che serve al modulo di modifica: i nomi, quelli bloccati, i posti. */
-export const forEdit = query({
-  args: { secret: v.string(), bookingId: v.id("bookings") },
-  handler: async (ctx, { secret, bookingId }) => {
-    assertServer(secret);
-
+export const forEdit = serverQuery({
+  args: { bookingId: v.id("bookings") },
+  handler: async (ctx, { bookingId }) => {
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
 
@@ -152,7 +149,7 @@ async function replaceGuests(
 
   for (const name of toAdd) {
     await ctx.db.insert("matchGuests", {
-      clubId: await defaultClubId(ctx),
+      clubId: match.clubId,
       matchId: match._id,
       name,
       addedBy: match.creatorId,
@@ -161,9 +158,8 @@ async function replaceGuests(
   }
 }
 
-export const update = mutation({
+export const update = serverMutation({
   args: {
-    secret: v.string(),
     bookingId: v.id("bookings"),
     /** Tutti i nomi, nell'ordine: il primo è chi ha prenotato. */
     players: v.array(v.string()),
@@ -175,9 +171,7 @@ export const update = mutation({
       v.array(v.object({ name: v.string(), playerId: v.id("players") })),
     ),
   },
-  handler: async (ctx, { secret, bookingId, players, links }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { bookingId, players, links }) => {
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
     if (booking.status === "cancelled") {

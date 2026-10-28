@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { requirePlayer, visibilityOf } from "../openMatches/lib";
 import { membersOf, requireCircleOwner, upcomingCircleMatches } from "./lib";
 
@@ -11,7 +11,7 @@ import { membersOf, requireCircleOwner, upcomingCircleMatches } from "./lib";
  * nessuno saprebbe più da dove arrivano. Vanno prima cancellate o aperte a
  * tutti (modules/openMatches/publish.ts).
  */
-export default mutation({
+export default clubMutation({
   args: { circleId: v.id("circles") },
   handler: async (ctx, { circleId }) => {
     const player = await requirePlayer(ctx);

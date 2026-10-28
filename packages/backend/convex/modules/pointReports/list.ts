@@ -1,6 +1,4 @@
-import { v } from "convex/values";
-import { query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { serverQuery } from "../../functions";
 
 /**
  * Le segnalazioni sui punti, con quello che serve per rispondere.
@@ -11,11 +9,9 @@ import { assertServer } from "../../utils/serverSecret";
  * Recapiti e movimento si leggono al momento dalla scheda e dal registro: un
  * telefono cambiato nel frattempo è quello giusto da chiamare.
  */
-export default query({
-  args: { secret: v.string() },
-  handler: async (ctx, { secret }) => {
-    assertServer(secret);
-
+export default serverQuery({
+  args: {},
+  handler: async (ctx) => {
     const reports = await ctx.db
       .query("pointReports")
       .withIndex("by_created")

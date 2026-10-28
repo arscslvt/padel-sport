@@ -29,6 +29,7 @@ import type * as bookings_whatsapp from "../bookings/whatsapp.js";
 import type * as crons from "../crons.js";
 import type * as events_list from "../events/list.js";
 import type * as events_new from "../events/new.js";
+import type * as functions from "../functions.js";
 import type * as http from "../http.js";
 import type * as modules_circles_create from "../modules/circles/create.js";
 import type * as modules_circles_dissolve from "../modules/circles/dissolve.js";
@@ -242,6 +243,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   "events/list": typeof events_list;
   "events/new": typeof events_new;
+  functions: typeof functions;
   http: typeof http;
   "modules/circles/create": typeof modules_circles_create;
   "modules/circles/dissolve": typeof modules_circles_dissolve;

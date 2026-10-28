@@ -1,5 +1,6 @@
 import type { Id } from "../_generated/dataModel";
-import { internalMutation, type MutationCtx } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
+import { internalMutation } from "../functions";
 import { syncBookingPlayers } from "../modules/openMatches/lib";
 import { syncMemberPricing } from "../modules/pricing/members";
 

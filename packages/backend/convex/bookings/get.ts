@@ -1,7 +1,11 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { internalQuery } from "../functions";
 
-export const getById = query({
+/**
+ * Una prenotazione intera, telefono compreso: solo per il backend. Era una
+ * query pubblica, e chiunque avesse un id poteva leggerla.
+ */
+export const getById = internalQuery({
   args: {
     bookingId: v.id("bookings"),
   },

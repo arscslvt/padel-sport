@@ -2,14 +2,13 @@ import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
+import type { MutationCtx } from "../../_generated/server";
 import {
+  clubMutation,
+  clubQuery,
   internalMutation,
-  type MutationCtx,
-  mutation,
-  query,
-} from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
+  serverMutation,
+} from "../../functions";
 import { requirePlayer } from "../openMatches/lib";
 import { balanceOf, closeExit, creditPending, exitDeadline } from "./lib";
 import { programState } from "./terms";
@@ -76,7 +75,7 @@ async function pendingRequests(ctx: MutationCtx, playerId: Doc<"players">["_id"]
 }
 
 /** La persona esce dalla propria area personale. */
-export const leave = mutation({
+export const leave = clubMutation({
   args: {},
   handler: async (ctx) => {
     const player = await requirePlayer(ctx);
@@ -100,7 +99,7 @@ export const leave = mutation({
  * compresi quelli caricati nei giorni dell'uscita, che erano rimasti in
  * attesa. Con un regolamento vecchio resta da accettare quello nuovo.
  */
-export const stay = mutation({
+export const stay = clubMutation({
   args: {},
   handler: async (ctx) => {
     const player = await requirePlayer(ctx);
@@ -127,17 +126,14 @@ export const stay = mutation({
  * program/exit), che genera anche il token: qui si controlla che la persona
  * sia davvero nel programma e si ritirano le richieste precedenti.
  */
-export const requestByEmail = mutation({
+export const requestByEmail = serverMutation({
   args: {
-    secret: v.string(),
     playerId: v.id("players"),
     token: v.string(),
     email: v.string(),
     sentByClerkUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     const player = await ctx.db.get(args.playerId);
     if (!player) throw new Error("Cliente non trovato.");
 
@@ -162,7 +158,7 @@ export const requestByEmail = mutation({
     const expiresAt = now + REQUEST_TTL_MS;
 
     await ctx.db.insert("pointsExitRequests", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       playerId: args.playerId,
       token: args.token,
       email: args.email,
@@ -186,7 +182,7 @@ export const requestByEmail = mutation({
  * È una lettura pubblica protetta dal solo token, come quella degli inviti:
  * restituisce il nome e il saldo di chi ha la mail, niente di più.
  */
-export const requestByToken = query({
+export const requestByToken = clubQuery({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
     const request = await ctx.db
@@ -222,7 +218,7 @@ export const requestByToken = query({
 });
 
 /** La persona conferma l'uscita dalla pagina del link. */
-export const confirmByToken = mutation({
+export const confirmByToken = clubMutation({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
     const request = await ctx.db

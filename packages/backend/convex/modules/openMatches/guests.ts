@@ -1,8 +1,7 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
-import { mutation } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
+import { clubMutation } from "../../functions";
 import {
   occupancyOf,
   requirePlayer,
@@ -47,7 +46,7 @@ export async function addGuestToMatch(
   }
 
   const guestId = await ctx.db.insert("matchGuests", {
-    clubId: await defaultClubId(ctx),
+    clubId: match.clubId,
     matchId: match._id,
     name,
     email,
@@ -94,7 +93,7 @@ async function requireMatchCreator(
  * La mail è facoltativa e non serve alla partita: viene raccolta per potergli
  * poi mandare un invito a scaricare l'app (tables/matchGuests.ts).
  */
-export const add = mutation({
+export const add = clubMutation({
   args: {
     matchId: v.id("openMatches"),
     name: v.string(),
@@ -113,7 +112,7 @@ export const add = mutation({
 });
 
 /** Toglie un ospite e libera il suo posto. */
-export const remove = mutation({
+export const remove = clubMutation({
   args: { guestId: v.id("matchGuests") },
   handler: async (ctx, { guestId }) => {
     const guest = await ctx.db.get(guestId);

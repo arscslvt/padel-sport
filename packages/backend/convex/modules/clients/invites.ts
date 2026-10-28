@@ -1,8 +1,6 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
+import { clubQuery, serverMutation } from "../../functions";
 import { displayName } from "./lib";
 
 /**
@@ -25,7 +23,7 @@ const INVITE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
  * dati della scheda perché la persona non deve riscrivere quello che il club ha
  * già inserito: sono i suoi dati, e li sta leggendo chi ha il link in mano.
  */
-export const byToken = query({
+export const byToken = clubQuery({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
     const invite = await ctx.db
@@ -87,9 +85,8 @@ export const byToken = query({
  * sul giocatore, e chi accede con quel codice via mail trova la sua anagrafica
  * già pronta invece di ricominciare da capo.
  */
-export const send = mutation({
+export const send = serverMutation({
   args: {
-    secret: v.string(),
     playerId: v.id("players"),
     token: v.string(),
     clerkUserId: v.string(),
@@ -97,8 +94,6 @@ export const send = mutation({
     invitedByClerkUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     const player = await ctx.db.get(args.playerId);
     if (!player) throw new Error("Scheda non trovata.");
 
@@ -136,7 +131,7 @@ export const send = mutation({
     }
 
     const inviteId = await ctx.db.insert("clientInvites", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       token: args.token,
       email,
       firstName: player.firstName ?? displayName(player),
@@ -164,11 +159,9 @@ export const send = mutation({
  * l'anagrafica già collegata. Dice al chiamante se l'account Clerk è da
  * chiudere — solo se l'avevamo aperto noi e non l'ha mai usato.
  */
-export const revoke = mutation({
-  args: { secret: v.string(), playerId: v.id("players") },
-  handler: async (ctx, { secret, playerId }) => {
-    assertServer(secret);
-
+export const revoke = serverMutation({
+  args: { playerId: v.id("players") },
+  handler: async (ctx, { playerId }) => {
     const invites = await ctx.db
       .query("clientInvites")
       .withIndex("by_player", (q) => q.eq("playerId", playerId))

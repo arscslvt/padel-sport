@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import { getIdentityPlayer, toMatchView } from "./lib";
 
 /**
@@ -12,7 +12,7 @@ import { getIdentityPlayer, toMatchView } from "./lib";
  * Restano fuori sia le partite di cerchia sia le private: si vedono solo da
  * dentro, finché il creatore non decide di aprirle a tutti.
  */
-export default query({
+export default clubQuery({
   args: { includeOwn: v.optional(v.boolean()) },
   handler: async (ctx, { includeOwn }) => {
     const matches = await ctx.db

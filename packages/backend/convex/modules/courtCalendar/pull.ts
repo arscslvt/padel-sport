@@ -2,7 +2,7 @@
 
 import { internal } from "../../_generated/api";
 import type { ActionCtx } from "../../_generated/server";
-import { action, internalAction } from "../../_generated/server";
+import { clubAction, internalAction } from "../../functions";
 import { calendarConfig, listBlocks } from "./client";
 import { syncWindow } from "./lib";
 import { STAFF_SETTINGS_URL } from "../../utils/staffLinks";
@@ -72,7 +72,7 @@ export default internalAction({
  * è pubblica perché la invoca il browser prima di mostrare gli orari, e non
  * deve diventare un modo per bussare a Google a raffica.
  */
-export const refresh = action({
+export const refresh = clubAction({
   args: {},
   handler: async (ctx) => {
     const lastSync = await ctx.runQuery(

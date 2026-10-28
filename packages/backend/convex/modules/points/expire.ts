@@ -1,4 +1,4 @@
-import { internalMutation } from "../../_generated/server";
+import { internalMutation } from "../../functions";
 import { closeExit } from "./lib";
 
 /**

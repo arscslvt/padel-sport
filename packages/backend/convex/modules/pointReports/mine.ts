@@ -1,4 +1,4 @@
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import { getIdentityPlayer } from "../openMatches/lib";
 
 const LIMIT = 10;
@@ -10,7 +10,8 @@ const LIMIT = 10;
  * nessun argomento permette di chiedere quelle di un altro. Torna al cliente
  * solo quello che ha scritto lui e la risposta dello staff — mai note interne.
  */
-export default query({
+export default clubQuery({
+  args: {},
   handler: async (ctx) => {
     const player = await getIdentityPlayer(ctx);
     if (!player) return [];

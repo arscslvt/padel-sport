@@ -1,8 +1,8 @@
 import { components } from "../../_generated/api";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { v } from "convex/values";
 
-export const editComment = mutation({
+export const editComment = clubMutation({
   args: {
     tournamentId: v.string(),
     comment: v.optional(

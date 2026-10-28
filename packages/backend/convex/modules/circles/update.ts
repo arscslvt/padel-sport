@@ -1,12 +1,12 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { requirePlayer } from "../openMatches/lib";
 import { requireCircleOwner } from "./lib";
 
 const NAME_MAX = 40;
 
 /** Rinomina la cerchia. Solo il proprietario. */
-export default mutation({
+export default clubMutation({
   args: {
     circleId: v.id("circles"),
     name: v.string(),

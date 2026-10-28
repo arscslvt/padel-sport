@@ -2,14 +2,14 @@ import { ConvexError, v } from "convex/values";
 
 import { internal } from "../../_generated/api";
 import type { Doc, Id, TableNames } from "../../_generated/dataModel";
+import type { MutationCtx } from "../../_generated/server";
 import {
+  clubMutation,
+  clubQuery,
   internalAction,
   internalMutation,
-  type MutationCtx,
-  mutation,
-  query,
-} from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+  serverMutation,
+} from "../../functions";
 import { getIdentityPlayer, requirePlayer } from "../openMatches/lib";
 import { bookingChanged } from "../points/auto";
 import { clubMoment } from "../settings/lib";
@@ -176,16 +176,13 @@ async function schedule(
 // ---------------------------------------------------------------------------
 // Dallo staff
 
-export const request = mutation({
+export const request = serverMutation({
   args: {
-    secret: v.string(),
     playerId: v.id("players"),
     mode: v.union(v.literal("now"), v.literal("scheduled")),
     staffClerkUserId: v.optional(v.string()),
   },
-  handler: async (ctx, { secret, playerId, mode, staffClerkUserId }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { playerId, mode, staffClerkUserId }) => {
     const player = await ctx.db.get(playerId);
     if (!player) throw new ConvexError("Scheda non trovata.");
 
@@ -214,11 +211,9 @@ export const request = mutation({
   },
 });
 
-export const cancel = mutation({
-  args: { secret: v.string(), playerId: v.id("players") },
-  handler: async (ctx, { secret, playerId }) => {
-    assertServer(secret);
-
+export const cancel = serverMutation({
+  args: { playerId: v.id("players") },
+  handler: async (ctx, { playerId }) => {
     const player = await ctx.db.get(playerId);
     if (!player) throw new ConvexError("Scheda non trovata.");
     if (!player.deletion) {
@@ -235,7 +230,7 @@ export const cancel = mutation({
 // Dall'area personale
 
 /** La richiesta in corso della persona collegata, se c'è. */
-export const mine = query({
+export const mine = clubQuery({
   args: {},
   handler: async (ctx) => {
     const player = await getIdentityPlayer(ctx);
@@ -248,7 +243,7 @@ export const mine = query({
   },
 });
 
-export const requestMine = mutation({
+export const requestMine = clubMutation({
   args: {},
   handler: async (ctx) => {
     const player = await requirePlayer(ctx);
@@ -256,7 +251,7 @@ export const requestMine = mutation({
   },
 });
 
-export const cancelMine = mutation({
+export const cancelMine = clubMutation({
   args: {},
   handler: async (ctx) => {
     const player = await requirePlayer(ctx);

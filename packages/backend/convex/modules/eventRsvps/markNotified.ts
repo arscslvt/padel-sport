@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 
 /**
  * Segna che le mail di conferma sono partite.
@@ -8,7 +8,7 @@ import { mutation } from "../../_generated/server";
  * route handler senza sessione e l'unico effetto è scrivere un timestamp su
  * un'iscrizione già esistente.
  */
-export default mutation({
+export default clubMutation({
   args: {
     id: v.id("eventRsvps"),
   },

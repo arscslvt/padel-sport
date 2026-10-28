@@ -1,10 +1,9 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { pointReportCategory } from "../../tables/pointReports";
 import { excerpt } from "../../utils/hark";
 import { staffPointReportUrl } from "../../utils/staffLinks";
-import { defaultClubId } from "../clubs/lib";
 import { requirePlayer } from "../openMatches/lib";
 import { CATEGORY_LABELS, MAX_MESSAGE, MIN_MESSAGE } from "./lib";
 
@@ -18,7 +17,7 @@ const MAX_OPEN_PER_PLAYER = 5;
  * dalla scheda del giocatore. Il movimento, se c'è, deve essere suo — l'id
  * arriva dal browser e da solo non prova niente.
  */
-export default mutation({
+export default clubMutation({
   args: {
     transactionId: v.optional(v.id("pointTransactions")),
     category: pointReportCategory,
@@ -63,7 +62,7 @@ export default mutation({
     }
 
     const reportId = await ctx.db.insert("pointReports", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       playerId: player._id,
       transactionId: transaction?._id,
       category: args.category,

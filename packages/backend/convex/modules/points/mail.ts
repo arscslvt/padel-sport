@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
-import { internalAction, internalQuery } from "../../_generated/server";
+import { internalAction, internalQuery } from "../../functions";
 
 /**
  * La mail che segue ogni movimento di punti: carico, rimozione, riscatto.

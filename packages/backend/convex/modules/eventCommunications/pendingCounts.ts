@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { serverQuery } from "../../functions";
 import { communicationCoverage, isReached, reachable } from "./lib";
 
 /**
@@ -15,9 +14,8 @@ import { communicationCoverage, isReached, reachable } from "./lib";
  * Prende una lista perché la pagina mostra tutte le comunicazioni insieme, come
  * `list.ts`: una query per card sarebbe una chiamata per card.
  */
-export default query({
+export default serverQuery({
   args: {
-    secret: v.string(),
     targets: v.array(
       v.object({
         documentId: v.string(),
@@ -27,8 +25,6 @@ export default query({
     ),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     return await Promise.all(
       args.targets.map(async (target) => {
         const [coverage, entries] = await Promise.all([

@@ -1,9 +1,7 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { clubMutation, serverMutation, serverQuery } from "../../functions";
 import { displayName } from "../clients/lib";
-import { defaultClubId } from "../clubs/lib";
 import { requirePlayer } from "../openMatches/lib";
 import {
   applyPoints,
@@ -25,7 +23,7 @@ import { programState } from "./terms";
  */
 
 /** Il cliente spende i propri punti per un premio. */
-export const redeem = mutation({
+export const redeem = clubMutation({
   args: { rewardId: v.id("rewards") },
   handler: async (ctx, { rewardId }) => {
     const player = await requirePlayer(ctx);
@@ -60,7 +58,7 @@ export const redeem = mutation({
     const now = Date.now();
 
     const redemptionId = await ctx.db.insert("rewardRedemptions", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       playerId: player._id,
       rewardId,
       title: reward.title,
@@ -86,11 +84,9 @@ export const redeem = mutation({
 });
 
 /** I premi riscattati e non ancora consegnati: la lista dello sportello. */
-export const pending = query({
-  args: { secret: v.string() },
-  handler: async (ctx, { secret }) => {
-    assertServer(secret);
-
+export const pending = serverQuery({
+  args: {},
+  handler: async (ctx) => {
     const rows = await ctx.db
       .query("rewardRedemptions")
       .withIndex("by_status", (q) => q.eq("status", "active"))
@@ -125,11 +121,9 @@ export const pending = query({
 });
 
 /** Premio consegnato. Una volta sola: segnarlo due volte non ne fa due. */
-export const markUsed = mutation({
-  args: { secret: v.string(), redemptionId: v.id("rewardRedemptions") },
-  handler: async (ctx, { secret, redemptionId }) => {
-    assertServer(secret);
-
+export const markUsed = serverMutation({
+  args: { redemptionId: v.id("rewardRedemptions") },
+  handler: async (ctx, { redemptionId }) => {
     const redemption = await ctx.db.get(redemptionId);
     if (!redemption) throw new Error("Riscatto non trovato.");
 
@@ -151,15 +145,12 @@ export const markUsed = mutation({
  * ridare i punti: è un movimento nuovo e non la cancellazione del vecchio,
  * così nel registro si legge sia la spesa sia la restituzione.
  */
-export const cancel = mutation({
+export const cancel = serverMutation({
   args: {
-    secret: v.string(),
     redemptionId: v.id("rewardRedemptions"),
     createdByClerkUserId: v.optional(v.string()),
   },
-  handler: async (ctx, { secret, redemptionId, createdByClerkUserId }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { redemptionId, createdByClerkUserId }) => {
     const redemption = await ctx.db.get(redemptionId);
     if (!redemption) throw new Error("Riscatto non trovato.");
     if (redemption.status !== "active") {

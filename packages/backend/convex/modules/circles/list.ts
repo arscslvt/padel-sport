@@ -1,4 +1,4 @@
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import { getIdentityPlayer, toPlayerView } from "../openMatches/lib";
 import {
   type CircleInviteView,
@@ -23,7 +23,7 @@ export interface CirclesView {
  * Cerchie del giocatore e inviti in sospeso, per la sezione "Cerchie".
  * Restituisce `null` se non c'è ancora un profilo giocatore.
  */
-export default query({
+export default clubQuery({
   args: {},
   handler: async (ctx): Promise<CirclesView | null> => {
     const player = await getIdentityPlayer(ctx);

@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { serverQuery } from "../../functions";
 
 /**
  * Elenco completo delle iscrizioni a un modulo, dati personali inclusi.
@@ -10,15 +9,12 @@ import { assertServer } from "../../utils/serverSecret";
  * cliente qualunque — che non ha titolo per leggere le email degli iscritti a
  * un evento. Il controllo su chi è staff sta nella route che chiama.
  */
-export default query({
+export default serverQuery({
   args: {
-    secret: v.string(),
     eventId: v.string(),
     blockKey: v.string(),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     const entries = await ctx.db
       .query("eventRsvps")
       .withIndex("by_form", (q) =>

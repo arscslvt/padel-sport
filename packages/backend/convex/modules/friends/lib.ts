@@ -1,6 +1,5 @@
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
 import type { PlayerView } from "../openMatches/lib";
 
 /**
@@ -123,8 +122,10 @@ export async function ensureFriendRequest(
     return { status: "friend", friendshipId: existing._id, changed: true };
   }
 
+  // L'amicizia è del club di chi la chiede.
+  const requester = await ctx.db.get(from);
   const friendshipId = await ctx.db.insert("friendships", {
-    clubId: await defaultClubId(ctx),
+    clubId: requester?.clubId,
     requesterId: from,
     addresseeId: to,
     status: "pending",

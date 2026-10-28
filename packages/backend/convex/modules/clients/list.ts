@@ -1,8 +1,7 @@
 import { v } from "convex/values";
 
 import type { Doc } from "../../_generated/dataModel";
-import { query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { serverQuery } from "../../functions";
 import {
   accountInfo,
   displayName,
@@ -61,14 +60,11 @@ function toRow(player: Doc<"players">) {
  * `excludeClerkUserIds` sono i profili dello staff, che il chiamante conosce e
  * questa tabella no.
  */
-export default query({
+export default serverQuery({
   args: {
-    secret: v.string(),
     excludeClerkUserIds: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, { secret, excludeClerkUserIds }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { excludeClerkUserIds }) => {
     const excluded = new Set(excludeClerkUserIds ?? []);
 
     // Le schede senza account non possono essere di nessuno dello staff.
@@ -126,11 +122,9 @@ export default query({
 });
 
 /** La scheda di un cliente, con lo storico delle tessere. */
-export const detail = query({
-  args: { secret: v.string(), playerId: v.id("players") },
-  handler: async (ctx, { secret, playerId }) => {
-    assertServer(secret);
-
+export const detail = serverQuery({
+  args: { playerId: v.id("players") },
+  handler: async (ctx, { playerId }) => {
     const player = await ctx.db.get(playerId);
     if (!player) return null;
 

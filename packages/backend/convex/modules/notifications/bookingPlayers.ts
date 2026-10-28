@@ -2,11 +2,8 @@ import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
-import {
-  internalQuery,
-  type MutationCtx,
-  type QueryCtx,
-} from "../../_generated/server";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
+import { internalQuery } from "../../functions";
 import { type DeliveryEntry, recordDeliveries } from "../deliveries/lib";
 import { normalizePhone } from "../openMatches/lib";
 

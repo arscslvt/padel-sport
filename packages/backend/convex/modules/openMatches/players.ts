@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
+import { clubMutation, clubQuery } from "../../functions";
 import {
   generatePlayerCode,
   getIdentityPlayer,
@@ -20,7 +19,7 @@ import {
  * alla prenotazione dal sito per proporre il recapito già registrato invece di
  * farlo riscrivere.
  */
-export const me = query({
+export const me = clubQuery({
   args: {},
   handler: async (ctx) => {
     const player = await getIdentityPlayer(ctx);
@@ -31,7 +30,7 @@ export const me = query({
 });
 
 /** Crea o aggiorna il profilo giocatore dell'utente autenticato. */
-export const upsertProfile = mutation({
+export const upsertProfile = clubMutation({
   args: {
     name: v.string(),
     level: v.number(),
@@ -83,7 +82,7 @@ export const upsertProfile = mutation({
     }
 
     return await ctx.db.insert("players", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       clerkUserId: identity.subject,
       name: trimmedName,
       level,

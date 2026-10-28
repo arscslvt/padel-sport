@@ -1,9 +1,9 @@
 import { components } from "../../_generated/api";
-import { query } from "../../_generated/server";
 import type { Doc } from "../../components/tournaments/_generated/dataModel";
+import { clubQuery } from "../../functions";
 import { v } from "convex/values";
 
-const bySlug = query({
+const bySlug = clubQuery({
   args: {
     slug: v.string(),
   },
@@ -26,7 +26,7 @@ const bySlug = query({
 
 export { bySlug };
 
-const list = query({
+const list = clubQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.runQuery(components.tournaments.modules.tournaments.get.list);

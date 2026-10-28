@@ -1,7 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { mutation } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
+import { serverMutation } from "../../functions";
 
 /**
  * Dopo quanto un invio «in corso» si considera morto.
@@ -24,9 +22,8 @@ const STALE_AFTER_MS = 10 * 60 * 1000;
  * Chiamata dalla route dello staff, che ha già verificato la sessione Clerk:
  * qui il segreto condiviso è la seconda serratura.
  */
-export default mutation({
+export default serverMutation({
   args: {
-    secret: v.string(),
     documentId: v.string(),
     eventId: v.string(),
     blockKey: v.string(),
@@ -44,8 +41,6 @@ export default mutation({
     audience: v.optional(v.union(v.literal("all"), v.literal("pending"))),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     if (!Number.isInteger(args.recipients) || args.recipients < 1) {
       throw new ConvexError({
         code: "no_recipients",
@@ -89,7 +84,7 @@ export default mutation({
     }
 
     const id = await ctx.db.insert("eventCommunications", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       documentId: args.documentId,
       eventId: args.eventId,
       blockKey: args.blockKey,

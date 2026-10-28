@@ -1,6 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { mutation } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { serverMutation } from "../../functions";
 
 /**
  * Registra chi si è presentato alla cassa: un elenco intero per volta.
@@ -15,9 +14,8 @@ import { assertServer } from "../../utils/serverSecret";
  * Protetta dal segreto condiviso come `cancel.byStaff`: chi sta in lista non ha
  * titolo per dichiararsi arrivato da solo.
  */
-export default mutation({
+export default serverMutation({
   args: {
-    secret: v.string(),
     entries: v.array(
       v.object({
         id: v.id("eventRsvps"),
@@ -28,9 +26,7 @@ export default mutation({
       }),
     ),
   },
-  handler: async (ctx, { secret, entries }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { entries }) => {
     if (entries.length > 500) {
       throw new ConvexError({
         code: "too_many",

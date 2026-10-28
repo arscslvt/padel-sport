@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
+import { clubMutation } from "../../functions";
 import { acceptPendingFriendship } from "../friends/lib";
 import { requirePlayer } from "../openMatches/lib";
 import { assertCircleQuota, MAX_CIRCLE_MEMBERS, membersOf } from "./lib";
@@ -16,7 +15,7 @@ import { assertCircleQuota, MAX_CIRCLE_MEMBERS, membersOf } from "./lib";
  * dove il no cancella tutto): serve al proprietario per sapere chi ha già
  * detto di no e non insistere.
  */
-export default mutation({
+export default clubMutation({
   args: {
     inviteId: v.id("circleInvites"),
     accept: v.boolean(),
@@ -74,7 +73,7 @@ export default mutation({
     }
 
     await ctx.db.insert("circleMembers", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       circleId: circle._id,
       playerId: player._id,
       role: "member",

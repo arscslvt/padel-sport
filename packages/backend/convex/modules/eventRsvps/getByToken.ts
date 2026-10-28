@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 
 /**
  * L'iscrizione dietro un token, per le pagine di conferma.
@@ -13,7 +13,7 @@ import { query } from "../../_generated/server";
  * aperto il link: niente email, che a quel punto sarebbe un dato in più
  * mostrato a chiunque abbia il link sotto mano.
  */
-export default query({
+export default clubQuery({
   args: {
     token: v.string(),
   },

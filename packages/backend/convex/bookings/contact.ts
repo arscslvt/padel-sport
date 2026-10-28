@@ -1,8 +1,7 @@
 import { v } from "convex/values";
 
-import { mutation } from "../_generated/server";
+import { serverMutation } from "../functions";
 import { normalizePhone } from "../modules/openMatches/lib";
-import { assertServer } from "../utils/serverSecret";
 import { setBookerPhone } from "./whatsapp";
 
 /**
@@ -17,11 +16,9 @@ import { setBookerPhone } from "./whatsapp";
  *
  * Passa dalla route della dashboard (api/dashboard/bookings/phone).
  */
-export const updatePhone = mutation({
-  args: { secret: v.string(), bookingId: v.id("bookings"), phone: v.string() },
-  handler: async (ctx, { secret, bookingId, phone: rawPhone }) => {
-    assertServer(secret);
-
+export const updatePhone = serverMutation({
+  args: { bookingId: v.id("bookings"), phone: v.string() },
+  handler: async (ctx, { bookingId, phone: rawPhone }) => {
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
     if (booking.status === "cancelled") {

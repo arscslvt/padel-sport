@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
+import { serverMutation, serverQuery } from "../../functions";
 import { reconcileFirstMatch } from "./auto";
 import {
   applyPoints,
@@ -22,11 +21,9 @@ import { programState } from "./terms";
 /** Quanti movimenti mostrare in scheda: lo storico serve a rispondere, non a contabilizzare. */
 const HISTORY_LIMIT = 30;
 
-export const detail = query({
-  args: { secret: v.string(), playerId: v.id("players") },
-  handler: async (ctx, { secret, playerId }) => {
-    assertServer(secret);
-
+export const detail = serverQuery({
+  args: { playerId: v.id("players") },
+  handler: async (ctx, { playerId }) => {
     const player = await ctx.db.get(playerId);
     if (!player) return null;
 
@@ -117,9 +114,8 @@ export const detail = query({
  * Con un preset i punti e la causale li decide il preset — il client manda solo
  * quale — così un preset «+3» non diventa «+30» per un errore nel modulo.
  */
-export const adjust = mutation({
+export const adjust = serverMutation({
   args: {
-    secret: v.string(),
     playerId: v.id("players"),
     presetId: v.optional(v.id("pointPresets")),
     delta: v.optional(v.float64()),
@@ -128,8 +124,6 @@ export const adjust = mutation({
     createdByClerkUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     if (args.presetId) {
       const preset = await ctx.db.get(args.presetId);
       if (!preset || preset.archived) throw new Error("Preset non trovato.");
@@ -168,15 +162,12 @@ export const adjust = mutation({
  * già dato resta — come per le schede vecchie (auto.ts): se va tolto, lo
  * staff lo fa con un movimento a mano, scrivendo lui il perché.
  */
-export const setExistingClient = mutation({
+export const setExistingClient = serverMutation({
   args: {
-    secret: v.string(),
     playerId: v.id("players"),
     existingClient: v.boolean(),
   },
-  handler: async (ctx, { secret, playerId, existingClient }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { playerId, existingClient }) => {
     const player = await ctx.db.get(playerId);
     if (!player) throw new Error("Cliente non trovato.");
 
@@ -205,14 +196,11 @@ export const setExistingClient = mutation({
  * cancellarli non lascia buchi nel saldo. Un movimento accreditato si corregge
  * con un movimento opposto, che resta nel registro.
  */
-export const removePending = mutation({
+export const removePending = serverMutation({
   args: {
-    secret: v.string(),
     transactionId: v.id("pointTransactions"),
   },
-  handler: async (ctx, { secret, transactionId }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { transactionId }) => {
     const transaction = await ctx.db.get(transactionId);
     if (!transaction) throw new Error("Movimento non trovato.");
     if (!transaction.pending) {

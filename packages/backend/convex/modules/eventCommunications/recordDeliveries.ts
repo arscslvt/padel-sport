@@ -1,7 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
+import { serverMutation } from "../../functions";
 
 /**
  * Segna a chi è arrivata una comunicazione, un blocco di destinatari alla
@@ -15,9 +13,8 @@ import { defaultClubId } from "../clubs/lib";
  * tutti» ripassa su gente che ha già la sua riga, e due righe per la stessa
  * persona non aggiungono niente a quel che sappiamo.
  */
-export default mutation({
+export default serverMutation({
   args: {
-    secret: v.string(),
     communicationId: v.id("eventCommunications"),
     documentId: v.string(),
     blockKey: v.string(),
@@ -26,8 +23,6 @@ export default mutation({
     ),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     const existing = await ctx.db
       .query("eventCommunicationDeliveries")
       .withIndex("by_document", (q) =>
@@ -44,7 +39,7 @@ export default mutation({
       known.add(recipient.rsvpId);
 
       await ctx.db.insert("eventCommunicationDeliveries", {
-        clubId: await defaultClubId(ctx),
+        clubId: ctx.club._id,
         communicationId: args.communicationId,
         documentId: args.documentId,
         blockKey: args.blockKey,

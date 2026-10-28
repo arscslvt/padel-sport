@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { components } from "../../../_generated/api";
-import { query } from "../../../_generated/server";
+import { clubQuery } from "../../../functions";
 
-export const getMatchByPlayerName = query({
+export const getMatchByPlayerName = clubQuery({
   args: {
     playerName: v.string(),
   },
@@ -16,7 +16,7 @@ export const getMatchByPlayerName = query({
   },
 });
 
-export const getLiveMatchesByTournamentId = query({
+export const getLiveMatchesByTournamentId = clubQuery({
   args: {
     tournamentId: v.string(),
   },
@@ -30,7 +30,7 @@ export const getLiveMatchesByTournamentId = query({
   },
 });
 
-export const getTodayCompletedMatchesByTournamentId = query({
+export const getTodayCompletedMatchesByTournamentId = clubQuery({
   args: {
     tournamentId: v.string(),
   },
@@ -45,7 +45,7 @@ export const getTodayCompletedMatchesByTournamentId = query({
   },
 });
 
-export const getMatchesByCategoryAndStage = query({
+export const getMatchesByCategoryAndStage = clubQuery({
   args: {
     tournamentCategoryId: v.string(),
     stage: v.union(v.literal("quarter"), v.literal("semi"), v.literal("final")),
@@ -61,7 +61,7 @@ export const getMatchesByCategoryAndStage = query({
   },
 });
 
-export const getAllByTournamentId = query({
+export const getAllByTournamentId = clubQuery({
   args: {
     tournamentId: v.string(),
   },

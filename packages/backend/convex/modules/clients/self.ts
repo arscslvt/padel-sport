@@ -1,8 +1,13 @@
 import { v } from "convex/values";
 
-import { mutation, type QueryCtx, query } from "../../_generated/server";
+import type { QueryCtx } from "../../_generated/server";
+import {
+  clubMutation,
+  clubQuery,
+  serverMutation,
+  serverQuery,
+} from "../../functions";
 import { residence as residenceValidator } from "../../tables/players";
-import { assertServer } from "../../utils/serverSecret";
 import { getIdentityPlayer, requirePlayer } from "../openMatches/lib";
 import { displayName } from "./lib";
 import { HEALTH_CONSENT_REQUIRED } from "./profile";
@@ -25,7 +30,7 @@ import { HEALTH_CONSENT_REQUIRED } from "./profile";
 
 const MAX_HEALTH = 500;
 
-export const me = query({
+export const me = clubQuery({
   args: {},
   handler: async (ctx) => {
     const player = await getIdentityPlayer(ctx);
@@ -58,7 +63,7 @@ export const me = query({
  * Farsi trovare, o no, da chi compone la squadra di una prenotazione. Si
  * salva da solo, senza il resto del modulo: è un consenso, non un dato.
  */
-export const setSearchable = mutation({
+export const setSearchable = clubMutation({
   args: { searchable: v.boolean() },
   handler: async (ctx, { searchable }) => {
     const player = await requirePlayer(ctx);
@@ -97,7 +102,7 @@ function cleanHealthText(value: string | undefined, label: string) {
 }
 
 /** Telefono, residenza e salute: quel che la persona scrive da sé. */
-export const update = mutation({
+export const update = clubMutation({
   args: {
     phone: v.string(),
     residence: v.optional(residenceValidator),
@@ -174,10 +179,9 @@ async function emailTakenBy(ctx: QueryCtx, email: string, clerkUserId: string) {
  * di un'altra persona farebbe divergere account e anagrafica, e conviene
  * dirlo prima che la persona apra la posta.
  */
-export const emailAvailable = query({
-  args: { secret: v.string(), clerkUserId: v.string(), email: v.string() },
-  handler: async (ctx, { secret, clerkUserId, email }) => {
-    assertServer(secret);
+export const emailAvailable = serverQuery({
+  args: { clerkUserId: v.string(), email: v.string() },
+  handler: async (ctx, { clerkUserId, email }) => {
     const taken = await emailTakenBy(
       ctx,
       email.trim().toLowerCase(),
@@ -194,15 +198,12 @@ export const emailAvailable = query({
  * dal browser: lo legge la route del sito da Clerk dopo la verifica con il
  * codice (app/api/me/email), e solo allora è sicuro che sia della persona.
  */
-export const syncEmail = mutation({
+export const syncEmail = serverMutation({
   args: {
-    secret: v.string(),
     clerkUserId: v.string(),
     email: v.string(),
   },
-  handler: async (ctx, { secret, clerkUserId, email }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { clerkUserId, email }) => {
     const player = await ctx.db
       .query("players")
       .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", clerkUserId))

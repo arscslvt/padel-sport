@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { clubQuery } from "../../functions";
 import { guestsOf, MAX_PLAYERS, occupancyOf, requirePlayer } from "./lib";
 
 /**
@@ -11,7 +11,7 @@ import { guestsOf, MAX_PLAYERS, occupancyOf, requirePlayer } from "./lib";
  * che manda le mail non si fida degli indirizzi che le passa il browser, se li
  * fa dare da qui.
  */
-export default query({
+export default clubQuery({
   args: { matchId: v.id("openMatches") },
   handler: async (ctx, { matchId }) => {
     const player = await requirePlayer(ctx);

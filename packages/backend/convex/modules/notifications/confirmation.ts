@@ -1,7 +1,7 @@
 "use node";
 
-import { api, internal } from "../../_generated/api";
-import { internalAction } from "../../_generated/server";
+import { internal } from "../../_generated/api";
+import { internalAction } from "../../functions";
 import { getMessagingClient } from "../../utils/notification_client";
 import { v } from "convex/values";
 import { formatClubDateTime } from "../../utils/clubTime";
@@ -28,7 +28,7 @@ export const sendConfirmationWithWhatsapp = internalAction({
     playerId: v.optional(v.id("players")),
   },
   handler: async (ctx, { bookingId, playerId }) => {
-    const booking = await ctx.runQuery(api.bookings.get.getById, { bookingId });
+    const booking = await ctx.runQuery(internal.bookings.get.getById, { bookingId });
 
     const player = playerId
       ? await ctx.runQuery(

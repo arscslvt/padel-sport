@@ -1,7 +1,6 @@
 import { v } from "convex/values";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import { matchRequestLevel } from "../../tables/matchRequests";
-import { defaultClubId } from "../clubs/lib";
 
 const DEFAULT_COUNTRY_CODE = "+39";
 
@@ -11,7 +10,7 @@ const DEFAULT_COUNTRY_CODE = "+39";
  * Il salvataggio è la fonte di verità: le mail di notifica partono dopo, e un
  * loro fallimento non deve far perdere la richiesta.
  */
-export default mutation({
+export default clubMutation({
   args: {
     name: v.string(),
     email: v.string(),
@@ -54,7 +53,7 @@ export default mutation({
     }
 
     return await ctx.db.insert("matchRequests", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       name,
       email,
       phone,

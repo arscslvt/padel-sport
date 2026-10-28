@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { components } from "../../../_generated/api";
-import { query } from "../../../_generated/server";
+import { clubQuery } from "../../../functions";
 
-const getTeamsByCategoryId = query({
+const getTeamsByCategoryId = clubQuery({
   args: {
     categoryId: v.string(),
   },

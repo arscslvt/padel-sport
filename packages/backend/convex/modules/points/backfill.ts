@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
-import { internalMutation } from "../../_generated/server";
+import { internalMutation } from "../../functions";
 import { defaultClubId } from "../clubs/lib";
 import { syncParticipants } from "./auto";
 import { POINT_RULES, ruleRow } from "./rules";

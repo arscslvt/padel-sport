@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { mutation } from "../../_generated/server";
+import { clubMutation } from "../../functions";
 import {
   CANCEL_DEADLINE_MS,
   cancelPendingMatchInvites,
@@ -19,7 +19,7 @@ import { staffBookingUrl } from "../../utils/staffLinks";
  * sono uniti la partita non è più solo del creatore, che può al massimo
  * uscirne (modules/openMatches/leave.ts).
  */
-export default mutation({
+export default clubMutation({
   args: { matchId: v.id("openMatches") },
   handler: async (ctx, { matchId }) => {
     const player = await requirePlayer(ctx);

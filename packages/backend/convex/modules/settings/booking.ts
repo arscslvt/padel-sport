@@ -1,9 +1,11 @@
 import { v } from "convex/values";
 
 import type { Doc } from "../../_generated/dataModel";
-import { type MutationCtx, mutation, query } from "../../_generated/server";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
+import {
+  type ClubMutationCtx,
+  clubQuery,
+  serverMutation,
+} from "../../functions";
 import { MATCH_DURATION_MINUTES } from "../openMatches/lib";
 import {
   bookingSettings,
@@ -37,13 +39,13 @@ const windowValidator = v.object({
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):(00|30)$/;
 
-export const get = query({
+export const get = clubQuery({
   args: {},
   handler: async (ctx) => await bookingSettings(ctx),
 });
 
 /** I campi, anche quelli spenti: la dashboard deve poterli riaccendere. */
-export const courts = query({
+export const courts = clubQuery({
   args: {},
   handler: async (ctx) => {
     const rows = await ctx.db.query("slots").collect();
@@ -59,9 +61,8 @@ export const courts = query({
   },
 });
 
-export const update = mutation({
+export const update = serverMutation({
   args: {
-    secret: v.string(),
     windows: v.array(windowValidator),
     bookableDays: v.number(),
     /** I giorni della settimana spenti; assente lascia quelli che ci sono. */
@@ -73,7 +74,6 @@ export const update = mutation({
   handler: async (
     ctx,
     {
-      secret,
       windows,
       bookableDays,
       closedWeekdays: closedInput,
@@ -82,8 +82,6 @@ export const update = mutation({
       onlinePaymentsEnabled,
     },
   ) => {
-    assertServer(secret);
-
     if (bookableDays < 1 || bookableDays > 60) {
       throw new Error("I giorni prenotabili devono stare fra 1 e 60.");
     }
@@ -132,7 +130,7 @@ export const update = mutation({
     }
 
     return await ctx.db.insert("bookingSettings", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       windows,
       bookableDays,
       closedWeekdays,
@@ -149,13 +147,13 @@ export const update = mutation({
  * c'è: una chiusura si può aggiungere anche a un club che non ha mai toccato
  * gli orari.
  */
-async function settingsRow(ctx: MutationCtx): Promise<Doc<"bookingSettings">> {
+async function settingsRow(ctx: ClubMutationCtx): Promise<Doc<"bookingSettings">> {
   const existing = await ctx.db.query("bookingSettings").first();
   if (existing) return existing;
 
   const { closures: _closures, ...defaults } = DEFAULT_SETTINGS;
   const id = await ctx.db.insert("bookingSettings", {
-    clubId: await defaultClubId(ctx),
+    clubId: ctx.club._id,
     ...defaults,
     updatedAt: Date.now(),
   });
@@ -193,18 +191,15 @@ function utcMidnight(day: string): number {
  * ritrovarsi due righe. Una fascia su un giorno già chiuso, o sopra un'altra
  * fascia, invece non si aggiunge.
  */
-export const addClosure = mutation({
+export const addClosure = serverMutation({
   args: {
-    secret: v.string(),
     from: v.string(),
     to: v.string(),
     reason: v.optional(v.string()),
     start: v.optional(v.string()),
     end: v.optional(v.string()),
   },
-  handler: async (ctx, { secret, from, to, reason, start, end }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { from, to, reason, start, end }) => {
     if (!DAY_KEY_PATTERN.test(from) || !DAY_KEY_PATTERN.test(to)) {
       throw new Error("Date non valide.");
     }
@@ -304,17 +299,14 @@ export const addClosure = mutation({
 });
 
 /** Riapre i giorni (o la fascia) di una chiusura. */
-export const removeClosure = mutation({
+export const removeClosure = serverMutation({
   args: {
-    secret: v.string(),
     from: v.string(),
     to: v.string(),
     start: v.optional(v.string()),
     end: v.optional(v.string()),
   },
-  handler: async (ctx, { secret, from, to, start, end }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { from, to, start, end }) => {
     const row = await ctx.db.query("bookingSettings").first();
     if (!row) return;
 
@@ -332,11 +324,9 @@ export const removeClosure = mutation({
 });
 
 /** Ripristina gli orari storici del club. */
-export const reset = mutation({
-  args: { secret: v.string() },
-  handler: async (ctx, { secret }) => {
-    assertServer(secret);
-
+export const reset = serverMutation({
+  args: {},
+  handler: async (ctx) => {
     const existing = await ctx.db.query("bookingSettings").first();
     if (existing) await ctx.db.delete(existing._id);
 
@@ -344,17 +334,14 @@ export const reset = mutation({
   },
 });
 
-export const saveCourt = mutation({
+export const saveCourt = serverMutation({
   args: {
-    secret: v.string(),
     courtId: v.optional(v.id("slots")),
     name: v.string(),
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, { secret, courtId, name, description, active }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { courtId, name, description, active }) => {
     const trimmed = name.trim();
     if (trimmed.length < 2 || trimmed.length > 40) {
       throw new Error("Il nome del campo deve avere fra 2 e 40 caratteri.");
@@ -377,7 +364,7 @@ export const saveCourt = mutation({
     }
 
     return await ctx.db.insert("slots", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       name: trimmed,
       description,
       active,

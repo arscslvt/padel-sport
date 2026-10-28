@@ -65,7 +65,7 @@ export function useCourtAvailability(): CourtAvailability {
   }, [days]);
 
   const availability = useQuery(api.bookings.availability.default, range);
-  const courts = useQuery(api.slots.listActive.default);
+  const courts = useQuery(api.slots.listActive.default, {});
   const loading = availability === undefined || courts === undefined;
 
   const slotsByDay = useMemo(() => {

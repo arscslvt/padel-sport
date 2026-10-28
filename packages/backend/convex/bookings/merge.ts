@@ -2,13 +2,13 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { type MutationCtx, mutation } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
+import { serverMutation } from "../functions";
 import {
   findAvailableSlot,
   MAX_PLAYERS,
   syncMatchStatus,
 } from "../modules/openMatches/lib";
-import { assertServer } from "../utils/serverSecret";
 
 /**
  * Unire due prenotazioni parziali in un campo solo.
@@ -68,17 +68,14 @@ function assertMergeable(booking: Doc<"bookings"> | null, label: string) {
   }
 }
 
-export const merge = mutation({
+export const merge = serverMutation({
   args: {
-    secret: v.string(),
     /** Tiene il campo: di solito chi ha prenotato per primo. */
     keepId: v.id("bookings"),
     /** Cede il campo e si sposta su quello dell'altra. */
     moveId: v.id("bookings"),
   },
-  handler: async (ctx, { secret, keepId, moveId }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { keepId, moveId }) => {
     if (keepId === moveId) {
       throw new Error("Servono due prenotazioni diverse.");
     }
@@ -148,14 +145,11 @@ export const merge = mutation({
  * campo. Nessuna mail: è una correzione dello staff, e chi ha prenotato non ha
  * mai saputo su quale dei due campi sarebbe finito.
  */
-export const split = mutation({
+export const split = serverMutation({
   args: {
-    secret: v.string(),
     bookingId: v.id("bookings"),
   },
-  handler: async (ctx, { secret, bookingId }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { bookingId }) => {
     const booking = await ctx.db.get(bookingId);
     if (!booking) {
       throw new Error("Prenotazione non trovata.");

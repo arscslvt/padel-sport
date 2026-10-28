@@ -1,9 +1,7 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "../../_generated/server";
+import { clubQuery, serverMutation } from "../../functions";
 import { serviceKind } from "../../tables/services";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
 import { getIdentityPlayer } from "../openMatches/lib";
 import {
   isWholeCents,
@@ -23,7 +21,7 @@ import {
  * (app/api/dashboard/prices).
  */
 
-export const list = query({
+export const list = clubQuery({
   args: {},
   handler: async (ctx) => await priceList(ctx),
 });
@@ -33,7 +31,7 @@ export const list = query({
  * prenotazione (`matchPricing`), così il riepilogo non promette un prezzo e
  * la prenotazione ne scrive un altro.
  */
-export const quote = query({
+export const quote = clubQuery({
   args: {},
   handler: async (ctx) => {
     const player = await getIdentityPlayer(ctx);
@@ -51,17 +49,14 @@ function checkPrice(value: number, label: string) {
   }
 }
 
-export const save = mutation({
+export const save = serverMutation({
   args: {
-    secret: v.string(),
     kind: serviceKind,
     price: v.number(),
     /** Assente: niente tariffa tesserati, pagano tutti `price`. */
     memberPrice: v.optional(v.number()),
   },
-  handler: async (ctx, { secret, kind, price, memberPrice }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { kind, price, memberPrice }) => {
     if (!SERVICE_CATALOG[kind]) {
       throw new Error("Servizio sconosciuto.");
     }
@@ -94,7 +89,7 @@ export const save = mutation({
     }
 
     return await ctx.db.insert("services", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       kind,
       price,
       memberPrice,

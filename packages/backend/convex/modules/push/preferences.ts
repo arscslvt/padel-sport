@@ -1,9 +1,7 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "../../_generated/server";
+import { serverMutation, serverQuery } from "../../functions";
 import { notificationCategory } from "../../utils/notificationCategories";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
 
 /**
  * Quali tipi di avviso un membro dello staff ha spento.
@@ -13,11 +11,9 @@ import { defaultClubId } from "../clubs/lib";
  * solo le sue.
  */
 
-export const get = query({
-  args: { secret: v.string(), userId: v.string() },
-  handler: async (ctx, { secret, userId }) => {
-    assertServer(secret);
-
+export const get = serverQuery({
+  args: { userId: v.string() },
+  handler: async (ctx, { userId }) => {
     const row = await ctx.db
       .query("notificationPreferences")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -27,15 +23,12 @@ export const get = query({
   },
 });
 
-export const set = mutation({
+export const set = serverMutation({
   args: {
-    secret: v.string(),
     userId: v.string(),
     muted: v.array(notificationCategory),
   },
-  handler: async (ctx, { secret, userId, muted }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { userId, muted }) => {
     const unique = [...new Set(muted)];
     const row = await ctx.db
       .query("notificationPreferences")
@@ -46,7 +39,7 @@ export const set = mutation({
       await ctx.db.patch(row._id, { muted: unique, updatedAt: Date.now() });
     } else {
       await ctx.db.insert("notificationPreferences", {
-        clubId: await defaultClubId(ctx),
+        clubId: ctx.club._id,
         userId,
         muted: unique,
         updatedAt: Date.now(),

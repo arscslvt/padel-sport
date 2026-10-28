@@ -1,9 +1,7 @@
 import { v } from "convex/values";
 
-import { mutation } from "../../_generated/server";
+import { serverMutation } from "../../functions";
 import { paymentMethod } from "../../tables/memberships";
-import { assertServer } from "../../utils/serverSecret";
-import { defaultClubId } from "../clubs/lib";
 import { reconcileReferral } from "../points/auto";
 import { lastMembership, membershipEnd } from "./lib";
 
@@ -15,9 +13,8 @@ import { lastMembership, membershipEnd } from "./lib";
  * qualcuno chiede «ma io quando ho pagato?».
  */
 
-export const save = mutation({
+export const save = serverMutation({
   args: {
-    secret: v.string(),
     playerId: v.id("players"),
     /** Assente per una tessera nuova, presente per correggerne una. */
     membershipId: v.optional(v.id("memberships")),
@@ -29,8 +26,6 @@ export const save = mutation({
     note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    assertServer(args.secret);
-
     const player = await ctx.db.get(args.playerId);
     if (!player) throw new Error("Cliente non trovato.");
 
@@ -74,7 +69,7 @@ export const save = mutation({
       (previous && previous.endsAt > now ? previous.endsAt : now);
 
     const membershipId = await ctx.db.insert("memberships", {
-      clubId: await defaultClubId(ctx),
+      clubId: ctx.club._id,
       playerId: args.playerId,
       startsAt,
       endsAt: membershipEnd(startsAt),
@@ -93,13 +88,11 @@ export const save = mutation({
   },
 });
 
-export const remove = mutation({
+export const remove = serverMutation({
   args: {
-    secret: v.string(),
     membershipId: v.id("memberships"),
   },
-  handler: async (ctx, { secret, membershipId }) => {
-    assertServer(secret);
+  handler: async (ctx, { membershipId }) => {
     const membership = await ctx.db.get(membershipId);
     await ctx.db.delete(membershipId);
     if (membership) await reconcileReferral(ctx, membership.playerId);

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
-import { mutation } from "../_generated/server";
+import { serverMutation } from "../functions";
 import {
   emailRetryTargets,
   hasEmailRetry,
@@ -9,7 +9,6 @@ import {
 } from "../modules/deliveries/retry";
 import { notifiedPlayers } from "../modules/notifications/bookingPlayers";
 import { MATCH_DURATION_MINUTES } from "../modules/openMatches/lib";
-import { assertServer } from "../utils/serverSecret";
 
 /**
  * La mail di conferma, rimandata dallo staff a chi non l'ha ricevuta.
@@ -23,9 +22,8 @@ import { assertServer } from "../utils/serverSecret";
  * Passa dalla route della dashboard (api/dashboard/bookings/email), che ha
  * già verificato che chi chiede è dello staff.
  */
-export const resend = mutation({
+export const resend = serverMutation({
   args: {
-    secret: v.string(),
     bookingId: v.id("bookings"),
     /**
      * Solo questa persona, fra chi la aspetta: chi ha prenotato, un
@@ -39,9 +37,7 @@ export const resend = mutation({
       ),
     ),
   },
-  handler: async (ctx, { secret, bookingId, target }) => {
-    assertServer(secret);
-
+  handler: async (ctx, { bookingId, target }) => {
     const booking = await ctx.db.get(bookingId);
     if (!booking) throw new Error("Prenotazione non trovata.");
 

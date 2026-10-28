@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { components } from "../../../_generated/api";
-import { mutation } from "../../../_generated/server";
+import { clubMutation } from "../../../functions";
 
-export default mutation({
+export default clubMutation({
   args: {
     firstName: v.string(),
     lastName: v.string(),

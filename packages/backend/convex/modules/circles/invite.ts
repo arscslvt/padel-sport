@@ -1,8 +1,7 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
-import { mutation } from "../../_generated/server";
-import { defaultClubId } from "../clubs/lib";
+import { clubMutation } from "../../functions";
 import { ensureFriendRequest } from "../friends/lib";
 import { requirePlayer } from "../openMatches/lib";
 import { MAX_CIRCLE_MEMBERS, membersOf, requireCircleOwner } from "./lib";
@@ -72,7 +71,7 @@ export async function inviteToCircle(
     }
 
     await ctx.db.insert("circleInvites", {
-      clubId: await defaultClubId(ctx),
+      clubId: circle.clubId,
       circleId: circle._id,
       inviterId: inviter._id,
       inviteeId: playerId,
@@ -88,7 +87,7 @@ export async function inviteToCircle(
 }
 
 /** Invita altri giocatori in una cerchia già esistente. Solo il proprietario. */
-export default mutation({
+export default clubMutation({
   args: {
     circleId: v.id("circles"),
     playerIds: v.array(v.id("players")),

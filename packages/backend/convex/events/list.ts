@@ -1,11 +1,11 @@
 import { paginationOptsValidator } from "convex/server";
-import { query } from "../_generated/server";
+import { clubQuery } from "../functions";
 import { v } from "convex/values";
 
 /**
  * @deprecated /events legge da Sanity. Nessun client usa più questa query.
  */
-export default query({
+export default clubQuery({
   args: {
     paginationOpts: paginationOptsValidator,
     now: v.optional(v.number()),
