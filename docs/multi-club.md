@@ -217,7 +217,7 @@ Da 4 a 7 giorni.
       segreto sbagliato, manutenzione.
 - [ ] **Modulo per modulo**, passando ai wrapper e ai nuovi indici, con i test
       di isolamento che crescono insieme:
-  - [x] settings e slots (in dev il 29/10/2026): `settingsRowOf`,
+  - [x] settings e slots (in dev e in prod il 29/10/2026): `settingsRowOf`,
         `bookingSettings` e `clubCourts` (`modules/settings/lib.ts`) vogliono
         il club, e leggono da `by_club` e `by_club_name`. La disponibilità dei
         campi (`courtsAt`, `pickCourt`, `findAvailableSlot`) prende il club
