@@ -454,6 +454,27 @@ describe("pagamenti per club", () => {
   });
 });
 
+describe("punti e inviti per club", () => {
+  test("lo staff crea un cliente col codice amico di chi l'ha invitato", async () => {
+    const { t, a } = await twoClubs();
+    const inviter = await t.run((ctx) =>
+      ctx.db.insert("players", player(a, "Anna", "12345")),
+    );
+
+    const friend = await t.mutation(api.modules.clients.profile.create, {
+      ...staffA,
+      firstName: "Bea",
+      lastName: "Amica",
+      referralCode: "12345",
+    });
+
+    const referrals = await t.run((ctx) => ctx.db.query("referrals").collect());
+    expect(referrals).toMatchObject([
+      { clubId: a, inviterId: inviter, inviteeId: friend, status: "joined" },
+    ]);
+  });
+});
+
 describe("giocatori per club", () => {
   test("lo stesso account è un giocatore solo nel club dove ha la scheda", async () => {
     const { t, a, b } = await twoClubs();

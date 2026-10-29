@@ -1,5 +1,5 @@
 import type { Id } from "../../_generated/dataModel";
-import type { MutationCtx } from "../../_generated/server";
+import type { ClubMutationCtx } from "../../functions";
 import { reconcileReferral } from "../points/auto";
 
 /**
@@ -9,10 +9,15 @@ import { reconcileReferral } from "../points/auto";
  * momento; la mail è il caso in cui l'amico non lo ricorda.
  *
  * Restituisce chi l'ha invitato, o `null` se la scheda non nasce da un invito.
+ *
+ * Tutto nel club di chi chiama: il codice amico è unico solo lì, e l'invito
+ * nuovo nasce lì. Prendere il club dall'invitato non basta: chi crea la
+ * scheda passa solo id ed email, e una riga senza club le regole la
+ * rifiutano.
  */
 export async function attachReferral(
-  ctx: MutationCtx,
-  invitee: { _id: Id<"players">; email?: string; clubId?: Id<"clubs"> },
+  ctx: ClubMutationCtx,
+  invitee: { _id: Id<"players">; email?: string },
   code: string | undefined,
 ): Promise<Id<"players"> | null> {
   const now = Date.now();
@@ -22,7 +27,9 @@ export async function attachReferral(
   if (code?.trim()) {
     const inviter = await ctx.db
       .query("players")
-      .withIndex("by_code", (q) => q.eq("code", code.trim()))
+      .withIndex("by_club_code", (q) =>
+        q.eq("clubId", ctx.club._id).eq("code", code.trim()),
+      )
       .first();
     if (!inviter || inviter._id === invitee._id) {
       throw new Error("Il codice amico non corrisponde a nessun cliente.");
@@ -33,7 +40,9 @@ export async function attachReferral(
   const invited = email
     ? await ctx.db
         .query("referrals")
-        .withIndex("by_email", (q) => q.eq("email", email))
+        .withIndex("by_club_email", (q) =>
+          q.eq("clubId", ctx.club._id).eq("email", email),
+        )
         .collect()
     : [];
   const pending = invited.filter((row) => row.status === "pending");
@@ -53,7 +62,7 @@ export async function attachReferral(
     });
   } else if (inviterId) {
     await ctx.db.insert("referrals", {
-      clubId: invitee.clubId,
+      clubId: ctx.club._id,
       inviterId,
       email,
       status: "joined",
