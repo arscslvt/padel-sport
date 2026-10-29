@@ -16,11 +16,13 @@ function cleanText(value: string | undefined): string | undefined {
 export const list = serverQuery({
   args: {},
   handler: async (ctx) => {
-    const rewards = await activeRewards(ctx);
+    const rewards = await activeRewards(ctx, ctx.club._id);
 
     const redemptions = await ctx.db
       .query("rewardRedemptions")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .withIndex("by_club_status", (q) =>
+        q.eq("clubId", ctx.club._id).eq("status", "active"),
+      )
       .collect();
 
     return await Promise.all(

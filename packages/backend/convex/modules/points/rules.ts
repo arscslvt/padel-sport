@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import type { Doc } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
 import {
   type ClubMutationCtx,
@@ -106,16 +106,24 @@ export function ruleDefinition(key: PointRuleKey): PointRuleDefinition {
   return rule;
 }
 
-export async function ruleRow(ctx: QueryCtx, key: PointRuleKey) {
+export async function ruleRow(
+  ctx: QueryCtx,
+  clubId: Id<"clubs">,
+  key: PointRuleKey,
+) {
   return await ctx.db
     .query("pointRules")
-    .withIndex("by_key", (q) => q.eq("key", key))
+    .withIndex("by_club_key", (q) => q.eq("clubId", clubId).eq("key", key))
     .first();
 }
 
 /** La regola se è accesa, `null` se è spenta o mai configurata. */
-export async function activeRule(ctx: QueryCtx, key: PointRuleKey) {
-  const row = await ruleRow(ctx, key);
+export async function activeRule(
+  ctx: QueryCtx,
+  clubId: Id<"clubs">,
+  key: PointRuleKey,
+) {
+  const row = await ruleRow(ctx, clubId, key);
   return row?.enabled ? row : null;
 }
 
@@ -133,9 +141,11 @@ export const list = serverQuery({
   handler: async (ctx) => {
     return await Promise.all(
       POINT_RULES.filter((rule) => !isPaired(rule.key)).map(async (rule) => {
-        const row = await ruleRow(ctx, rule.key);
+        const row = await ruleRow(ctx, ctx.club._id, rule.key);
         const pairedKey = PAIRED[rule.key];
-        const paired = pairedKey ? await ruleRow(ctx, pairedKey) : null;
+        const paired = pairedKey
+          ? await ruleRow(ctx, ctx.club._id, pairedKey)
+          : null;
         return {
           key: rule.key,
           label: rule.label,
@@ -172,7 +182,7 @@ export const save = serverMutation({
 
     const pairedKey = PAIRED[args.key];
     if (pairedKey) {
-      const paired = await ruleRow(ctx, pairedKey);
+      const paired = await ruleRow(ctx, ctx.club._id, pairedKey);
       await writeRule(ctx, pairedKey, {
         points:
           args.friendPoints ??
@@ -201,7 +211,7 @@ async function writeRule(
   },
 ) {
   const now = Date.now();
-  const row = await ruleRow(ctx, key);
+  const row = await ruleRow(ctx, ctx.club._id, key);
 
   if (row) {
     await ctx.db.patch(row._id, {

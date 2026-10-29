@@ -4,6 +4,7 @@ import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { internalMutation } from "../../functions";
+import { clubOf } from "../clubs/lib";
 import { clubDayKey, clubMoment } from "../settings/lib";
 import { applyPoints, balanceOf } from "./lib";
 import {
@@ -11,6 +12,7 @@ import {
   isFirstMatchNewcomer,
   type PointRuleKey,
   ruleDefinition,
+  ruleRow,
 } from "./rules";
 import { programState } from "./terms";
 import { syncMemberPricing } from "../pricing/members";
@@ -271,7 +273,7 @@ async function settle(
 
 type Rules = Record<PointRuleKey, Doc<"pointRules"> | null>;
 
-async function loadRules(ctx: QueryCtx): Promise<Rules> {
+async function loadRules(ctx: QueryCtx, clubId: Id<"clubs">): Promise<Rules> {
   const [
     first_match,
     weekly_three,
@@ -279,11 +281,11 @@ async function loadRules(ctx: QueryCtx): Promise<Rules> {
     referral,
     referral_welcome,
   ] = await Promise.all([
-    activeRule(ctx, "first_match"),
-    activeRule(ctx, "weekly_three"),
-    activeRule(ctx, "online_payment"),
-    activeRule(ctx, "referral"),
-    activeRule(ctx, "referral_welcome"),
+    activeRule(ctx, clubId, "first_match"),
+    activeRule(ctx, clubId, "weekly_three"),
+    activeRule(ctx, clubId, "online_payment"),
+    activeRule(ctx, clubId, "referral"),
+    activeRule(ctx, clubId, "referral_welcome"),
   ]);
   return {
     first_match,
@@ -308,6 +310,7 @@ async function loadRules(ctx: QueryCtx): Promise<Rules> {
  */
 async function reconcilePlayer(
   ctx: MutationCtx,
+  clubId: Id<"clubs">,
   rules: Rules,
   playerId: Id<"players">,
   weeks: string[],
@@ -318,7 +321,7 @@ async function reconcilePlayer(
     .collect();
   const confirmed = rows.filter((row) => row.confirmed);
 
-  const firstSince = (await ruleSince(ctx, "first_match")) ?? Infinity;
+  const firstSince = (await ruleSince(ctx, clubId, "first_match")) ?? Infinity;
   const veteran = rows.some((row) => row.bookingCreatedAt < firstSince);
   const player = await ctx.db.get(playerId);
   if (player && isFirstMatchNewcomer(player)) {
@@ -329,7 +332,8 @@ async function reconcilePlayer(
     });
   }
 
-  const weeklySince = (await ruleSince(ctx, "weekly_three")) ?? Infinity;
+  const weeklySince =
+    (await ruleSince(ctx, clubId, "weekly_three")) ?? Infinity;
   for (const week of weeks) {
     // Le settimane chiuse prima che l'azione partisse non si premiano.
     if (weekEnd(week) <= weeklySince) continue;
@@ -355,15 +359,18 @@ export async function reconcileFirstMatch(
   ctx: MutationCtx,
   playerId: Id<"players">,
 ) {
-  await reconcilePlayer(ctx, await loadRules(ctx), playerId, []);
+  const player = await ctx.db.get(playerId);
+  if (!player) return;
+  const clubId = clubOf(player);
+  await reconcilePlayer(ctx, clubId, await loadRules(ctx, clubId), playerId, []);
 }
 
-async function ruleSince(ctx: QueryCtx, key: PointRuleKey) {
-  const row = await ctx.db
-    .query("pointRules")
-    .withIndex("by_key", (q) => q.eq("key", key))
-    .first();
-  return row?.since;
+async function ruleSince(
+  ctx: QueryCtx,
+  clubId: Id<"clubs">,
+  key: PointRuleKey,
+) {
+  return (await ruleRow(ctx, clubId, key))?.since;
 }
 
 /** Un punto a chi prenota, per ogni prenotazione pagata online. */
@@ -375,7 +382,8 @@ async function reconcileOnlinePayment(
   const playerId = booking.createdByPlayer;
   if (!playerId) return;
 
-  const since = (await ruleSince(ctx, "online_payment")) ?? Infinity;
+  const since =
+    (await ruleSince(ctx, clubOf(booking), "online_payment")) ?? Infinity;
   if (booking.createdAt < since) return;
 
   await settle(ctx, rules.online_payment, {
@@ -405,6 +413,7 @@ export async function reconcileReferral(
     .withIndex("by_invitee", (q) => q.eq("inviteeId", inviteeId))
     .first();
   if (!referral || referral.inviterId === inviteeId) return;
+  const clubId = clubOf(referral);
 
   const paid = await ctx.db
     .query("memberships")
@@ -418,12 +427,12 @@ export async function reconcileReferral(
   // Ognuna conta dal giorno in cui è partita: un invito nato prima non la
   // fa scattare.
   const counts = async (key: "referral" | "referral_welcome") => {
-    const since = await ruleSince(ctx, key);
+    const since = await ruleSince(ctx, clubId, key);
     return since !== undefined && referral.createdAt >= since;
   };
 
   if (await counts("referral")) {
-    await settle(ctx, await activeRule(ctx, "referral"), {
+    await settle(ctx, await activeRule(ctx, clubId, "referral"), {
       deserved,
       playerId: referral.inviterId,
       autoKey: `referral:${inviteeId}`,
@@ -432,8 +441,8 @@ export async function reconcileReferral(
   }
 
   // Il benvenuto vive dentro «Amico invitato»: spenta quella, spento anche lui.
-  const welcome = (await activeRule(ctx, "referral"))
-    ? await activeRule(ctx, "referral_welcome")
+  const welcome = (await activeRule(ctx, clubId, "referral"))
+    ? await activeRule(ctx, clubId, "referral_welcome")
     : null;
   if (await counts("referral_welcome")) {
     await settle(ctx, welcome, {
@@ -457,11 +466,14 @@ export const onBookingChanged = internalMutation({
     const booking = await ctx.db.get(bookingId);
     if (!booking) return;
 
+    // Una mutation interna: niente regole per riga, il club è quello della
+    // prenotazione.
+    const clubId = clubOf(booking);
     const { players, weeks } = await syncParticipants(ctx, booking);
-    const rules = await loadRules(ctx);
+    const rules = await loadRules(ctx, clubId);
 
     for (const playerId of players) {
-      await reconcilePlayer(ctx, rules, playerId, weeks);
+      await reconcilePlayer(ctx, clubId, rules, playerId, weeks);
     }
 
     await reconcileOnlinePayment(ctx, rules, booking);

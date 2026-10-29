@@ -40,7 +40,9 @@ export const create = clubMutation({
     // «Mai iscritto»: nessuna scheda del club con quella mail.
     const member = await ctx.db
       .query("players")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("by_club_email", (q) =>
+        q.eq("clubId", ctx.club._id).eq("email", email),
+      )
       .first();
     if (member) {
       throw new Error(
@@ -52,7 +54,9 @@ export const create = clubMutation({
 
     const existing = await ctx.db
       .query("referrals")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("by_club_email", (q) =>
+        q.eq("clubId", ctx.club._id).eq("email", email),
+      )
       .first();
     if (existing && existing.inviterId !== inviter._id) {
       throw new Error("Questa persona è già stata invitata da un altro cliente.");
@@ -97,7 +101,7 @@ export const create = clubMutation({
       });
     }
 
-    const welcome = await activeRule(ctx, "referral_welcome");
+    const welcome = await activeRule(ctx, ctx.club._id, "referral_welcome");
 
     return {
       email,
@@ -130,8 +134,8 @@ export const byToken = clubQuery({
     if (!inviter) return null;
 
     const [welcome, reward] = await Promise.all([
-      activeRule(ctx, "referral_welcome"),
-      activeRule(ctx, "referral"),
+      activeRule(ctx, ctx.club._id, "referral_welcome"),
+      activeRule(ctx, ctx.club._id, "referral"),
     ]);
 
     return {
@@ -162,8 +166,8 @@ export const mine = clubQuery({
       .take(50);
 
     const [rule, welcome] = await Promise.all([
-      activeRule(ctx, "referral"),
-      activeRule(ctx, "referral_welcome"),
+      activeRule(ctx, ctx.club._id, "referral"),
+      activeRule(ctx, ctx.club._id, "referral_welcome"),
     ]);
 
     const invites = await Promise.all(

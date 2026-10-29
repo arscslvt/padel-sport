@@ -42,11 +42,16 @@ export default internalMutation({
       return { done: false, processed: page.page.length };
     }
 
+    // Nata prima dei club, per Padel Sport: gli altri club accendono le
+    // azioni dal gestionale.
+    const clubId = await defaultClubId(ctx);
+    if (!clubId) throw new Error("Manca la riga di Padel Sport.");
+
     const now = Date.now();
     for (const rule of POINT_RULES) {
-      if (await ruleRow(ctx, rule.key)) continue;
+      if (await ruleRow(ctx, clubId, rule.key)) continue;
       await ctx.db.insert("pointRules", {
-        clubId: await defaultClubId(ctx),
+        clubId,
         key: rule.key,
         points: rule.defaultPoints,
         enabled: true,

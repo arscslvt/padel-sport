@@ -455,6 +455,46 @@ describe("pagamenti per club", () => {
 });
 
 describe("punti e inviti per club", () => {
+  test("i punti automatici seguono le regole del club della prenotazione", async () => {
+    const { t, a, b, courtA } = await twoClubs();
+    const rule = (clubId: Id<"clubs">, points: number) => ({
+      clubId,
+      key: "online_payment" as const,
+      points,
+      enabled: true,
+      since: 0,
+      updatedAt: 0,
+    });
+    const bookingId = await t.run(async (ctx) => {
+      // Solo l'altro club premia il pagamento online, e la sua regola è la
+      // prima della tabella.
+      await ctx.db.insert("pointRules", rule(b, 5));
+      const anna = await ctx.db.insert("players", player(a, "Anna"));
+      return await ctx.db.insert("bookings", {
+        ...booking(a, courtA),
+        createdByPlayer: anna,
+        paymentMode: "online",
+        createdAt: Date.now(),
+      });
+    });
+    const awards = () =>
+      t.run((ctx) => ctx.db.query("pointTransactions").collect());
+
+    await t.mutation(internal.modules.points.auto.onBookingChanged, {
+      bookingId,
+    });
+    expect(await awards()).toEqual([]);
+
+    // Quando anche Padel Sport la accende, vale la sua.
+    await t.run((ctx) => ctx.db.insert("pointRules", rule(a, 2)));
+    await t.mutation(internal.modules.points.auto.onBookingChanged, {
+      bookingId,
+    });
+    expect((await awards()).map((row) => [row.clubId, row.delta])).toEqual([
+      [a, 2],
+    ]);
+  });
+
   test("lo staff crea un cliente col codice amico di chi l'ha invitato", async () => {
     const { t, a } = await twoClubs();
     const inviter = await t.run((ctx) =>

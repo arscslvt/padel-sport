@@ -89,7 +89,9 @@ export const pending = serverQuery({
   handler: async (ctx) => {
     const rows = await ctx.db
       .query("rewardRedemptions")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .withIndex("by_club_status", (q) =>
+        q.eq("clubId", ctx.club._id).eq("status", "active"),
+      )
       .collect();
 
     const now = Date.now();

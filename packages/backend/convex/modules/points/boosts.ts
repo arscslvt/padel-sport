@@ -23,11 +23,11 @@ export default clubQuery({
     if (!player) return null;
 
     const [firstMatch, weekly, online, referral, welcome] = await Promise.all([
-      activeRule(ctx, "first_match"),
-      activeRule(ctx, "weekly_three"),
-      activeRule(ctx, "online_payment"),
-      activeRule(ctx, "referral"),
-      activeRule(ctx, "referral_welcome"),
+      activeRule(ctx, ctx.club._id, "first_match"),
+      activeRule(ctx, ctx.club._id, "weekly_three"),
+      activeRule(ctx, ctx.club._id, "online_payment"),
+      activeRule(ctx, ctx.club._id, "referral"),
+      activeRule(ctx, ctx.club._id, "referral_welcome"),
     ]);
 
     const automatic = (
@@ -69,7 +69,9 @@ export default clubQuery({
     // Il preset «Partita vinta» (o come l'ha rinominato il club).
     const presets = await ctx.db
       .query("pointPresets")
-      .withIndex("by_archived", (q) => q.eq("archived", false))
+      .withIndex("by_club_archived", (q) =>
+        q.eq("clubId", ctx.club._id).eq("archived", false),
+      )
       .collect();
     const won = presets.find(
       (preset) => preset.points > 0 && /vint/i.test(preset.label),

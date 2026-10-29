@@ -22,7 +22,9 @@ export const list = serverQuery({
   handler: async (ctx) => {
     const rows = await ctx.db
       .query("pointPresets")
-      .withIndex("by_archived", (q) => q.eq("archived", false))
+      .withIndex("by_club_archived", (q) =>
+        q.eq("clubId", ctx.club._id).eq("archived", false),
+      )
       .collect();
 
     return rows
@@ -41,7 +43,11 @@ export const list = serverQuery({
 export const ensureDefaults = serverMutation({
   args: {},
   handler: async (ctx) => {
-    if (await ctx.db.query("pointPresets").first()) return { seeded: false };
+    const any = await ctx.db
+      .query("pointPresets")
+      .withIndex("by_club_archived", (q) => q.eq("clubId", ctx.club._id))
+      .first();
+    if (any) return { seeded: false };
 
     const now = Date.now();
     for (const preset of DEFAULT_PRESETS) {

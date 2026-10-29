@@ -25,3 +25,16 @@ export async function defaultClubId(
     .unique();
   return club?._id;
 }
+
+/**
+ * Il club di una riga letta dal database, per le funzioni interne che non
+ * hanno `ctx.club`: lo prendono dal record che stanno trattando.
+ *
+ * Il campo è facoltativo fino alla Fase 3, ma il riempimento l'ha messo
+ * ovunque e ogni inserimento lo scrive: una riga senza è un errore, e
+ * conviene fermarsi invece di leggere i dati di un club qualsiasi.
+ */
+export function clubOf(row: { _id: string; clubId?: Id<"clubs"> }): Id<"clubs"> {
+  if (!row.clubId) throw new Error(`Riga senza club: ${row._id}.`);
+  return row.clubId;
+}

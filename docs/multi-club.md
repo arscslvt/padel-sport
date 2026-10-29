@@ -267,7 +267,19 @@ Da 4 a 7 giorni.
         non ha regole per riga: ora riceve il club dall'action e rifiuta una
         prenotazione di un altro club. Prima lo staff di un club poteva
         rimborsare l'incasso di un altro conoscendone l'id;
-  - [ ] points, rewards, referrals, pointReports;
+  - [x] points, rewards, referrals, pointReports (in dev il 29/10/2026): le
+        regole dei punti (`ruleRow`, `activeRule`) vogliono il club e leggono
+        da `by_club_key`. Il motore dei punti automatici gira in una mutation
+        interna e prende il club dal record che tratta (`clubOf`, in
+        `modules/clubs/lib.ts`): prima avrebbe applicato a un club le regole
+        di un altro. Premi, riscatti, preset e segnalazioni leggono da
+        `by_club_archived`, `by_club_status` e `by_club_created`; inviti e
+        codice amico da `by_club_email` e `by_club_code`. Lo stesso giorno,
+        in prod, la correzione di `attachReferral`: scriveva l'invito senza
+        club, e da quando ci sono i wrapper lo staff non riusciva a creare un
+        cliente col codice amico. Restano per tutti i club la scadenza dei
+        punti (`points/expire`, cron) e il codice dei riscatti, generato dentro
+        le regole per riga e mai cercato da altri;
   - [ ] eventi, comunicazioni, RSVP;
   - [ ] supportRequests, notifications, push, reminders;
   - [ ] weather, courtCalendar, deliveries;

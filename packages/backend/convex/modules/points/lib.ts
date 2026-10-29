@@ -327,10 +327,12 @@ export function redemptionExpiry(
 }
 
 /** I premi in vetrina, dal più economico: è l'ordine in cui si sbloccano. */
-export async function activeRewards(ctx: QueryCtx) {
+export async function activeRewards(ctx: QueryCtx, clubId: Id<"clubs">) {
   const rows = await ctx.db
     .query("rewards")
-    .withIndex("by_archived", (q) => q.eq("archived", false))
+    .withIndex("by_club_archived", (q) =>
+      q.eq("clubId", clubId).eq("archived", false),
+    )
     .collect();
 
   return rows.sort((a, b) => a.cost - b.cost || a.createdAt - b.createdAt);
@@ -341,8 +343,10 @@ export async function activeRewards(ctx: QueryCtx) {
  * i disattivati. `activeRewards` li tiene tutti, perché lo staff deve poterli
  * riaccendere.
  */
-export async function availableRewards(ctx: QueryCtx) {
-  return (await activeRewards(ctx)).filter((reward) => !reward.disabled);
+export async function availableRewards(ctx: QueryCtx, clubId: Id<"clubs">) {
+  return (await activeRewards(ctx, clubId)).filter(
+    (reward) => !reward.disabled,
+  );
 }
 
 export async function rewardImageUrl(

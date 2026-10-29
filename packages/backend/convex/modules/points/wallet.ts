@@ -33,7 +33,7 @@ export default clubQuery({
     const now = Date.now();
 
     const rewards = await Promise.all(
-      (await availableRewards(ctx)).map(async (reward) => ({
+      (await availableRewards(ctx, ctx.club._id)).map(async (reward) => ({
         id: reward._id,
         title: reward.title,
         description: reward.description,

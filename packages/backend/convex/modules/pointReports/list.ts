@@ -14,7 +14,7 @@ export default serverQuery({
   handler: async (ctx) => {
     const reports = await ctx.db
       .query("pointReports")
-      .withIndex("by_created")
+      .withIndex("by_club_created", (q) => q.eq("clubId", ctx.club._id))
       .order("desc")
       .collect();
 
