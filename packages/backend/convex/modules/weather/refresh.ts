@@ -159,11 +159,8 @@ export default internalAction({
   args: {
     /** Legge subito, a qualunque ora: per riempire la tabella da `convex run`. */
     force: v.optional(v.boolean()),
-    /**
-     * Il club di cui leggere il meteo. Senza, Padel Sport: il cron di oggi
-     * non lo passa, e farà un giro per club (docs/multi-club.md, Fase 2).
-     */
-    clubId: v.optional(v.id("clubs")),
+    /** Il club del giro (modules/clubs/cron.ts). */
+    clubId: v.id("clubs"),
   },
   handler: async (ctx, { force, clubId }): Promise<{ stored: number }> => {
     const now = Date.now();

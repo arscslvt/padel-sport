@@ -175,7 +175,7 @@ describe("impostazioni e campi per club", () => {
   });
 
   test("il cron dei giorni vuoti non legge gli orari di un altro club", async () => {
-    const { t, b } = await twoClubs();
+    const { t, a, b } = await twoClubs();
     // L'altro club è chiuso tutti i giorni, e la sua riga è la prima della
     // tabella: Padel Sport, che non ha mai salvato, resta aperto.
     await t.run((ctx) =>
@@ -189,7 +189,7 @@ describe("impostazioni e campi per club", () => {
 
     const result = await t.mutation(
       internal.modules.reminders.emptyDays.default,
-      { force: true },
+      { force: true, clubId: a },
     );
     expect(result.empty).toHaveLength(3);
   });
@@ -231,12 +231,12 @@ describe("prenotazioni per club", () => {
   });
 
   test("il cron dei giorni vuoti non conta le partite di un altro club", async () => {
-    const { t, b, courtB } = await twoClubs();
+    const { t, a, b, courtB } = await twoClubs();
     await t.run((ctx) => ctx.db.insert("bookings", booking(b, courtB)));
 
     const result = await t.mutation(
       internal.modules.reminders.emptyDays.default,
-      { force: true },
+      { force: true, clubId: a },
     );
     // Domani ha una partita, ma nell'altro club: per Padel Sport è vuoto.
     expect(result.empty).toHaveLength(3);
@@ -616,6 +616,38 @@ describe("avvisi allo staff per club", () => {
       ctx.db.system.query("_scheduled_functions").collect(),
     );
     expect(scheduled.map((job) => job.args[0].clubId)).toEqual([b]);
+  });
+});
+
+describe("cron per club", () => {
+  test("ogni giro programma un lavoro per club aperto", async () => {
+    vi.stubEnv("GOOGLE_CALENDAR_ID_READ", "calendario");
+    const { t, a, b } = await twoClubs();
+    const third = await t.run((ctx) =>
+      ctx.db.insert("clubs", {
+        slug: "in-manutenzione",
+        name: "Fermo",
+        timeZone: "Europe/Rome",
+        latitude: 0,
+        longitude: 0,
+        maintenance: true,
+      }),
+    );
+
+    await t.mutation(internal.modules.clubs.cron.startingReminders, {});
+    // Il calendario solo per chi l'ha collegato: oggi Padel Sport.
+    await t.mutation(internal.modules.clubs.cron.calendar, {});
+
+    const jobs = await t.run((ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const clubsOf = (name: string) =>
+      jobs
+        .filter((job) => job.name.startsWith(name))
+        .map((job) => job.args[0].clubId);
+    expect(clubsOf("modules/reminders/starting")).toEqual([a, b]);
+    expect(clubsOf("modules/courtCalendar/pull")).toEqual([a]);
+    expect(jobs.flatMap((job) => job.args[0].clubId)).not.toContain(third);
   });
 });
 

@@ -121,7 +121,10 @@ eventRsvps `by_cancel_token`, pointsExitRequests `by_token`,
 rewardRedemptions `by_code`, payments `by_checkout`, bookingDeliveries
 `by_provider_id`, externalBookings `by_external_id`, pointTransactions
 `by_auto_key`, pushSubscriptions `by_endpoint`, players `by_deletion_effective`
-e `by_deletion_purge` (li leggono i cron, per tutti i club).
+e `by_deletion_purge` (li leggono i cron, per tutti i club). Per la pulizia dei
+dati vecchi, che vale per tutti i club con le stesse scadenze, restano globali
+anche matchRequests `by_date`, supportRequests `by_created` ed eventRsvps
+`by_created`.
 
 La tabella `events` è deprecata (gli eventi stanno su Sanity) ma **non va
 tolta**: prende `clubId` come le altre.
@@ -348,7 +351,16 @@ Da 4 a 7 giorni.
     `utils/excerpt.ts`), gli avvisi passano solo dalle notifiche push, e il
     sito non ripiega più su Hark quando Convex non risponde. La variabile
     `HARK_WEBHOOK_URL` si può togliere da Convex (dev e prod) e da Railway.
-- [ ] **Cron**: ognuno elenca i club e programma un job per club.
+- [x] **Cron** (in dev il 29/10/2026): i cron che lavorano sui dati o sugli
+      account di un club (calendario, promemoria d'inizio partita, giorni
+      senza partite, meteo, scadenza dei punti) chiamano i giri di
+      `modules/clubs/cron.ts`, che programmano un lavoro per club con il suo
+      `clubId`, obbligatorio. I club in manutenzione restano fermi, e il
+      calendario parte solo per chi l'ha collegato. Tolti i ripieghi su Padel
+      Sport dei passi prima. Restano un giro solo per tutti l'eliminazione
+      degli account e la **pulizia dei dati vecchi** (`privacy/retention`):
+      partono dal singolo record con scadenze uguali per tutti, quindi i loro
+      indici restano globali (vedi sotto).
 - [x] **Gestionale** (in dev e in prod il 29/10/2026, organizzazione
       collegata in entrambi): `staffGate` dà
       `credentials` (segreto, `clerkOrgId`, `actorUserId`) e ogni route le
@@ -393,7 +405,8 @@ Fase 2, su Convex e su Railway, con i dati ancora compatibili.
 
 Una settimana dopo, dieci minuti.
 
-- [ ] Togliere i vecchi indici.
+- [ ] Togliere i vecchi indici, **tranne** quelli globali elencati in «Gli
+      indici».
 - [ ] Togliere Padel Sport come valore predefinito dello slug, quando le
       versioni vecchie dell'app non ci sono più.
 

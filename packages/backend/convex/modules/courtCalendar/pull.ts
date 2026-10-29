@@ -49,11 +49,8 @@ async function sync(
 
 export default internalAction({
   args: {
-    /**
-     * Il club da sincronizzare. Senza, Padel Sport: il cron di oggi non lo
-     * passa, e farà un giro per club (docs/multi-club.md, Fase 2).
-     */
-    clubId: v.optional(v.id("clubs")),
+    /** Il club del giro (modules/clubs/cron.ts). */
+    clubId: v.id("clubs"),
   },
   // Il tipo di ritorno va scritto: dedotto, Convex lo farebbe dipendere da
   // `internal`, che dipende da questo file.

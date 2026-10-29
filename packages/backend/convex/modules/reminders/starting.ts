@@ -1,7 +1,8 @@
+import { v } from "convex/values";
+
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { internalMutation } from "../../functions";
-import { defaultClubId } from "../clubs/lib";
 import { formatClubTime } from "../../utils/clubTime";
 import { staffAgendaDayUrl, staffBookingUrl } from "../../utils/staffLinks";
 import { courtLabel } from "../openMatches/lib";
@@ -42,14 +43,10 @@ function due(
 }
 
 export default internalMutation({
-  args: {},
-  handler: async (ctx) => {
+  /** Il club del giro (modules/clubs/cron.ts). */
+  args: { clubId: v.id("clubs") },
+  handler: async (ctx, { clubId }) => {
     const now = Date.now();
-
-    // Per ora gira per Padel Sport soltanto: il giro per club arriva con i
-    // cron (docs/multi-club.md, Fase 2).
-    const clubId = await defaultClubId(ctx);
-    if (!clubId) return;
 
     const bookings = (
       await ctx.db

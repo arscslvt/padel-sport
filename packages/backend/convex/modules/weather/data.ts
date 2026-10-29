@@ -66,7 +66,7 @@ export const range = clubQuery({
  *
  * La prossima lettura da Open-Meteo (mezzanotte o le 14) rimette la
  * previsione vera; per toglierla prima: `modules/weather/refresh:default
- * '{"force": true}'`.
+ * '{"force": true, "clubId": "…"}'`.
  */
 export const simulateRain = internalMutation({
   args: {
@@ -89,7 +89,7 @@ export const simulateRain = internalMutation({
       .unique();
     if (!row) {
       throw new Error(
-        `Nessun meteo per ${key}: prima lancia modules/weather/refresh:default '{"force": true}'.`,
+        `Nessun meteo per ${key}: prima lancia modules/weather/refresh:default '{"force": true, "clubId": "${club}"}'.`,
       );
     }
 

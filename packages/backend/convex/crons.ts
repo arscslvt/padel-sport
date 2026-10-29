@@ -3,6 +3,13 @@ import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 
 /**
+ * I cron che lavorano sui dati o sugli account di un club passano dai giri di
+ * modules/clubs/cron.ts: un lavoro per club, con il suo `clubId`. Restano un
+ * giro solo per tutti quelli che partono dal singolo record con scadenze
+ * uguali per tutti: la pulizia dei dati e l'eliminazione degli account.
+ */
+
+/**
  * SumUp Bookings non ha API pubbliche: l'unico modo per sapere che qualcuno ha
  * prenotato di là è rileggere il calendario che ci sincronizza. Cinque minuti
  * sono il compromesso fra quanto vogliamo essere allineati e quanto vale la
@@ -13,7 +20,7 @@ const crons = cronJobs();
 crons.interval(
   "calendario campi",
   { minutes: 5 },
-  internal.modules.courtCalendar.pull.default,
+  internal.modules.clubs.cron.calendar,
   {},
 );
 
@@ -24,7 +31,7 @@ crons.interval(
 crons.interval(
   "punti in attesa scaduti",
   { hours: 24 },
-  internal.modules.points.expire.default,
+  internal.modules.clubs.cron.pointsExpiry,
   {},
 );
 
@@ -67,14 +74,14 @@ crons.interval(
 crons.interval(
   "promemoria partite in partenza",
   { minutes: 1 },
-  internal.modules.reminders.starting.default,
+  internal.modules.clubs.cron.startingReminders,
   {},
 );
 
 crons.hourly(
   "promemoria giorni senza partite",
   { minuteUTC: 0 },
-  internal.modules.reminders.emptyDays.default,
+  internal.modules.clubs.cron.emptyDays,
   {},
 );
 
@@ -85,7 +92,7 @@ crons.hourly(
 crons.hourly(
   "meteo al club",
   { minuteUTC: 0 },
-  internal.modules.weather.refresh.default,
+  internal.modules.clubs.cron.weather,
   {},
 );
 
