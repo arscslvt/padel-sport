@@ -351,8 +351,8 @@ Da 4 a 7 giorni.
     `utils/excerpt.ts`), gli avvisi passano solo dalle notifiche push, e il
     sito non ripiega più su Hark quando Convex non risponde. La variabile
     `HARK_WEBHOOK_URL` si può togliere da Convex (dev e prod) e da Railway.
-- [x] **Cron** (in dev il 29/10/2026): i cron che lavorano sui dati o sugli
-      account di un club (calendario, promemoria d'inizio partita, giorni
+- [x] **Cron** (in dev e in prod il 29/10/2026): i cron che lavorano sui
+      dati o sugli account di un club (calendario, promemoria d'inizio partita, giorni
       senza partite, meteo, scadenza dei punti) chiamano i giri di
       `modules/clubs/cron.ts`, che programmano un lavoro per club con il suo
       `clubId`, obbligatorio. I club in manutenzione restano fermi, e il
