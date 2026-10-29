@@ -308,7 +308,7 @@ Da 4 a 7 giorni.
         `courtCalendar/pull:refresh`, dal sito di un altro club, non rilegge
         il calendario. Deliveries parte dalla prenotazione e dagli id del
         provider, e non cambia;
-- [x] **Costanti del club** (in dev il 29/10/2026):
+- [x] **Costanti del club** (in dev e in prod il 29/10/2026):
   - [x] coordinate del meteo dalla riga `clubs`: `weather/refresh` legge
         punto e fuso del club (facoltativo, Padel Sport se manca, finché il
         cron non fa un giro per club) e `weather/data:store` scrive per club
