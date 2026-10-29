@@ -280,7 +280,13 @@ Da 4 a 7 giorni.
         cliente col codice amico. Restano per tutti i club la scadenza dei
         punti (`points/expire`, cron) e il codice dei riscatti, generato dentro
         le regole per riga e mai cercato da altri;
-  - [ ] eventi, comunicazioni, RSVP;
+  - [x] eventi, comunicazioni, RSVP (in dev il 29/10/2026): iscrizioni e
+        comunicazioni partono dal documento Sanity (`by_form`,
+        `by_document`) e i token per annullare sono unici per costruzione:
+        restano com'erano. L'elenco della tabella `events`, deprecata, legge
+        da `by_club_date`; `events/new`, interna e non chiamata da nessuno,
+        riceve il club invece di `defaultClubId`. La cancellazione delle
+        iscrizioni vecchie sta in `privacy/retention`;
   - [ ] supportRequests, notifications, push, reminders;
   - [ ] weather, courtCalendar, deliveries;
 - [ ] **Costanti del club** lette dalla riga `clubs`: fuso orario, coordinate

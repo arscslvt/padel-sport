@@ -515,6 +515,41 @@ describe("punti e inviti per club", () => {
   });
 });
 
+describe("eventi per club", () => {
+  test("le iscrizioni allo stesso evento restano nel club", async () => {
+    const { t, a, b } = await twoClubs();
+    // Lo stesso documento Sanity in due club è un caso limite, ma i dati di
+    // un club non devono comunque finire nell'altro.
+    await t.run(async (ctx) => {
+      for (const [clubId, name] of [
+        [b, "Bruno"],
+        [a, "Anna"],
+      ] as const) {
+        await ctx.db.insert("eventRsvps", {
+          clubId,
+          eventId: "evento-1",
+          blockKey: "modulo",
+          eventSlug: "torneo",
+          eventTitle: "Torneo",
+          name,
+          email: `${name}@esempio.it`,
+          guests: 0,
+          status: "confirmed",
+          cancelToken: `token-${name}`,
+          createdAt: 0,
+        });
+      }
+    });
+
+    const rsvps = await t.query(api.modules.eventRsvps.list.default, {
+      ...staffA,
+      eventId: "evento-1",
+      blockKey: "modulo",
+    });
+    expect(rsvps.map((row) => row.name)).toEqual(["Anna"]);
+  });
+});
+
 describe("giocatori per club", () => {
   test("lo stesso account è un giocatore solo nel club dove ha la scheda", async () => {
     const { t, a, b } = await twoClubs();

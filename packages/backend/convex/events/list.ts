@@ -19,7 +19,9 @@ export default clubQuery({
   handler: async (ctx, args) => {
     const baseQuery = ctx.db
       .query("events")
-      .withIndex("by_date", (q) => q.gt("date", 0))
+      .withIndex("by_club_date", (q) =>
+        q.eq("clubId", ctx.club._id).gt("date", 0),
+      )
       .order("desc");
 
     try {
