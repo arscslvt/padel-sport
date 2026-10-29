@@ -183,7 +183,7 @@ export default serverAction({
     staffUserId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<RefundOutcome> => {
-    const config = sumupConfig();
+    const config = sumupConfig(ctx.club);
     if (!config) {
       throw new Error(
         "Le chiavi di SumUp non sono configurate: rimborsa dal pannello SumUp.",

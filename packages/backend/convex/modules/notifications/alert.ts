@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalAction } from "../../functions";
-import { sendHark } from "../../utils/hark";
 import { notificationCategory } from "../../utils/notificationCategories";
 
 /**
@@ -11,13 +10,12 @@ import { notificationCategory } from "../../utils/notificationCategories";
  * a database la schedula con `runAfter(0, …)` e va avanti. Gli indirizzi da
  * mettere in `url` si compongono con `utils/staffLinks`.
  *
- * Parte su due canali insieme, e nessuno dei due aspetta l'altro: le notifiche
- * push del gestionale (modules/push/send.ts), che arrivano su ogni telefono
- * dello staff che le ha attivate, e Hark finché `HARK_WEBHOOK_URL` è
- * configurata. Un canale giù non ferma l'altro.
+ * Arriva come notifica push del gestionale (modules/push/send.ts) su ogni
+ * telefono dello staff del club che le ha attivate. Non solleva mai: un
+ * avviso perso non deve far fallire chi l'ha chiesto.
  *
  * `category` dice di che avviso si tratta (utils/notificationCategories.ts):
- * le push arrivano solo a chi non ha spento quel tipo, Hark riceve tutto.
+ * le push arrivano solo a chi non ha spento quel tipo.
  */
 export default internalAction({
   args: {
@@ -29,21 +27,21 @@ export default internalAction({
     /** Il club dell'avviso: le push arrivano solo al suo staff (push/send.ts). */
     clubId: v.id("clubs"),
   },
-  async handler(ctx, { category, title, message, url, idempotencyKey, clubId }) {
-    await Promise.all([
-      sendHark({ title, body: message, url, idempotencyKey }),
-      ctx
-        .runAction(internal.modules.push.send.default, {
-          clubId,
-          category,
-          title,
-          body: message,
-          url,
-          tag: idempotencyKey,
-        })
-        .catch((error) => {
-          console.error("Notifiche push allo staff non inviate:", error);
-        }),
-    ]);
+  async handler(
+    ctx,
+    { category, title, message, url, idempotencyKey, clubId },
+  ): Promise<void> {
+    await ctx
+      .runAction(internal.modules.push.send.default, {
+        clubId,
+        category,
+        title,
+        body: message,
+        url,
+        tag: idempotencyKey,
+      })
+      .catch((error) => {
+        console.error("Notifiche push allo staff non inviate:", error);
+      });
   },
 });

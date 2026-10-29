@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { internal } from "../../_generated/api";
+import { api, internal } from "../../_generated/api";
 import { setupTest } from "../../test.setup";
+import { clubConfig } from "./config";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -110,6 +111,45 @@ describe("club di oggi", () => {
       [clubId, 23],
       [other, 14],
     ]);
+  });
+});
+
+describe("configurazione del club", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  test("le chiavi delle variabili d'ambiente sono solo di Padel Sport", async () => {
+    vi.stubEnv("SUMUP_API_KEY", "chiave");
+    vi.stubEnv("SUMUP_MERCHANT_CODE", "M123");
+    vi.stubEnv("GOOGLE_CALENDAR_ID_READ", "calendario");
+    vi.stubEnv("TWILIO_PHONE_SENDER", "+390000000000");
+
+    expect(clubConfig({ slug: "padel-sport" })).toMatchObject({
+      sumup: { apiKey: "chiave", merchantCode: "M123" },
+      calendar: { readCalendarId: "calendario", writeCalendarId: "calendario" },
+      whatsapp: { sender: "+390000000000" },
+    });
+    expect(clubConfig({ slug: "altro-club" })).toEqual({
+      sumup: null,
+      calendar: null,
+      whatsapp: null,
+    });
+
+    // Anche dal gestionale: l'altro club non risulta collegato a SumUp.
+    const t = setupTest();
+    await t.mutation(internal.modules.clubs.seed.padelSport, {});
+    await t.run((ctx) =>
+      ctx.db.insert("clubs", {
+        slug: "altro-club",
+        name: "Altro",
+        timeZone: "Europe/Rome",
+        latitude: 0,
+        longitude: 0,
+      }),
+    );
+    const setup = (clubSlug: string) =>
+      t.query(api.modules.payments.status.setup, { clubSlug });
+    expect((await setup("padel-sport")).configured).toBe(true);
+    expect((await setup("altro-club")).configured).toBe(false);
   });
 });
 

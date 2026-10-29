@@ -1,28 +1,38 @@
 import "server-only";
 
 import { api } from "@padel-sport/backend/convex/_generated/api";
-import {
-  type HarkNotification,
-  sendHark,
-} from "@padel-sport/backend/convex/utils/hark";
 import type { NotificationCategory } from "@padel-sport/backend/convex/utils/notificationCategories";
 import { ConvexHttpClient } from "convex/browser";
+
+export interface StaffNotification {
+  /** Il titolo della notifica. Deve bastare da solo a dire cos'è successo. */
+  title: string;
+  /** Il corpo del messaggio. */
+  body: string;
+  /** Dove porta il tocco sulla notifica. Senza, la notifica non è cliccabile. */
+  url?: string;
+  /**
+   * Chiave stabile dell'evento: una notifica con la stessa chiave prende il
+   * posto della precedente sul telefono invece di aggiungersi.
+   */
+  idempotencyKey?: string;
+}
 
 /**
  * L'avviso allo staff dalle route del sito.
  *
- * Passa da Convex (modules/notifications/staff.ts), che lo manda insieme alle
- * notifiche push del gestionale e a Hark: un avviso, una strada sola, da
- * qualunque parte nasca. Se Convex non risponde si ripiega su Hark diretto —
- * meglio un canale che nessuno, ed è il comportamento di prima.
+ * Passa da Convex (modules/notifications/staff.ts), che lo manda come
+ * notifica push del gestionale: un avviso, una strada sola, da qualunque
+ * parte nasca.
  *
- * Come `sendHark`, non solleva mai: quando parte, la richiesta è già salvata.
- * `category` decide chi la riceve come push: chi ha spento quel tipo no.
+ * Non solleva mai: quando parte, la richiesta è già salvata. Se Convex non
+ * risponde l'avviso si perde, e lo dice il log; la richiesta resta comunque
+ * nel gestionale. `category` decide chi la riceve: chi ha spento quel tipo no.
  */
 export async function notifyStaff({
   category,
   ...notification
-}: HarkNotification & { category: NotificationCategory }): Promise<boolean> {
+}: StaffNotification & { category: NotificationCategory }): Promise<boolean> {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   const secret = process.env.BOOKING_WEBHOOK_SECRET;
 
@@ -45,5 +55,5 @@ export async function notifyStaff({
     }
   }
 
-  return sendHark(notification);
+  return false;
 }

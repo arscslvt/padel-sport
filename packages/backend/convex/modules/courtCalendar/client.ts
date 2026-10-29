@@ -2,7 +2,9 @@
 
 import { JWT } from "google-auth-library";
 
+import type { Doc } from "../../_generated/dataModel";
 import { CLUB_TIME_ZONE } from "../../utils/clubTime";
+import { clubConfig } from "../clubs/config";
 import { type ExternalBlock, SOURCE_PROPERTY, SOURCE_VALUE } from "./lib";
 
 /**
@@ -42,20 +44,22 @@ export interface CalendarConfig {
  * la sincronizzazione semplicemente non esiste e tutto continua a funzionare
  * come prima.
  */
-export function calendarConfig(): CalendarConfig | null {
+/**
+ * L'account di servizio è della piattaforma, uno per tutti: ogni club
+ * condivide con lui i suoi calendari, che invece sono del club
+ * (modules/clubs/config.ts).
+ */
+export function calendarConfig(
+  club: Pick<Doc<"clubs">, "slug">,
+): CalendarConfig | null {
   const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-  const readCalendarId = process.env.GOOGLE_CALENDAR_ID_READ;
-  const writeCalendarId =
-    process.env.GOOGLE_CALENDAR_ID_WRITE ?? readCalendarId;
+  const calendars = clubConfig(club).calendar;
 
-  if (!clientEmail || !privateKey || !readCalendarId || !writeCalendarId) {
-    return null;
-  }
+  if (!clientEmail || !privateKey || !calendars) return null;
 
   return {
-    readCalendarId,
-    writeCalendarId,
+    ...calendars,
     clientEmail,
     // Le chiavi passano dalle variabili d'ambiente con gli a capo scritti
     // letteralmente: senza ripristinarli il PEM non è valido.

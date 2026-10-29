@@ -9,6 +9,9 @@
  * Il contratto è quello di https://developer.sumup.com/api/checkouts.
  */
 
+import type { Doc } from "../../_generated/dataModel";
+import { clubConfig } from "../clubs/config";
+
 const API = "https://api.sumup.com";
 
 export interface SumupConfig {
@@ -22,12 +25,11 @@ export interface SumupConfig {
  * Il `null` non è un errore: finché le chiavi non ci sono, il pagamento online
  * semplicemente non si offre e si paga in struttura come sempre.
  */
-export function sumupConfig(): SumupConfig | null {
-  const apiKey = process.env.SUMUP_API_KEY?.trim();
-  const merchantCode = process.env.SUMUP_MERCHANT_CODE?.trim();
-
-  if (!apiKey || !merchantCode) return null;
-  return { apiKey, merchantCode };
+/** L'account SumUp del club, se ce l'ha (modules/clubs/config.ts). */
+export function sumupConfig(
+  club: Pick<Doc<"clubs">, "slug">,
+): SumupConfig | null {
+  return clubConfig(club).sumup;
 }
 
 export type CheckoutStatus = "PENDING" | "FAILED" | "PAID" | "EXPIRED";

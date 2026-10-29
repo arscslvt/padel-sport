@@ -1,5 +1,5 @@
 import { api } from "@padel-sport/backend/convex/_generated/api";
-import { excerpt } from "@padel-sport/backend/convex/utils/hark";
+import { excerpt } from "@padel-sport/backend/convex/utils/excerpt";
 import { staffMatchRequestUrl } from "@padel-sport/backend/convex/utils/staffLinks";
 import { render } from "@react-email/render";
 import { ConvexHttpClient } from "convex/browser";

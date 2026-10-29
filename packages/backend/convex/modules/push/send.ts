@@ -24,7 +24,7 @@ import { staffBookingsUrl } from "../../utils/staffLinks";
  * persi. Gli altri browser ricevono lo stesso JSON e lo legge il nostro
  * service worker (apps/dashboard/public/sw.js): un formato solo per tutti.
  *
- * Come Hark, non solleva mai: quando parte, il fatto è già a database.
+ * Non solleva mai: quando parte, il fatto è già a database.
  */
 
 /**

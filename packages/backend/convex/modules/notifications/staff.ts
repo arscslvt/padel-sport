@@ -7,9 +7,9 @@ import { notificationCategory } from "../../utils/notificationCategories";
  * L'avviso allo staff chiesto dal sito: richieste di assistenza, richieste di
  * giocatori, iscrizioni agli eventi.
  *
- * Quelle route chiamavano Hark da sole. Passando da qui l'avviso prende la
- * stessa strada di quelli nati nel backend (`alert.ts`) e raggiunge anche i
- * telefoni con le notifiche push attive. Porta il segreto condiviso: senza,
+ * Passando da qui l'avviso prende la stessa strada di quelli nati nel backend
+ * (`alert.ts`) e arriva ai telefoni con le notifiche push attive. Porta il
+ * segreto condiviso: senza,
  * chiunque conosca l'URL del deployment potrebbe far suonare il telefono
  * dello staff.
  */

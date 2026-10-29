@@ -1,7 +1,10 @@
 "use node";
 
 import { internal } from "../../_generated/api";
+import type { Doc } from "../../_generated/dataModel";
 import { internalAction } from "../../functions";
+import { clubConfig } from "../clubs/config";
+import { clubOf } from "../clubs/lib";
 import { getMessagingClient } from "../../utils/notification_client";
 import { v } from "convex/values";
 import { formatClubDateTime } from "../../utils/clubTime";
@@ -86,10 +89,16 @@ export const sendConfirmationWithWhatsapp = internalAction({
       return;
     }
 
-    const sender = process.env.TWILIO_PHONE_SENDER;
-    if (!sender || !process.env.TWILIO_SID || !process.env.TWILIO_AUTH) {
+    // Numero e template sono del club della prenotazione; l'account Twilio è
+    // della piattaforma (modules/clubs/config.ts).
+    const club: Doc<"clubs"> = await ctx.runQuery(
+      internal.functions.clubForAction,
+      { clubId: clubOf(booking) },
+    );
+    const whatsapp = clubConfig(club).whatsapp;
+    if (!whatsapp || !process.env.TWILIO_SID || !process.env.TWILIO_AUTH) {
       console.warn(
-        "WhatsApp di conferma non inviato: TWILIO_SID, TWILIO_AUTH o TWILIO_PHONE_SENDER mancanti.",
+        `WhatsApp di conferma non inviato: ${club.slug} non ha WhatsApp configurato, o mancano TWILIO_SID e TWILIO_AUTH.`,
       );
       await record({
         status: "failed",
@@ -126,13 +135,9 @@ export const sendConfirmationWithWhatsapp = internalAction({
     try {
       const client = getMessagingClient();
       const message = await client.messages.create({
-        from: `whatsapp:${sender}`, // o numero business
+        from: `whatsapp:${whatsapp.sender}`, // o numero business
         to: `whatsapp:${phone}`, // numero del cliente
-        // Sostituibile senza rilascio: cambiando il template su Twilio basta
-        // aggiornare la variabile d'ambiente.
-        contentSid:
-          process.env.TWILIO_BOOKING_TEMPLATE_SID ??
-          "HX59dcd979ad55c221765b52157430c98b",
+        contentSid: whatsapp.bookingTemplateSid,
         contentVariables: JSON.stringify(vars),
         ...(siteUrl ? { statusCallback: `${siteUrl}/webhooks/twilio` } : {}),
       });

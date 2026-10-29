@@ -29,7 +29,7 @@ export const enabled = clubQuery({
 export const setup = clubQuery({
   args: {},
   handler: async (ctx) => ({
-    configured: sumupConfig() !== null,
+    configured: sumupConfig(ctx.club) !== null,
     enabled: (await bookingSettings(ctx, ctx.club._id)).onlinePaymentsEnabled,
   }),
 });

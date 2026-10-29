@@ -5,7 +5,6 @@ import { type Infer, v } from "convex/values";
  *
  * Ogni chiamata a `notifications/alert` dichiara il suo tipo, e le notifiche
  * push arrivano solo a chi non l'ha spento (modules/push/preferences.ts).
- * Hark resta com'era: è il canale di chi vuole tutto.
  *
  * L'elenco vive qui e non nella dashboard perché etichette e chiavi sono la
  * stessa cosa vista da due lati: il gestionale le mostra, il backend le usa

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../../functions";
-import { clubOf, defaultClubId } from "../clubs/lib";
+import { clubOf } from "../clubs/lib";
 import { MATCH_DURATION_MS } from "../openMatches/lib";
 import { SYNC_WINDOW_DAYS } from "./lib";
 
@@ -33,8 +33,14 @@ export const applyBlocks = internalMutation({
     from: v.number(),
     to: v.number(),
     blocks: v.array(blockValidator),
+    /**
+     * Il club del calendario. Tutto quello che segue resta nel suo: senza, la
+     * sincronizzazione di un club cancellerebbe le occupazioni degli altri,
+     * che nel suo calendario non ci sono.
+     */
+    clubId: v.id("clubs"),
   },
-  handler: async (ctx, { from, to, blocks }) => {
+  handler: async (ctx, { from, to, blocks, clubId }) => {
     const seen = new Set(blocks.map((block) => block.externalId));
 
     // Il margine a sinistra recupera gli eventi cominciati prima della finestra
@@ -43,7 +49,12 @@ export const applyBlocks = internalMutation({
 
     const existing = await ctx.db
       .query("externalBookings")
-      .withIndex("by_start", (q) => q.gte("start", from - margin).lte("start", to))
+      .withIndex("by_club_start", (q) =>
+        q
+          .eq("clubId", clubId)
+          .gte("start", from - margin)
+          .lte("start", to),
+      )
       .collect();
 
     const byExternalId = new Map(existing.map((row) => [row.externalId, row]));
@@ -63,7 +74,7 @@ export const applyBlocks = internalMutation({
       }
 
       await ctx.db.insert("externalBookings", {
-        clubId: await defaultClubId(ctx),
+        clubId,
         source: "sumup",
         externalId: block.externalId,
         start: block.start,
@@ -87,7 +98,9 @@ export const applyBlocks = internalMutation({
     // Il passato non blocca più niente: teniamo la tabella corta.
     const stale = await ctx.db
       .query("externalBookings")
-      .withIndex("by_start", (q) => q.lt("start", from - margin))
+      .withIndex("by_club_start", (q) =>
+        q.eq("clubId", clubId).lt("start", from - margin),
+      )
       .collect();
 
     for (const row of stale) {
@@ -98,11 +111,14 @@ export const applyBlocks = internalMutation({
   },
 });
 
-/** Quando è andata a buon fine l'ultima sincronizzazione. */
+/** Quando è andata a buon fine l'ultima sincronizzazione del club. */
 export const lastSync = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const rows = await ctx.db.query("externalBookings").collect();
+  args: { clubId: v.id("clubs") },
+  handler: async (ctx, { clubId }) => {
+    const rows = await ctx.db
+      .query("externalBookings")
+      .withIndex("by_club_start", (q) => q.eq("clubId", clubId))
+      .collect();
 
     return rows.reduce((latest, row) => Math.max(latest, row.syncedAt), 0);
   },

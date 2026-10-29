@@ -1,20 +1,15 @@
 "use node";
 
+import { v } from "convex/values";
+
 import { internal } from "../../_generated/api";
+import type { Doc } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
 import { clubAction, internalAction } from "../../functions";
 import { calendarConfig, listBlocks } from "./client";
 import { syncWindow } from "./lib";
 import { STAFF_SETTINGS_URL } from "../../utils/staffLinks";
 
-/**
- * Il club del calendario. Oggi è uno solo, configurato nelle variabili
- * d'ambiente, ed è di Padel Sport: diventa per club con `clubConfig`
- * (docs/multi-club.md, Fase 2).
- */
-async function calendarClub(ctx: ActionCtx) {
-  return (await ctx.runQuery(internal.functions.clubForAction, {}))._id;
-}
 
 /**
  * Porta dentro le prenotazioni prese su SumUp.
@@ -26,8 +21,17 @@ async function calendarClub(ctx: ActionCtx) {
  * Senza configurazione non fa nulla e non è un errore: è il club che non ha
  * (ancora) collegato il calendario.
  */
-async function sync(ctx: ActionCtx) {
-  const config = calendarConfig();
+/** Com'è andata: senza calendario, letto, o fallito con il motivo. */
+type SyncResult =
+  | { configured: false; blocks: 0; failed: false }
+  | { configured: true; blocks: number; failed: false }
+  | { configured: true; blocks: 0; failed: true; error: string };
+
+async function sync(
+  ctx: ActionCtx,
+  club: Doc<"clubs">,
+): Promise<SyncResult> {
+  const config = calendarConfig(club);
   if (!config) return { configured: false as const, blocks: 0, failed: false };
 
   const { from, to } = syncWindow();
@@ -37,23 +41,36 @@ async function sync(ctx: ActionCtx) {
     from,
     to,
     blocks,
+    clubId: club._id,
   });
 
   return { configured: true as const, blocks: blocks.length, failed: false };
 }
 
 export default internalAction({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    /**
+     * Il club da sincronizzare. Senza, Padel Sport: il cron di oggi non lo
+     * passa, e farà un giro per club (docs/multi-club.md, Fase 2).
+     */
+    clubId: v.optional(v.id("clubs")),
+  },
+  // Il tipo di ritorno va scritto: dedotto, Convex lo farebbe dipendere da
+  // `internal`, che dipende da questo file.
+  handler: async (ctx, { clubId }): Promise<SyncResult> => {
+    const club: Doc<"clubs"> = await ctx.runQuery(
+      internal.functions.clubForAction,
+      { clubId },
+    );
     try {
-      return await sync(ctx);
+      return await sync(ctx, club);
     } catch (error) {
       // Un calendario irraggiungibile non deve liberare campi: le occupazioni
       // già note restano, e allo staff arriva un avviso.
       console.error("Sincronizzazione del calendario campi fallita:", error);
 
       await ctx.runAction(internal.modules.notifications.alert.default, {
-        clubId: await calendarClub(ctx),
+        clubId: club._id,
         category: "system",
         title: "⚠️ Calendario campi non sincronizzato",
         message:
@@ -85,15 +102,12 @@ export default internalAction({
 export const refresh = clubAction({
   args: {},
   handler: async (ctx) => {
-    // Il calendario è quello di un club solo: dal sito di un altro non c'è
-    // niente da rileggere.
-    if (ctx.club._id !== (await calendarClub(ctx))) {
-      return { skipped: true as const };
-    }
+    // Un club senza calendario non ha niente da rileggere.
+    if (!calendarConfig(ctx.club)) return { skipped: true as const };
 
     const lastSync = await ctx.runQuery(
       internal.modules.courtCalendar.data.lastSync,
-      {},
+      { clubId: ctx.club._id },
     );
 
     if (Date.now() - lastSync < 30_000) {
@@ -101,7 +115,7 @@ export const refresh = clubAction({
     }
 
     try {
-      await sync(ctx);
+      await sync(ctx, ctx.club);
     } catch (error) {
       // Qui il silenzio è voluto: la griglia mostrata al visitatore vale anche
       // con i dati dell'ultimo giro riuscito.

@@ -236,7 +236,7 @@ export const abandon = internalMutation({
 export const start = clubAction({
   args: { code: v.string() },
   handler: async (ctx, { code }): Promise<{ url: string }> => {
-    const config = sumupConfig();
+    const config = sumupConfig(ctx.club);
     if (!config) {
       throw new Error(
         "Il pagamento online non è attivo: puoi pagare in struttura.",
@@ -352,7 +352,11 @@ async function settle(
     return payment.status;
   }
 
-  const config = sumupConfig();
+  // Da un'action interna, partendo dal pagamento: il club è il suo.
+  const club = await ctx.runQuery(internal.functions.clubForAction, {
+    clubId: clubOf(payment),
+  });
+  const config = sumupConfig(club);
   if (!config) return payment.status;
 
   const checkout = await getCheckout(config, payment.checkoutId);

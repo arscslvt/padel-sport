@@ -3,6 +3,8 @@
 import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
+import type { ActionCtx } from "../../_generated/server";
 import { internalAction } from "../../functions";
 import {
   calendarConfig,
@@ -12,6 +14,12 @@ import {
 } from "./client";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
+
+/** I calendari del club, se li ha collegati (modules/clubs/config.ts). */
+async function clubCalendar(ctx: ActionCtx, clubId: Id<"clubs">) {
+  const club = await ctx.runQuery(internal.functions.clubForAction, { clubId });
+  return calendarConfig(club);
+}
 
 /** Il titolo dell'evento: per SumUp ogni evento è un campo occupato. */
 function summaryFor(court: string | undefined): string {
@@ -32,13 +40,13 @@ function summaryFor(court: string | undefined): string {
 export default internalAction({
   args: { bookingId: v.id("bookings") },
   handler: async (ctx, { bookingId }) => {
-    const config = calendarConfig();
-    if (!config) return;
-
     const booking = await ctx.runQuery(
       internal.modules.courtCalendar.data.bookingForCalendar,
       { bookingId },
     );
+    // Il calendario è quello del club della prenotazione.
+    const config = booking && (await clubCalendar(ctx, booking.clubId));
+    if (!config) return;
 
     if (!booking || booking.status === "cancelled") return;
 
@@ -115,13 +123,13 @@ export default internalAction({
 export const move = internalAction({
   args: { bookingId: v.id("bookings") },
   handler: async (ctx, { bookingId }) => {
-    const config = calendarConfig();
-    if (!config) return;
-
     const booking = await ctx.runQuery(
       internal.modules.courtCalendar.data.bookingForCalendar,
       { bookingId },
     );
+    // Il calendario è quello del club della prenotazione.
+    const config = booking && (await clubCalendar(ctx, booking.clubId));
+    if (!config) return;
     if (!booking || booking.status === "cancelled") return;
 
     const when = { start: booking.start, end: booking.end };
@@ -194,13 +202,13 @@ export const move = internalAction({
 export const remove = internalAction({
   args: { bookingId: v.id("bookings") },
   handler: async (ctx, { bookingId }) => {
-    const config = calendarConfig();
-    if (!config) return;
-
     const booking = await ctx.runQuery(
       internal.modules.courtCalendar.data.bookingForCalendar,
       { bookingId },
     );
+    // Il calendario è quello del club della prenotazione.
+    const config = booking && (await clubCalendar(ctx, booking.clubId));
+    if (!config) return;
 
     if (!booking) return;
     if (!booking.externalEventId && booking.extraEventIds.length === 0) return;

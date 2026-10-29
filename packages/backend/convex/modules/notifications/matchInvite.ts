@@ -2,7 +2,9 @@
 
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
+import type { Doc } from "../../_generated/dataModel";
 import { internalAction } from "../../functions";
+import { clubConfig } from "../clubs/config";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { getMessagingClient } from "../../utils/notification_client";
 import {
@@ -64,8 +66,13 @@ export const send = internalAction({
         return;
       }
 
-      const sender = process.env.TWILIO_PHONE_SENDER;
-      const contentSid = process.env.TWILIO_MATCH_INVITE_TEMPLATE_SID;
+      const club: Doc<"clubs"> = await ctx.runQuery(
+        internal.functions.clubForAction,
+        { clubId: data.clubId },
+      );
+      const whatsapp = clubConfig(club).whatsapp;
+      const sender = whatsapp?.sender;
+      const contentSid = whatsapp?.matchInviteTemplateSid;
       if (
         !sender ||
         !contentSid ||
@@ -73,7 +80,7 @@ export const send = internalAction({
         !process.env.TWILIO_AUTH
       ) {
         console.warn(
-          "WhatsApp d'invito non inviato: TWILIO_MATCH_INVITE_TEMPLATE_SID, TWILIO_SID, TWILIO_AUTH o TWILIO_PHONE_SENDER mancanti.",
+          `WhatsApp d'invito non inviato: ${club.slug} non ha numero o template d'invito configurati, o mancano TWILIO_SID e TWILIO_AUTH.`,
         );
         await record("whatsapp", {
           recipient: data.phone,

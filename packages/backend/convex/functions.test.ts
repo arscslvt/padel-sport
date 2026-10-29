@@ -440,12 +440,20 @@ describe("pagamenti per club", () => {
   test("lo staff non rimborsa l'incasso di un altro club", async () => {
     vi.stubEnv("SUMUP_API_KEY", "chiave");
     vi.stubEnv("SUMUP_MERCHANT_CODE", "M123");
-    const { t, bookingA, payment } = await paidInBothClubs();
+    const { t, b, bookingA, payment } = await paidInBothClubs();
 
+    // Oggi l'altro club si ferma prima: le chiavi SumUp sono di Padel Sport.
     await expect(
       t.action(api.modules.payments.refund.default, {
         ...staffB,
         bookingId: bookingA,
+      }),
+    ).rejects.toThrow("Le chiavi di SumUp non sono configurate");
+    // E quando avrà le sue, `begin` rifiuta comunque la prenotazione altrui.
+    await expect(
+      t.mutation(internal.modules.payments.refund.begin, {
+        bookingId: bookingA,
+        clubId: b,
       }),
     ).rejects.toThrow("Prenotazione non trovata.");
     const after = await t.run((ctx) => ctx.db.get(payment));

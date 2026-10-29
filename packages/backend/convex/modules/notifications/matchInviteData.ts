@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../../functions";
+import { clubOf } from "../clubs/lib";
 import { firstNameOf, whatsappPhone } from "./bookingPlayers";
 
 /**
@@ -29,6 +30,8 @@ export const payload = internalQuery({
     const slot = await ctx.db.get(booking.slot);
 
     return {
+      /** Il numero WhatsApp da cui parte l'invito è del club della partita. */
+      clubId: clubOf(match),
       bookingId: booking._id,
       playerId: invitee._id,
       name: invitee.name,

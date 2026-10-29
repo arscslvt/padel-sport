@@ -8,7 +8,7 @@
  * WhatsApp come «alle 13:00» mentre mail e sito, che il fuso lo dichiarano,
  * davano l'orario giusto.
  *
- * Da qui passa qualunque data destinata a un messaggio: WhatsApp, avvisi Hark
+ * Da qui passa qualunque data destinata a un messaggio: WhatsApp, avvisi
  * allo staff, righe di log leggibili.
  *
  * Un fuso solo per tutti i club, per scelta (docs/multi-club.md): i club sono

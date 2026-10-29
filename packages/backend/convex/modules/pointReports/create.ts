@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { clubMutation } from "../../functions";
 import { pointReportCategory } from "../../tables/pointReports";
-import { excerpt } from "../../utils/hark";
+import { excerpt } from "../../utils/excerpt";
 import { staffPointReportUrl } from "../../utils/staffLinks";
 import { requirePlayer } from "../openMatches/lib";
 import { CATEGORY_LABELS, MAX_MESSAGE, MIN_MESSAGE } from "./lib";

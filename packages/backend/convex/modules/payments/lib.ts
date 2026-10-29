@@ -64,7 +64,8 @@ export async function onlinePaymentsActive(
   ctx: QueryCtx,
   clubId: Id<"clubs">,
 ): Promise<boolean> {
-  if (sumupConfig() === null) return false;
+  const club = await ctx.db.get(clubId);
+  if (!club || sumupConfig(club) === null) return false;
   return (await bookingSettings(ctx, clubId)).onlinePaymentsEnabled;
 }
 

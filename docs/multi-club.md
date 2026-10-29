@@ -295,9 +295,9 @@ Da 4 a 7 giorni.
         `by_club_status`); prima un avviso arrivava ai telefoni di tutti i
         club. L'elenco dell'assistenza legge da `by_club_status_created` e
         `by_club_created`. I promemoria (inizio partita, giorni vuoti) girano
-        per Padel Sport finché i cron non fanno un giro per club. Hark ha un
-        webhook solo per tutti: va per club con `clubConfig`, prima di un
-        secondo club. Aperto: un dispositivo dello staff iscritto in due club
+        per Padel Sport finché i cron non fanno un giro per club. Hark è stato
+        tolto il 29/10/2026: gli avvisi allo staff sono solo le notifiche push
+        del gestionale. Aperto: un dispositivo dello staff iscritto in due club
         (`by_endpoint` è unico fra club);
   - [x] weather, courtCalendar, deliveries (in dev e in prod il 29/10/2026):
         il meteo del giorno e le occupazioni esterne si leggono per club
@@ -328,9 +328,25 @@ Da 4 a 7 giorni.
   - [ ] indirizzo del sito (`SITE_URL`, ritorno dal pagamento SumUp): passa
         con **Sito e area personale**, dopo la scelta fra sottodominio e
         percorso.
-- [ ] **Configurazioni del club** lette da un helper `clubConfig(ctx, club)`:
-      oggi rilegge le variabili d'ambiente, domani la tabella, senza toccare
-      chi lo usa.
+- [x] **Configurazioni del club** (in dev il 29/10/2026): `clubConfig(club)`
+      (`modules/clubs/config.ts`) dà gli account del club: SumUp, i calendari
+      Google, il numero WhatsApp e i template di Twilio. Oggi li legge dalle
+      variabili d'ambiente e li dà **solo a Padel Sport**: un altro club che le
+      ricevesse incasserebbe su SumUp e scriverebbe su WhatsApp a nome di
+      Padel Sport. Per gli altri ogni servizio risulta non configurato. Prende
+      la riga del club, non l'id, così domani la configurazione può stare
+      sulla riga senza toccare chi la usa. Restano della piattaforma l'account
+      Twilio (`TWILIO_SID`, `TWILIO_AUTH`), l'account di servizio Google, le
+      chiavi delle push, Resend e Clerk.
+  - Con lei, due errori che con un secondo club avrebbero fatto danni: la
+    sincronizzazione del calendario (`courtCalendar/data:applyBlocks`)
+    cancellava le occupazioni esterne di tutti i club che non trovava nel
+    suo calendario, e `lastSync` guardava tutti i club. Ora sono per club
+    (`by_club_start`), e `courtCalendar/pull` riceve il club come il meteo.
+  - Hark tolto: `utils/hark.ts` non c'è più (l'accorciatore del testo è in
+    `utils/excerpt.ts`), gli avvisi passano solo dalle notifiche push, e il
+    sito non ripiega più su Hark quando Convex non risponde. La variabile
+    `HARK_WEBHOOK_URL` si può togliere da Convex (dev e prod) e da Railway.
 - [ ] **Cron**: ognuno elenca i club e programma un job per club.
 - [x] **Gestionale** (in dev e in prod il 29/10/2026, organizzazione
       collegata in entrambi): `staffGate` dà
