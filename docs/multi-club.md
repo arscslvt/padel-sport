@@ -379,7 +379,8 @@ Da 4 a 7 giorni.
 - [ ] **Sito e area personale**: `CLUB_SLUG` su Railway, passato alle query
       pubbliche.
 - [ ] **App mobile**: slug costante nella configurazione.
-- [x] **Modalità manutenzione** (in dev il 29/10/2026): `modules/clubs/status`
+- [x] **Modalità manutenzione** (in dev e in prod il 29/10/2026):
+      `modules/clubs/status`
       dice se il club è in manutenzione e se chi guarda passa lo stesso
       (`PLATFORM_ADMIN_USER_IDS`). Anche `clubAction` ora la controlla: prima
       un pagamento SumUp si apriva lo stesso.
