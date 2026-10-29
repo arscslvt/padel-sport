@@ -267,8 +267,8 @@ Da 4 a 7 giorni.
         non ha regole per riga: ora riceve il club dall'action e rifiuta una
         prenotazione di un altro club. Prima lo staff di un club poteva
         rimborsare l'incasso di un altro conoscendone l'id;
-  - [x] points, rewards, referrals, pointReports (in dev il 29/10/2026): le
-        regole dei punti (`ruleRow`, `activeRule`) vogliono il club e leggono
+  - [x] points, rewards, referrals, pointReports (in dev e in prod il
+        29/10/2026): le regole dei punti (`ruleRow`, `activeRule`) vogliono il club e leggono
         da `by_club_key`. Il motore dei punti automatici gira in una mutation
         interna e prende il club dal record che tratta (`clubOf`, in
         `modules/clubs/lib.ts`): prima avrebbe applicato a un club le regole
