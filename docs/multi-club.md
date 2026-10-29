@@ -246,8 +246,8 @@ Da 4 a 7 giorni.
         (inviti, richieste, ospiti, cerchie, amicizie) partono sempre da una
         partita, una cerchia o un giocatore e restano com'erano. La pulizia
         delle richieste vecchie (`privacy/retention`) passa con privacy;
-  - [x] clients, players, memberships, privacy (in dev il 29/10/2026): la
-        scheda di un account si cerca nel club (`playerOfUser`,
+  - [x] clients, players, memberships, privacy (in dev e in prod il
+        29/10/2026): la scheda di un account si cerca nel club (`playerOfUser`,
         `getIdentityPlayer`, `requirePlayer` vogliono il club, su
         `by_club_clerk_user_id`). Senza, nelle funzioni interne dei pagamenti
         un account con una scheda in due club faceva fallire `unique()`: ora
