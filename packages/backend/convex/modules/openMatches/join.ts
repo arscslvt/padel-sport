@@ -44,6 +44,7 @@ export default clubMutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        clubId: ctx.club._id,
         category: "matches",
         title: "Nuovo giocatore in partita",
         message: `${player.name} si è unito alla partita del ${formatClubDateTime(

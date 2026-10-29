@@ -25,7 +25,7 @@ export default serverMutation({
     await ctx.scheduler.runAfter(
       0,
       internal.modules.notifications.alert.default,
-      notification,
+      { ...notification, clubId: ctx.club._id },
     );
   },
 });

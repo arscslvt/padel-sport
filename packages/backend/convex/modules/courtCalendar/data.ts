@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../../functions";
-import { defaultClubId } from "../clubs/lib";
+import { clubOf, defaultClubId } from "../clubs/lib";
 import { MATCH_DURATION_MS } from "../openMatches/lib";
 import { SYNC_WINDOW_DAYS } from "./lib";
 
@@ -121,6 +121,8 @@ export const bookingForCalendar = internalQuery({
     );
 
     return {
+      /** Per l'avviso allo staff, se il calendario non risponde. */
+      clubId: clubOf(booking),
       start: booking.bookingDate,
       end: booking.bookingDate + MATCH_DURATION_MS,
       court: slot?.name,

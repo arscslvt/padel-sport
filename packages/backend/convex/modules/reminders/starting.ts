@@ -1,6 +1,7 @@
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { internalMutation } from "../../functions";
+import { defaultClubId } from "../clubs/lib";
 import { formatClubTime } from "../../utils/clubTime";
 import { staffAgendaDayUrl, staffBookingUrl } from "../../utils/staffLinks";
 import { courtLabel } from "../openMatches/lib";
@@ -45,11 +46,19 @@ export default internalMutation({
   handler: async (ctx) => {
     const now = Date.now();
 
+    // Per ora gira per Padel Sport soltanto: il giro per club arriva con i
+    // cron (docs/multi-club.md, Fase 2).
+    const clubId = await defaultClubId(ctx);
+    if (!clubId) return;
+
     const bookings = (
       await ctx.db
         .query("bookings")
-        .withIndex("by_booking_date", (q) =>
-          q.gt("bookingDate", now).lte("bookingDate", now + LEAD_MS),
+        .withIndex("by_club_booking_date", (q) =>
+          q
+            .eq("clubId", clubId)
+            .gt("bookingDate", now)
+            .lte("bookingDate", now + LEAD_MS),
         )
         .collect()
     ).filter(
@@ -63,8 +72,8 @@ export default internalMutation({
     const external = (
       await ctx.db
         .query("externalBookings")
-        .withIndex("by_start", (q) =>
-          q.gt("start", now).lte("start", now + LEAD_MS),
+        .withIndex("by_club_start", (q) =>
+          q.eq("clubId", clubId).gt("start", now).lte("start", now + LEAD_MS),
         )
         .collect()
     ).filter((row) => !row.allDay && row.remindedStart !== row.start);
@@ -112,6 +121,7 @@ export default internalMutation({
       const count = rows.length;
 
       await ctx.scheduler.runAfter(0, internal.modules.push.send.default, {
+        clubId: clubId,
         category: "starting",
         title:
           count === 1

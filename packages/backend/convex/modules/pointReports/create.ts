@@ -75,6 +75,7 @@ export default clubMutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        clubId: ctx.club._id,
         category: "requests",
         title: `Punti: ${player.name}`,
         message: [

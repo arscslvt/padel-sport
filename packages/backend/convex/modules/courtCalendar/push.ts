@@ -89,6 +89,7 @@ export default internalAction({
       console.error("Prenotazione non pubblicata sul calendario:", error);
 
       await ctx.runAction(internal.modules.notifications.alert.default, {
+        clubId: booking.clubId,
         category: "system",
         title: "⚠️ Prenotazione non sincronizzata con SumUp",
         message: `${booking.bookedBy}, ${formatClubDateTime(
@@ -176,6 +177,7 @@ export const move = internalAction({
       console.error("Evento della prenotazione non spostato:", error);
 
       await ctx.runAction(internal.modules.notifications.alert.default, {
+        clubId: booking.clubId,
         category: "system",
         title: "⚠️ Cambio d'orario non sincronizzato con SumUp",
         message: `${booking.bookedBy}, ora alle ${formatClubDateTime(

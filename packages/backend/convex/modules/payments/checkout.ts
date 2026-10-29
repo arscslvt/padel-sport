@@ -11,6 +11,7 @@ import {
 } from "../../functions";
 import { formatClubDateTime } from "../../utils/clubTime";
 import { staffBookingUrl } from "../../utils/staffLinks";
+import { clubOf } from "../clubs/lib";
 import { getIdentityPlayer, requirePlayer } from "../openMatches/lib";
 import { bookingChanged } from "../points/auto";
 import { bookingTotal, formatEuro } from "../pricing/lib";
@@ -500,6 +501,7 @@ export const apply = internalMutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        clubId: clubOf(booking),
         category: "payments",
         title: problem
           ? "Pagamento online da verificare"

@@ -332,6 +332,7 @@ export default clubMutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        clubId: ctx.club._id,
         category: "bookings",
         title:
           origin === "web"

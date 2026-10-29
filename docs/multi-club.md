@@ -215,7 +215,7 @@ Da 4 a 7 giorni.
 - [x] Test di isolamento (`functions.test.ts`): due club, query pubbliche,
       scritture dello staff, righe di un altro club, giocatori per club,
       segreto sbagliato, manutenzione.
-- [ ] **Modulo per modulo**, passando ai wrapper e ai nuovi indici, con i test
+- [x] **Modulo per modulo**, passando ai wrapper e ai nuovi indici, con i test
       di isolamento che crescono insieme:
   - [x] settings e slots (in dev e in prod il 29/10/2026): `settingsRowOf`,
         `bookingSettings` e `clubCourts` (`modules/settings/lib.ts`) vogliono
@@ -287,8 +287,27 @@ Da 4 a 7 giorni.
         da `by_club_date`; `events/new`, interna e non chiamata da nessuno,
         riceve il club invece di `defaultClubId`. La cancellazione delle
         iscrizioni vecchie sta in `privacy/retention`;
-  - [ ] supportRequests, notifications, push, reminders;
-  - [ ] weather, courtCalendar, deliveries;
+  - [x] supportRequests, notifications, push, reminders (in dev il
+        29/10/2026): `notifications/alert` e `push/send` vogliono il club,
+        obbligatorio apposta: un avviso dimenticato senza club porterebbe
+        nomi e orari dei clienti allo staff di un altro. Destinatari,
+        preferenze e numero sull'icona sono per club (`by_club_user`,
+        `by_club_status`); prima un avviso arrivava ai telefoni di tutti i
+        club. L'elenco dell'assistenza legge da `by_club_status_created` e
+        `by_club_created`. I promemoria (inizio partita, giorni vuoti) girano
+        per Padel Sport finché i cron non fanno un giro per club. Hark ha un
+        webhook solo per tutti: va per club con `clubConfig`, prima di un
+        secondo club. Aperto: un dispositivo dello staff iscritto in due club
+        (`by_endpoint` è unico fra club);
+  - [x] weather, courtCalendar, deliveries (in dev il 29/10/2026): il meteo
+        del giorno e le occupazioni esterne si leggono per club
+        (`by_club_day`, `by_club_start`, `externalBlocksBetween` vuole il
+        club). Le sincronizzazioni restano di Padel Sport, perché coordinate
+        e calendario stanno ancora nelle variabili d'ambiente: diventano per
+        club con le costanti e con `clubConfig`. Intanto
+        `courtCalendar/pull:refresh`, dal sito di un altro club, non rilegge
+        il calendario. Deliveries parte dalla prenotazione e dagli id del
+        provider, e non cambia;
 - [ ] **Costanti del club** lette dalla riga `clubs`: fuso orario, coordinate
       del meteo, nome nei messaggi e nei pagamenti, link dello staff.
 - [ ] **Configurazioni del club** lette da un helper `clubConfig(ctx, club)`:

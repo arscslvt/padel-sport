@@ -100,7 +100,9 @@ export const removeForUser = serverMutation({
   handler: async (ctx, { userId }) => {
     const rows = await ctx.db
       .query("pushSubscriptions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_club_user", (q) =>
+        q.eq("clubId", ctx.club._id).eq("userId", userId),
+      )
       .collect();
 
     for (const row of rows) await ctx.db.delete(row._id);
@@ -118,7 +120,10 @@ export const removeForUser = serverMutation({
 export const list = serverQuery({
   args: {},
   handler: async (ctx) => {
-    const rows = await ctx.db.query("pushSubscriptions").collect();
+    const rows = await ctx.db
+      .query("pushSubscriptions")
+      .withIndex("by_club_user", (q) => q.eq("clubId", ctx.club._id))
+      .collect();
 
     return {
       publicKey: process.env.VAPID_PUBLIC_KEY ?? null,
@@ -150,6 +155,7 @@ export const test = serverMutation({
     if (!row) throw new Error("Questo dispositivo non è ancora attivo.");
 
     await ctx.scheduler.runAfter(0, internal.modules.push.send.default, {
+      clubId: ctx.club._id,
       title: "Notifiche attive",
       body: "Da qui in poi le nuove prenotazioni arrivano anche su questo dispositivo.",
       endpoints: [endpoint],
@@ -165,14 +171,21 @@ export const targets = internalQuery({
   args: {
     endpoints: v.optional(v.array(v.string())),
     category: v.optional(notificationCategory),
+    clubId: v.id("clubs"),
   },
-  handler: async (ctx, { endpoints, category }) => {
-    const rows = await ctx.db.query("pushSubscriptions").collect();
+  handler: async (ctx, { endpoints, category, clubId }) => {
+    const rows = await ctx.db
+      .query("pushSubscriptions")
+      .withIndex("by_club_user", (q) => q.eq("clubId", clubId))
+      .collect();
     const wanted = endpoints ? new Set(endpoints) : null;
 
     const muted = new Set<string>();
     if (category) {
-      const preferences = await ctx.db.query("notificationPreferences").collect();
+      const preferences = await ctx.db
+        .query("notificationPreferences")
+        .withIndex("by_club_user", (q) => q.eq("clubId", clubId))
+        .collect();
       for (const preference of preferences) {
         if (preference.muted.includes(category)) muted.add(preference.userId);
       }
@@ -197,12 +210,14 @@ export const targets = internalQuery({
  * l'icona e la barra non devono dire due cose diverse.
  */
 export const badgeCount = internalQuery({
-  args: {},
-  handler: async (ctx) => {
+  args: { clubId: v.id("clubs") },
+  handler: async (ctx, { clubId }) => {
     const now = Date.now();
     const pending = await ctx.db
       .query("bookings")
-      .withIndex("by_status", (q) => q.eq("status", "pending_on_site_payment"))
+      .withIndex("by_club_status", (q) =>
+        q.eq("clubId", clubId).eq("status", "pending_on_site_payment"),
+      )
       .collect();
 
     return pending.filter((booking) => booking.bookingDate >= now).length;

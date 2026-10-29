@@ -16,7 +16,9 @@ export const get = serverQuery({
   handler: async (ctx, { userId }) => {
     const row = await ctx.db
       .query("notificationPreferences")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_club_user", (q) =>
+        q.eq("clubId", ctx.club._id).eq("userId", userId),
+      )
       .unique();
 
     return { muted: row?.muted ?? [] };
@@ -32,7 +34,9 @@ export const set = serverMutation({
     const unique = [...new Set(muted)];
     const row = await ctx.db
       .query("notificationPreferences")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_club_user", (q) =>
+        q.eq("clubId", ctx.club._id).eq("userId", userId),
+      )
       .unique();
 
     if (row) {

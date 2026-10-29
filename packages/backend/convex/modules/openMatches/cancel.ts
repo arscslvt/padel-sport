@@ -89,6 +89,7 @@ export default clubMutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        clubId: ctx.club._id,
         category: "cancellations",
         title: "Partita eliminata dall'app",
         message: `${player.name} ha eliminato la partita del ${formatClubDateTime(

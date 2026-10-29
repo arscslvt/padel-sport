@@ -550,6 +550,67 @@ describe("eventi per club", () => {
   });
 });
 
+describe("avvisi allo staff per club", () => {
+  /** Un telefono dello staff per club, e una prenotazione da confermare in B. */
+  async function staffPhones() {
+    const clubs = await twoClubs();
+    await clubs.t.run(async (ctx) => {
+      for (const [clubId, userId] of [
+        [clubs.a, "staff_a"],
+        [clubs.b, "staff_b"],
+      ] as const) {
+        await ctx.db.insert("pushSubscriptions", {
+          clubId,
+          endpoint: `https://push.esempio.it/${userId}`,
+          p256dh: "p256dh",
+          auth: "auth",
+          userId,
+          device: "Telefono",
+          createdAt: 0,
+          lastSeenAt: 0,
+          failures: 0,
+        });
+      }
+      await ctx.db.insert("bookings", booking(clubs.b, clubs.courtB));
+    });
+    return clubs;
+  }
+
+  test("le push arrivano solo ai telefoni dello staff del club", async () => {
+    const { t, a, b } = await staffPhones();
+    const targets = (clubId: Id<"clubs">) =>
+      t.query(internal.modules.push.subscriptions.targets, {
+        clubId,
+        category: "bookings",
+      });
+    expect((await targets(a)).map((row) => row.endpoint)).toEqual([
+      "https://push.esempio.it/staff_a",
+    ]);
+    expect((await targets(b)).map((row) => row.endpoint)).toEqual([
+      "https://push.esempio.it/staff_b",
+    ]);
+
+    // Il numero sull'icona conta le prenotazioni da confermare del club.
+    const badge = (clubId: Id<"clubs">) =>
+      t.query(internal.modules.push.subscriptions.badgeCount, { clubId });
+    expect([await badge(a), await badge(b)]).toEqual([0, 1]);
+  });
+
+  test("un avviso dal sito parte per il club di chi lo chiede", async () => {
+    const { t, b } = await staffPhones();
+    await t.mutation(api.modules.notifications.staff.default, {
+      ...staffB,
+      category: "bookings",
+      title: "Nuova richiesta",
+      message: "Prova",
+    });
+    const scheduled = await t.run((ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    expect(scheduled.map((job) => job.args[0].clubId)).toEqual([b]);
+  });
+});
+
 describe("giocatori per club", () => {
   test("lo stesso account è un giocatore solo nel club dove ha la scheda", async () => {
     const { t, a, b } = await twoClubs();

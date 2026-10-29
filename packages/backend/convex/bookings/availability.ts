@@ -38,7 +38,7 @@ export default clubQuery({
       )
       .collect();
 
-    const blocks = await externalBlocksBetween(ctx, from, to);
+    const blocks = await externalBlocksBetween(ctx, ctx.club._id, from, to);
 
     return {
       busy: bookings

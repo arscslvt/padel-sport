@@ -18,9 +18,14 @@ export default serverQuery({
     const requests = status
       ? await ctx.db
           .query("supportRequests")
-          .withIndex("by_status_created", (q) => q.eq("status", status))
+          .withIndex("by_club_status_created", (q) =>
+            q.eq("clubId", ctx.club._id).eq("status", status),
+          )
           .collect()
-      : await ctx.db.query("supportRequests").withIndex("by_created").collect();
+      : await ctx.db
+          .query("supportRequests")
+          .withIndex("by_club_created", (q) => q.eq("clubId", ctx.club._id))
+          .collect();
 
     // Le più recenti in cima: è l'ordine in cui si smaltiscono.
     return requests.sort((a, b) => b.createdAt - a.createdAt);

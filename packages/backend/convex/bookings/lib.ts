@@ -1,6 +1,7 @@
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { clubOf } from "../modules/clubs/lib";
 import { syncMatchStatus } from "../modules/openMatches/lib";
 import { formatClubDateTime } from "../utils/clubTime";
 import { staffBookingUrl } from "../utils/staffLinks";
@@ -55,6 +56,7 @@ export async function releaseMerge(
   }
 
   await ctx.scheduler.runAfter(0, internal.modules.notifications.alert.default, {
+    clubId: clubOf(partner),
     category: "cancellations",
     title: "⚠️ Campo unito non più completo",
     message: `${partner.bookedBy}, ${formatClubDateTime(

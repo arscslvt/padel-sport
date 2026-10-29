@@ -47,7 +47,9 @@ export const range = clubQuery({
   handler: async (ctx, { from, to }) => {
     const rows = await ctx.db
       .query("weatherDays")
-      .withIndex("by_day", (q) => q.gte("day", from).lte("day", to))
+      .withIndex("by_club_day", (q) =>
+        q.eq("clubId", ctx.club._id).gte("day", from).lte("day", to),
+      )
       .take(62);
     return rows.map(({ _id, _creationTime, ...row }) => row);
   },

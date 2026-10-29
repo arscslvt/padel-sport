@@ -57,6 +57,7 @@ export const request = clubMutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        clubId: ctx.club._id,
         category: "matches",
         title: "Richiesta di partecipazione",
         message: `${player.name} chiede di unirsi alla partita del ${formatClubDateTime(

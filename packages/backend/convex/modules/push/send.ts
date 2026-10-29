@@ -84,12 +84,17 @@ export default internalAction({
      * dopo la partita è peggio di nessun promemoria (modules/reminders).
      */
     ttl: v.optional(v.number()),
+    /**
+     * Il club dell'avviso: arriva solo al suo staff. Obbligatorio apposta,
+     * perché gli avvisi hanno nomi e orari dei clienti.
+     */
+    clubId: v.id("clubs"),
   },
   // Il tipo di ritorno va scritto: dedotto, Convex lo farebbe dipendere da
   // `internal`, che dipende da questo file.
   handler: async (
     ctx,
-    { title, body, url, tag, category, endpoints, ttl },
+    { title, body, url, tag, category, endpoints, ttl, clubId },
   ): Promise<{ sent: number }> => {
     const publicKey = process.env.VAPID_PUBLIC_KEY;
     const privateKey = process.env.VAPID_PRIVATE_KEY;
@@ -104,13 +109,13 @@ export default internalAction({
 
     const targets = await ctx.runQuery(
       internal.modules.push.subscriptions.targets,
-      { endpoints, category },
+      { endpoints, category, clubId },
     );
     if (targets.length === 0) return { sent: 0 };
 
     const badge = await ctx.runQuery(
       internal.modules.push.subscriptions.badgeCount,
-      {},
+      { clubId },
     );
 
     const payload = JSON.stringify({

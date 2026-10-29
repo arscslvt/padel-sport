@@ -95,7 +95,12 @@ export default internalMutation({
     // Da due settimane fa: una chiusura di più giorni può essere cominciata prima.
     const external = await ctx.db
       .query("externalBookings")
-      .withIndex("by_start", (q) => q.gt("start", now - 14 * DAY_MS).lt("start", horizon))
+      .withIndex("by_club_start", (q) =>
+        q
+          .eq("clubId", clubId)
+          .gt("start", now - 14 * DAY_MS)
+          .lt("start", horizon),
+      )
       .collect();
     for (const row of external) {
       // Un evento di tutto il giorno su SumUp è di norma una chiusura
@@ -124,6 +129,7 @@ export default internalMutation({
     const labels = empty.map((day) => dayLabel(day.key));
 
     await ctx.scheduler.runAfter(0, internal.modules.push.send.default, {
+      clubId: clubId,
       category: "agenda",
       title: tomorrowOnly
         ? "Domani non ci sono ancora partite"

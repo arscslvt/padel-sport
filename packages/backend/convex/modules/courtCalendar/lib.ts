@@ -1,4 +1,4 @@
-import type { Doc } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
 
 /**
@@ -56,12 +56,15 @@ export function overlaps(
  */
 export async function externalBlocksBetween(
   ctx: QueryCtx,
+  clubId: Id<"clubs">,
   start: number,
   end: number,
 ): Promise<Doc<"externalBookings">[]> {
   const candidates = await ctx.db
     .query("externalBookings")
-    .withIndex("by_start", (q) => q.lt("start", end))
+    .withIndex("by_club_start", (q) =>
+      q.eq("clubId", clubId).lt("start", end),
+    )
     .collect();
 
   return candidates.filter((block) => block.end > start);

@@ -70,6 +70,7 @@ export default clubMutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        clubId: ctx.club._id,
         category: "matches",
         title: "Nuova cerchia",
         message: `${player.name} ha creato la cerchia "${trimmed}"${

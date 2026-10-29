@@ -83,6 +83,7 @@ export default clubMutation({
       0,
       internal.modules.notifications.alert.default,
       {
+        clubId: ctx.club._id,
         category: "matches",
         title: "Partita aperta a tutti",
         message: `${player.name} ha reso aperta la partita del ${formatClubDateTime(

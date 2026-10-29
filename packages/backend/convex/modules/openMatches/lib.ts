@@ -322,6 +322,7 @@ export async function courtsAt(
 
   const externalBlocks = await externalBlocksBetween(
     ctx,
+    ctx.club._id,
     bookingDate,
     bookingEnd,
   );

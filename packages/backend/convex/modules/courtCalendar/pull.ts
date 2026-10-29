@@ -8,6 +8,15 @@ import { syncWindow } from "./lib";
 import { STAFF_SETTINGS_URL } from "../../utils/staffLinks";
 
 /**
+ * Il club del calendario. Oggi è uno solo, configurato nelle variabili
+ * d'ambiente, ed è di Padel Sport: diventa per club con `clubConfig`
+ * (docs/multi-club.md, Fase 2).
+ */
+async function calendarClub(ctx: ActionCtx) {
+  return (await ctx.runQuery(internal.functions.clubForAction, {}))._id;
+}
+
+/**
  * Porta dentro le prenotazioni prese su SumUp.
  *
  * Gira ogni cinque minuti (convex/crons.ts) e, a richiesta, quando qualcuno
@@ -44,6 +53,7 @@ export default internalAction({
       console.error("Sincronizzazione del calendario campi fallita:", error);
 
       await ctx.runAction(internal.modules.notifications.alert.default, {
+        clubId: await calendarClub(ctx),
         category: "system",
         title: "⚠️ Calendario campi non sincronizzato",
         message:
@@ -75,6 +85,12 @@ export default internalAction({
 export const refresh = clubAction({
   args: {},
   handler: async (ctx) => {
+    // Il calendario è quello di un club solo: dal sito di un altro non c'è
+    // niente da rileggere.
+    if (ctx.club._id !== (await calendarClub(ctx))) {
+      return { skipped: true as const };
+    }
+
     const lastSync = await ctx.runQuery(
       internal.modules.courtCalendar.data.lastSync,
       {},

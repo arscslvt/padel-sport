@@ -3,6 +3,7 @@ import type { Infer } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
+import { clubOf } from "../clubs/lib";
 import type {
   deliveryChannel,
   deliveryEntry,
@@ -193,6 +194,7 @@ export async function alertFailure(
   const to = delivery.recipient ? ` a ${delivery.recipient}` : "";
 
   await ctx.scheduler.runAfter(0, internal.modules.notifications.alert.default, {
+    clubId: clubOf(booking),
     category: "deliveries",
     title: FAILURE_TITLES[delivery.kind],
     message: `${booking.bookedBy}, ${formatClubDateTime(booking.bookingDate)}. ${

@@ -26,12 +26,15 @@ export default internalAction({
     message: v.string(),
     url: v.optional(v.string()),
     idempotencyKey: v.optional(v.string()),
+    /** Il club dell'avviso: le push arrivano solo al suo staff (push/send.ts). */
+    clubId: v.id("clubs"),
   },
-  async handler(ctx, { category, title, message, url, idempotencyKey }) {
+  async handler(ctx, { category, title, message, url, idempotencyKey, clubId }) {
     await Promise.all([
       sendHark({ title, body: message, url, idempotencyKey }),
       ctx
         .runAction(internal.modules.push.send.default, {
+          clubId,
           category,
           title,
           body: message,
