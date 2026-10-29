@@ -5,8 +5,36 @@ import type React from "react";
 
 import Footer from "@/components/footer";
 import Header from "@/components/header";
+import { MaintenancePage } from "@/components/maintenance";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+
+/**
+ * Le pagine che lavorano con le prenotazioni e l'area personale: in
+ * manutenzione lasciano il posto a «Torniamo subito». Le pagine vetrina
+ * restano aperte, e dei loro moduli si ferma solo il modulo
+ * (components/maintenance.tsx).
+ */
+const CONVEX_PAGES = [
+	"/book",
+	"/booking",
+	"/me",
+	"/join",
+	"/invite",
+	"/amico",
+	"/points-exit",
+];
+
+/** Annullare l'iscrizione a un evento, o disiscriversi dalle comunicazioni. */
+const CONVEX_EVENT_PAGES = /^\/events\/[^/]+\/(rsvp|comunicazioni)(\/|$)/;
+
+function usesConvex(pathname: string) {
+	return (
+		CONVEX_PAGES.some(
+			(page) => pathname === page || pathname.startsWith(`${page}/`),
+		) || CONVEX_EVENT_PAGES.test(pathname)
+	);
+}
 
 export default function MainLayout({
 	children,
@@ -29,7 +57,11 @@ export default function MainLayout({
 					!isHome && "pt-24 sm:pt-28",
 				)}
 			>
-				{children}
+				{usesConvex(pathname) ? (
+					<MaintenancePage>{children}</MaintenancePage>
+				) : (
+					children
+				)}
 			</main>
 			<Footer />
 			{modal}

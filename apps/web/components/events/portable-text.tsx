@@ -4,6 +4,7 @@ import { toPlainText } from "next-sanity";
 
 import { EventRsvpForm } from "@/components/events/rsvp-form";
 import { SanityImage } from "@/components/events/sanity-image";
+import { MaintenanceForm } from "@/components/maintenance";
 import type { EventContentImage, EventRsvpFormBlock } from "@/sanity/types";
 
 /** Il breakout dei media rispetto alla colonna di testo, come nel layout di riferimento. */
@@ -36,7 +37,9 @@ export function portableTextComponents(context: {
   return {
     types: {
       rsvpForm: ({ value }: { value: EventRsvpFormBlock }) => (
-        <EventRsvpForm block={value} eventSlug={context.eventSlug} />
+        <MaintenanceForm>
+          <EventRsvpForm block={value} eventSlug={context.eventSlug} />
+        </MaintenanceForm>
       ),
       contentImage: ({ value }: { value: EventContentImage }) => {
         if (!value?.asset) return null;

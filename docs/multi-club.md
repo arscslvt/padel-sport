@@ -371,12 +371,30 @@ Da 4 a 7 giorni.
       dello staff non ha un club». I dati dal browser passano da zod, che toglie
       le chiavi sconosciute: un `clerkOrgId` nel corpo di una richiesta non
       arriva a Convex.
+  - [ ] Alcune schermate leggono Convex direttamente dal browser, con le query
+        pubbliche e senza slug: impostazioni, campi, disponibilità, listino,
+        stato di SumUp, meteo, stato del club. Per lo staff di un altro club
+        sarebbero quelle di Padel Sport. Vanno con il selettore del club
+        (decisioni aperte), passando lo slug del club attivo.
 - [ ] **Sito e area personale**: `CLUB_SLUG` su Railway, passato alle query
       pubbliche.
 - [ ] **App mobile**: slug costante nella configurazione.
-- [ ] **Modalità manutenzione**: query pubblica sullo stato del club; sito,
-      gestionale e app mostrano «Torniamo subito» quando `maintenance` è
-      acceso.
+- [x] **Modalità manutenzione** (in dev il 29/10/2026): `modules/clubs/status`
+      dice se il club è in manutenzione e se chi guarda passa lo stesso
+      (`PLATFORM_ADMIN_USER_IDS`). Anche `clubAction` ora la controlla: prima
+      un pagamento SumUp si apriva lo stesso.
+  - [x] sito: «Torniamo subito» solo sulle pagine che lavorano con Convex
+        (elenco in `apps/web/app/(main)/layout.tsx`: prenotazione, pagina
+        della prenotazione, area personale, inviti, uscita dai punti,
+        annullamento e disiscrizione degli eventi). Le pagine vetrina restano
+        aperte, e al posto dei loro moduli (cerco giocatori, assistenza,
+        iscrizione agli eventi) c'è un avviso. L'amministratore passa, con una
+        striscia che lo ricorda. Le route del sito che scrivono con l'utente
+        in sessione passano `actorUserId`;
+  - [x] gestionale: una striscia in alto. Lo staff consulta, l'amministratore
+        salva;
+  - [ ] app mobile: con la sua voce qui sotto. Intanto le scritture rifiutate
+        mostrano il messaggio d'errore di Convex.
 - [ ] Ogni rilascio: prima `convex deploy`, poi main.
 
 ## Fase 3: il passaggio

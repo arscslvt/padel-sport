@@ -776,6 +776,38 @@ describe("manutenzione", () => {
     });
   });
 
+  test("lo stato del club dice chi passa", async () => {
+    const { t, b } = await twoClubs();
+    const status = (as?: string) =>
+      (as ? t.withIdentity({ subject: as }) : t).query(
+        api.modules.clubs.status.default,
+        { clubSlug: "altro-club" },
+      );
+
+    expect(await status()).toEqual({ maintenance: false, bypass: false });
+    await t.run((ctx) => ctx.db.patch(b, { maintenance: true }));
+    expect(await status()).toEqual({ maintenance: true, bypass: false });
+    expect(await status("user_qualunque")).toEqual({
+      maintenance: true,
+      bypass: false,
+    });
+    expect(await status(ADMIN)).toEqual({ maintenance: true, bypass: true });
+  });
+
+  test("anche le action si fermano", async () => {
+    const { t, b } = await twoClubs();
+    await t.run((ctx) => ctx.db.patch(b, { maintenance: true }));
+
+    const error = await t
+      .withIdentity({ subject: "user_qualunque" })
+      .action(api.modules.payments.checkout.start, {
+        clubSlug: "altro-club",
+        code: "ABC123",
+      })
+      .catch((e: unknown) => e);
+    expect(error).toMatchObject({ data: { code: MAINTENANCE_ERROR } });
+  });
+
   test("gli altri club non si fermano", async () => {
     const { t, b } = await twoClubs();
     await t.run((ctx) => ctx.db.patch(b, { maintenance: true }));

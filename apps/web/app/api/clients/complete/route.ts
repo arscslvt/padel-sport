@@ -116,6 +116,8 @@ export async function POST(request: Request) {
       api.modules.clients.profile.complete,
       {
         secret,
+        // Chi chiede, per la manutenzione: un amministratore lavora lo stesso.
+        actorUserId: userId,
         token,
         clerkUserId: userId,
         email,

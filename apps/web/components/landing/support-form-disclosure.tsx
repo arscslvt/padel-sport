@@ -4,9 +4,10 @@ import { ChevronDown, PenLine } from "lucide-react";
 import React from "react";
 
 import { SupportForm } from "@/components/landing/support-form";
+import { MaintenanceForm } from "@/components/maintenance";
 import { Button } from "@/components/ui/button";
-import { ANCHORS } from "@/lib/anchors";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ANCHORS } from "@/lib/anchors";
 import { cn } from "@/lib/utils";
 
 /**
@@ -64,7 +65,9 @@ export function SupportFormDisclosure() {
             essere tagliato dall'overflow. */}
         <div className="overflow-hidden">
           <div className="pt-6 md:pt-0">
-            <SupportForm />
+            <MaintenanceForm>
+              <SupportForm />
+            </MaintenanceForm>
           </div>
         </div>
       </div>

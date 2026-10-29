@@ -3,7 +3,7 @@
 import { UserRoundSearch } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
-
+import { MaintenanceForm } from "@/components/maintenance";
 import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import { DURATION, EASE } from "@/lib/motion";
@@ -86,7 +86,9 @@ export function FindPlayersPanel() {
               transition={transition}
               className="rounded-card bg-muted p-6 sm:p-8 lg:p-10"
             >
-              <FindPlayersWizard onClose={() => setOpen(false)} />
+              <MaintenanceForm>
+                <FindPlayersWizard onClose={() => setOpen(false)} />
+              </MaintenanceForm>
             </motion.div>
           )}
         </AnimatePresence>

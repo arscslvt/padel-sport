@@ -20,6 +20,7 @@ import { STAFF_ORG_SLUG } from "@/lib/clerk";
 import main_icon from "@/public/favicon/black-icon.png";
 import { BottomTabBar } from "../_components/bottom-tab-bar";
 import DashboardNav from "../_components/dashboard-nav";
+import { MaintenanceBanner } from "../_components/maintenance-banner";
 import { ThemeMenuButton } from "../_components/theme-picker";
 import { TourMenuButton } from "../_components/tour/tour-menu-button";
 import UserCard from "../_components/user-card";
@@ -129,6 +130,7 @@ export default async function StaffLayout({
                        * tutta la pagina oltre il bordo destro.
                        */}
                       <SidebarInset className="bg-background min-w-0 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
+                        <MaintenanceBanner />
                         {children}
                       </SidebarInset>
                       {/* Lo slug sta in una variabile del server: il browser lo

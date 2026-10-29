@@ -90,6 +90,8 @@ export async function POST(request: Request) {
   try {
     await convex.mutation(api.modules.clients.self.syncEmail, {
       secret,
+      // Chi chiede, per la manutenzione: un amministratore lavora lo stesso.
+      actorUserId: userId,
       clerkUserId: userId,
       email,
     });

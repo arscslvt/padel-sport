@@ -55,6 +55,7 @@ import type * as modules_clubs_config from "../modules/clubs/config.js";
 import type * as modules_clubs_cron from "../modules/clubs/cron.js";
 import type * as modules_clubs_lib from "../modules/clubs/lib.js";
 import type * as modules_clubs_seed from "../modules/clubs/seed.js";
+import type * as modules_clubs_status from "../modules/clubs/status.js";
 import type * as modules_courtCalendar_client from "../modules/courtCalendar/client.js";
 import type * as modules_courtCalendar_data from "../modules/courtCalendar/data.js";
 import type * as modules_courtCalendar_lib from "../modules/courtCalendar/lib.js";
@@ -271,6 +272,7 @@ declare const fullApi: ApiFromModules<{
   "modules/clubs/cron": typeof modules_clubs_cron;
   "modules/clubs/lib": typeof modules_clubs_lib;
   "modules/clubs/seed": typeof modules_clubs_seed;
+  "modules/clubs/status": typeof modules_clubs_status;
   "modules/courtCalendar/client": typeof modules_courtCalendar_client;
   "modules/courtCalendar/data": typeof modules_courtCalendar_data;
   "modules/courtCalendar/lib": typeof modules_courtCalendar_lib;

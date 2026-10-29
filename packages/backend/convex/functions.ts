@@ -158,7 +158,7 @@ function assertOpen(club: Doc<"clubs">, userId: string | undefined) {
   if (club.maintenance && !isPlatformAdmin(userId)) {
     throw new ConvexError({
       code: MAINTENANCE_ERROR,
-      message: "Il club è in manutenzione: torniamo subito.",
+      message: "Il club è in manutenzione. Torniamo subito.",
     });
   }
 }
@@ -255,6 +255,11 @@ export const clubAction = customAction(action, {
   args: clubArgs,
   input: async (ctx, { clubSlug }) => {
     const club = await ctx.runQuery(clubForActionRef, { slug: clubSlug });
+    // Le action scrivono attraverso funzioni interne, che la manutenzione non
+    // la guardano: va fermata qui, come per le mutation.
+    if (club.maintenance) {
+      assertOpen(club, (await ctx.auth.getUserIdentity())?.subject);
+    }
     return { ctx: { club }, args: {} };
   },
 });
