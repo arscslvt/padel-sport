@@ -235,7 +235,8 @@ Da 4 a 7 giorni.
         numero sull'icona (`push/subscriptions:badgeCount`, push), la ricerca
         per codice dei pagamenti (payments) e le correzioni da lanciare a mano
         (`bookings/names:alignBookers`, `points/backfill`);
-  - [x] openMatches, matchRequests, circles, friends (in dev il 29/10/2026):
+  - [x] openMatches, matchRequests, circles, friends (in dev e in prod il
+        29/10/2026):
         partite aperte, «le mie partite» e richieste dei giocatori leggono da
         `by_club_status_date` e `by_club_date`. Le ricerche per nome usano un
         indice di ricerca nuovo, `players.by_club_name`, con `clubId` come
