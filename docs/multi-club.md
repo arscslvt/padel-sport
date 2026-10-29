@@ -180,8 +180,9 @@ Da 4 a 7 giorni.
 
 - [ ] **Componente tournaments**: `clubId` sulla tabella dei tornei, passato
       dalle funzioni dell'app che lo chiamano (`modules/tournaments`).
-- [x] **Wrapper** in `convex/functions.ts` (in dev il 28/10/2026), con
-      tutte le funzioni già passate di lì:
+- [x] **Wrapper** in `convex/functions.ts` (in dev il 28/10/2026, in prod il
+      29/10/2026 dopo aver ricontrollato zero righe senza club), con tutte le
+      funzioni già passate di lì:
   - [x] `clubQuery`, `clubMutation`, `clubAction` (sito, area personale,
         app): club dallo slug `clubSlug`, facoltativo con Padel Sport come
         valore predefinito finché esistono versioni vecchie dell'app;
