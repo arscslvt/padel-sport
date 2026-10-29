@@ -30,8 +30,11 @@ export default clubQuery({
 
     const bookings = await ctx.db
       .query("bookings")
-      .withIndex("by_booking_date", (q) =>
-        q.gte("bookingDate", from).lte("bookingDate", to),
+      .withIndex("by_club_booking_date", (q) =>
+        q
+          .eq("clubId", ctx.club._id)
+          .gte("bookingDate", from)
+          .lte("bookingDate", to),
       )
       .collect();
 

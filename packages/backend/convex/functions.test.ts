@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { MAINTENANCE_ERROR } from "./functions";
 import { DEFAULT_CLUB_SLUG } from "./modules/clubs/lib";
 import { clubCourts } from "./modules/settings/lib";
@@ -168,6 +169,64 @@ describe("impostazioni e campi per club", () => {
       b: (await clubCourts(ctx, b)).map((court) => court.name),
     }));
     expect(names).toEqual({ a: ["Campo 1"], b: ["Campo B"] });
+  });
+});
+
+describe("prenotazioni per club", () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  /** Una prenotazione domani a quest'ora, nel club e sul campo dati. */
+  function booking(clubId: Id<"clubs">, slot: Id<"slots">) {
+    return {
+      clubId,
+      slot,
+      bookingDate: Date.now() + DAY_MS,
+      bookedBy: "Cliente",
+      players: ["Cliente"],
+      level: "intermedio" as const,
+      bookForAll: false,
+      pricePerPlayer: 0,
+      paymentMode: "on_site" as const,
+      status: "pending_on_site_payment" as const,
+      createdAt: 0,
+    };
+  }
+
+  test("disponibilità e agenda vedono solo il club", async () => {
+    const { t, a, b, courtA, courtB } = await twoClubs();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("bookings", booking(b, courtB));
+      await ctx.db.insert("bookings", booking(a, courtA));
+    });
+    const range = { from: Date.now(), to: Date.now() + 2 * DAY_MS };
+
+    const own = await t.query(api.bookings.availability.default, range);
+    const other = await t.query(api.bookings.availability.default, {
+      ...range,
+      clubSlug: "altro-club",
+    });
+    expect(own.busy.map((row) => row.slot)).toEqual([courtA]);
+    expect(other.busy.map((row) => row.slot)).toEqual([courtB]);
+
+    const agenda = await t.query(api.bookings.list.default, staffA);
+    expect(agenda.map((row) => row.slot)).toEqual([courtA]);
+    const pending = await t.query(api.bookings.list.default, {
+      ...staffB,
+      status: "pending_on_site_payment",
+    });
+    expect(pending.map((row) => row.slot)).toEqual([courtB]);
+  });
+
+  test("il cron dei giorni vuoti non conta le partite di un altro club", async () => {
+    const { t, b, courtB } = await twoClubs();
+    await t.run((ctx) => ctx.db.insert("bookings", booking(b, courtB)));
+
+    const result = await t.mutation(
+      internal.modules.reminders.emptyDays.default,
+      { force: true },
+    );
+    // Domani ha una partita, ma nell'altro club: per Padel Sport è vuoto.
+    expect(result.empty).toHaveLength(3);
   });
 });
 

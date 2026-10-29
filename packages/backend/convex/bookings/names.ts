@@ -1,6 +1,5 @@
 import type { Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
-import { internalMutation } from "../functions";
+import { type ClubMutationCtx, internalMutation } from "../functions";
 import { syncBookingPlayers } from "../modules/openMatches/lib";
 import { syncMemberPricing } from "../modules/pricing/members";
 
@@ -16,7 +15,7 @@ import { syncMemberPricing } from "../modules/pricing/members";
 
 /** Il nome nuovo di un cliente, portato sulle sue prenotazioni future. */
 export async function syncUpcomingName(
-  ctx: MutationCtx,
+  ctx: ClubMutationCtx,
   playerId: Id<"players">,
   previous: string,
   name: string,
@@ -25,7 +24,9 @@ export async function syncUpcomingName(
 
   const upcoming = await ctx.db
     .query("bookings")
-    .withIndex("by_booking_date", (q) => q.gte("bookingDate", Date.now()))
+    .withIndex("by_club_booking_date", (q) =>
+      q.eq("clubId", ctx.club._id).gte("bookingDate", Date.now()),
+    )
     .collect();
 
   for (const booking of upcoming) {

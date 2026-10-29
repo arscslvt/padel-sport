@@ -207,8 +207,11 @@ async function rankCourts(
   const dayStart = bookingDate - minutes * 60_000;
   const sameDay = await ctx.db
     .query("bookings")
-    .withIndex("by_booking_date", (q) =>
-      q.gte("bookingDate", dayStart).lt("bookingDate", dayStart + DAY_MS),
+    .withIndex("by_club_booking_date", (q) =>
+      q
+        .eq("clubId", ctx.club._id)
+        .gte("bookingDate", dayStart)
+        .lt("bookingDate", dayStart + DAY_MS),
     )
     .collect();
 
@@ -287,8 +290,9 @@ export async function courtsAt(
 
   const possibleOverlaps = await ctx.db
     .query("bookings")
-    .withIndex("by_booking_date", (q) =>
+    .withIndex("by_club_booking_date", (q) =>
       q
+        .eq("clubId", ctx.club._id)
         .gte("bookingDate", bookingDate - MATCH_DURATION_MS + 1)
         .lt("bookingDate", bookingDate + MATCH_DURATION_MS),
     )

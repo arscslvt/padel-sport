@@ -83,9 +83,14 @@ export default serverQuery({
     const bookings = status
       ? await ctx.db
           .query("bookings")
-          .withIndex("by_status", (q) => q.eq("status", status))
+          .withIndex("by_club_status", (q) =>
+            q.eq("clubId", ctx.club._id).eq("status", status),
+          )
           .collect()
-      : await ctx.db.query("bookings").withIndex("by_created_at").collect();
+      : await ctx.db
+          .query("bookings")
+          .withIndex("by_club_created_at", (q) => q.eq("clubId", ctx.club._id))
+          .collect();
 
     // Mezzanotte di oggi al club: i minuti passati da allora, e i secondi.
     const startOfToday = now - clubMoment(now).minutes * 60_000 - (now % 60_000);

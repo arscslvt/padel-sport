@@ -84,8 +84,8 @@ export default internalMutation({
 
     const bookings = await ctx.db
       .query("bookings")
-      .withIndex("by_booking_date", (q) =>
-        q.gt("bookingDate", now).lt("bookingDate", horizon),
+      .withIndex("by_club_booking_date", (q) =>
+        q.eq("clubId", clubId).gt("bookingDate", now).lt("bookingDate", horizon),
       )
       .collect();
     for (const booking of bookings) {

@@ -276,8 +276,9 @@ export const addClosure = serverMutation({
     // sono in UTC.
     const rows = await ctx.db
       .query("bookings")
-      .withIndex("by_booking_date", (q) =>
+      .withIndex("by_club_booking_date", (q) =>
         q
+          .eq("clubId", ctx.club._id)
           .gte("bookingDate", utcMidnight(from) - DAY_MS)
           .lt("bookingDate", utcMidnight(to) + 2 * DAY_MS),
       )
