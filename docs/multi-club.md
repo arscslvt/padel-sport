@@ -328,7 +328,8 @@ Da 4 a 7 giorni.
   - [ ] indirizzo del sito (`SITE_URL`, ritorno dal pagamento SumUp): passa
         con **Sito e area personale**, dopo la scelta fra sottodominio e
         percorso.
-- [x] **Configurazioni del club** (in dev il 29/10/2026): `clubConfig(club)`
+- [x] **Configurazioni del club** (in dev e in prod il 29/10/2026):
+      `clubConfig(club)`
       (`modules/clubs/config.ts`) dà gli account del club: SumUp, i calendari
       Google, il numero WhatsApp e i template di Twilio. Oggi li legge dalle
       variabili d'ambiente e li dà **solo a Padel Sport**: un altro club che le
