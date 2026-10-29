@@ -30,14 +30,18 @@ export default clubQuery({
     if (CODE_PATTERN.test(trimmed)) {
       const byCode = await ctx.db
         .query("players")
-        .withIndex("by_code", (q) => q.eq("code", trimmed))
+        .withIndex("by_club_code", (q) =>
+          q.eq("clubId", ctx.club._id).eq("code", trimmed),
+        )
         .first();
 
       matches = byCode ? [byCode] : [];
     } else {
       matches = await ctx.db
         .query("players")
-        .withSearchIndex("by_name", (q) => q.search("name", trimmed))
+        .withSearchIndex("by_club_name", (q) =>
+          q.search("name", trimmed).eq("clubId", ctx.club._id),
+        )
         .take(MAX_RESULTS);
     }
 

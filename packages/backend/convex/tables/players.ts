@@ -226,7 +226,11 @@ const players = defineTable({
   .searchIndex("by_name", { searchField: "name" })
   .index("by_club_clerk_user_id", ["clubId", "clerkUserId"])
   .index("by_club_email", ["clubId", "email"])
-  .index("by_club_code", ["clubId", "code"]);
+  .index("by_club_code", ["clubId", "code"])
+  // Il filtro va dentro l'indice: le regole per riga scartano gli altri club
+  // uno a uno, dopo averli letti, e una ricerca legge un numero limitato di
+  // risultati. Con tanti club, quelli del club potrebbero non arrivarci.
+  .searchIndex("by_club_name", { searchField: "name", filterFields: ["clubId"] });
 
 export default players;
 export { consents, gender, health, residence };

@@ -17,9 +17,14 @@ export default serverQuery({
     const requests = status
       ? await ctx.db
           .query("matchRequests")
-          .withIndex("by_status_date", (q) => q.eq("status", status))
+          .withIndex("by_club_status_date", (q) =>
+            q.eq("clubId", ctx.club._id).eq("status", status),
+          )
           .collect()
-      : await ctx.db.query("matchRequests").withIndex("by_date").collect();
+      : await ctx.db
+          .query("matchRequests")
+          .withIndex("by_club_date", (q) => q.eq("clubId", ctx.club._id))
+          .collect();
 
     // Ordinate per data della partita: la segreteria evade prima chi gioca
     // prima, e una richiesta per domani non può stare sotto una per il mese

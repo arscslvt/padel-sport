@@ -51,6 +51,38 @@ async function twoClubs() {
 const staffA = { secret: SECRET, clerkOrgId: "org_a" };
 const staffB = { secret: SECRET, clerkOrgId: "org_b" };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Una prenotazione domani a quest'ora, nel club e sul campo dati. */
+function booking(clubId: Id<"clubs">, slot: Id<"slots">) {
+  return {
+    clubId,
+    slot,
+    bookingDate: Date.now() + DAY_MS,
+    bookedBy: "Cliente",
+    players: ["Cliente"],
+    level: "intermedio" as const,
+    bookForAll: false,
+    pricePerPlayer: 0,
+    paymentMode: "on_site" as const,
+    status: "pending_on_site_payment" as const,
+    createdAt: 0,
+  };
+}
+
+/** Un giocatore con l'account, che si lascia trovare dagli altri. */
+function player(clubId: Id<"clubs">, name: string, code?: string) {
+  return {
+    clubId,
+    name,
+    code,
+    clerkUserId: `user_${name}`,
+    level: 3,
+    createdAt: 0,
+    searchableSince: 0,
+  };
+}
+
 describe("isolamento fra club", () => {
   test("le query pubbliche vedono solo il club dello slug", async () => {
     const { t } = await twoClubs();
@@ -173,25 +205,6 @@ describe("impostazioni e campi per club", () => {
 });
 
 describe("prenotazioni per club", () => {
-  const DAY_MS = 24 * 60 * 60 * 1000;
-
-  /** Una prenotazione domani a quest'ora, nel club e sul campo dati. */
-  function booking(clubId: Id<"clubs">, slot: Id<"slots">) {
-    return {
-      clubId,
-      slot,
-      bookingDate: Date.now() + DAY_MS,
-      bookedBy: "Cliente",
-      players: ["Cliente"],
-      level: "intermedio" as const,
-      bookForAll: false,
-      pricePerPlayer: 0,
-      paymentMode: "on_site" as const,
-      status: "pending_on_site_payment" as const,
-      createdAt: 0,
-    };
-  }
-
   test("disponibilità e agenda vedono solo il club", async () => {
     const { t, a, b, courtA, courtB } = await twoClubs();
     await t.run(async (ctx) => {
@@ -227,6 +240,93 @@ describe("prenotazioni per club", () => {
     );
     // Domani ha una partita, ma nell'altro club: per Padel Sport è vuoto.
     expect(result.empty).toHaveLength(3);
+  });
+});
+
+describe("partite, richieste e ricerche per club", () => {
+  test("partite aperte, mie partite e richieste restano nel club", async () => {
+    const { t, a, b, courtA, courtB } = await twoClubs();
+    await t.run(async (ctx) => {
+      for (const [clubId, slot, name] of [
+        [a, courtA, "Anna"],
+        [b, courtB, "Bruno"],
+      ] as const) {
+        const creatorId = await ctx.db.insert("players", player(clubId, name));
+        const bookingId = await ctx.db.insert("bookings", booking(clubId, slot));
+        await ctx.db.insert("openMatches", {
+          clubId,
+          bookingId,
+          creatorId,
+          playerIds: [creatorId],
+          maxPlayers: 4,
+          matchDate: Date.now() + DAY_MS,
+          levelMin: 1,
+          levelMax: 5,
+          joinMode: "direct",
+          status: "open",
+          createdAt: 0,
+        });
+        await ctx.db.insert("matchRequests", {
+          clubId,
+          name,
+          email: `${name}@esempio.it`,
+          phone: "3330000000",
+          matchDate: Date.now() + DAY_MS,
+          level: "intermedio",
+          missingPlayers: 1,
+          status: "new",
+          createdAt: 0,
+        });
+      }
+    });
+
+    const open = (clubSlug?: string) =>
+      t.query(api.modules.openMatches.list.default, {
+        clubSlug,
+        includeOwn: true,
+      });
+    expect((await open()).map((match) => match.creator.name)).toEqual(["Anna"]);
+    expect((await open("altro-club")).map((match) => match.creator.name)).toEqual(
+      ["Bruno"],
+    );
+
+    const mine = await t
+      .withIdentity({ subject: "user_Anna" })
+      .query(api.modules.openMatches.my.default, {});
+    expect(mine).toHaveLength(1);
+
+    const requests = await t.query(api.modules.matchRequests.list.default, staffB);
+    expect(requests.map((request) => request.name)).toEqual(["Bruno"]);
+  });
+
+  test("la ricerca trova i giocatori del club anche fra tanti omonimi altrove", async () => {
+    const { t, a, b } = await twoClubs();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("players", player(a, "Anna"));
+      await ctx.db.insert("players", player(a, "Marco Bianchi", "12345"));
+      // Omonimi nell'altro club, più dei candidati che la ricerca legge: non
+      // devono prendere il posto di quelli del club.
+      for (let i = 0; i < 50; i++) {
+        await ctx.db.insert("players", player(b, `Marco ${i}`, "12345"));
+      }
+    });
+    const asAnna = t.withIdentity({ subject: "user_Anna" });
+
+    const invitable = await asAnna.query(api.modules.openMatches.search.default, {
+      term: "Marco",
+    });
+    expect(invitable.map((row) => row.name)).toEqual(["Marco Bianchi"]);
+
+    const byName = await asAnna.query(api.modules.friends.search.default, {
+      term: "Marco",
+    });
+    expect(byName.map((row) => row.player.name)).toEqual(["Marco Bianchi"]);
+
+    // Il codice è unico solo dentro il club: lo stesso sta anche nell'altro.
+    const byCode = await asAnna.query(api.modules.friends.search.default, {
+      term: "12345",
+    });
+    expect(byCode.map((row) => row.player.name)).toEqual(["Marco Bianchi"]);
   });
 });
 

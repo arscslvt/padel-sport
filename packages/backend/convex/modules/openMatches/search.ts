@@ -28,7 +28,9 @@ export default clubQuery({
 
     const candidates = await ctx.db
       .query("players")
-      .withSearchIndex("by_name", (q) => q.search("name", trimmed))
+      .withSearchIndex("by_club_name", (q) =>
+        q.search("name", trimmed).eq("clubId", ctx.club._id),
+      )
       .take(SCAN);
 
     return candidates

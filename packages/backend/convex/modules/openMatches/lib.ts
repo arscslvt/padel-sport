@@ -1,6 +1,6 @@
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
-import type { ClubQueryCtx } from "../../functions";
+import type { ClubMutationCtx, ClubQueryCtx } from "../../functions";
 import { externalBlocksBetween } from "../courtCalendar/lib";
 import { confirmToNewPlayers } from "../notifications/bookingPlayers";
 import { bookingChanged } from "../points/auto";
@@ -343,14 +343,21 @@ export function levelLabel(
 /**
  * Codice pubblico di cinque cifre per un nuovo giocatore.
  * Estratto a caso e verificato sull'indice: alla collisione si riprova.
+ *
+ * Unico dentro il club, non fra club: cinque cifre fanno 90.000 codici, e
+ * con più club i doppioni sono certi. Chi cerca per codice cerca nel club.
  */
-export async function generatePlayerCode(ctx: MutationCtx): Promise<string> {
+export async function generatePlayerCode(
+  ctx: ClubMutationCtx,
+): Promise<string> {
   for (let attempt = 0; attempt < 10; attempt++) {
     const code = String(Math.floor(Math.random() * 90000) + 10000);
 
     const taken = await ctx.db
       .query("players")
-      .withIndex("by_code", (q) => q.eq("code", code))
+      .withIndex("by_club_code", (q) =>
+        q.eq("clubId", ctx.club._id).eq("code", code),
+      )
       .first();
 
     if (!taken) return code;

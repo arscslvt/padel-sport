@@ -235,7 +235,16 @@ Da 4 a 7 giorni.
         numero sull'icona (`push/subscriptions:badgeCount`, push), la ricerca
         per codice dei pagamenti (payments) e le correzioni da lanciare a mano
         (`bookings/names:alignBookers`, `points/backfill`);
-  - [ ] openMatches, matchRequests, circles, friends;
+  - [x] openMatches, matchRequests, circles, friends (in dev il 29/10/2026):
+        partite aperte, «le mie partite» e richieste dei giocatori leggono da
+        `by_club_status_date` e `by_club_date`. Le ricerche per nome usano un
+        indice di ricerca nuovo, `players.by_club_name`, con `clubId` come
+        filtro: il vecchio `by_name` faceva leggere e scartare i giocatori di
+        tutti i club. Il codice del giocatore (cinque cifre) è unico dentro il
+        club: si genera e si cerca su `by_club_code`. Le tabelle figlie
+        (inviti, richieste, ospiti, cerchie, amicizie) partono sempre da una
+        partita, una cerchia o un giocatore e restano com'erano. La pulizia
+        delle richieste vecchie (`privacy/retention`) passa con privacy;
   - [ ] clients, players, memberships, privacy;
   - [ ] payments;
   - [ ] points, rewards, referrals, pointReports;

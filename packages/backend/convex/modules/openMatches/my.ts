@@ -40,7 +40,9 @@ export default clubQuery({
 
     const upcomingMatches = await ctx.db
       .query("openMatches")
-      .withIndex("by_date", (q) => q.gte("matchDate", horizon))
+      .withIndex("by_club_date", (q) =>
+        q.eq("clubId", ctx.club._id).gte("matchDate", horizon),
+      )
       .collect();
 
     const joinedMatches = upcomingMatches.filter(

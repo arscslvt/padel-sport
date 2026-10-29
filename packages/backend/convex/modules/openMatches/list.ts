@@ -17,8 +17,11 @@ export default clubQuery({
   handler: async (ctx, { includeOwn }) => {
     const matches = await ctx.db
       .query("openMatches")
-      .withIndex("by_status_date", (q) =>
-        q.eq("status", "open").gte("matchDate", Date.now()),
+      .withIndex("by_club_status_date", (q) =>
+        q
+          .eq("clubId", ctx.club._id)
+          .eq("status", "open")
+          .gte("matchDate", Date.now()),
       )
       .filter((q) =>
         q.and(
