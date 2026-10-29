@@ -22,11 +22,11 @@ export async function GET() {
     // Il primo che apre la sezione trova già «Partita vinta»: è il preset con
     // cui il club ha chiesto di partire.
     await gate.convex.mutation(api.modules.points.presets.ensureDefaults, {
-      secret: gate.secret,
+      ...gate.credentials,
     });
 
     const presets = await gate.convex.query(api.modules.points.presets.list, {
-      secret: gate.secret,
+      ...gate.credentials,
     });
 
     return NextResponse.json({ presets });
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
   try {
     await gate.convex.mutation(api.modules.points.presets.save, {
-      secret: gate.secret,
+      ...gate.credentials,
       presetId: presetId ? (presetId as Id<"pointPresets">) : undefined,
       ...rest,
     });

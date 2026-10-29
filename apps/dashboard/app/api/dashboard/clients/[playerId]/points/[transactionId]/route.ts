@@ -21,7 +21,7 @@ export async function DELETE(
 
   try {
     await gate.convex.mutation(api.modules.points.ledger.removePending, {
-      secret: gate.secret,
+      ...gate.credentials,
       transactionId: transactionId as Id<"pointTransactions">,
     });
 

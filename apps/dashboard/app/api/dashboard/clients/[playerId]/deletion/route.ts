@@ -31,7 +31,7 @@ export async function POST(
 
   const client = await gate.convex
     .query(api.modules.clients.list.detail, {
-      secret: gate.secret,
+      ...gate.credentials,
       playerId: playerId as Id<"players">,
     })
     .catch(() => null);
@@ -56,7 +56,7 @@ export async function POST(
     const result = await gate.convex.mutation(
       api.modules.clients.deletion.request,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         playerId: playerId as Id<"players">,
         mode: parsed.data.mode,
         staffClerkUserId: gate.userId,
@@ -83,7 +83,7 @@ export async function DELETE(
 
   try {
     await gate.convex.mutation(api.modules.clients.deletion.cancel, {
-      secret: gate.secret,
+      ...gate.credentials,
       playerId: playerId as Id<"players">,
     });
     return NextResponse.json({ ok: true });

@@ -19,15 +19,18 @@ export async function GET() {
   const gate = await staffGate();
   if (!gate.ok) return gate.response;
 
-  const { convex, secret } = gate;
+  const { convex, credentials } = gate;
 
   const [bookings, support, match, reports, redemptions] =
     await Promise.allSettled([
-      convex.query(api.bookings.list.default, { secret, includePast: false }),
-      convex.query(api.modules.supportRequests.list.default, { secret }),
-      convex.query(api.modules.matchRequests.list.default, { secret }),
-      convex.query(api.modules.pointReports.list.default, { secret }),
-      convex.query(api.modules.points.redemptions.pending, { secret }),
+      convex.query(api.bookings.list.default, {
+        ...credentials,
+        includePast: false,
+      }),
+      convex.query(api.modules.supportRequests.list.default, credentials),
+      convex.query(api.modules.matchRequests.list.default, credentials),
+      convex.query(api.modules.pointReports.list.default, credentials),
+      convex.query(api.modules.points.redemptions.pending, credentials),
     ]);
 
   const value = <T>(result: PromiseSettledResult<T[]>): T[] =>

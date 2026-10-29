@@ -86,7 +86,7 @@ export async function GET(request: Request) {
     const entries = await gate.convex.query(
       api.modules.eventRsvps.list.default,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         eventId,
         blockKey,
       },
@@ -219,7 +219,7 @@ export async function POST(request: Request) {
     const result = await gate.convex.mutation(
       api.modules.eventRsvps.create.byStaff,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         eventId: target._id,
         blockKey: values.blockKey,
         eventSlug: target.slug,
@@ -308,7 +308,7 @@ export async function PUT(request: Request) {
     const result = await gate.convex.mutation(
       api.modules.eventRsvps.update.default,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         id: values.id as Id<"eventRsvps">,
         eventId: target._id,
         blockKey: values.blockKey,
@@ -365,7 +365,7 @@ export async function PATCH(request: Request) {
     const result = await gate.convex.mutation(
       api.modules.eventRsvps.checkIn.default,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         entries: parsed.data.entries.map((entry) => ({
           ...entry,
           id: entry.id as Id<"eventRsvps">,
@@ -397,7 +397,7 @@ export async function DELETE(request: Request) {
   try {
     const result = await gate.convex.mutation(
       api.modules.eventRsvps.cancel.byStaff,
-      { secret: gate.secret, id: parsed.data.id as Id<"eventRsvps"> },
+      { ...gate.credentials, id: parsed.data.id as Id<"eventRsvps"> },
     );
 
     return NextResponse.json({ cancelled: true, rsvp: result });

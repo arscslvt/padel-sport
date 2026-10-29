@@ -45,7 +45,7 @@ export async function POST(
 
   const client = await gate.convex
     .query(api.modules.clients.list.detail, {
-      secret: gate.secret,
+      ...gate.credentials,
       playerId: playerId as Id<"players">,
     })
     .catch(() => null);
@@ -123,7 +123,7 @@ export async function POST(
     const result = await gate.convex.mutation(
       api.modules.clients.invites.send,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         playerId: playerId as Id<"players">,
         token,
         clerkUserId,
@@ -214,7 +214,7 @@ export async function DELETE(
   try {
     const result = await gate.convex.mutation(
       api.modules.clients.invites.revoke,
-      { secret: gate.secret, playerId: playerId as Id<"players"> },
+      { ...gate.credentials, playerId: playerId as Id<"players"> },
     );
 
     if (result?.deleteAccount && result.clerkUserId) {

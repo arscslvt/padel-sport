@@ -22,7 +22,7 @@ export async function POST(
     const result = await gate.convex.mutation(
       api.modules.points.terms.recordAtDesk,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         playerId: playerId as Id<"players">,
         recordedByClerkUserId: gate.userId,
       },

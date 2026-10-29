@@ -25,7 +25,7 @@ export async function GET() {
 
   try {
     const rewards = await gate.convex.query(api.modules.points.rewards.list, {
-      secret: gate.secret,
+      ...gate.credentials,
     });
 
     return NextResponse.json({ rewards });
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
   try {
     await gate.convex.mutation(api.modules.points.rewards.save, {
-      secret: gate.secret,
+      ...gate.credentials,
       rewardId: rewardId ? (rewardId as Id<"rewards">) : undefined,
       imageStorageId: imageStorageId
         ? (imageStorageId as Id<"_storage">)

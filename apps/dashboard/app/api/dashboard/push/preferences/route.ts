@@ -32,7 +32,7 @@ export async function PUT(request: Request) {
     const result = await gate.convex.mutation(
       api.modules.push.preferences.set,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         userId: gate.userId,
         muted: parsed.data.muted,
       },

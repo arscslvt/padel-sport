@@ -26,10 +26,10 @@ export async function GET() {
   try {
     const [subscriptions, preferences] = await Promise.all([
       gate.convex.query(api.modules.push.subscriptions.list, {
-        secret: gate.secret,
+        ...gate.credentials,
       }),
       gate.convex.query(api.modules.push.preferences.get, {
-        secret: gate.secret,
+        ...gate.credentials,
         userId: gate.userId,
       }),
     ]);
@@ -86,13 +86,13 @@ export async function POST(request: Request) {
   try {
     if (replaces && replaces !== subscription.endpoint) {
       await gate.convex.mutation(api.modules.push.subscriptions.remove, {
-        secret: gate.secret,
+        ...gate.credentials,
         endpoint: replaces,
       });
     }
 
     await gate.convex.mutation(api.modules.push.subscriptions.subscribe, {
-      secret: gate.secret,
+      ...gate.credentials,
       userId: gate.userId,
       userName:
         user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? undefined,
@@ -131,7 +131,7 @@ export async function DELETE(request: Request) {
   // amministratore. I propri dispositivi ognuno li toglie da sé.
   if ("id" in parsed.data && !gate.isAdmin) {
     const { devices } = await gate.convex
-      .query(api.modules.push.subscriptions.list, { secret: gate.secret })
+      .query(api.modules.push.subscriptions.list, gate.credentials)
       .catch(() => ({ devices: [] as { _id: string; userId: string }[] }));
     const id = parsed.data.id;
     const device = devices.find((row) => row._id === id);
@@ -140,7 +140,7 @@ export async function DELETE(request: Request) {
 
   try {
     await gate.convex.mutation(api.modules.push.subscriptions.remove, {
-      secret: gate.secret,
+      ...gate.credentials,
       ...("id" in parsed.data
         ? { id: parsed.data.id as Id<"pushSubscriptions"> }
         : { endpoint: parsed.data.endpoint }),

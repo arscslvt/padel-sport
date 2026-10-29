@@ -51,7 +51,7 @@ export async function GET(request: Request) {
     const [staffList, everyone] = await Promise.all([
       staffClerkUserIds(),
       gate.convex.query(api.modules.clients.list.default, {
-        secret: gate.secret,
+        ...gate.credentials,
       }),
     ]);
 
@@ -116,7 +116,7 @@ export async function GET(request: Request) {
     if (stale.length > 0) {
       void gate.convex
         .mutation(api.modules.clients.profile.syncFromClerk, {
-          secret: gate.secret,
+          ...gate.credentials,
           people: stale,
         })
         .catch((error) =>
@@ -196,7 +196,7 @@ export async function POST(request: Request) {
   try {
     const playerId = await gate.convex.mutation(
       api.modules.clients.profile.create,
-      { secret: gate.secret, email: email || undefined, ...rest },
+      { ...gate.credentials, email: email || undefined, ...rest },
     );
 
     return NextResponse.json({ created: true, playerId });

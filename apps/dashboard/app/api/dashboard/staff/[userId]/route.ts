@@ -54,7 +54,7 @@ export async function DELETE(
   try {
     devicesRemoved = await gate.convex.mutation(
       api.modules.push.subscriptions.removeForUser,
-      { secret: gate.secret, userId },
+      { ...gate.credentials, userId },
     );
   } catch (error) {
     console.error("Dispositivi dell'ex staff non rimossi:", error);

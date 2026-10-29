@@ -35,7 +35,7 @@ export async function GET(request: Request) {
 
   try {
     const bookings = await gate.convex.query(api.bookings.list.default, {
-      secret: gate.secret,
+      ...gate.credentials,
       includePast,
       fromToday,
       ...range,
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
   try {
     await gate.convex.mutation(api.bookings.update.accept, {
-      secret: gate.secret,
+      ...gate.credentials,
       bookingId: parsed.data.bookingId as Id<"bookings">,
       withNotification: parsed.data.withNotification,
     });
@@ -105,7 +105,7 @@ export async function DELETE(request: Request) {
 
   try {
     await gate.convex.mutation(api.bookings.delete.default, {
-      secret: gate.secret,
+      ...gate.credentials,
       bookingId,
     });
   } catch (error) {
@@ -126,7 +126,7 @@ export async function DELETE(request: Request) {
   try {
     const refund = await gate.convex.action(
       api.modules.payments.refund.default,
-      { secret: gate.secret, bookingId, staffUserId: gate.userId },
+      { ...gate.credentials, bookingId, staffUserId: gate.userId },
     );
 
     return NextResponse.json({ cancelled: true, refund });

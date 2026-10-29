@@ -38,7 +38,7 @@ export async function POST(
     const result = await gate.convex.mutation(
       api.modules.clients.membership.save,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         playerId: playerId as Id<"players">,
         membershipId: membershipId
           ? (membershipId as Id<"memberships">)

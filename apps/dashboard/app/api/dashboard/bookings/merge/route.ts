@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await gate.convex.mutation(api.bookings.merge.merge, {
-      secret: gate.secret,
+      ...gate.credentials,
       keepId: parsed.data.keepId as Id<"bookings">,
       moveId: parsed.data.moveId as Id<"bookings">,
     });
@@ -65,7 +65,7 @@ export async function DELETE(request: Request) {
 
   try {
     const result = await gate.convex.mutation(api.bookings.merge.split, {
-      secret: gate.secret,
+      ...gate.credentials,
       bookingId: parsed.data.bookingId as Id<"bookings">,
     });
 

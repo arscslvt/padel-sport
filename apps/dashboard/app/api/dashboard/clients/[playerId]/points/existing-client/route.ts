@@ -31,7 +31,7 @@ export async function PUT(
     const result = await gate.convex.mutation(
       api.modules.points.ledger.setExistingClient,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         playerId: playerId as Id<"players">,
         existingClient: parsed.data.existingClient,
       },

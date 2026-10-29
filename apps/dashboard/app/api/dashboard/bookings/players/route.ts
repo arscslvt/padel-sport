@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
   try {
     const players = await gate.convex.query(api.bookings.players.forEdit, {
-      secret: gate.secret,
+      ...gate.credentials,
       bookingId: bookingId as Id<"bookings">,
     });
 
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await gate.convex.mutation(api.bookings.players.update, {
-      secret: gate.secret,
+      ...gate.credentials,
       bookingId: parsed.data.bookingId as Id<"bookings">,
       players: parsed.data.players,
       links: parsed.data.links?.map((link) => ({

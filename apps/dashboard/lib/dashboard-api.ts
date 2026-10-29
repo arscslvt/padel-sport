@@ -14,12 +14,25 @@ import { STAFF_ADMIN_ROLE, staffMembership } from "@/lib/staff";
  * un segreto condiviso, che senza questa guardia non basterebbe: è la stessa
  * doppia protezione dell'elenco iscritti agli eventi.
  */
+
+/**
+ * Quello che ogni chiamata a Convex porta con sé (`serverArgs`,
+ * packages/backend/convex/functions.ts): il segreto, l'organizzazione da cui
+ * Convex ricava il club, e chi chiede, per la manutenzione.
+ */
+export interface StaffCredentials {
+  secret: string;
+  clerkOrgId: string;
+  actorUserId: string;
+}
+
 export type StaffGate =
   | { ok: false; response: NextResponse }
   | {
       ok: true;
       convex: ConvexHttpClient;
-      secret: string;
+      /** Da spargere negli argomenti: `{ ...gate.credentials, … }`. */
+      credentials: StaffCredentials;
       /** Chi dello staff sta chiedendo: serve a firmare quello che fa. */
       userId: string;
       /** Amministratore dello staff: configura il club, non solo lo usa. */
@@ -111,7 +124,16 @@ function withConvex(
     };
   }
 
-  return { ok: true, convex: new ConvexHttpClient(convexUrl), secret, ...who };
+  return {
+    ok: true,
+    convex: new ConvexHttpClient(convexUrl),
+    credentials: {
+      secret,
+      clerkOrgId: who.organizationId,
+      actorUserId: who.userId,
+    },
+    ...who,
+  };
 }
 
 /**

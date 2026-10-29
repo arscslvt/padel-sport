@@ -25,7 +25,7 @@ export async function PATCH(
 
   try {
     await gate.convex.mutation(api.modules.points.rewards.setDisabled, {
-      secret: gate.secret,
+      ...gate.credentials,
       rewardId: rewardId as Id<"rewards">,
       disabled: parsed.data.disabled,
     });
@@ -52,7 +52,7 @@ export async function DELETE(
 
   try {
     await gate.convex.mutation(api.modules.points.rewards.archive, {
-      secret: gate.secret,
+      ...gate.credentials,
       rewardId: rewardId as Id<"rewards">,
     });
 

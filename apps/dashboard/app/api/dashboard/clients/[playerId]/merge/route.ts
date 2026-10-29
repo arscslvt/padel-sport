@@ -32,7 +32,7 @@ export async function POST(
 
   try {
     const result = await gate.convex.mutation(api.modules.clients.merge.merge, {
-      secret: gate.secret,
+      ...gate.credentials,
       fromId: playerId as Id<"players">,
       intoId: parsed.data.intoId as Id<"players">,
       points: parsed.data.points,

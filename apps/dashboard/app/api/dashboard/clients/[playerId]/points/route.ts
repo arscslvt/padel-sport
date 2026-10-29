@@ -54,7 +54,7 @@ export async function GET(
 
   try {
     const points = await gate.convex.query(api.modules.points.ledger.detail, {
-      secret: gate.secret,
+      ...gate.credentials,
       playerId: playerId as Id<"players">,
     });
 
@@ -105,7 +105,7 @@ export async function POST(
     const result = await gate.convex.mutation(
       api.modules.points.ledger.adjust,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         playerId: playerId as Id<"players">,
         createdByClerkUserId: gate.userId,
         note: body.note || undefined,

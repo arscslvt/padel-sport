@@ -17,7 +17,7 @@ export async function DELETE(
 
   try {
     await gate.convex.mutation(api.modules.points.presets.archive, {
-      secret: gate.secret,
+      ...gate.credentials,
       presetId: presetId as Id<"pointPresets">,
     });
 

@@ -24,7 +24,7 @@ export async function GET() {
 
   try {
     const rules = await gate.convex.query(api.modules.points.rules.list, {
-      secret: gate.secret,
+      ...gate.credentials,
     });
     return NextResponse.json({ rules });
   } catch (error) {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
   try {
     await gate.convex.mutation(api.modules.points.rules.save, {
-      secret: gate.secret,
+      ...gate.credentials,
       clerkUserId: gate.userId,
       ...parsed.data,
     });

@@ -12,7 +12,7 @@ export async function GET() {
   try {
     const redemptions = await gate.convex.query(
       api.modules.points.redemptions.pending,
-      { secret: gate.secret },
+      gate.credentials,
     );
 
     return NextResponse.json({ redemptions });

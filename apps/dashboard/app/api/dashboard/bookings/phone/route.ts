@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const result = await gate.convex.mutation(
       api.bookings.contact.updatePhone,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         bookingId: parsed.data.bookingId as Id<"bookings">,
         phone: parsed.data.phone,
       },

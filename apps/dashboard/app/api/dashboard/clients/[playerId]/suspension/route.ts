@@ -126,7 +126,7 @@ async function notify(
 async function readClient(gate: Ready, playerId: string) {
   return await gate.convex
     .query(api.modules.clients.list.detail, {
-      secret: gate.secret,
+      ...gate.credentials,
       playerId: playerId as Id<"players">,
     })
     .catch(() => null);
@@ -182,7 +182,7 @@ export async function POST(
   let facts: MailFacts;
   try {
     facts = await gate.convex.mutation(api.modules.clients.suspension.suspend, {
-      secret: gate.secret,
+      ...gate.credentials,
       playerId: playerId as Id<"players">,
       reason: parsed.data.reason,
       suspendedByClerkUserId: gate.userId,
@@ -203,7 +203,7 @@ export async function POST(
 
     await gate.convex
       .mutation(api.modules.clients.suspension.reactivate, {
-        secret: gate.secret,
+        ...gate.credentials,
         playerId: playerId as Id<"players">,
       })
       .catch((rollback) =>
@@ -243,7 +243,7 @@ export async function DELETE(
   try {
     facts = await gate.convex.mutation(
       api.modules.clients.suspension.reactivate,
-      { secret: gate.secret, playerId: playerId as Id<"players"> },
+      { ...gate.credentials, playerId: playerId as Id<"players"> },
     );
   } catch (error) {
     console.error("Riattivazione non salvata su Convex:", error);
@@ -263,7 +263,7 @@ export async function DELETE(
       if (previous) {
         await gate.convex
           .mutation(api.modules.clients.suspension.restore, {
-            secret: gate.secret,
+            ...gate.credentials,
             playerId: playerId as Id<"players">,
             suspension: previous,
           })

@@ -51,7 +51,7 @@ export async function GET(
 
   try {
     const client = await gate.convex.query(api.modules.clients.list.detail, {
-      secret: gate.secret,
+      ...gate.credentials,
       playerId: playerId as Id<"players">,
     });
 
@@ -111,7 +111,7 @@ export async function PATCH(
     const { email, ...rest } = parsed.data;
 
     await gate.convex.mutation(api.modules.clients.profile.update, {
-      secret: gate.secret,
+      ...gate.credentials,
       playerId: playerId as Id<"players">,
       email: email || undefined,
       ...rest,

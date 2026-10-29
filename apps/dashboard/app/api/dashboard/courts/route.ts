@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   try {
     await gate.convex.mutation(api.modules.settings.booking.saveCourt, {
-      secret: gate.secret,
+      ...gate.credentials,
       courtId: courtId ? (courtId as Id<"slots">) : undefined,
       ...court,
     });

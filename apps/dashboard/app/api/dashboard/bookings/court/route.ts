@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
   try {
     const options = await gate.convex.query(api.bookings.court.options, {
-      secret: gate.secret,
+      ...gate.credentials,
       bookingId: bookingId as Id<"bookings">,
     });
 
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await gate.convex.mutation(api.bookings.court.move, {
-      secret: gate.secret,
+      ...gate.credentials,
       bookingId: parsed.data.bookingId as Id<"bookings">,
       slotIds: parsed.data.slotIds.map((id) => id as Id<"slots">),
     });

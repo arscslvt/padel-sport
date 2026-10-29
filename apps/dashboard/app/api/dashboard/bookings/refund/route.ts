@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const outcome = await gate.convex.action(
       api.modules.payments.refund.default,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         bookingId: parsed.data.bookingId as Id<"bookings">,
         paymentId: parsed.data.paymentId as Id<"payments"> | undefined,
         staffUserId: gate.userId,

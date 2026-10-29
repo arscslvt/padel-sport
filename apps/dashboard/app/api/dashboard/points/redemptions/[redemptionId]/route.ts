@@ -32,12 +32,12 @@ export async function POST(
   try {
     if (parsed.data.action === "used") {
       await gate.convex.mutation(api.modules.points.redemptions.markUsed, {
-        secret: gate.secret,
+        ...gate.credentials,
         redemptionId: id,
       });
     } else {
       await gate.convex.mutation(api.modules.points.redemptions.cancel, {
-        secret: gate.secret,
+        ...gate.credentials,
         redemptionId: id,
         createdByClerkUserId: gate.userId,
       });

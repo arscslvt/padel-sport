@@ -15,7 +15,7 @@ export async function POST() {
   try {
     const url = await gate.convex.mutation(
       api.modules.points.rewards.uploadUrl,
-      { secret: gate.secret },
+      gate.credentials,
     );
 
     return NextResponse.json({ url });

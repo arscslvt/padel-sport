@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   try {
     await gate.convex.mutation(api.modules.pricing.services.save, {
-      secret: gate.secret,
+      ...gate.credentials,
       kind,
       price,
       memberPrice: memberPrice ?? undefined,

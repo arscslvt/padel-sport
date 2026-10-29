@@ -25,13 +25,13 @@ export async function GET() {
   try {
     const [support, matches, reports] = await Promise.all([
       gate.convex.query(api.modules.supportRequests.list.default, {
-        secret: gate.secret,
+        ...gate.credentials,
       }),
       gate.convex.query(api.modules.matchRequests.list.default, {
-        secret: gate.secret,
+        ...gate.credentials,
       }),
       gate.convex.query(api.modules.pointReports.list.default, {
-        secret: gate.secret,
+        ...gate.credentials,
       }),
     ]);
 
@@ -81,13 +81,13 @@ export async function PATCH(request: Request) {
   try {
     if (kind === "support") {
       await gate.convex.mutation(api.modules.supportRequests.update.default, {
-        secret: gate.secret,
+        ...gate.credentials,
         requestId: requestId as Id<"supportRequests">,
         status,
       });
     } else if (kind === "match") {
       await gate.convex.mutation(api.modules.matchRequests.update.default, {
-        secret: gate.secret,
+        ...gate.credentials,
         requestId: requestId as Id<"matchRequests">,
         status,
       });
@@ -95,7 +95,7 @@ export async function PATCH(request: Request) {
       const result = await gate.convex.mutation(
         api.modules.pointReports.update.default,
         {
-          secret: gate.secret,
+          ...gate.credentials,
           reportId: requestId as Id<"pointReports">,
           status,
           reply: parsed.data.kind === "report" ? parsed.data.reply : undefined,

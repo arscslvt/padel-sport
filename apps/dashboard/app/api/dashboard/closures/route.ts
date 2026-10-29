@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     const result = await gate.convex.mutation(
       api.modules.settings.booking.addClosure,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         ...parsed.data,
         reason: parsed.data.reason || undefined,
       },
@@ -69,7 +69,7 @@ export async function DELETE(request: Request) {
 
   try {
     await gate.convex.mutation(api.modules.settings.booking.removeClosure, {
-      secret: gate.secret,
+      ...gate.credentials,
       ...parsed.data,
     });
 

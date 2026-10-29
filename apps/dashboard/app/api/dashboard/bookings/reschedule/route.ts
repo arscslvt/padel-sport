@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
   try {
     const options = await gate.convex.query(api.bookings.reschedule.options, {
-      secret: gate.secret,
+      ...gate.credentials,
       bookingId: bookingId as Id<"bookings">,
     });
 
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await gate.convex.mutation(api.bookings.reschedule.move, {
-      secret: gate.secret,
+      ...gate.credentials,
       bookingId: parsed.data.bookingId as Id<"bookings">,
       bookingDate: parsed.data.bookingDate,
       notify: parsed.data.notify,

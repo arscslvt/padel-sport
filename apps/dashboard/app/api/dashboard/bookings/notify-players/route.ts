@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const result = await gate.convex.mutation(
       api.bookings.notifyPlayers.sendMissing,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         bookingId: parsed.data.bookingId as Id<"bookings">,
       },
     );

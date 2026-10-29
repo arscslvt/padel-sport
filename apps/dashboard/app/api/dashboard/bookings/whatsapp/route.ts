@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await gate.convex.mutation(api.bookings.whatsapp.resend, {
-      secret: gate.secret,
+      ...gate.credentials,
       bookingId: parsed.data.bookingId as Id<"bookings">,
       phone: parsed.data.phone,
       playerId: parsed.data.playerId as Id<"players"> | undefined,

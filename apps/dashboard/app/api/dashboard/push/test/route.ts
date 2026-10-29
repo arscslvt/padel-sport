@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
   try {
     await gate.convex.mutation(api.modules.push.subscriptions.test, {
-      secret: gate.secret,
+      ...gate.credentials,
       endpoint: parsed.data.endpoint,
     });
     return NextResponse.json({ sent: true });

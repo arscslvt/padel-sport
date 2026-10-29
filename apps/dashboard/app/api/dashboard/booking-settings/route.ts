@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   try {
     await gate.convex.mutation(api.modules.settings.booking.update, {
-      secret: gate.secret,
+      ...gate.credentials,
       ...parsed.data,
     });
 

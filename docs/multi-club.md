@@ -314,7 +314,15 @@ Da 4 a 7 giorni.
       oggi rilegge le variabili d'ambiente, domani la tabella, senza toccare
       chi lo usa.
 - [ ] **Cron**: ognuno elenca i club e programma un job per club.
-- [ ] **Gestionale**: `staffGate` passa l'organizzazione a Convex.
+- [x] **Gestionale** (in dev il 29/10/2026): `staffGate` dà
+      `credentials` (segreto, `clerkOrgId`, `actorUserId`) e ogni route le
+      passa a Convex, che ricava il club dall'organizzazione. La riga del club
+      riceve l'organizzazione con `modules/clubs/seed:linkOrganization`, una
+      volta per deployment: va lanciata in prod **prima** che il gestionale
+      nuovo arrivi su Railway, altrimenti ogni chiamata risponde «L'organizzazione
+      dello staff non ha un club». I dati dal browser passano da zod, che toglie
+      le chiavi sconosciute: un `clerkOrgId` nel corpo di una richiesta non
+      arriva a Convex.
 - [ ] **Sito e area personale**: `CLUB_SLUG` su Railway, passato alle query
       pubbliche.
 - [ ] **App mobile**: slug costante nella configurazione.
@@ -361,3 +369,7 @@ Una settimana dopo, dieci minuti.
 - [ ] Giocatori per club (scelta attuale) o account unico subito?
 - [ ] Sito pubblico a regime: sottodominio per club o percorso?
 - [ ] Data della finestra della Fase 3.
+- [ ] Staff in più club: oggi lo staff si riconosce da un'organizzazione sola,
+      per slug (`STAFF_ORG_SLUG`, apps/dashboard/lib/staff.ts). Con più club il
+      gestionale deve prendere il club dall'organizzazione attiva di Clerk, e
+      scegliere fra le sue organizzazioni chi ne ha più d'una.

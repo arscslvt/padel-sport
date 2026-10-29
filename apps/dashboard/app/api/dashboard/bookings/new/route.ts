@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     const result = await gate.convex.mutation(
       api.bookings.staffCreate.default,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         ...rest,
         phone: phone || undefined,
         slotIds: slotIds?.map((id) => id as Id<"slots">),

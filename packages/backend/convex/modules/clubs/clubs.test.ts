@@ -28,6 +28,36 @@ describe("club di oggi", () => {
     expect(clubs).toHaveLength(1);
   });
 
+  test("l'organizzazione dello staff si collega a un club solo", async () => {
+    const t = setupTest();
+    const { clubId } = await t.mutation(
+      internal.modules.clubs.seed.padelSport,
+      {},
+    );
+    const link = (clerkOrgId: string, slug?: string) =>
+      t.mutation(internal.modules.clubs.seed.linkOrganization, {
+        clerkOrgId,
+        slug,
+      });
+
+    expect(await link("org_staff")).toEqual({ clubId, changed: true });
+    expect(await link("org_staff")).toEqual({ clubId, changed: false });
+
+    await t.run((ctx) =>
+      ctx.db.insert("clubs", {
+        slug: "altro-club",
+        name: "Altro",
+        timeZone: "Europe/Rome",
+        latitude: 0,
+        longitude: 0,
+      }),
+    );
+    await expect(link("org_staff", "altro-club")).rejects.toThrow(
+      "già del club padel-sport",
+    );
+    await expect(link("staff")).rejects.toThrow("comincia con org_");
+  });
+
   test("le righe nuove nascono col club, anche quando il meteo le riscrive", async () => {
     const t = setupTest();
     const { clubId } = await t.mutation(

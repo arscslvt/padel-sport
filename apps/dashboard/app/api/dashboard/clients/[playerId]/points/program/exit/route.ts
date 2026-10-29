@@ -43,7 +43,7 @@ export async function POST(
 
   const client = await gate.convex
     .query(api.modules.clients.list.detail, {
-      secret: gate.secret,
+      ...gate.credentials,
       playerId: playerId as Id<"players">,
     })
     .catch(() => null);
@@ -81,7 +81,7 @@ export async function POST(
     request = await gate.convex.mutation(
       api.modules.points.exit.requestByEmail,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         playerId: playerId as Id<"players">,
         token,
         email,

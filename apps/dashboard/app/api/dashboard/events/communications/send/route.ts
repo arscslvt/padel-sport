@@ -113,7 +113,7 @@ export async function POST(request: Request) {
     recipients = await gate.convex.query(
       api.modules.eventRsvps.recipients.default,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         eventId: event._id,
         blockKey,
         documentId: document._id,
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
     const begun = await gate.convex.mutation(
       api.modules.eventCommunications.begin.default,
       {
-        secret: gate.secret,
+        ...gate.credentials,
         documentId: document._id,
         eventId: event._id,
         blockKey,
@@ -223,7 +223,7 @@ export async function POST(request: Request) {
           await gate.convex.mutation(
             api.modules.eventCommunications.recordDeliveries.default,
             {
-              secret: gate.secret,
+              ...gate.credentials,
               communicationId: sendId,
               documentId: document._id,
               blockKey,
@@ -257,7 +257,7 @@ export async function POST(request: Request) {
   try {
     await gate.convex.mutation(
       api.modules.eventCommunications.complete.default,
-      { secret: gate.secret, id: sendId, delivered, failed, error: firstError },
+      { ...gate.credentials, id: sendId, delivered, failed, error: firstError },
     );
   } catch (error) {
     // La mail è partita: un timestamp mancante non deve diventare un errore in

@@ -58,20 +58,20 @@ export async function GET() {
     const [counts, sends, pending] = await Promise.all([
       forms.length
         ? gate.convex.query(api.modules.eventRsvps.recipientCounts.default, {
-            secret: gate.secret,
+            ...gate.credentials,
             forms,
           })
         : [],
       communications.length
         ? gate.convex.query(api.modules.eventCommunications.list.default, {
-            secret: gate.secret,
+            ...gate.credentials,
             documentIds: communications.map((entry) => entry._id),
           })
         : [],
       targets.length
         ? gate.convex.query(
             api.modules.eventCommunications.pendingCounts.default,
-            { secret: gate.secret, targets },
+            { ...gate.credentials, targets },
           )
         : [],
     ]);
