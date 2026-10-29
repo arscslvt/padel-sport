@@ -219,7 +219,10 @@ export const serverMutation = customMutation(mutation, {
   },
 });
 
-/** Il club per slug o per organizzazione, per le action che non hanno `ctx.db`. */
+/**
+ * Il club per id, per organizzazione o per slug (Padel Sport se non c'è
+ * niente), per le action che non hanno `ctx.db`.
+ */
 const clubForActionRef = makeFunctionReference<
   "query",
   { slug?: string; clerkOrgId?: string },
@@ -227,9 +230,21 @@ const clubForActionRef = makeFunctionReference<
 >("functions:clubForAction");
 
 export const clubForAction = rawInternalQuery({
-  args: { slug: v.optional(v.string()), clerkOrgId: v.optional(v.string()) },
-  handler: (ctx, { slug, clerkOrgId }) =>
-    clerkOrgId ? clubByOrg(ctx.db, clerkOrgId) : clubBySlug(ctx.db, slug),
+  args: {
+    slug: v.optional(v.string()),
+    clerkOrgId: v.optional(v.string()),
+    clubId: v.optional(v.id("clubs")),
+  },
+  handler: async (ctx, { slug, clerkOrgId, clubId }) => {
+    if (clubId) {
+      const club = await ctx.db.get(clubId);
+      if (!club) throw new ConvexError("Club non trovato.");
+      return club;
+    }
+    return clerkOrgId
+      ? await clubByOrg(ctx.db, clerkOrgId)
+      : await clubBySlug(ctx.db, slug);
+  },
 });
 
 /**

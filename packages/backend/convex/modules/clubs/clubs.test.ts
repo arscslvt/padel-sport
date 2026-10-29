@@ -67,10 +67,12 @@ describe("club di oggi", () => {
 
     await t.mutation(internal.modules.weather.data.store, {
       days: [day("2026-10-28", 20)],
+      clubId,
     });
     // La seconda lettura passa da `replace`, che riscrive la riga intera.
     await t.mutation(internal.modules.weather.data.store, {
       days: [day("2026-10-28", 22)],
+      clubId,
     });
 
     const rows = await t.run((ctx) => ctx.db.query("weatherDays").collect());
@@ -78,13 +80,36 @@ describe("club di oggi", () => {
     expect(rows[0]).toMatchObject({ clubId, tempMax: 22 });
   });
 
-  test("senza la riga del club si scrive lo stesso, senza club", async () => {
+  test("ogni club ha il suo meteo, anche nello stesso giorno", async () => {
     const t = setupTest();
-    await t.mutation(internal.modules.weather.data.store, {
-      days: [day("2026-10-28", 20)],
-    });
+    const { clubId } = await t.mutation(
+      internal.modules.clubs.seed.padelSport,
+      {},
+    );
+    const other = await t.run((ctx) =>
+      ctx.db.insert("clubs", {
+        slug: "altro-club",
+        name: "Altro",
+        timeZone: "Europe/Rome",
+        latitude: 45.46,
+        longitude: 9.19,
+      }),
+    );
+    const store = (clubId: typeof other, tempMax: number) =>
+      t.mutation(internal.modules.weather.data.store, {
+        days: [day("2026-10-28", tempMax)],
+        clubId,
+      });
+
+    await store(clubId, 22);
+    await store(other, 14);
+    await store(clubId, 23);
+
     const rows = await t.run((ctx) => ctx.db.query("weatherDays").collect());
-    expect(rows[0].clubId).toBeUndefined();
+    expect(rows.map((row) => [row.clubId, row.tempMax])).toEqual([
+      [clubId, 23],
+      [other, 14],
+    ]);
   });
 });
 

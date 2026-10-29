@@ -308,8 +308,26 @@ Da 4 a 7 giorni.
         `courtCalendar/pull:refresh`, dal sito di un altro club, non rilegge
         il calendario. Deliveries parte dalla prenotazione e dagli id del
         provider, e non cambia;
-- [ ] **Costanti del club** lette dalla riga `clubs`: fuso orario, coordinate
-      del meteo, nome nei messaggi e nei pagamenti, link dello staff.
+- [x] **Costanti del club** (in dev il 29/10/2026):
+  - [x] coordinate del meteo dalla riga `clubs`: `weather/refresh` legge
+        punto e fuso del club (facoltativo, Padel Sport se manca, finché il
+        cron non fa un giro per club) e `weather/data:store` scrive per club
+        su `by_club_day`. Prima cercava il giorno su `by_day` con `unique()`,
+        che con due club sarebbe fallito;
+  - [x] fuso orario: **resta uno per tutti**, `CLUB_TIME_ZONE`
+        (`utils/clubTime.ts`). I club sono in Italia, e passarlo alle circa
+        cinquanta chiamate che scrivono un'ora, più il sito che ragiona
+        nell'ora del browser, costerebbe molto per niente. `clubs.timeZone`
+        deve valere `Europe/Rome`: un club in un altro fuso va preparato
+        prima, e la configurazione guidata deve rifiutarlo;
+  - [x] nome del club: nel backend non c'è. Sta nel template WhatsApp di
+        Twilio e nell'account SumUp, che arrivano con `clubConfig`;
+  - [x] link dello staff: il gestionale è uno per tutti i club, quindi i link
+        restano uguali. Per chi è in più club servirà il selettore
+        dell'organizzazione (decisioni aperte);
+  - [ ] indirizzo del sito (`SITE_URL`, ritorno dal pagamento SumUp): passa
+        con **Sito e area personale**, dopo la scelta fra sottodominio e
+        percorso.
 - [ ] **Configurazioni del club** lette da un helper `clubConfig(ctx, club)`:
       oggi rilegge le variabili d'ambiente, domani la tabella, senza toccare
       chi lo usa.

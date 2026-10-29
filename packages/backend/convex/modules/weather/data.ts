@@ -18,15 +18,16 @@ const dayValidator = v.object(weatherDays.validator.fields);
  * più vecchi) restano come sono.
  */
 export const store = internalMutation({
-  args: { days: v.array(dayValidator) },
-  handler: async (ctx, { days }) => {
-    // `replace` riscrive la riga intera: il club va rimesso ogni volta, o
-    // l'aggiornamento successivo al riempimento lo cancellerebbe.
-    const clubId = await defaultClubId(ctx);
+  args: { days: v.array(dayValidator), clubId: v.id("clubs") },
+  handler: async (ctx, { days, clubId }) => {
+    // Ogni club ha il suo meteo: lo stesso giorno sta una volta per club.
+    // `replace` riscrive la riga intera, quindi il club va rimesso ogni volta.
     for (const day of days) {
       const existing = await ctx.db
         .query("weatherDays")
-        .withIndex("by_day", (q) => q.eq("day", day.day))
+        .withIndex("by_club_day", (q) =>
+          q.eq("clubId", clubId).eq("day", day.day),
+        )
         .unique();
       if (existing) await ctx.db.replace(existing._id, { ...day, clubId });
       else await ctx.db.insert("weatherDays", { ...day, clubId });
@@ -75,12 +76,16 @@ export const simulateRain = internalMutation({
     /** Ora in cui smette, esclusa. */
     to: v.optional(v.number()),
     storm: v.optional(v.boolean()),
+    /** Senza, Padel Sport. */
+    clubId: v.optional(v.id("clubs")),
   },
-  handler: async (ctx, { day, from = 15, to = 19, storm = false }) => {
+  handler: async (ctx, { day, from = 15, to = 19, storm = false, clubId }) => {
     const key = day ?? clubDayKey(Date.now());
+    const club = clubId ?? (await defaultClubId(ctx));
+    if (!club) throw new Error("Manca la riga di Padel Sport.");
     const row = await ctx.db
       .query("weatherDays")
-      .withIndex("by_day", (q) => q.eq("day", key))
+      .withIndex("by_club_day", (q) => q.eq("clubId", club).eq("day", key))
       .unique();
     if (!row) {
       throw new Error(

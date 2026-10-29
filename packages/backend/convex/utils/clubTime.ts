@@ -10,6 +10,12 @@
  *
  * Da qui passa qualunque data destinata a un messaggio: WhatsApp, avvisi Hark
  * allo staff, righe di log leggibili.
+ *
+ * Un fuso solo per tutti i club, per scelta (docs/multi-club.md): i club sono
+ * in Italia, e passare il fuso a ognuna delle cinquanta chiamate che scrivono
+ * un'ora — più il sito, che ragiona nell'ora del browser — costerebbe molto
+ * per niente. La riga `clubs` ha comunque `timeZone`, e deve valere questo:
+ * un club in un altro fuso va preparato prima.
  */
 
 export const CLUB_TIME_ZONE = "Europe/Rome";

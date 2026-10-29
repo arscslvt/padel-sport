@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 
 import { internal } from "../../_generated/api";
+import type { Doc } from "../../_generated/dataModel";
 import { internalAction } from "../../functions";
-import { CLUB_TIME_ZONE } from "../../utils/clubTime";
 import { clubMoment } from "../settings/lib";
 
 /**
@@ -22,10 +22,6 @@ import { clubMoment } from "../settings/lib";
 
 /** Le ore del club a cui si rilegge. */
 const REFRESH_HOURS = [0, 14];
-
-/** Via Sandro Pertini, Melilli: il club. */
-const CLUB_LATITUDE = 37.1777;
-const CLUB_LONGITUDE = 15.1418;
 
 /**
  * Ieri si rilegge un'ultima volta, con quel che i modelli sanno ormai di
@@ -81,11 +77,12 @@ interface Forecast {
   };
 }
 
-function forecastUrl() {
+/** La previsione per il punto del club, nella sua ora (riga `clubs`). */
+function forecastUrl(club: Doc<"clubs">) {
   const params = new URLSearchParams({
-    latitude: String(CLUB_LATITUDE),
-    longitude: String(CLUB_LONGITUDE),
-    timezone: CLUB_TIME_ZONE,
+    latitude: String(club.latitude),
+    longitude: String(club.longitude),
+    timezone: club.timeZone,
     past_days: String(PAST_DAYS),
     forecast_days: String(FORECAST_DAYS),
     daily: DAILY.join(","),
@@ -162,13 +159,21 @@ export default internalAction({
   args: {
     /** Legge subito, a qualunque ora: per riempire la tabella da `convex run`. */
     force: v.optional(v.boolean()),
+    /**
+     * Il club di cui leggere il meteo. Senza, Padel Sport: il cron di oggi
+     * non lo passa, e farà un giro per club (docs/multi-club.md, Fase 2).
+     */
+    clubId: v.optional(v.id("clubs")),
   },
-  handler: async (ctx, { force }): Promise<{ stored: number }> => {
+  handler: async (ctx, { force, clubId }): Promise<{ stored: number }> => {
     const now = Date.now();
     const hour = Math.floor(clubMoment(now).minutes / 60);
     if (!force && !REFRESH_HOURS.includes(hour)) return { stored: 0 };
 
-    const response = await fetch(forecastUrl());
+    const club = await ctx.runQuery(internal.functions.clubForAction, {
+      clubId,
+    });
+    const response = await fetch(forecastUrl(club));
     if (!response.ok) {
       // Niente allarmi allo staff: il meteo è un di più, e le righe di prima
       // restano valide fino al prossimo giro.
@@ -179,6 +184,9 @@ export default internalAction({
     }
 
     const days = toDays((await response.json()) as Forecast, now);
-    return await ctx.runMutation(internal.modules.weather.data.store, { days });
+    return await ctx.runMutation(internal.modules.weather.data.store, {
+      days,
+      clubId: club._id,
+    });
   },
 });
