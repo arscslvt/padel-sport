@@ -260,8 +260,8 @@ Da 4 a 7 giorni.
         club, e solo allora i suoi indici vecchi si possono togliere. Restano
         sugli indici vecchi i giocatori cercati da referrals e da
         `points/expire`, che passano con i loro moduli;
-  - [x] payments (in dev il 29/10/2026): niente indici radice (`by_booking`
-        è figlio, `by_checkout` è del provider). La prenotazione si cerca per
+  - [x] payments (in dev e in prod il 29/10/2026): niente indici radice
+        (`by_booking` è figlio, `by_checkout` è del provider). La prenotazione si cerca per
         codice filtrando il club (`bookingByCode`), perché il codice è unico
         solo dentro il club. Il rimborso è una `serverAction` e `refund:begin`
         non ha regole per riga: ora riceve il club dall'action e rifiuta una
