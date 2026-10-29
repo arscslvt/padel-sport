@@ -314,7 +314,8 @@ Da 4 a 7 giorni.
       oggi rilegge le variabili d'ambiente, domani la tabella, senza toccare
       chi lo usa.
 - [ ] **Cron**: ognuno elenca i club e programma un job per club.
-- [x] **Gestionale** (in dev il 29/10/2026): `staffGate` dà
+- [x] **Gestionale** (in dev e in prod il 29/10/2026, organizzazione
+      collegata in entrambi): `staffGate` dà
       `credentials` (segreto, `clerkOrgId`, `actorUserId`) e ogni route le
       passa a Convex, che ricava il club dall'organizzazione. La riga del club
       riceve l'organizzazione con `modules/clubs/seed:linkOrganization`, una
