@@ -95,7 +95,7 @@ export const open = internalMutation({
     }
 
     const player = await requirePlayer(ctx, clubId);
-    const booking = await bookingByCode(ctx, code);
+    const booking = await bookingByCode(ctx, clubId, code);
 
     // Quella di un altro si comporta come una prenotazione che non c'è: dire
     // «non è tua» confermerebbe che esiste.
@@ -317,7 +317,7 @@ export const ownAttempts = internalQuery({
   args: { code: v.string(), clubId: v.id("clubs") },
   handler: async (ctx, { code, clubId }) => {
     const player = await getIdentityPlayer(ctx, clubId);
-    const booking = await bookingByCode(ctx, code);
+    const booking = await bookingByCode(ctx, clubId, code);
     if (!player || !booking || booking.createdByPlayer !== player._id) {
       return [];
     }

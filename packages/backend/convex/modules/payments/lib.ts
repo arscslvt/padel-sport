@@ -68,9 +68,16 @@ export async function onlinePaymentsActive(
   return (await bookingSettings(ctx, clubId)).onlinePaymentsEnabled;
 }
 
-/** La prenotazione dal codice che sta nel QR e nell'indirizzo della pagina. */
+/**
+ * La prenotazione dal codice che sta nel QR e nell'indirizzo della pagina.
+ *
+ * Il codice è unico dentro il club, non fra club: la stessa sigla può stare
+ * in due. Le funzioni interne dei pagamenti non hanno regole per riga, quindi
+ * il club si filtra qui.
+ */
 export async function bookingByCode(
   ctx: QueryCtx,
+  clubId: Id<"clubs">,
   code: string,
 ): Promise<Doc<"bookings"> | null> {
   const normalized = code.trim().toUpperCase();
@@ -79,6 +86,7 @@ export async function bookingByCode(
   return await ctx.db
     .query("bookings")
     .withIndex("by_code", (q) => q.eq("code", normalized))
+    .filter((q) => q.eq(q.field("clubId"), clubId))
     .first();
 }
 

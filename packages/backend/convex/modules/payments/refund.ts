@@ -44,9 +44,21 @@ export const begin = internalMutation({
     bookingId: v.id("bookings"),
     /** Uno solo, per esempio il doppione; senza, tutti quelli incassati. */
     paymentId: v.optional(v.id("payments")),
+    /** Il club dello staff che lo chiede. */
+    clubId: v.id("clubs"),
   },
-  handler: async (ctx, { bookingId, paymentId }): Promise<RefundTarget[]> => {
+  handler: async (
+    ctx,
+    { bookingId, paymentId, clubId },
+  ): Promise<RefundTarget[]> => {
     const now = Date.now();
+
+    // L'action non ha regole per riga, e l'id arriva dal gestionale: senza
+    // questo controllo lo staff di un club rimborserebbe l'incasso di un altro.
+    const booking = await ctx.db.get(bookingId);
+    if (!booking || booking.clubId !== clubId) {
+      throw new Error("Prenotazione non trovata.");
+    }
 
     const attempts = await ctx.db
       .query("payments")
@@ -180,7 +192,11 @@ export default serverAction({
 
     const targets: RefundTarget[] = await ctx.runMutation(
       internal.modules.payments.refund.begin,
-      { bookingId: args.bookingId, paymentId: args.paymentId },
+      {
+        bookingId: args.bookingId,
+        paymentId: args.paymentId,
+        clubId: ctx.club._id,
+      },
     );
 
     const outcome: RefundOutcome = { refunded: 0, amount: 0, failed: [] };

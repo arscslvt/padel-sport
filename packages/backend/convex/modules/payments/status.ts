@@ -45,7 +45,7 @@ export const forCode = clubQuery({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
     const player = await getIdentityPlayer(ctx, ctx.club._id);
-    const booking = await bookingByCode(ctx, code);
+    const booking = await bookingByCode(ctx, ctx.club._id, code);
     if (!player || !booking || booking.createdByPlayer !== player._id) {
       return null;
     }

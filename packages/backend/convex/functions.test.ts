@@ -393,6 +393,67 @@ describe("schede per club", () => {
   });
 });
 
+describe("pagamenti per club", () => {
+  /** Una prenotazione col codice dato in ognuno dei due club, pagata in A. */
+  async function paidInBothClubs() {
+    const clubs = await twoClubs();
+    const ids = await clubs.t.run(async (ctx) => {
+      // Prima quella dell'altro club: un `first()` senza club troverebbe lei.
+      await ctx.db.insert("bookings", {
+        ...booking(clubs.b, clubs.courtB),
+        code: "ABC123",
+      });
+      const anna = await ctx.db.insert("players", player(clubs.a, "Anna"));
+      const bookingA = await ctx.db.insert("bookings", {
+        ...booking(clubs.a, clubs.courtA),
+        code: "ABC123",
+        createdByPlayer: anna,
+      });
+      const payment = await ctx.db.insert("payments", {
+        clubId: clubs.a,
+        bookingId: bookingA,
+        playerId: anna,
+        provider: "sumup",
+        amount: 28,
+        currency: "EUR",
+        status: "paid",
+        expiresAt: 0,
+        createdAt: 0,
+        updatedAt: 0,
+      });
+      return { bookingA, payment };
+    });
+    return { ...clubs, ...ids };
+  }
+
+  test("il codice della prenotazione si cerca nel club", async () => {
+    const { t, a, payment } = await paidInBothClubs();
+    const attempts = await t
+      .withIdentity({ subject: "user_Anna" })
+      .query(internal.modules.payments.checkout.ownAttempts, {
+        code: "ABC123",
+        clubId: a,
+      });
+    expect(attempts.map((attempt) => attempt._id)).toEqual([payment]);
+  });
+
+  test("lo staff non rimborsa l'incasso di un altro club", async () => {
+    vi.stubEnv("SUMUP_API_KEY", "chiave");
+    vi.stubEnv("SUMUP_MERCHANT_CODE", "M123");
+    const { t, bookingA, payment } = await paidInBothClubs();
+
+    await expect(
+      t.action(api.modules.payments.refund.default, {
+        ...staffB,
+        bookingId: bookingA,
+      }),
+    ).rejects.toThrow("Prenotazione non trovata.");
+    const after = await t.run((ctx) => ctx.db.get(payment));
+    expect(after?.status).toBe("paid");
+    expect(after?.refundStartedAt).toBeUndefined();
+  });
+});
+
 describe("giocatori per club", () => {
   test("lo stesso account è un giocatore solo nel club dove ha la scheda", async () => {
     const { t, a, b } = await twoClubs();
