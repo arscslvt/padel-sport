@@ -83,8 +83,8 @@ const health = v.object({
  * perché non c'è nessuno da autenticare.
  */
 const players = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   clerkUserId: v.optional(v.string()),
   name: v.string(),
   level: v.float64(),

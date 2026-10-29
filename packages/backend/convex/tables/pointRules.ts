@@ -26,8 +26,8 @@ const pointRuleKey = v.union(
 );
 
 const pointRules = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   key: pointRuleKey,
   points: v.float64(),
   enabled: v.boolean(),

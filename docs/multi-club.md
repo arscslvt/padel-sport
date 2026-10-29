@@ -400,14 +400,41 @@ Da 4 a 7 giorni.
 
 ## Fase 3: il passaggio
 
-Finestra di manutenzione dopo la chiusura del club, circa un'ora.
+Finestra di manutenzione dopo la chiusura del club, circa un'ora. Il rilascio
+sta sul branch `feat/multi-club-phase3`: `clubId` obbligatorio su tutte le 36
+tabelle, e via il riempimento della Fase 1 (`modules/clubs/backfill.ts`), che
+con il campo obbligatorio non serve più. Provato in dev il 29/10/2026: lo
+schema è passato, e in prod quel giorno le righe senza club erano zero.
 
-- [ ] Accendere `maintenance` su Padel Sport (un campo nella dashboard di
-      Convex, effetto immediato).
-- [ ] Rilanciare la migrazione di riempimento per le ultime righe.
-- [ ] Rilasciare lo schema con `clubId` obbligatorio. Convex controlla ogni
-      documento prima di accettarlo: se ne manca uno, il rilascio fallisce e
-      non cambia niente.
+Pronto prima della finestra:
+
+- [x] la pagina «Torniamo subito» e la striscia del gestionale (Fase 2);
+- [x] il comando `modules/clubs/seed:setMaintenance`;
+- [x] `PLATFORM_ADMIN_USER_IDS` su Convex prod, con l'utente di produzione di
+      chi fa le prove: in manutenzione è l'unico che scrive.
+
+I comandi, nell'ordine. Il terminale deve stare in
+`packages/backend`, e per il rilascio sul branch della Fase 3:
+
+    cd /Users/salvatore/Development/Monorepo/padel-sport/packages/backend
+
+- [ ] Accendere la manutenzione. Effetto immediato: sito e gestionale lo
+      mostrano da soli.
+
+      ../../node_modules/.bin/convex run --prod modules/clubs/seed:setMaintenance '{"on": true}'
+
+- [ ] Righe senza club, con il codice ancora della Fase 2. Deve rispondere
+      `{}`; se no, `modules/clubs/backfill:run` e di nuovo `missing`.
+
+      ../../node_modules/.bin/convex run --prod modules/clubs/backfill:missing
+
+- [ ] Rilasciare lo schema con `clubId` obbligatorio, dal branch della Fase 3.
+      Convex controlla ogni documento prima di accettarlo: se ne manca uno,
+      il rilascio fallisce e non cambia niente.
+
+      git checkout feat/multi-club-phase3
+      bun run --cwd /Users/salvatore/Development/Monorepo/padel-sport/packages/backend deploy --yes
+
 - [ ] Prove vere, entrando come amministratore della piattaforma:
   - [ ] prenotazione dal sito;
   - [ ] conferma dal gestionale e WhatsApp al giocatore;
@@ -415,10 +442,17 @@ Finestra di manutenzione dopo la chiusura del club, circa un'ora.
   - [ ] partita aperta e invito;
   - [ ] area personale: prenotazioni, punti, premi;
   - [ ] agenda del giorno dopo nel gestionale.
-- [ ] Spegnere `maintenance`.
+- [ ] Spegnere la manutenzione.
 
-I vecchi indici restano: se qualcosa va storto si torna alla versione della
-Fase 2, su Convex e su Railway, con i dati ancora compatibili.
+      ../../node_modules/.bin/convex run --prod modules/clubs/seed:setMaintenance '{"on": false}'
+
+- [ ] Portare `main` al branch della Fase 3 (fast-forward) e pubblicarlo: sito
+      e gestionale non cambiano, ma il codice resta allineato.
+
+Per tornare indietro, prima di spegnere la manutenzione: `git checkout
+feat/multi-club` e di nuovo `deploy`. Lo schema della Fase 2 ha `clubId`
+facoltativo e accetta righe che ce l'hanno; i vecchi indici ci sono ancora, e
+Railway non va toccato.
 
 ## Fase 4: pulizia
 

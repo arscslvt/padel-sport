@@ -25,8 +25,8 @@ import { v } from "convex/values";
 const referralStatus = v.union(v.literal("pending"), v.literal("joined"));
 
 const referrals = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   inviterId: v.id("players"),
   /** Minuscolo: è così che lo si confronta con la scheda nuova. */
   email: v.optional(v.string()),

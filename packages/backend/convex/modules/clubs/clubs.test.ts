@@ -173,31 +173,3 @@ describe("configurazione del club", () => {
     expect((await setup("altro-club")).configured).toBe(false);
   });
 });
-
-describe("riempimento di clubId", () => {
-  test("ogni riga senza club prende Padel Sport, le altre restano", async () => {
-    const t = setupTest();
-
-    // Righe di prima della migrazione: nessun club.
-    await t.run(async (ctx) => {
-      await ctx.db.insert("slots", { name: "Campo 1", active: true });
-      await ctx.db.insert("slots", { name: "Campo 2", active: true });
-      await ctx.db.insert("weatherDays", day("2026-10-27", 19));
-    });
-    const before = await t.query(internal.modules.clubs.backfill.missing, {});
-    expect(before).toEqual({ slots: 2, weatherDays: 1 });
-
-    const { clubId } = await t.mutation(
-      internal.modules.clubs.seed.padelSport,
-      {},
-    );
-    await t.mutation(internal.modules.clubs.backfill.run, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
-
-    expect(await t.query(internal.modules.clubs.backfill.missing, {})).toEqual(
-      {},
-    );
-    const slots = await t.run((ctx) => ctx.db.query("slots").collect());
-    expect(slots.map((slot) => slot.clubId)).toEqual([clubId, clubId]);
-  });
-});

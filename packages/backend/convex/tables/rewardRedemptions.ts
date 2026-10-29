@@ -22,8 +22,8 @@ const redemptionStatus = v.union(
  * cron per tenerlo vero.
  */
 const rewardRedemptions = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   playerId: v.id("players"),
   rewardId: v.id("rewards"),
   title: v.string(),

@@ -72,8 +72,8 @@ const deliveryStatus = v.union(
  * messaggio su Twilio, ed è così che un evento ritrova la sua riga.
  */
 const bookingDeliveries = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   bookingId: v.id("bookings"),
   kind: notificationKind,
   channel: deliveryChannel,

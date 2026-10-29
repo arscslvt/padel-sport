@@ -15,8 +15,8 @@ import { v } from "convex/values";
  * gli indirizzi vanno interrogati per conto loro, senza passare dai match.
  */
 const matchGuests = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   matchId: v.id("openMatches"),
   name: v.string(),
   email: v.optional(v.string()),

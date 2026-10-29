@@ -17,8 +17,8 @@ const circleInviteStatus = v.union(
  * ammesso, perché il vincolo è solo sugli inviti ancora `pending`.
  */
 const circleInvites = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   circleId: v.id("circles"),
   inviterId: v.id("players"),
   inviteeId: v.id("players"),

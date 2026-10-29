@@ -8,8 +8,8 @@ import { v } from "convex/values";
  */
 
 const events = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   title: v.string(),
   description: v.string(),
   date: v.float64(),

@@ -21,8 +21,8 @@ const eventRsvpStatus = v.union(
  * il `_key` del blocco, così un evento può ospitare più moduli distinti.
  */
 const eventRsvps = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   /** `_id` del documento Sanity, senza il prefisso `drafts.` */
   eventId: v.string(),
   /** `_key` del blocco `rsvpForm` dentro il corpo dell'articolo */

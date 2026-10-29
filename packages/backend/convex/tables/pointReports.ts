@@ -20,8 +20,8 @@ const pointReportCategory = v.union(
  * dell'assistenza: una segnalazione si risolve o si archivia allo stesso modo.
  */
 const pointReports = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   playerId: v.id("players"),
   /** Il movimento contestato. Assente quando mancano punti mai caricati. */
   transactionId: v.optional(v.id("pointTransactions")),

@@ -14,8 +14,8 @@ import { v } from "convex/values";
  * disponibilità cala di uno, ed è la lettura prudente.
  */
 const externalBookings = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   source: v.literal("sumup"),
   /** Id dell'evento sul calendario: è la chiave con cui si riconcilia. */
   externalId: v.string(),

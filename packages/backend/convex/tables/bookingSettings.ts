@@ -9,8 +9,8 @@ import { v } from "convex/values";
  * rilascio. Qui diventano dati: la struttura le muove da sola.
  */
 const bookingSettings = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   /**
    * Fasce di apertura per giorno della settimana, `0` = domenica come
    * `Date#getDay`. Un giorno senza fasce è un giorno di chiusura.

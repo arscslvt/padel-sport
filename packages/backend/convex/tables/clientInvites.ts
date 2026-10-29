@@ -24,8 +24,8 @@ const clientInviteStatus = v.union(
  * persona è già stata invitata, quando e quante volte.
  */
 const clientInvites = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   token: v.string(),
   email: v.string(),
   firstName: v.string(),

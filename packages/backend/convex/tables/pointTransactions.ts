@@ -17,8 +17,8 @@ import { pointRuleKey } from "./pointRules";
  * l'elenco lo mostra senza dover risommare tutto.
  */
 const pointTransactions = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   playerId: v.id("players"),
   delta: v.float64(),
   label: v.string(),

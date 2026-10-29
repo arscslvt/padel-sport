@@ -10,7 +10,9 @@ import { clubDayKey } from "../settings/lib";
  * query con cui l'agenda le legge.
  */
 
-const dayValidator = v.object(weatherDays.validator.fields);
+// Il giorno come arriva da Open-Meteo: il club lo aggiunge `store`.
+const { clubId: _clubId, ...dayFields } = weatherDays.validator.fields;
+const dayValidator = v.object(dayFields);
 
 /**
  * Riscrive i giorni arrivati con l'ultima lettura: uno già presente si

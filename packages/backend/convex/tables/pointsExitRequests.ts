@@ -13,8 +13,8 @@ import { v } from "convex/values";
  * caso e trattato come una password. Mandarne uno nuovo ritira i precedenti.
  */
 const pointsExitRequests = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   playerId: v.id("players"),
   token: v.string(),
   /** L'indirizzo a cui è partita la mail, com'era in quel momento. */

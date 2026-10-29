@@ -124,8 +124,9 @@ export async function ensureFriendRequest(
 
   // L'amicizia è del club di chi la chiede.
   const requester = await ctx.db.get(from);
+  if (!requester) throw new Error("Giocatore non trovato.");
   const friendshipId = await ctx.db.insert("friendships", {
-    clubId: requester?.clubId,
+    clubId: requester.clubId,
     requesterId: from,
     addresseeId: to,
     status: "pending",

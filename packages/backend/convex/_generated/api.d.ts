@@ -50,7 +50,6 @@ import type * as modules_clients_merge from "../modules/clients/merge.js";
 import type * as modules_clients_profile from "../modules/clients/profile.js";
 import type * as modules_clients_self from "../modules/clients/self.js";
 import type * as modules_clients_suspension from "../modules/clients/suspension.js";
-import type * as modules_clubs_backfill from "../modules/clubs/backfill.js";
 import type * as modules_clubs_config from "../modules/clubs/config.js";
 import type * as modules_clubs_cron from "../modules/clubs/cron.js";
 import type * as modules_clubs_lib from "../modules/clubs/lib.js";
@@ -267,7 +266,6 @@ declare const fullApi: ApiFromModules<{
   "modules/clients/profile": typeof modules_clients_profile;
   "modules/clients/self": typeof modules_clients_self;
   "modules/clients/suspension": typeof modules_clients_suspension;
-  "modules/clubs/backfill": typeof modules_clubs_backfill;
   "modules/clubs/config": typeof modules_clubs_config;
   "modules/clubs/cron": typeof modules_clubs_cron;
   "modules/clubs/lib": typeof modules_clubs_lib;

@@ -16,8 +16,8 @@ const supportRequestStatus = v.union(
  * il canale di contatto generico (tesseramento, orari, problemi, altro).
  */
 const supportRequests = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   name: v.string(),
   email: v.string(),
   phone: v.string(),

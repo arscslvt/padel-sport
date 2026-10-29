@@ -18,8 +18,8 @@ import { v } from "convex/values";
  * `eventRsvps`: un indice fa quel lavoro, un campo array no.
  */
 const eventCommunicationDeliveries = defineTable({
-  /** Il club della riga (docs/multi-club.md). Opzionale fino alla Fase 3. */
-  clubId: v.optional(v.id("clubs")),
+  /** Il club della riga (docs/multi-club.md). */
+  clubId: v.id("clubs"),
   /** L'invio che ha prodotto questa consegna */
   communicationId: v.id("eventCommunications"),
   /** `_id` del documento Sanity e `_key` del modulo: la coppia di `eventCommunications` */
