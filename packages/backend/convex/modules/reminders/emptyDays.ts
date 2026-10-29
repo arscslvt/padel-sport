@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation } from "../../functions";
 import { staffAgendaDayUrl } from "../../utils/staffLinks";
+import { defaultClubId } from "../clubs/lib";
 import { bookingSettings, clubDayKey, clubMoment } from "../settings/lib";
 import { windowsForDay } from "../settings/schedule";
 
@@ -62,7 +63,12 @@ export default internalMutation({
     const hour = Math.floor(clubMoment(now).minutes / 60);
     if (!force && !REMINDER_HOURS.includes(hour)) return { sent: false, empty: [] };
 
-    const settings = await bookingSettings(ctx);
+    // Per ora gira per Padel Sport soltanto: il giro per club arriva con i
+    // cron (docs/multi-club.md, Fase 2).
+    const clubId = await defaultClubId(ctx);
+    if (!clubId) return { sent: false, empty: [] };
+
+    const settings = await bookingSettings(ctx, clubId);
     const today = clubDayKey(now);
     const horizon = now + (LOOKAHEAD_DAYS + 1) * DAY_MS;
 

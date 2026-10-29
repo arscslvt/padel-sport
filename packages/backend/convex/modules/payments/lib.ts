@@ -60,9 +60,12 @@ export function payBlocker(
 }
 
 /** Il pagamento online si può offrire adesso: chiave SumUp e via libera del club. */
-export async function onlinePaymentsActive(ctx: QueryCtx): Promise<boolean> {
+export async function onlinePaymentsActive(
+  ctx: QueryCtx,
+  clubId: Id<"clubs">,
+): Promise<boolean> {
   if (sumupConfig() === null) return false;
-  return (await bookingSettings(ctx)).onlinePaymentsEnabled;
+  return (await bookingSettings(ctx, clubId)).onlinePaymentsEnabled;
 }
 
 /** La prenotazione dal codice che sta nel QR e nell'indirizzo della pagina. */

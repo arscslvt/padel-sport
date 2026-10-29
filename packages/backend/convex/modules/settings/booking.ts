@@ -9,9 +9,11 @@ import {
 import { MATCH_DURATION_MINUTES } from "../openMatches/lib";
 import {
   bookingSettings,
+  clubCourts,
   clubDayKey,
   clubMoment,
   DEFAULT_SETTINGS,
+  settingsRowOf,
   toMinutes,
 } from "./lib";
 import {
@@ -41,14 +43,14 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):(00|30)$/;
 
 export const get = clubQuery({
   args: {},
-  handler: async (ctx) => await bookingSettings(ctx),
+  handler: async (ctx) => await bookingSettings(ctx, ctx.club._id),
 });
 
 /** I campi, anche quelli spenti: la dashboard deve poterli riaccendere. */
 export const courts = clubQuery({
   args: {},
   handler: async (ctx) => {
-    const rows = await ctx.db.query("slots").collect();
+    const rows = await clubCourts(ctx, ctx.club._id);
 
     return rows
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -113,7 +115,7 @@ export const update = serverMutation({
       ? [...new Set(closedInput)].sort((a, b) => a - b)
       : undefined;
 
-    const existing = await ctx.db.query("bookingSettings").first();
+    const existing = await settingsRowOf(ctx, ctx.club._id);
 
     if (existing) {
       await ctx.db.patch(existing._id, {
@@ -148,7 +150,7 @@ export const update = serverMutation({
  * gli orari.
  */
 async function settingsRow(ctx: ClubMutationCtx): Promise<Doc<"bookingSettings">> {
-  const existing = await ctx.db.query("bookingSettings").first();
+  const existing = await settingsRowOf(ctx, ctx.club._id);
   if (existing) return existing;
 
   const { closures: _closures, ...defaults } = DEFAULT_SETTINGS;
@@ -307,7 +309,7 @@ export const removeClosure = serverMutation({
     end: v.optional(v.string()),
   },
   handler: async (ctx, { from, to, start, end }) => {
-    const row = await ctx.db.query("bookingSettings").first();
+    const row = await settingsRowOf(ctx, ctx.club._id);
     if (!row) return;
 
     await ctx.db.patch(row._id, {
@@ -327,7 +329,7 @@ export const removeClosure = serverMutation({
 export const reset = serverMutation({
   args: {},
   handler: async (ctx) => {
-    const existing = await ctx.db.query("bookingSettings").first();
+    const existing = await settingsRowOf(ctx, ctx.club._id);
     if (existing) await ctx.db.delete(existing._id);
 
     return DEFAULT_SETTINGS;
@@ -353,10 +355,13 @@ export const saveCourt = serverMutation({
     }
 
     // Il nome distingue i campi anche nel calendario e nelle mail: due uguali
-    // renderebbero illeggibile ogni prenotazione.
+    // renderebbero illeggibile ogni prenotazione. Dentro il club: il Campo 1
+    // di un altro non dà fastidio a nessuno.
     const taken = await ctx.db
       .query("slots")
-      .withIndex("by_name", (q) => q.eq("name", trimmed))
+      .withIndex("by_club_name", (q) =>
+        q.eq("clubId", ctx.club._id).eq("name", trimmed),
+      )
       .first();
 
     if (taken) {

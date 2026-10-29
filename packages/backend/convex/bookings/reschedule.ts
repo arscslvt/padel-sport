@@ -2,8 +2,7 @@ import { v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import type { QueryCtx } from "../_generated/server";
-import { serverMutation, serverQuery } from "../functions";
+import { type ClubQueryCtx, serverMutation, serverQuery } from "../functions";
 import { recordDeliveries } from "../modules/deliveries/lib";
 import { bookingChanged } from "../modules/points/auto";
 import {
@@ -70,7 +69,7 @@ function moveBlocker(booking: Doc<"bookings">, now: number): string | null {
  * che mancano, i liberi che lasciano meno buchi. `null` se non bastano.
  */
 async function courtsFor(
-  ctx: QueryCtx,
+  ctx: ClubQueryCtx,
   booking: Doc<"bookings">,
   start: number,
 ): Promise<Doc<"slots">[] | null> {
@@ -119,7 +118,7 @@ export const options = serverQuery({
     // Gli orari di inizio della giornata, a scaglioni come quelli del sito:
     // ogni fascia di apertura, finché la partita ci sta dentro per intero.
     // In un giorno chiuso non ci sono orari da proporre.
-    const settings = await bookingSettings(ctx);
+    const settings = await bookingSettings(ctx, ctx.club._id);
     const starts = windowsForDay(
       settings,
       clubDayKey(booking.bookingDate),
@@ -204,7 +203,7 @@ export const move = serverMutation({
       );
     }
 
-    const settings = await bookingSettings(ctx);
+    const settings = await bookingSettings(ctx, ctx.club._id);
     const closed = closedReason(settings, bookingDate);
     if (closed) throw new Error(closed);
     if (!isWithinOpeningHours(settings, bookingDate, MATCH_DURATION_MINUTES)) {

@@ -217,8 +217,14 @@ Da 4 a 7 giorni.
       segreto sbagliato, manutenzione.
 - [ ] **Modulo per modulo**, passando ai wrapper e ai nuovi indici, con i test
       di isolamento che crescono insieme:
-  - [ ] settings e slots (`bookingSettings` per club, niente più `.first()`
-        e `.collect()` sull'intera tabella);
+  - [x] settings e slots (in dev il 29/10/2026): `settingsRowOf`,
+        `bookingSettings` e `clubCourts` (`modules/settings/lib.ts`) vogliono
+        il club, e leggono da `by_club` e `by_club_name`. La disponibilità dei
+        campi (`courtsAt`, `pickCourt`, `findAvailableSlot`) prende il club
+        da `ctx.club`; il nome di un campo è unico dentro il club. Il cron dei
+        giorni vuoti legge Padel Sport per slug finché i cron non fanno un
+        giro per club, e `payments/checkout:open` riceve il club dall'action
+        (il controllo del club sulla prenotazione resta al modulo payments);
   - [ ] bookings;
   - [ ] openMatches, matchRequests, circles, friends;
   - [ ] clients, players, memberships, privacy;

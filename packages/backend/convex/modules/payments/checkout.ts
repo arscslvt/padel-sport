@@ -83,12 +83,12 @@ type Opened =
  * sola: due tocchi su «Paga ora» non devono produrre due pagine di pagamento.
  */
 export const open = internalMutation({
-  args: { code: v.string() },
-  handler: async (ctx, { code }): Promise<Opened> => {
+  args: { code: v.string(), clubId: v.id("clubs") },
+  handler: async (ctx, { code, clubId }): Promise<Opened> => {
     // L'interruttore del club si controlla qui, dentro la stessa transazione
     // che apre il tentativo: nascondere il pulsante non basta, la funzione si
     // può chiamare anche senza passare dal sito.
-    if (!(await onlinePaymentsActive(ctx))) {
+    if (!(await onlinePaymentsActive(ctx, clubId))) {
       throw new Error(
         "Il pagamento online non è attivo: puoi pagare in struttura.",
       );
@@ -244,7 +244,7 @@ export const start = clubAction({
 
     const opened: Opened = await ctx.runMutation(
       internal.modules.payments.checkout.open,
-      { code },
+      { code, clubId: ctx.club._id },
     );
     if (opened.kind === "reuse") return { url: opened.url };
 

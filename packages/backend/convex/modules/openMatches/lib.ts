@@ -1,9 +1,15 @@
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
+import type { ClubQueryCtx } from "../../functions";
 import { externalBlocksBetween } from "../courtCalendar/lib";
 import { confirmToNewPlayers } from "../notifications/bookingPlayers";
 import { bookingChanged } from "../points/auto";
-import { bookingSettings, clubMoment, toMinutes } from "../settings/lib";
+import {
+  bookingSettings,
+  clubCourts,
+  clubMoment,
+  toMinutes,
+} from "../settings/lib";
 
 export const SLOT_INTERVAL_MINUTES = 30;
 export const MATCH_DURATION_MINUTES = 90;
@@ -150,7 +156,7 @@ function byCourtName(a: Doc<"slots">, b: Doc<"slots">): number {
  * Gli appuntamenti di SumUp non contano: non sappiamo su che campo siano.
  */
 export async function pickCourt(
-  ctx: QueryCtx,
+  ctx: ClubQueryCtx,
   bookingDate: number,
   free: Doc<"slots">[],
   ignore: readonly Id<"bookings">[] = [],
@@ -165,7 +171,7 @@ export async function pickCourt(
  * abbastanza.
  */
 export async function pickCourts(
-  ctx: QueryCtx,
+  ctx: ClubQueryCtx,
   bookingDate: number,
   free: Doc<"slots">[],
   count: number,
@@ -177,19 +183,18 @@ export async function pickCourts(
 
 /** I campi liberi, dal migliore al peggiore secondo i buchi che lasciano. */
 async function rankCourts(
-  ctx: QueryCtx,
+  ctx: ClubQueryCtx,
   bookingDate: number,
   free: Doc<"slots">[],
   ignore: readonly Id<"bookings">[],
 ): Promise<Doc<"slots">[]> {
-
   const { weekday, minutes } = clubMoment(bookingDate);
   const start = minutes;
   const end = minutes + MATCH_DURATION_MINUTES;
 
   // I bordi della fascia di apertura contano come una partita: mezz'ora fra
   // l'apertura e la prima partita è un buco come un altro.
-  const settings = await bookingSettings(ctx);
+  const settings = await bookingSettings(ctx, ctx.club._id);
   const window = settings.windows.find(
     (candidate) =>
       candidate.weekday === weekday &&
@@ -250,7 +255,7 @@ async function rankCourts(
  * toglie un posto dal totale: prudente, e nel dubbio si rifiuta.
  */
 export async function findAvailableSlot(
-  ctx: QueryCtx,
+  ctx: ClubQueryCtx,
   bookingDate: number,
 ): Promise<Doc<"slots"> | null> {
   const { free, blocked } = await courtsAt(ctx, bookingDate);
@@ -268,7 +273,7 @@ export async function findAvailableSlot(
  * un elenco: degli appuntamenti presi su SumUp non sappiamo il campo.
  */
 export async function courtsAt(
-  ctx: QueryCtx,
+  ctx: ClubQueryCtx,
   bookingDate: number,
   /**
    * Prenotazioni da non contare: quella che si sta spostando, e la sua
@@ -276,7 +281,7 @@ export async function courtsAt(
    */
   ignore: readonly Id<"bookings">[] = [],
 ): Promise<{ free: Doc<"slots">[]; blocked: number }> {
-  const activeSlots = (await ctx.db.query("slots").collect())
+  const activeSlots = (await clubCourts(ctx, ctx.club._id))
     .filter((slot) => slot.active)
     .sort(byCourtName);
 

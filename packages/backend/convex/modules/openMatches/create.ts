@@ -90,7 +90,7 @@ export default clubMutation({
     // Gli orari di apertura sono configurabili dalla dashboard: fino a ieri il
     // server accettava qualsiasi orario allineato ai 30 minuti, comprese le
     // tre di notte.
-    const settings = await bookingSettings(ctx);
+    const settings = await bookingSettings(ctx, ctx.club._id);
 
     // Un giorno di chiusura si dice per quello che è, con il motivo: «la
     // struttura è chiusa nell'orario selezionato» farebbe cercare un'altra ora.

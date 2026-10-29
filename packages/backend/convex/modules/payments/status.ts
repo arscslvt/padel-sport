@@ -18,7 +18,7 @@ import { sumupConfig } from "./sumup";
  */
 export const enabled = clubQuery({
   args: {},
-  handler: async (ctx) => await onlinePaymentsActive(ctx),
+  handler: async (ctx) => await onlinePaymentsActive(ctx, ctx.club._id),
 });
 
 /**
@@ -30,7 +30,7 @@ export const setup = clubQuery({
   args: {},
   handler: async (ctx) => ({
     configured: sumupConfig() !== null,
-    enabled: (await bookingSettings(ctx)).onlinePaymentsEnabled,
+    enabled: (await bookingSettings(ctx, ctx.club._id)).onlinePaymentsEnabled,
   }),
 });
 
@@ -61,7 +61,7 @@ export const forCode = clubQuery({
     const paid = attempts.find((attempt) => attempt.status === "paid");
     const refunded = attempts.find((attempt) => attempt.status === "refunded");
     const latest = attempts[0];
-    const enabled = await onlinePaymentsActive(ctx);
+    const enabled = await onlinePaymentsActive(ctx, ctx.club._id);
     const blocker = payBlocker(booking, now);
 
     return {

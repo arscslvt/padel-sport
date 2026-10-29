@@ -134,7 +134,7 @@ export default serverMutation({
       throw new Error("L'orario va scelto a scaglioni di 30 minuti.");
     }
 
-    const settings = await bookingSettings(ctx);
+    const settings = await bookingSettings(ctx, ctx.club._id);
     const closed = closedReason(settings, args.bookingDate);
     if (closed) throw new Error(closed);
     if (

@@ -2,9 +2,10 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { MAINTENANCE_ERROR } from "./functions";
 import { DEFAULT_CLUB_SLUG } from "./modules/clubs/lib";
+import { clubCourts } from "./modules/settings/lib";
 import { setupTest } from "./test.setup";
 
 const SECRET = "segreto-dei-test";
@@ -112,6 +113,61 @@ describe("isolamento fra club", () => {
     });
 
     expect(await t.run((ctx) => ctx.db.get(id))).toMatchObject({ clubId: b });
+  });
+});
+
+describe("impostazioni e campi per club", () => {
+  const settings = { secret: SECRET, windows: [], bookableDays: 14 };
+
+  test("ogni club legge e salva la sua configurazione", async () => {
+    const { t } = await twoClubs();
+
+    await t.mutation(api.modules.settings.booking.update, {
+      ...settings,
+      ...staffB,
+    });
+    await t.mutation(api.modules.settings.booking.update, {
+      ...settings,
+      ...staffA,
+      bookableDays: 3,
+    });
+
+    const own = (clubSlug?: string) =>
+      t.query(api.modules.settings.booking.get, { clubSlug });
+    expect((await own()).bookableDays).toBe(3);
+    expect((await own("altro-club")).bookableDays).toBe(14);
+    expect(
+      await t.run((ctx) => ctx.db.query("bookingSettings").collect()),
+    ).toHaveLength(2);
+  });
+
+  test("il cron dei giorni vuoti non legge gli orari di un altro club", async () => {
+    const { t, b } = await twoClubs();
+    // L'altro club è chiuso tutti i giorni, e la sua riga è la prima della
+    // tabella: Padel Sport, che non ha mai salvato, resta aperto.
+    await t.run((ctx) =>
+      ctx.db.insert("bookingSettings", {
+        clubId: b,
+        windows: [],
+        bookableDays: 7,
+        updatedAt: 0,
+      }),
+    );
+
+    const result = await t.mutation(
+      internal.modules.reminders.emptyDays.default,
+      { force: true },
+    );
+    expect(result.empty).toHaveLength(3);
+  });
+
+  test("i campi del club, anche fuori dai wrapper", async () => {
+    const { t, a, b } = await twoClubs();
+    const names = await t.run(async (ctx) => ({
+      a: (await clubCourts(ctx, a)).map((court) => court.name),
+      b: (await clubCourts(ctx, b)).map((court) => court.name),
+    }));
+    expect(names).toEqual({ a: ["Campo 1"], b: ["Campo B"] });
   });
 });
 

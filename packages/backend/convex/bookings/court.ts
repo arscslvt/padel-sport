@@ -9,6 +9,7 @@ import {
   courtsOf,
   joinCourtNames,
 } from "../modules/openMatches/lib";
+import { clubCourts } from "../modules/settings/lib";
 
 /**
  * Lo staff cambia il campo di una prenotazione, alla stessa ora.
@@ -63,7 +64,7 @@ export const options = serverQuery({
     const freeIds = new Set(free.map((court) => court._id));
     const mine = courtsOf(booking);
 
-    const all = await ctx.db.query("slots").collect();
+    const all = await clubCourts(ctx, ctx.club._id);
     const courts = all
       .filter((court) => court.active || mine.includes(court._id))
       .sort((a, b) => a.name.localeCompare(b.name, "it", { numeric: true }))

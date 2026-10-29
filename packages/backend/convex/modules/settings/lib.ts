@@ -1,4 +1,4 @@
-import type { Doc } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
 import { CLUB_TIME_ZONE } from "../../utils/clubTime";
 import {
@@ -55,10 +55,28 @@ export const DEFAULT_SETTINGS: BookingSettings = {
   onlinePaymentsEnabled: false,
 };
 
-export async function bookingSettings(ctx: QueryCtx): Promise<BookingSettings> {
-  const row: Doc<"bookingSettings"> | null = await ctx.db
+/**
+ * La riga di configurazione del club, se l'ha mai salvata.
+ *
+ * Per club e non `.first()` sull'intera tabella: dentro i wrapper le regole
+ * per riga nasconderebbero comunque quelle degli altri, ma cron e funzioni
+ * interne non hanno regole, e lì il primo della tabella è un club qualsiasi.
+ */
+export async function settingsRowOf(
+  ctx: QueryCtx,
+  clubId: Id<"clubs">,
+): Promise<Doc<"bookingSettings"> | null> {
+  return await ctx.db
     .query("bookingSettings")
+    .withIndex("by_club", (q) => q.eq("clubId", clubId))
     .first();
+}
+
+export async function bookingSettings(
+  ctx: QueryCtx,
+  clubId: Id<"clubs">,
+): Promise<BookingSettings> {
+  const row = await settingsRowOf(ctx, clubId);
 
   if (!row) return DEFAULT_SETTINGS;
 
@@ -71,6 +89,17 @@ export async function bookingSettings(ctx: QueryCtx): Promise<BookingSettings> {
     fullSquadRequired: row.fullSquadRequired ?? false,
     onlinePaymentsEnabled: row.onlinePaymentsEnabled ?? false,
   };
+}
+
+/** I campi del club, anche quelli spenti, in ordine di nome. */
+export async function clubCourts(
+  ctx: QueryCtx,
+  clubId: Id<"clubs">,
+): Promise<Doc<"slots">[]> {
+  return await ctx.db
+    .query("slots")
+    .withIndex("by_club_name", (q) => q.eq("clubId", clubId))
+    .collect();
 }
 
 export function toMinutes(time: string): number {

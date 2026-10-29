@@ -36,7 +36,7 @@ export default clubQuery({
     // in struttura a ridosso dell'orario, non prima.
     const now = Date.now();
     const from = now - MATCH_DURATION_MS;
-    const paymentsActive = await onlinePaymentsActive(ctx);
+    const paymentsActive = await onlinePaymentsActive(ctx, ctx.club._id);
 
     const own = await ctx.db
       .query("bookings")
