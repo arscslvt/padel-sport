@@ -41,7 +41,7 @@ export default clubQuery({
 
     const view = await toMatchView(ctx, match);
 
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
 
     let requestStatus:
       | "pending"

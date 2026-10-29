@@ -20,7 +20,7 @@ const SCAN = 40;
 export default clubQuery({
   args: { term: v.string() },
   handler: async (ctx, { term }) => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return [];
 
     const trimmed = term.trim();

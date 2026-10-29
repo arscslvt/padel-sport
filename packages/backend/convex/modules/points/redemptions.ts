@@ -26,7 +26,7 @@ import { programState } from "./terms";
 export const redeem = clubMutation({
   args: { rewardId: v.id("rewards") },
   handler: async (ctx, { rewardId }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
     assertPointsUnfrozen(player);
 
     // Chi sta uscendo riscatta ancora: ha dieci giorni per farlo.

@@ -21,7 +21,7 @@ export default clubMutation({
     accept: v.boolean(),
   },
   handler: async (ctx, { inviteId, accept }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const invite = await ctx.db.get(inviteId);
     if (!invite) {

@@ -12,7 +12,7 @@ export default clubMutation({
     name: v.string(),
   },
   handler: async (ctx, { circleId, name }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
     await requireCircleOwner(ctx, circleId, player._id);
 
     const trimmed = name.trim();

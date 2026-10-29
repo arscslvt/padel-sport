@@ -26,7 +26,7 @@ export interface CirclesView {
 export default clubQuery({
   args: {},
   handler: async (ctx): Promise<CirclesView | null> => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return null;
 
     const memberships = await membershipsOf(ctx, player._id);

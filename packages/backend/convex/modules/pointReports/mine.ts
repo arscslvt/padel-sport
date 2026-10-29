@@ -13,7 +13,7 @@ const LIMIT = 10;
 export default clubQuery({
   args: {},
   handler: async (ctx) => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return [];
 
     const reports = await ctx.db

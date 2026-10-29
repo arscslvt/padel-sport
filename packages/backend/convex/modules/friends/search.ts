@@ -19,7 +19,7 @@ const CODE_PATTERN = /^\d{4,6}$/;
 export default clubQuery({
   args: { term: v.string() },
   handler: async (ctx, { term }): Promise<SearchResultView[]> => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return [];
 
     const trimmed = term.trim();

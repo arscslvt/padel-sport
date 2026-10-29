@@ -24,7 +24,7 @@ export default clubMutation({
     message: v.string(),
   },
   handler: async (ctx, args) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const message = args.message.trim();
     if (message.length < MIN_MESSAGE) {

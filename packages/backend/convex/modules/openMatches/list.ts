@@ -32,7 +32,7 @@ export default clubQuery({
       .order("asc")
       .take(50);
 
-    const player = includeOwn ? null : await getIdentityPlayer(ctx);
+    const player = includeOwn ? null : await getIdentityPlayer(ctx, ctx.club._id);
     const visible = player
       ? matches.filter((match) => match.creatorId !== player._id)
       : matches;

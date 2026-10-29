@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
-import { clubMutation } from "../../functions";
+import { type ClubMutationCtx, clubMutation } from "../../functions";
 import {
   occupancyOf,
   requirePlayer,
@@ -62,10 +62,10 @@ export async function addGuestToMatch(
 
 /** Solo il creatore mette mano alla squadra di una partita già creata. */
 async function requireMatchCreator(
-  ctx: MutationCtx,
+  ctx: ClubMutationCtx,
   matchId: Id<"openMatches">,
 ): Promise<{ match: Doc<"openMatches">; player: Doc<"players"> }> {
-  const player = await requirePlayer(ctx);
+  const player = await requirePlayer(ctx, ctx.club._id);
 
   const match = await ctx.db.get(matchId);
   if (!match) {

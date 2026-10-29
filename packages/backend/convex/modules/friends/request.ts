@@ -13,7 +13,7 @@ import { ensureFriendRequest } from "./lib";
 export default clubMutation({
   args: { playerId: v.id("players") },
   handler: async (ctx, { playerId }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     if (playerId === player._id) {
       throw new Error("Non puoi aggiungere te stesso.");

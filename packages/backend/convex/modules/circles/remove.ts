@@ -16,7 +16,7 @@ export default clubMutation({
     playerId: v.id("players"),
   },
   handler: async (ctx, { circleId, playerId }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
     const circle = await requireCircleOwner(ctx, circleId, player._id);
 
     if (playerId === circle.ownerId) {

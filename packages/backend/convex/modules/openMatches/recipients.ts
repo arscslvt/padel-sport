@@ -14,7 +14,7 @@ import { guestsOf, MAX_PLAYERS, occupancyOf, requirePlayer } from "./lib";
 export default clubQuery({
   args: { matchId: v.id("openMatches") },
   handler: async (ctx, { matchId }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const match = await ctx.db.get(matchId);
     if (!match) return null;

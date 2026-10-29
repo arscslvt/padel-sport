@@ -366,29 +366,45 @@ export async function generatePlayerCode(
   throw new Error("Non è stato possibile assegnarti un codice. Riprova.");
 }
 
+/**
+ * La scheda di un account nel club. Le schede sono una per club
+ * (docs/multi-club.md): lo stesso account può averne una in ogni club, e
+ * senza il club `unique()` fallirebbe proprio per chi gioca in più d'uno.
+ */
+export async function playerOfUser(
+  ctx: QueryCtx,
+  clubId: Id<"clubs">,
+  clerkUserId: string,
+): Promise<Doc<"players"> | null> {
+  return await ctx.db
+    .query("players")
+    .withIndex("by_club_clerk_user_id", (q) =>
+      q.eq("clubId", clubId).eq("clerkUserId", clerkUserId),
+    )
+    .unique();
+}
+
 export async function getIdentityPlayer(
   ctx: QueryCtx,
+  clubId: Id<"clubs">,
 ): Promise<Doc<"players"> | null> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return null;
 
-  return await ctx.db
-    .query("players")
-    .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", identity.subject))
-    .unique();
+  return await playerOfUser(ctx, clubId, identity.subject);
 }
 
 /** Richiede utente autenticato con profilo giocatore completo. */
-export async function requirePlayer(ctx: QueryCtx): Promise<Doc<"players">> {
+export async function requirePlayer(
+  ctx: QueryCtx,
+  clubId: Id<"clubs">,
+): Promise<Doc<"players">> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new Error("Devi effettuare l'accesso.");
   }
 
-  const player = await ctx.db
-    .query("players")
-    .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", identity.subject))
-    .unique();
+  const player = await playerOfUser(ctx, clubId, identity.subject);
 
   if (!player) {
     throw new Error("Completa il tuo profilo giocatore prima di continuare.");

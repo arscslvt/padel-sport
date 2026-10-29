@@ -29,7 +29,7 @@ import {
 export default clubQuery({
   args: {},
   handler: async (ctx) => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return [];
 
     // Una partita iniziata da poco vale ancora la pena di mostrarla: si entra

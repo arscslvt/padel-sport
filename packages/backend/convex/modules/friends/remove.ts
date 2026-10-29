@@ -10,7 +10,7 @@ import { friendshipBetween } from "./lib";
 export default clubMutation({
   args: { playerId: v.id("players") },
   handler: async (ctx, { playerId }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const friendship = await friendshipBetween(ctx, player._id, playerId);
     if (!friendship) {

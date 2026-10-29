@@ -69,7 +69,13 @@ export default serverQuery({
 
     // Le schede senza account non possono essere di nessuno dello staff.
     // Le schede eliminate restano solo come copia: in elenco non ci sono.
-    const players = (await ctx.db.query("players").collect()).filter(
+    // Tutte le schede del club: l'indice serve solo per il prefisso.
+    const players = (
+      await ctx.db
+        .query("players")
+        .withIndex("by_club_code", (q) => q.eq("clubId", ctx.club._id))
+        .collect()
+    ).filter(
       (player) =>
         !player.deletion?.deletedAt &&
         (!player.clerkUserId || !excluded.has(player.clerkUserId)),

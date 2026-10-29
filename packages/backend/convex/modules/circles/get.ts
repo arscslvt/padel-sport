@@ -44,7 +44,7 @@ export interface CircleDetailView {
 export default clubQuery({
   args: { circleId: v.id("circles") },
   handler: async (ctx, { circleId }): Promise<CircleDetailView | null> => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return null;
 
     const circle = await ctx.db.get(circleId);

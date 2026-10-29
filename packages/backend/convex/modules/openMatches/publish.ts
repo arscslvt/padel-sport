@@ -25,7 +25,7 @@ export default clubMutation({
     joinMode: v.union(v.literal("direct"), v.literal("request")),
   },
   handler: async (ctx, { matchId, levelMin, levelMax, joinMode }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const match = await ctx.db.get(matchId);
     if (!match) {

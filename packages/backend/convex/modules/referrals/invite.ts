@@ -24,7 +24,7 @@ export const create = clubMutation({
     token: v.string(),
   },
   handler: async (ctx, args) => {
-    const inviter = await requirePlayer(ctx);
+    const inviter = await requirePlayer(ctx, ctx.club._id);
     if (inviter.suspension) {
       throw new Error("Il tuo account è sospeso: non puoi invitare amici.");
     }
@@ -152,7 +152,7 @@ export const byToken = clubQuery({
 export const mine = clubQuery({
   args: {},
   handler: async (ctx) => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return null;
 
     const rows = await ctx.db

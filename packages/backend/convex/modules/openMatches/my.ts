@@ -26,7 +26,7 @@ export interface MyBookingView {
 export default clubQuery({
   args: {},
   handler: async (ctx): Promise<MyBookingView[] | null> => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return null;
 
     const horizon = Date.now() - MATCH_DURATION_MS;

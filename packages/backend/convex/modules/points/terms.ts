@@ -68,7 +68,7 @@ export function programState(
 export const accept = clubMutation({
   args: { version: v.string() },
   handler: async (ctx, { version }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     // La versione la manda la pagina che il cliente ha davanti: se nel
     // frattempo il regolamento è cambiato, sta accettando un testo che non è

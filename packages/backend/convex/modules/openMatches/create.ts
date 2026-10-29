@@ -75,7 +75,7 @@ export default clubMutation({
     origin: v.optional(v.union(v.literal("app"), v.literal("web"))),
   },
   handler: async (ctx, args) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     if (args.bookingDate <= Date.now()) {
       throw new Error("La data e l'ora devono essere nel futuro.");

@@ -5,6 +5,7 @@ import {
   getIdentityPlayer,
   LEVEL_MAX,
   LEVEL_MIN,
+  playerOfUser,
   toPlayerView,
 } from "./lib";
 
@@ -22,7 +23,7 @@ import {
 export const me = clubQuery({
   args: {},
   handler: async (ctx) => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return null;
 
     return { ...toPlayerView(player), phone: player.phone };
@@ -63,12 +64,7 @@ export const upsertProfile = clubMutation({
         ? identity.pictureUrl
         : undefined);
 
-    const existing = await ctx.db
-      .query("players")
-      .withIndex("by_clerk_user_id", (q) =>
-        q.eq("clerkUserId", identity.subject),
-      )
-      .unique();
+    const existing = await playerOfUser(ctx, ctx.club._id, identity.subject);
 
     if (existing) {
       await ctx.db.patch(existing._id, {

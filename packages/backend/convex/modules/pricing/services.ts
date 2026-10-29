@@ -34,7 +34,7 @@ export const list = clubQuery({
 export const quote = clubQuery({
   args: {},
   handler: async (ctx) => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     return await matchPricing(ctx, player?._id);
   },
 });

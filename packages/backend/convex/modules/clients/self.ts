@@ -1,14 +1,18 @@
 import { v } from "convex/values";
 
-import type { QueryCtx } from "../../_generated/server";
 import {
+  type ClubQueryCtx,
   clubMutation,
   clubQuery,
   serverMutation,
   serverQuery,
 } from "../../functions";
 import { residence as residenceValidator } from "../../tables/players";
-import { getIdentityPlayer, requirePlayer } from "../openMatches/lib";
+import {
+  getIdentityPlayer,
+  playerOfUser,
+  requirePlayer,
+} from "../openMatches/lib";
 import { displayName } from "./lib";
 import { HEALTH_CONSENT_REQUIRED } from "./profile";
 
@@ -33,7 +37,7 @@ const MAX_HEALTH = 500;
 export const me = clubQuery({
   args: {},
   handler: async (ctx) => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return null;
 
     // Le note del club restano fuori: non sono scritte per la persona.
@@ -66,7 +70,7 @@ export const me = clubQuery({
 export const setSearchable = clubMutation({
   args: { searchable: v.boolean() },
   handler: async (ctx, { searchable }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
     await ctx.db.patch(player._id, {
       searchableSince: searchable
         ? (player.searchableSince ?? Date.now())
@@ -117,7 +121,7 @@ export const update = clubMutation({
     healthConsent: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const phone = args.phone.trim().replace(/\s+/g, "");
     if (!/^\+?[0-9]{8,15}$/.test(phone)) {
@@ -166,10 +170,16 @@ export const update = clubMutation({
 });
 
 /** L'indirizzo è libero, o è già di questa stessa scheda? */
-async function emailTakenBy(ctx: QueryCtx, email: string, clerkUserId: string) {
+async function emailTakenBy(
+  ctx: ClubQueryCtx,
+  email: string,
+  clerkUserId: string,
+) {
   const taken = await ctx.db
     .query("players")
-    .withIndex("by_email", (q) => q.eq("email", email))
+    .withIndex("by_club_email", (q) =>
+      q.eq("clubId", ctx.club._id).eq("email", email),
+    )
     .first();
   return taken && taken.clerkUserId !== clerkUserId ? taken : null;
 }
@@ -204,10 +214,7 @@ export const syncEmail = serverMutation({
     email: v.string(),
   },
   handler: async (ctx, { clerkUserId, email }) => {
-    const player = await ctx.db
-      .query("players")
-      .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", clerkUserId))
-      .unique();
+    const player = await playerOfUser(ctx, ctx.club._id, clerkUserId);
     if (!player) throw new Error("Scheda non trovata.");
 
     const normalized = email.trim().toLowerCase();

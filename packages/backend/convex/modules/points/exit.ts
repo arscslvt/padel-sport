@@ -78,7 +78,7 @@ async function pendingRequests(ctx: MutationCtx, playerId: Doc<"players">["_id"]
 export const leave = clubMutation({
   args: {},
   handler: async (ctx) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     // Da sospesa non potrebbe riscattare nei dieci giorni: prima va
     // riattivato l'account.
@@ -102,7 +102,7 @@ export const leave = clubMutation({
 export const stay = clubMutation({
   args: {},
   handler: async (ctx) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     if (programState(player) !== "leaving" || !player.pointsProgram) {
       throw new Error("Non c'è un'uscita dal programma da annullare.");

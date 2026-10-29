@@ -26,7 +26,7 @@ const HISTORY_LIMIT = 12;
 export default clubQuery({
   args: {},
   handler: async (ctx) => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return null;
 
     const balance = balanceOf(player);

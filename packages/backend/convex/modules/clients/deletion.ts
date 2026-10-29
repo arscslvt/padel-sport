@@ -233,7 +233,7 @@ export const cancel = serverMutation({
 export const mine = clubQuery({
   args: {},
   handler: async (ctx) => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player?.deletion || isDeleted(player)) return null;
     return {
       requestedAt: player.deletion.requestedAt,
@@ -246,7 +246,7 @@ export const mine = clubQuery({
 export const requestMine = clubMutation({
   args: {},
   handler: async (ctx) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
     return await schedule(ctx, player, "self", player.clerkUserId);
   },
 });
@@ -254,7 +254,7 @@ export const requestMine = clubMutation({
 export const cancelMine = clubMutation({
   args: {},
   handler: async (ctx) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
     if (!player.deletion || isDeleted(player)) {
       throw new ConvexError("Non c'è nessuna cancellazione da annullare.");
     }

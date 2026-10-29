@@ -330,6 +330,69 @@ describe("partite, richieste e ricerche per club", () => {
   });
 });
 
+describe("schede per club", () => {
+  /** Lo stesso account con una scheda in ognuno dei due club. */
+  async function sameAccount() {
+    const clubs = await twoClubs();
+    await clubs.t.run(async (ctx) => {
+      await ctx.db.insert("players", {
+        ...player(clubs.a, "Anna"),
+        email: "anna@esempio.it",
+      });
+      await ctx.db.insert("players", {
+        ...player(clubs.b, "Anna B"),
+        clerkUserId: "user_Anna",
+        email: "anna@esempio.it",
+      });
+    });
+    return { ...clubs, asAnna: clubs.t.withIdentity({ subject: "user_Anna" }) };
+  }
+
+  test("l'account trova la sua scheda in ogni club", async () => {
+    const { asAnna } = await sameAccount();
+    const me = (clubSlug?: string) =>
+      asAnna.query(api.modules.openMatches.players.me, { clubSlug });
+    expect((await me())?.name).toBe("Anna");
+    expect((await me("altro-club"))?.name).toBe("Anna B");
+  });
+
+  test("le funzioni interne dei pagamenti non si confondono fra le schede", async () => {
+    const { asAnna, a } = await sameAccount();
+    // Senza il club, due schede per lo stesso account fanno fallire unique().
+    await expect(
+      asAnna.query(internal.modules.payments.checkout.ownAttempts, {
+        code: "NESSUNA",
+        clubId: a,
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  test("un'email del club A è libera nel club B", async () => {
+    const { t, a } = await twoClubs();
+    await t.run((ctx) =>
+      ctx.db.insert("players", {
+        ...player(a, "Anna"),
+        email: "anna@esempio.it",
+      }),
+    );
+    const create = (staff: typeof staffA) =>
+      t.mutation(api.modules.clients.profile.create, {
+        ...staff,
+        firstName: "Altra",
+        lastName: "Persona",
+        email: "anna@esempio.it",
+      });
+
+    await expect(create(staffA)).rejects.toThrow(
+      "C'è già una scheda con questo indirizzo",
+    );
+    await create(staffB);
+
+    const clients = await t.query(api.modules.clients.list.default, staffA);
+    expect(clients.map((row) => row.name)).toEqual(["Anna"]);
+  });
+});
+
 describe("giocatori per club", () => {
   test("lo stesso account è un giocatore solo nel club dove ha la scheda", async () => {
     const { t, a, b } = await twoClubs();

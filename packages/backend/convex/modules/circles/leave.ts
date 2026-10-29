@@ -15,7 +15,7 @@ import { requireCircleMember } from "./lib";
 export default clubMutation({
   args: { circleId: v.id("circles") },
   handler: async (ctx, { circleId }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
     const { circle, membership } = await requireCircleMember(
       ctx,
       circleId,

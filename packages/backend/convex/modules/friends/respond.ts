@@ -14,7 +14,7 @@ export default clubMutation({
     accept: v.boolean(),
   },
   handler: async (ctx, { friendshipId, accept }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const friendship = await ctx.db.get(friendshipId);
     if (!friendship) {

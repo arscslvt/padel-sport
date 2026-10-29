@@ -19,7 +19,7 @@ const WEEKLY_TARGET = 3;
 export default clubQuery({
   args: {},
   handler: async (ctx) => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return null;
 
     const [firstMatch, weekly, online, referral, welcome] = await Promise.all([

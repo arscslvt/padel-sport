@@ -9,7 +9,7 @@ import { staffBookingUrl } from "../../utils/staffLinks";
 export const request = clubMutation({
   args: { matchId: v.id("openMatches") },
   handler: async (ctx, { matchId }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const match = await ctx.db.get(matchId);
     if (!match) {
@@ -78,7 +78,7 @@ export const respond = clubMutation({
     accept: v.boolean(),
   },
   handler: async (ctx, { requestId, accept }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const joinRequest = await ctx.db.get(requestId);
     if (!joinRequest) {
@@ -119,7 +119,7 @@ export const respond = clubMutation({
 export const listForMatch = clubQuery({
   args: { matchId: v.id("openMatches") },
   handler: async (ctx, { matchId }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const match = await ctx.db.get(matchId);
     if (!match || match.creatorId !== player._id) {

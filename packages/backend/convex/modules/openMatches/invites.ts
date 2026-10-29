@@ -32,7 +32,7 @@ export const respond = clubMutation({
     accept: v.boolean(),
   },
   handler: async (ctx, { inviteId, accept }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const invite = await ctx.db.get(inviteId);
     if (!invite) {
@@ -104,7 +104,7 @@ export interface MatchInviteDetail {
 export const getMine = clubQuery({
   args: { inviteId: v.string() },
   handler: async (ctx, { inviteId }): Promise<MatchInviteDetail | null> => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return null;
 
     const id = ctx.db.normalizeId("matchInvites", inviteId);
@@ -153,7 +153,7 @@ export const getMine = clubQuery({
 export const listMine = clubQuery({
   args: {},
   handler: async (ctx): Promise<MatchInviteView[]> => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return [];
 
     const invites = await ctx.db

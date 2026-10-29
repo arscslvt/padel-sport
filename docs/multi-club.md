@@ -246,7 +246,20 @@ Da 4 a 7 giorni.
         (inviti, richieste, ospiti, cerchie, amicizie) partono sempre da una
         partita, una cerchia o un giocatore e restano com'erano. La pulizia
         delle richieste vecchie (`privacy/retention`) passa con privacy;
-  - [ ] clients, players, memberships, privacy;
+  - [x] clients, players, memberships, privacy (in dev il 29/10/2026): la
+        scheda di un account si cerca nel club (`playerOfUser`,
+        `getIdentityPlayer`, `requirePlayer` vogliono il club, su
+        `by_club_clerk_user_id`). Senza, nelle funzioni interne dei pagamenti
+        un account con una scheda in due club faceva fallire `unique()`: ora
+        ricevono il club dall'action. L'email libera e l'elenco dei clienti
+        sono per club (`by_club_email`, `by_club_code`). Le tessere si leggono
+        solo dal giocatore (`by_player`), `by_end` non lo usa nessuno. Le
+        cancellazioni programmate restano sugli indici globali, come
+        previsto. La pulizia dei dati vecchi (`privacy/retention`) gira per
+        tutti i club con le stesse scadenze: con i cron si decide se farla per
+        club, e solo allora i suoi indici vecchi si possono togliere. Restano
+        sugli indici vecchi i giocatori cercati da referrals e da
+        `points/expire`, che passano con i loro moduli;
   - [ ] payments;
   - [ ] points, rewards, referrals, pointReports;
   - [ ] eventi, comunicazioni, RSVP;

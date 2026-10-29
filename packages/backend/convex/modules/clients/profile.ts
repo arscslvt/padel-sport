@@ -1,8 +1,7 @@
 import { v } from "convex/values";
 
 import type { Id } from "../../_generated/dataModel";
-import type { MutationCtx } from "../../_generated/server";
-import { serverMutation } from "../../functions";
+import { type ClubMutationCtx, serverMutation } from "../../functions";
 import { generatePlayerCode, LEVEL_MAX, LEVEL_MIN } from "../openMatches/lib";
 import {
   consents as consentsValidator,
@@ -98,13 +97,17 @@ function clean(value: string | undefined): string | undefined {
 
 /** Nessun'altra scheda deve avere questo indirizzo: sarebbero due volte la stessa persona. */
 async function assertEmailFree(
-  ctx: MutationCtx,
+  ctx: ClubMutationCtx,
   email: string,
   exceptPlayerId?: Id<"players">,
 ) {
+  // Nel club: la stessa persona può avere una scheda in un altro, con la
+  // stessa email.
   const taken = await ctx.db
     .query("players")
-    .withIndex("by_email", (q) => q.eq("email", email))
+    .withIndex("by_club_email", (q) =>
+      q.eq("clubId", ctx.club._id).eq("email", email),
+    )
     .first();
 
   if (taken && taken._id !== exceptPlayerId) {

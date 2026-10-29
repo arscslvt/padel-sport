@@ -21,7 +21,7 @@ export default clubMutation({
     note: v.optional(v.string()),
   },
   handler: async (ctx, { name, playerIds, note }) => {
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, ctx.club._id);
 
     const trimmed = name.trim();
     if (trimmed.length < 2) {

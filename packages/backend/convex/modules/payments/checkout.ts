@@ -94,7 +94,7 @@ export const open = internalMutation({
       );
     }
 
-    const player = await requirePlayer(ctx);
+    const player = await requirePlayer(ctx, clubId);
     const booking = await bookingByCode(ctx, code);
 
     // Quella di un altro si comporta come una prenotazione che non c'è: dire
@@ -314,9 +314,9 @@ export const byCheckout = internalQuery({
 
 /** I tentativi della prenotazione, solo se chi chiede ne è il titolare. */
 export const ownAttempts = internalQuery({
-  args: { code: v.string() },
-  handler: async (ctx, { code }) => {
-    const player = await getIdentityPlayer(ctx);
+  args: { code: v.string(), clubId: v.id("clubs") },
+  handler: async (ctx, { code, clubId }) => {
+    const player = await getIdentityPlayer(ctx, clubId);
     const booking = await bookingByCode(ctx, code);
     if (!player || !booking || booking.createdByPlayer !== player._id) {
       return [];
@@ -403,7 +403,7 @@ export const refresh = clubAction({
   handler: async (ctx, { code }): Promise<PaymentStatus | null> => {
     const attempts: Doc<"payments">[] = await ctx.runQuery(
       internal.modules.payments.checkout.ownAttempts,
-      { code },
+      { code, clubId: ctx.club._id },
     );
 
     const latest = attempts.find((attempt) => attempt.checkoutId);

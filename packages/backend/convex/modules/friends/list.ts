@@ -17,7 +17,7 @@ export interface FriendsView {
 export default clubQuery({
   args: {},
   handler: async (ctx): Promise<FriendsView | null> => {
-    const player = await getIdentityPlayer(ctx);
+    const player = await getIdentityPlayer(ctx, ctx.club._id);
     if (!player) return null;
 
     const friendships = await friendshipsOf(ctx, player._id);
