@@ -280,14 +280,14 @@ Da 4 a 7 giorni.
         cliente col codice amico. Restano per tutti i club la scadenza dei
         punti (`points/expire`, cron) e il codice dei riscatti, generato dentro
         le regole per riga e mai cercato da altri;
-  - [x] eventi, comunicazioni, RSVP (in dev il 29/10/2026): iscrizioni e
-        comunicazioni partono dal documento Sanity (`by_form`,
+  - [x] eventi, comunicazioni, RSVP (in dev e in prod il 29/10/2026):
+        iscrizioni e comunicazioni partono dal documento Sanity (`by_form`,
         `by_document`) e i token per annullare sono unici per costruzione:
         restano com'erano. L'elenco della tabella `events`, deprecata, legge
         da `by_club_date`; `events/new`, interna e non chiamata da nessuno,
         riceve il club invece di `defaultClubId`. La cancellazione delle
         iscrizioni vecchie sta in `privacy/retention`;
-  - [x] supportRequests, notifications, push, reminders (in dev il
+  - [x] supportRequests, notifications, push, reminders (in dev e in prod il
         29/10/2026): `notifications/alert` e `push/send` vogliono il club,
         obbligatorio apposta: un avviso dimenticato senza club porterebbe
         nomi e orari dei clienti allo staff di un altro. Destinatari,
@@ -299,8 +299,8 @@ Da 4 a 7 giorni.
         webhook solo per tutti: va per club con `clubConfig`, prima di un
         secondo club. Aperto: un dispositivo dello staff iscritto in due club
         (`by_endpoint` è unico fra club);
-  - [x] weather, courtCalendar, deliveries (in dev il 29/10/2026): il meteo
-        del giorno e le occupazioni esterne si leggono per club
+  - [x] weather, courtCalendar, deliveries (in dev e in prod il 29/10/2026):
+        il meteo del giorno e le occupazioni esterne si leggono per club
         (`by_club_day`, `by_club_start`, `externalBlocksBetween` vuole il
         club). Le sincronizzazioni restano di Padel Sport, perché coordinate
         e calendario stanno ancora nelle variabili d'ambiente: diventano per
