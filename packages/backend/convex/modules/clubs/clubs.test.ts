@@ -59,6 +59,27 @@ describe("club di oggi", () => {
     await expect(link("staff")).rejects.toThrow("comincia con org_");
   });
 
+  test("la manutenzione si accende e si spegne", async () => {
+    const t = setupTest();
+    const { clubId } = await t.mutation(
+      internal.modules.clubs.seed.padelSport,
+      {},
+    );
+    const maintenance = async () =>
+      (await t.run((ctx) => ctx.db.get(clubId)))?.maintenance;
+
+    await t.mutation(internal.modules.clubs.seed.setMaintenance, { on: true });
+    expect(await maintenance()).toBe(true);
+    await t.mutation(internal.modules.clubs.seed.setMaintenance, { on: false });
+    expect(await maintenance()).toBe(false);
+    await expect(
+      t.mutation(internal.modules.clubs.seed.setMaintenance, {
+        on: true,
+        slug: "non-esiste",
+      }),
+    ).rejects.toThrow("Nessun club");
+  });
+
   test("le righe nuove nascono col club, anche quando il meteo le riscrive", async () => {
     const t = setupTest();
     const { clubId } = await t.mutation(

@@ -71,3 +71,27 @@ export const linkOrganization = internalMutation({
     return { clubId: club._id, changed: true };
   },
 });
+
+/**
+ * Accende o spegne la manutenzione di un club (docs/multi-club.md, Fase 3).
+ * In manutenzione le scritture si fermano per tutti tranne gli
+ * amministratori della piattaforma, e sito e gestionale lo dicono:
+ *
+ *   bunx convex run modules/clubs/seed:setMaintenance '{"on": true}' [--prod]
+ *
+ * Senza `slug` è Padel Sport. Ha effetto subito: la leggono le funzioni a
+ * ogni chiamata, e sito e gestionale con una query che si aggiorna da sola.
+ */
+export const setMaintenance = internalMutation({
+  args: { on: v.boolean(), slug: v.optional(v.string()) },
+  handler: async (ctx, { on, slug = DEFAULT_CLUB_SLUG }) => {
+    const club = await ctx.db
+      .query("clubs")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .unique();
+    if (!club) throw new Error(`Nessun club con lo slug ${slug}.`);
+
+    await ctx.db.patch(club._id, { maintenance: on });
+    return { slug, maintenance: on };
+  },
+});
