@@ -225,7 +225,7 @@ Da 4 a 7 giorni.
         giorni vuoti legge Padel Sport per slug finché i cron non fanno un
         giro per club, e `payments/checkout:open` riceve il club dall'action
         (il controllo del club sulla prenotazione resta al modulo payments);
-  - [x] bookings (in dev il 29/10/2026): disponibilità, agenda dello staff,
+  - [x] bookings (in dev e in prod il 29/10/2026): disponibilità, agenda dello staff,
         nomi sulle prenotazioni future, chiusure, scelta del campo e cron dei
         giorni vuoti leggono da `by_club_booking_date`, `by_club_status` e
         `by_club_created_at`. Il codice della prenotazione è unico dentro il
